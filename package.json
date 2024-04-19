@@ -4,6 +4,7 @@
   "description": "Editor de miniaturas de videos para o YouTube.",
   "main": "main.js",
   "scripts": {
+    "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -11,9 +12,12 @@
     "url": "git+https://github.com/Pesterenan/vtd.git"
   },
   "author": "Renan Torres",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/Pesterenan/vtd/issues"
   },
-  "homepage": "https://github.com/Pesterenan/vtd#readme"
+  "homepage": "https://github.com/Pesterenan/vtd#readme",
+  "devDependencies": {
+    "electron": "30.0.1"
+  }
 }
