@@ -2,9 +2,10 @@
   "name": "vtd",
   "version": "0.0.1",
   "description": "Editor de miniaturas de videos para o YouTube.",
-  "main": "main.js",
+  "main": "build/main.js",
   "scripts": {
-    "start": "electron .",
+    "compile": "tsc && cp ./index.html build",
+    "start": "npm run compile && electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -18,6 +19,7 @@
   },
   "homepage": "https://github.com/Pesterenan/vtd#readme",
   "devDependencies": {
-    "electron": "30.0.1"
+    "electron": "30.0.1",
+    "typescript": "^5.4.5"
   }
 }
