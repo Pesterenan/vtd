@@ -1,8 +1,8 @@
-const canvasDiv = document.getElementById("canvas");
+const mainCanvasDiv = document.getElementById("main-canvas");
 const myCanvas = document.createElement('canvas');
 myCanvas.height = 400;
 myCanvas.width = 400;
-canvasDiv.appendChild(myCanvas);
+mainCanvasDiv.appendChild(myCanvas);
 
 const ctx = myCanvas.getContext('2d');
 ctx.fillStyle = 'grey';
@@ -47,13 +47,13 @@ const animate = () => {
   animationId = requestAnimationFrame(animate);
 };
 
-canvasDiv.addEventListener('mouseover', () => {
+mainCanvasDiv.addEventListener('mouseover', () => {
   if (!animationId) {
     animationId = requestAnimationFrame(animate);
   }
 });
 
-canvasDiv.addEventListener('mouseout', () => {
+mainCanvasDiv.addEventListener('mouseout', () => {
   cancelAnimationFrame(animationId);
     animationId = null;
 });

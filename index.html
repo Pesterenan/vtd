@@ -4,14 +4,16 @@
     <meta charset="UTF-8">
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
+    <link rel="stylesheet" href="./src/index.css">
     <title>Video Thumbnail Designer</title>
   </head>
   <body>
-    <h1>Video Thumbnail Designer</h1>
-    We are using Node.js <span id="node-version"></span>,
-    Chromium <span id="chrome-version"></span>,
-    and Electron <span id="electron-version"></span>.
-    <div id="canvas"></div>
+    <main id="main-window" class="main-window">
+      <div id="main-canvas"></div>
+      <menu id="side-menu" class="side-menu">
+        <button class="btn-common">ABRIR</button>
+      </menu>
+    </main>
     <script src="./test.js"></script>
   </body>
 </html>
