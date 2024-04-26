@@ -24,4 +24,10 @@ A maior parte do projeto será utilizando JavaScript e conceitos de WebDev para 
 FFMpeg será utilizado para visualizar e extrair as imagens dos vídeos, e o Electron será a
 plataforma escolhida para a criação do app redistribuível.
 
+### Etapas de desenvolvimento
+---
+
+Criar interface crua da aplicação
+Terá um canvas no meio com um menu de ferramentas na direita
+canvas poderá desenhar caixas como teste de render
 

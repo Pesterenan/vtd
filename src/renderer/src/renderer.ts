@@ -1,26 +1,22 @@
-function init(): void {
+const initialize = (): void => {
   window.addEventListener('DOMContentLoaded', () => {
-    doAThing()
+    createWorkArea()
+    addOpenImageButtonListener()
   })
 }
 
-function doAThing(): void {
-  const versions = window.electron.process.versions
-  replaceText('.electron-version', `Electron v${versions.electron}`)
-  replaceText('.chrome-version', `Chromium v${versions.chrome}`)
-  replaceText('.node-version', `Node v${versions.node}`)
-
-  const ipcHandlerBtn = document.getElementById('ipcHandler')
-  ipcHandlerBtn?.addEventListener('click', () => {
-    window.electron.ipcRenderer.send('ping')
-  })
+const createWorkArea = (): void => {
+  const mainCanvasDiv: HTMLDivElement = document.getElementById('main-canvas')
+  const workAreaCanvas: HTMLCanvasElement = document.createElement('canvas')
+  mainCanvasDiv.append(workAreaCanvas)
+  workAreaCanvas.width = 400
+  workAreaCanvas.height = 300
+  workAreaCanvas.style.backgroundColor = 'grey'
 }
 
-function replaceText(selector: string, text: string): void {
-  const element = document.querySelector<HTMLElement>(selector)
-  if (element) {
-    element.innerText = text
-  }
+const addOpenImageButtonListener = (): void => {
+  const openImageButton = document.getElementById('open-image-btn')
+  openImageButton?.addEventListener('click', () => console.log('clicou'))
 }
 
-init()
+initialize()
