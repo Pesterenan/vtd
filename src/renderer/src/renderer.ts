@@ -1,17 +1,10 @@
+import { WorkArea } from '../components/workArea'
+
 const initialize = (): void => {
   window.addEventListener('DOMContentLoaded', () => {
-    createWorkArea()
+    const workArea = WorkArea.getInstance()
     addOpenImageButtonListener()
   })
-}
-
-const createWorkArea = (): void => {
-  const mainCanvasDiv: HTMLDivElement = document.getElementById('main-canvas')
-  const workAreaCanvas: HTMLCanvasElement = document.createElement('canvas')
-  mainCanvasDiv.append(workAreaCanvas)
-  workAreaCanvas.width = 400
-  workAreaCanvas.height = 300
-  workAreaCanvas.style.backgroundColor = 'grey'
 }
 
 const addOpenImageButtonListener = (): void => {
