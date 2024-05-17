@@ -26,8 +26,8 @@ code {
 }
 
 #main-window {
-  align-items: flex-start;
-  background-color: grey;
+  align-items: flex-end;
+  background-color: white;
   display: flex;
   flex-direction: row;
   flex: 1 0 100%;
@@ -39,13 +39,13 @@ code {
   flex: 0 1 100%;
   display: flex;
   align-items: center;
-  justify-contet: center;
-  background-color:lightgrey;
+  justify-content: center;
+  background-color:grey;
   min-height: 100vh;
 }
 
 #side-menu {
-  background-color: grey;
+  background-color: lightgrey;
   flex: 1 1 10rem;
   min-height: 100vh;
 }

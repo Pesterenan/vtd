@@ -3,8 +3,10 @@ import { Element } from './element'
 export class WorkArea {
   private static instance: WorkArea | null = null
   private workAreaCanvas: HTMLCanvasElement
-  private elements: Element[] | []
+  private elements: Element[] = []
   private context: CanvasRenderingContext2D | null = null
+  private selection: { x1: number; y1: number; x2: number; y2: number } | null = null
+  private isDragging: boolean = false
 
   private constructor() {
     const mainCanvasDiv: HTMLDivElement = document.getElementById('main-canvas') as HTMLDivElement
@@ -15,14 +17,57 @@ export class WorkArea {
     this.elements = []
     this.workAreaCanvas = document.createElement('canvas')
     mainCanvasDiv.append(this.workAreaCanvas)
-    this.workAreaCanvas.width = 400
-    this.workAreaCanvas.height = 300
-    this.workAreaCanvas.style.backgroundColor = 'grey'
+    this.workAreaCanvas.width = 480
+    this.workAreaCanvas.height = 320
+    this.workAreaCanvas.style.backgroundColor = 'white'
 
     this.context = this.workAreaCanvas.getContext('2d')
-    this.workAreaCanvas.addEventListener('click', () =>
-      this.addElement(new Element(10, 10, 100, 100, 1))
-    )
+    this.isDragging = false
+    this.createEventListeners(this.workAreaCanvas)
+  }
+
+  private handleMouseDown({ offsetX, offsetY }: MouseEvent): void {
+    this.isDragging = true
+    this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY }
+  }
+
+  private handleMouseMove({ offsetX, offsetY }: MouseEvent): void {
+    if (!this.isDragging) return
+
+    if (this.selection) {
+      const { x1, y1, x2, y2 } = this.selection
+      this.selection = { x1, y1, x2: offsetX, y2: offsetY }
+
+      if (this.context) {
+        this.clearCanvas()
+        this.update()
+        this.context.strokeStyle = 'black'
+        this.context.strokeRect(x1, y1, x2 - x1, y2 - y1)
+      }
+    }
+  }
+
+  private handleMouseUp(): void {
+    if (!this.isDragging) return
+
+    if (this.selection) {
+      const { x1, y1, x2, y2 } = this!.selection
+      const width = Math.abs(x2 - x1)
+      const height = Math.abs(y2 - y1)
+      const xPos = Math.min(x1, x2)
+      const yPos = Math.min(y1, y2)
+
+      const newElement = new Element(xPos, yPos, width, height, this.elements.length)
+      console.log(newElement)
+      this.addElement(newElement)
+      this.isDragging = false
+    }
+  }
+
+  private createEventListeners(canvas: HTMLCanvasElement): void {
+    canvas.addEventListener('mousedown', this.handleMouseDown.bind(this))
+    canvas.addEventListener('mousemove', this.handleMouseMove.bind(this))
+    canvas.addEventListener('mouseup', this.handleMouseUp.bind(this))
   }
 
   public static getInstance(): WorkArea {
@@ -40,7 +85,6 @@ export class WorkArea {
     for (const element of this.elements) {
       element.draw(this.context)
     }
-    console.log('elements drawn')
   }
 
   private clearCanvas(): void {
@@ -49,7 +93,7 @@ export class WorkArea {
     }
   }
 
-  public addElement(element: Element) {
+  public addElement(element: Element): void {
     this.elements.push(element)
     this.update()
   }
