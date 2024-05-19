@@ -39,7 +39,6 @@ export class WorkArea {
       this.selection = { x1, y1, x2: offsetX, y2: offsetY }
 
       if (this.context) {
-        this.clearCanvas()
         this.update()
         this.context.strokeStyle = 'black'
         this.context.strokeRect(x1, y1, x2 - x1, y2 - y1)
@@ -51,16 +50,13 @@ export class WorkArea {
     if (!this.isDragging) return
 
     if (this.selection) {
-      const { x1, y1, x2, y2 } = this!.selection
-      const width = Math.abs(x2 - x1)
-      const height = Math.abs(y2 - y1)
-      const xPos = Math.min(x1, x2)
-      const yPos = Math.min(y1, y2)
+      this.elements.forEach((element) => {
+        const isSelected = element.isWithinBounds(this.selection)
+        element.setSelected(isSelected)
+      })
 
-      const newElement = new Element(xPos, yPos, width, height, this.elements.length)
-      console.log(newElement)
-      this.addElement(newElement)
       this.isDragging = false
+      this.update()
     }
   }
 
@@ -93,8 +89,13 @@ export class WorkArea {
     }
   }
 
-  public addElement(element: Element): void {
-    this.elements.push(element)
+  public addElement(): void {
+    const width = 50
+    const height = 50
+    const xPos = Math.floor(Math.random() * (this.workAreaCanvas.width - width))
+    const yPos = Math.floor(Math.random() * (this.workAreaCanvas.height - height))
+    const newElement = new Element(xPos, yPos, width, height, this.elements.length)
+    this.elements.push(newElement)
     this.update()
   }
 
