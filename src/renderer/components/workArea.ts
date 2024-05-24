@@ -1,8 +1,10 @@
 import { Element } from './element'
+import { TransformBox } from './transformBox'
 
 export class WorkArea {
   private static instance: WorkArea | null = null
   private workAreaCanvas: HTMLCanvasElement
+  private transformBox: TransformBox | null = null
   private elements: Element[] = []
   private context: CanvasRenderingContext2D | null = null
   private selection: { x1: number; y1: number; x2: number; y2: number } | null = null
@@ -50,10 +52,10 @@ export class WorkArea {
     if (!this.isDragging) return
 
     if (this.selection) {
-      this.elements.forEach((element) => {
-        const isSelected = element.isWithinBounds(this.selection)
-        element.setSelected(isSelected)
-      })
+      this.transformBox = new TransformBox(
+        this.elements.filter((el) => el.isWithinBounds(this.selection)),
+        this.workAreaCanvas.parentElement!
+      )
 
       this.isDragging = false
       this.update()
@@ -80,6 +82,9 @@ export class WorkArea {
     this.clearCanvas()
     for (const element of this.elements) {
       element.draw(this.context)
+    }
+    if (this.transformBox) {
+      this.transformBox.draw(this.context)
     }
   }
 
