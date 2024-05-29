@@ -4,11 +4,11 @@ import { TransformBox } from './transformBox'
 export class WorkArea {
   private static instance: WorkArea | null = null
   private workAreaCanvas: HTMLCanvasElement
-  private transformBox: TransformBox | null = null
   private elements: Element[] = []
   private context: CanvasRenderingContext2D | null = null
   private selection: { x1: number; y1: number; x2: number; y2: number } | null = null
   private isDragging: boolean = false
+  private transformBox: TransformBox | null = null
 
   private constructor() {
     const mainCanvasDiv: HTMLDivElement = document.getElementById('main-canvas') as HTMLDivElement
@@ -16,7 +16,6 @@ export class WorkArea {
       throw new Error("Element with id 'main-canvas' was not found")
     }
 
-    this.elements = []
     this.workAreaCanvas = document.createElement('canvas')
     mainCanvasDiv.append(this.workAreaCanvas)
     this.workAreaCanvas.width = 480
@@ -24,48 +23,68 @@ export class WorkArea {
     this.workAreaCanvas.style.backgroundColor = 'white'
 
     this.context = this.workAreaCanvas.getContext('2d')
-    this.isDragging = false
+    if (!this.context) {
+      throw new Error('Unable to get canvas context')
+    }
     this.createEventListeners(this.workAreaCanvas)
-  }
-
-  private handleMouseDown({ offsetX, offsetY }: MouseEvent): void {
-    this.isDragging = true
-    this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY }
-  }
-
-  private handleMouseMove({ offsetX, offsetY }: MouseEvent): void {
-    if (!this.isDragging) return
-
-    if (this.selection) {
-      const { x1, y1, x2, y2 } = this.selection
-      this.selection = { x1, y1, x2: offsetX, y2: offsetY }
-
-      if (this.context) {
-        this.update()
-        this.context.strokeStyle = 'black'
-        this.context.strokeRect(x1, y1, x2 - x1, y2 - y1)
-      }
-    }
-  }
-
-  private handleMouseUp(): void {
-    if (!this.isDragging) return
-
-    if (this.selection) {
-      this.transformBox = new TransformBox(
-        this.elements.filter((el) => el.isWithinBounds(this.selection)),
-        this.workAreaCanvas.parentElement!
-      )
-
-      this.isDragging = false
-      this.update()
-    }
   }
 
   private createEventListeners(canvas: HTMLCanvasElement): void {
     canvas.addEventListener('mousedown', this.handleMouseDown.bind(this))
     canvas.addEventListener('mousemove', this.handleMouseMove.bind(this))
     canvas.addEventListener('mouseup', this.handleMouseUp.bind(this))
+  }
+
+  private handleMouseDown(event: MouseEvent): void {
+    const { offsetX, offsetY } = event
+    if (this.transformBox) {
+      this.transformBox.handleMouseDown(event)
+      if (this.transformBox.isHandleDragging) {
+        return
+      }
+    }
+
+    this.isDragging = true
+    this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY }
+  }
+
+  private handleMouseMove(event: MouseEvent): void {
+    this.update()
+    if (this.transformBox && this.transformBox.isHandleDragging) {
+      this.transformBox.handleMouseMove(event)
+      return
+    }
+
+    if (!this.isDragging || !this.selection) return
+    const { offsetX, offsetY } = event
+    this.selection.x2 = offsetX
+    this.selection.y2 = offsetY
+
+    if (this.context) {
+      const { x1, y1, x2, y2 } = this.selection
+      this.context.strokeStyle = 'grey'
+      this.context.strokeRect(x1, y1, x2 - x1, y2 - y1)
+    }
+  }
+
+  private handleMouseUp(event: MouseEvent): void {
+    if (this.transformBox && this.transformBox.isHandleDragging) {
+      this.transformBox.handleMouseUp()
+      return
+    }
+
+    if (!this.isDragging) return
+
+    const selectedElements = this.elements.filter((el) => el.isWithinBounds(this.selection))
+
+    if (selectedElements.length) {
+      this.transformBox = new TransformBox(selectedElements, this.workAreaCanvas)
+    } else {
+      this.transformBox = null
+    }
+
+    this.isDragging = false
+    this.update()
   }
 
   public static getInstance(): WorkArea {

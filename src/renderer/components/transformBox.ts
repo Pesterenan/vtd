@@ -1,58 +1,29 @@
 import { Element } from './element'
-import { handleStyle } from './transformBox/style'
+import { WorkArea } from './workArea'
 
 export class TransformBox {
   private position: { x: number; y: number } = { x: 0, y: 0 }
   private size: { width: number; height: number } = { width: 0, height: 0 }
   private selectedElements: Element[] = []
-  private handleElement: HTMLDivElement | null = null
-  private isHandleDragging: boolean = false
+  public isHandleDragging: boolean = false
   private lastMousePosition: { x: number; y: number } | null = null
+  private canvasOffset: { x: number; y: number }
 
-  public constructor(selectedElements: Element[], parent: HTMLElement) {
+  public constructor(selectedElements: Element[], canvas: HTMLCanvasElement) {
     this.selectedElements = selectedElements
     this.recalculateBoundingBox()
-    this.createHandleElement(parent)
+    this.canvasOffset = this.calculateCanvasOffset(canvas)
   }
 
-  private createHandleElement(parent): void {
-    this.handleElement = document.createElement('div')
-    this.handleElement.style.position = 'absolute'
-    this.handleElement.style.width = '10px'
-    this.handleElement.style.height = '10px'
-    this.handleElement.style.backgroundColor = 'blue'
-    this.handleElement.style.cursor = 'move'
-    this.handleElement.style.display = 'none'
-    parent.appendChild(this.handleElement)
-
-    this.handleElement.addEventListener('mousedown', this.handleHandleMouseDown.bind(this))
-    document.addEventListener('mousemove', this.handleHandleMouseMove.bind(this))
-    document.addEventListener('mouseup', this.handleHandleMouseUp.bind(this))
-
-    this.updateHandlePosition()
+  private calculateCanvasOffset(canvas: HTMLCanvasElement): { x: number; y: number } {
+    const rect = canvas.getBoundingClientRect()
+    return { x: rect.left, y: rect.top }
   }
 
-  private handleHandleMouseDown(event: MouseEvent): void {
-    event.stopPropagation()
-    this.isHandleDragging = true
-    this.lastMousePosition = { x: event.clientX, y: event.clientY }
-  }
-
-  private handleHandleMouseMove(event: MouseEvent): void {
-    if (!this.isHandleDragging || !this.lastMousePosition) return
-
-    const dx = event.clientX - this.lastMousePosition.x
-    const dy = event.clientY - this.lastMousePosition.y
-
-    this.moveSelectedElements(dx, dy)
-    this.lastMousePosition = { x: event.clientX, y: event.clientY }
-
-    this.updateHandlePosition()
-  }
-
-  private handleHandleMouseUp(): void {
-    this.isHandleDragging = false
-    this.lastMousePosition = null
+  private getMousePosition(event: MouseEvent): { offsetX: number; offsetY: number } {
+    const offsetX = event.clientX - this.canvasOffset.x
+    const offsetY = event.clientY - this.canvasOffset.y
+    return { offsetX, offsetY }
   }
 
   private recalculateBoundingBox(): void {
@@ -88,6 +59,7 @@ export class TransformBox {
   }
 
   public draw(context: CanvasRenderingContext2D): void {
+    // Draw bounding box
     if (this.position && this.size) {
       context.strokeStyle = 'red'
       context.setLineDash([3, 3])
@@ -96,6 +68,14 @@ export class TransformBox {
       context.strokeStyle = ''
       context.setLineDash([])
     }
+
+    // Draw center handle
+    const centerHandle = this.getCenterHandlePosition()
+    context.fillStyle = 'blue'
+    context.beginPath()
+    context.arc(centerHandle.x, centerHandle.y, 5, 0, Math.PI * 2)
+    context.fill()
+    context.closePath()
   }
 
   public moveSelectedElements(dx: number, dy: number): void {
@@ -103,44 +83,34 @@ export class TransformBox {
       element.position.x += dx
       element.position.y += dy
     })
-    // Recalculate the TransformBox position and size
-    let minX = Infinity
-    let minY = Infinity
-    let maxX = -Infinity
-    let maxY = -Infinity
-
-    this.selectedElements.forEach(({ position: { x, y }, size: { width, height } }: Element) => {
-      if (x < minX) {
-        minX = x
-      }
-      if (y < minY) {
-        minY = y
-      }
-      if (x + width > maxX) {
-        maxX = x + width
-      }
-      if (y + height > maxY) {
-        maxY = y + height
-      }
-    })
-
-    this.position = { x: minX, y: minY }
-    this.size = { width: maxX - minX, height: maxY - minY }
+    this.recalculateBoundingBox()
   }
 
-  private updateHandlePosition(): void {
-    if (!this.handleElement) return
+  public handleMouseDown(event: MouseEvent): void {
+    const { offsetX, offsetY } = this.getMousePosition(event)
+    const centerHandle = this.getCenterHandlePosition()
+    const distance = Math.hypot(centerHandle.x - offsetX, centerHandle.y - offsetY)
 
-    const { x, y } = this.getCenterHandlePosition()
-    this.handleElement.style.left = `${x - 5}px` // Center the handle
-    this.handleElement.style.top = `${y - 5}px` // Center the handle
-    this.handleElement.style.display = 'block'
-  }
-
-  public removeHandleElement(): void {
-    if (this.handleElement) {
-      this.handleElement.remove()
-      this.handleElement = null
+    if (distance <= 5) {
+      this.isHandleDragging = true
+      this.lastMousePosition = { x: offsetX, y: offsetY }
+      event.stopPropagation()
     }
+  }
+
+  public handleMouseMove(event: MouseEvent): void {
+    if (!this.isHandleDragging || !this.lastMousePosition) return
+
+    const { offsetX, offsetY } = this.getMousePosition(event)
+    const dx = offsetX - this.lastMousePosition.x
+    const dy = offsetY - this.lastMousePosition.y
+
+    this.moveSelectedElements(dx, dy)
+    this.lastMousePosition = { x: offsetX, y: offsetY }
+  }
+
+  public handleMouseUp(): void {
+    this.isHandleDragging = false
+    this.lastMousePosition = null
   }
 }
