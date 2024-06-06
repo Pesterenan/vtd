@@ -1,13 +1,13 @@
 import { Element } from './element'
-import { WorkArea } from './workArea'
+import { Position, Size } from './types'
 
 export class TransformBox {
-  private position: { x: number; y: number } = { x: 0, y: 0 }
-  private size: { width: number; height: number } = { width: 0, height: 0 }
+  private position: Position = { x: 0, y: 0 }
+  private size: Size = { width: 0, height: 0 }
   private selectedElements: Element[] = []
   public isHandleDragging: boolean = false
-  private lastMousePosition: { x: number; y: number } | null = null
-  private canvasOffset: { x: number; y: number }
+  private lastMousePosition: Position | null = null
+  private canvasOffset: Position
 
   public constructor(selectedElements: Element[], canvas: HTMLCanvasElement) {
     this.selectedElements = selectedElements
@@ -15,7 +15,7 @@ export class TransformBox {
     this.canvasOffset = this.calculateCanvasOffset(canvas)
   }
 
-  private calculateCanvasOffset(canvas: HTMLCanvasElement): { x: number; y: number } {
+  private calculateCanvasOffset(canvas: HTMLCanvasElement): Position {
     const rect = canvas.getBoundingClientRect()
     return { x: rect.left, y: rect.top }
   }
@@ -51,7 +51,7 @@ export class TransformBox {
     this.size = { width: maxX - minX, height: maxY - minY }
   }
 
-  public getCenterHandlePosition(): { x: number; y: number } {
+  public getCenterHandlePosition(): Position {
     return {
       x: this.position.x + this.size.width / 2,
       y: this.position.y + this.size.height / 2
@@ -78,10 +78,10 @@ export class TransformBox {
     context.closePath()
   }
 
-  public moveSelectedElements(dx: number, dy: number): void {
+  public moveSelectedElements({ x, y }: Position): void {
     this.selectedElements.forEach((element) => {
-      element.position.x += dx
-      element.position.y += dy
+      element.position.x += x
+      element.position.y += y
     })
     this.recalculateBoundingBox()
   }
@@ -105,7 +105,7 @@ export class TransformBox {
     const dx = offsetX - this.lastMousePosition.x
     const dy = offsetY - this.lastMousePosition.y
 
-    this.moveSelectedElements(dx, dy)
+    this.moveSelectedElements({ x: dx, y: dy })
     this.lastMousePosition = { x: offsetX, y: offsetY }
   }
 

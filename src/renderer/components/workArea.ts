@@ -1,12 +1,13 @@
 import { Element } from './element'
 import { TransformBox } from './transformBox'
+import { BoundingBox } from './types'
 
 export class WorkArea {
   private static instance: WorkArea | null = null
   private workAreaCanvas: HTMLCanvasElement
   private elements: Element[] = []
   private context: CanvasRenderingContext2D | null = null
-  private selection: { x1: number; y1: number; x2: number; y2: number } | null = null
+  private selection: BoundingBox | null = null
   private isDragging: boolean = false
   private transformBox: TransformBox | null = null
 
@@ -33,6 +34,7 @@ export class WorkArea {
     canvas.addEventListener('mousedown', this.handleMouseDown.bind(this))
     canvas.addEventListener('mousemove', this.handleMouseMove.bind(this))
     canvas.addEventListener('mouseup', this.handleMouseUp.bind(this))
+    canvas.addEventListener('click', this.handleMouseClick.bind(this))
   }
 
   private handleMouseDown(event: MouseEvent): void {
@@ -87,6 +89,26 @@ export class WorkArea {
     this.update()
   }
 
+  public handleMouseClick(event: MouseEvent): void {
+    console.log('clicked?')
+    this.selection = {
+      x1: event.offsetX,
+      y1: event.offsetY,
+      x2: event.offsetX + 1,
+      y2: event.offsetY + 1
+    }
+    const selectedElement = this.elements.find((el) => el.isBelowSelection(this.selection))
+    if (selectedElement) {
+      this.transformBox = new TransformBox([selectedElement], this.workAreaCanvas)
+    } else {
+      this.transformBox = null
+    }
+
+    this.selection = null
+    this.isDragging = false
+    this.update()
+  }
+
   public static getInstance(): WorkArea {
     if (this.instance === null) {
       this.instance = new WorkArea()
@@ -116,9 +138,9 @@ export class WorkArea {
   public addElement(): void {
     const width = 50
     const height = 50
-    const xPos = Math.floor(Math.random() * (this.workAreaCanvas.width - width))
-    const yPos = Math.floor(Math.random() * (this.workAreaCanvas.height - height))
-    const newElement = new Element(xPos, yPos, width, height, this.elements.length)
+    const x = Math.floor(Math.random() * (this.workAreaCanvas.width - width))
+    const y = Math.floor(Math.random() * (this.workAreaCanvas.height - height))
+    const newElement = new Element({ x, y }, { width, height }, this.elements.length)
     this.elements.push(newElement)
     this.update()
   }
