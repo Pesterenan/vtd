@@ -3,7 +3,7 @@ import { BoundingBox, Position, Size } from './types'
 export class Element {
   public position: Position
   public size: Size
-  private zDepth: number
+  public zDepth: number
   private color: string
   private rotation: number
 
@@ -11,7 +11,7 @@ export class Element {
     this.position = { x, y }
     this.size = { width, height }
     this.zDepth = z
-    this.rotation = Math.PI / 3
+    this.rotation = 0
     const randomR = Math.floor(Math.random() * 99).toFixed(0)
     const randomG = Math.floor(Math.random() * 99).toFixed(0)
     const randomB = Math.floor(Math.random() * 99).toFixed(0)
