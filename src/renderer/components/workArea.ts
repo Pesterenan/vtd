@@ -101,9 +101,9 @@ export class WorkArea {
       }
 
       if (this.mouseStatus === MouseStatus.DOWN) {
-        const distance = Math.sqrt(
-          Math.pow(this.selection.x2 - this.selection.x1, 2) +
-            Math.pow(this.selection.y2 - this.selection.y1, 2)
+        const distance = Math.hypot(
+          this.selection.x2 - this.selection.x1,
+          this.selection.y2 - this.selection.y1
         )
         if (distance > DRAGGING_DISTANCE) {
           this.mouseStatus = MouseStatus.MOVE
@@ -113,13 +113,15 @@ export class WorkArea {
   }
 
   private handleMouseUp(event: MouseEvent): void {
+    if (this.transformBox && this.transformBox.isHandleDragging) {
+      this.transformBox.handleMouseUp(event)
+      this.mouseStatus = MouseStatus.UP
+      this.update()
+      return
+    }
+
     if (this.mouseStatus === MouseStatus.MOVE) {
-      if (this.transformBox && this.transformBox.isHandleDragging) {
-        this.transformBox.handleMouseUp()
-        this.mouseStatus = MouseStatus.UP
-        this.update()
-        return
-      }
+      console.log('mouse up workarea')
 
       const adjustedSelection = this.adjustSelectionForOffset(this.selection as BoundingBox)
       const selectedElements = this.elements.filter((el) => el.isWithinBounds(adjustedSelection))

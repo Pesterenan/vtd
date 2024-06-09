@@ -1,3 +1,4 @@
+import { BB } from '../utils/bb'
 import { Element } from './element'
 import { Position, Size } from './types'
 
@@ -37,20 +38,13 @@ export class TransformBox {
     let minY = Infinity
     let maxX = -Infinity
     let maxY = -Infinity
-    this.selectedElements.forEach(({ position: { x, y }, size: { width, height } }: Element) => {
-      if (x <= minX) {
-        minX = x
-      }
-      if (y <= minY) {
-        minY = y
-      }
 
-      if (x + width >= maxX) {
-        maxX = x + width
-      }
-      if (y + height >= maxY) {
-        maxY = y + height
-      }
+    this.selectedElements.forEach((element: Element) => {
+      const boundingBox = element.getTransformedBoundingBox()
+      if (boundingBox.x1 < minX) minX = boundingBox.x1
+      if (boundingBox.y1 < minY) minY = boundingBox.y1
+      if (boundingBox.x2 > maxX) maxX = boundingBox.x2
+      if (boundingBox.y2 > maxY) maxY = boundingBox.y2
     })
 
     this.position = { x: minX, y: minY }
@@ -104,6 +98,7 @@ export class TransformBox {
   }
 
   public handleMouseDown(event: MouseEvent): void {
+    console.log('mouse up transform box')
     const { offsetX, offsetY } = this.getMousePosition(event)
     const centerHandle = this.getCenterHandlePosition()
     const distance = Math.hypot(centerHandle.x - offsetX, centerHandle.y - offsetY)
@@ -126,7 +121,18 @@ export class TransformBox {
     this.lastMousePosition = { x: offsetX, y: offsetY }
   }
 
-  public handleMouseUp(): void {
+  public handleMouseUp(event: MouseEvent): void {
+    const { offsetX, offsetY } = this.getMousePosition(event)
+    if (
+      new BB({
+        x1: this.getCenterHandlePosition().x - 5,
+        x2: this.getCenterHandlePosition().x + 5,
+        y1: this.getCenterHandlePosition().y - 5,
+        y2: this.getCenterHandlePosition().y + 5
+      }).isPointWithinBB({ x: offsetX, y: offsetY })
+    ) {
+      console.log('it is on handle')
+    }
     this.isHandleDragging = false
     this.lastMousePosition = null
   }
