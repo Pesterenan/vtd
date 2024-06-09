@@ -8,11 +8,17 @@ export class TransformBox {
   public isHandleDragging: boolean = false
   private lastMousePosition: Position | null = null
   private canvasOffset: Position
+  private workAreaOffset: Position
 
-  public constructor(selectedElements: Element[], canvas: HTMLCanvasElement) {
+  public constructor(
+    selectedElements: Element[],
+    canvas: HTMLCanvasElement,
+    workAreaOffset: Position
+  ) {
     this.selectedElements = selectedElements
     this.recalculateBoundingBox()
     this.canvasOffset = this.calculateCanvasOffset(canvas)
+    this.workAreaOffset = workAreaOffset
   }
 
   private calculateCanvasOffset(canvas: HTMLCanvasElement): Position {
@@ -21,8 +27,8 @@ export class TransformBox {
   }
 
   private getMousePosition(event: MouseEvent): { offsetX: number; offsetY: number } {
-    const offsetX = event.clientX - this.canvasOffset.x
-    const offsetY = event.clientY - this.canvasOffset.y
+    const offsetX = event.clientX - this.canvasOffset.x - this.workAreaOffset.x
+    const offsetY = event.clientY - this.canvasOffset.y - this.workAreaOffset.y
     return { offsetX, offsetY }
   }
 
@@ -64,7 +70,12 @@ export class TransformBox {
       context.strokeStyle = 'red'
       context.setLineDash([3, 3])
       context.lineWidth = 2
-      context.strokeRect(this.position.x, this.position.y, this.size.width, this.size.height)
+      context.strokeRect(
+        this.position.x + this.workAreaOffset.x,
+        this.position.y + this.workAreaOffset.y,
+        this.size.width,
+        this.size.height
+      )
       context.strokeStyle = ''
       context.setLineDash([])
     }
@@ -73,7 +84,13 @@ export class TransformBox {
     const centerHandle = this.getCenterHandlePosition()
     context.fillStyle = 'blue'
     context.beginPath()
-    context.arc(centerHandle.x, centerHandle.y, 5, 0, Math.PI * 2)
+    context.arc(
+      centerHandle.x + this.workAreaOffset.x,
+      centerHandle.y + this.workAreaOffset.y,
+      5,
+      0,
+      Math.PI * 2
+    )
     context.fill()
     context.closePath()
   }

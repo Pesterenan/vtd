@@ -57,6 +57,15 @@ export class WorkArea {
     this.mainCanvas.addEventListener('mouseup', this.handleMouseUp.bind(this))
   }
 
+  private adjustSelectionForOffset(selection: BoundingBox): BoundingBox {
+    return {
+      x1: selection.x1 - this.workArea.x,
+      y1: selection.y1 - this.workArea.y,
+      x2: selection.x2 - this.workArea.x,
+      y2: selection.y2 - this.workArea.y
+    }
+  }
+
   private handleMouseDown(event: MouseEvent): void {
     this.mouseStatus = MouseStatus.DOWN
     const { offsetX, offsetY } = event
@@ -112,9 +121,13 @@ export class WorkArea {
         return
       }
 
-      const selectedElements = this.elements.filter((el) => el.isWithinBounds(this.selection))
+      const adjustedSelection = this.adjustSelectionForOffset(this.selection as BoundingBox)
+      const selectedElements = this.elements.filter((el) => el.isWithinBounds(adjustedSelection))
       if (selectedElements.length) {
-        this.transformBox = new TransformBox(selectedElements, this.mainCanvas)
+        this.transformBox = new TransformBox(selectedElements, this.mainCanvas, {
+          x: this.workArea.x,
+          y: this.workArea.y
+        })
       } else {
         this.transformBox = null
       }
@@ -130,9 +143,10 @@ export class WorkArea {
         y2: event.offsetY
       }
 
+      const adjustedSelection = this.adjustSelectionForOffset(this.selection)
       const selectedElement = this.elements.reduce(
         (topEl, currentEl) => {
-          if (currentEl.isBelowSelection(this.selection)) {
+          if (currentEl.isBelowSelection(adjustedSelection)) {
             if (!topEl || currentEl.zDepth > topEl.zDepth) {
               return currentEl
             }
@@ -143,7 +157,10 @@ export class WorkArea {
       )
 
       if (selectedElement) {
-        this.transformBox = new TransformBox([selectedElement], this.mainCanvas)
+        this.transformBox = new TransformBox([selectedElement], this.mainCanvas, {
+          x: this.workArea.x,
+          y: this.workArea.y
+        })
       } else {
         this.transformBox = null
       }
