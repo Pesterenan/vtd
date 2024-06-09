@@ -1,3 +1,4 @@
+import { BB } from '../utils/bb'
 import { BoundingBox, Position, Size } from './types'
 
 export class Element {
@@ -41,34 +42,26 @@ export class Element {
   public isBelowSelection(selection: BoundingBox | null): boolean {
     if (!selection) return false
 
-    const xStart = Math.min(selection.x1, selection.x2)
-    const yStart = Math.min(selection.y1, selection.y2)
-    const xEnd = Math.max(selection.x1, selection.x2)
-    const yEnd = Math.max(selection.y1, selection.y2)
-    const bool =
-      xStart >= this.position.x &&
-      xEnd <= this.position.x + this.size.width &&
-      yStart >= this.position.y &&
-      yEnd <= this.position.y + this.size.height
-    console.log(selection, this.position)
-    console.log(bool, 'selected')
-    return bool
+    const elementBoundingBox: BoundingBox = {
+      x1: this.position.x,
+      y1: this.position.y,
+      x2: this.position.x + this.size.width,
+      y2: this.position.y + this.size.height
+    }
+
+    return new BB(selection).isBBWithin(elementBoundingBox)
   }
 
   public isWithinBounds(selection: BoundingBox | null): boolean {
     if (!selection) return false
 
-    const xStart = Math.min(selection.x1, selection.x2)
-    const yStart = Math.min(selection.y1, selection.y2)
-    const xEnd = Math.max(selection.x1, selection.x2)
-    const yEnd = Math.max(selection.y1, selection.y2)
-    const bool =
-      this.position.x >= xStart &&
-      this.position.x + this.size.width <= xEnd &&
-      this.position.y >= yStart &&
-      this.position.y + this.size.height <= yEnd
-    console.log(selection, this.position)
-    console.log(bool, 'isWithinBounds')
-    return bool
+    const elementBoundingBox: BoundingBox = {
+      x1: this.position.x,
+      y1: this.position.y,
+      x2: this.position.x + this.size.width,
+      y2: this.position.y + this.size.height
+    }
+
+    return new BB(elementBoundingBox).isBBWithin(selection)
   }
 }
