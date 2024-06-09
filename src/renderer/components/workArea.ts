@@ -1,41 +1,60 @@
 import { Element } from './element'
 import { TransformBox } from './transformBox'
-import { BoundingBox, MouseStatus } from './types'
+import { BoundingBox, MouseStatus, Rectangle } from './types'
 
 const DRAGGING_DISTANCE = 5
+const WORK_AREA_WIDTH = 480
+const WORK_AREA_HEIGHT = 320
 
 export class WorkArea {
   private static instance: WorkArea | null = null
+  private mainCanvas: HTMLCanvasElement
   private workAreaCanvas: HTMLCanvasElement
+  private mainContext: CanvasRenderingContext2D | null = null
+  private workAreaContext: CanvasRenderingContext2D | null = null
   private elements: Element[] = []
-  private context: CanvasRenderingContext2D | null = null
+  private mouseStatus: MouseStatus = MouseStatus.UP
   private selection: BoundingBox | null = null
   private transformBox: TransformBox | null = null
-  private mouseStatus: MouseStatus = MouseStatus.UP
+  private workArea: Rectangle
 
   private constructor() {
-    const mainCanvasDiv: HTMLDivElement = document.getElementById('main-canvas') as HTMLDivElement
-    if (!mainCanvasDiv) {
+    this.mainCanvas = document.getElementById('main-canvas') as HTMLCanvasElement
+    if (!this.mainCanvas) {
       throw new Error("Element with id 'main-canvas' was not found")
     }
 
+    this.mainCanvas.width = window.innerWidth * 0.7
+    this.mainCanvas.height = window.innerHeight
+    this.mainCanvas.style.backgroundColor = 'grey'
+
     this.workAreaCanvas = document.createElement('canvas')
-    mainCanvasDiv.append(this.workAreaCanvas)
-    this.workAreaCanvas.width = 480
-    this.workAreaCanvas.height = 320
+    this.workAreaCanvas.width = WORK_AREA_WIDTH
+    this.workAreaCanvas.height = WORK_AREA_HEIGHT
     this.workAreaCanvas.style.backgroundColor = 'white'
 
-    this.context = this.workAreaCanvas.getContext('2d')
-    if (!this.context) {
+    this.mainContext = this.mainCanvas.getContext('2d')
+    this.workAreaContext = this.workAreaCanvas.getContext('2d')
+    if (!this.mainContext || !this.workAreaContext) {
       throw new Error('Unable to get canvas context')
     }
-    this.createEventListeners(this.workAreaCanvas)
+
+    this.workArea = {
+      x: this.mainCanvas.width / 2 - WORK_AREA_WIDTH / 2,
+      y: this.mainCanvas.height / 2 - WORK_AREA_HEIGHT / 2,
+      width: WORK_AREA_WIDTH,
+      height: WORK_AREA_HEIGHT
+    }
+    this.createEventListeners()
+    this.update()
+
+    window.addEventListener('resize', this.handleResize.bind(this))
   }
 
-  private createEventListeners(canvas: HTMLCanvasElement): void {
-    canvas.addEventListener('mousedown', this.handleMouseDown.bind(this))
-    canvas.addEventListener('mousemove', this.handleMouseMove.bind(this))
-    canvas.addEventListener('mouseup', this.handleMouseUp.bind(this))
+  private createEventListeners(): void {
+    this.mainCanvas.addEventListener('mousedown', this.handleMouseDown.bind(this))
+    this.mainCanvas.addEventListener('mousemove', this.handleMouseMove.bind(this))
+    this.mainCanvas.addEventListener('mouseup', this.handleMouseUp.bind(this))
   }
 
   private handleMouseDown(event: MouseEvent): void {
@@ -53,22 +72,22 @@ export class WorkArea {
   }
 
   private handleMouseMove(event: MouseEvent): void {
-    this.update()
-    // Mover elemento ao invés de desenhar caixa de seleção
     if (this.transformBox && this.transformBox.isHandleDragging) {
       this.transformBox.handleMouseMove(event)
+      this.update()
       return
     }
 
     if (this.selection) {
       const { offsetX, offsetY } = event
-      this.selection!.x2 = offsetX
-      this.selection!.y2 = offsetY
+      this.selection.x2 = offsetX
+      this.selection.y2 = offsetY
       if (this.mouseStatus === MouseStatus.MOVE) {
-        if (this.context) {
+        this.update()
+        if (this.mainContext) {
           const { x1, y1, x2, y2 } = this.selection
-          this.context.strokeStyle = 'grey'
-          this.context.strokeRect(x1, y1, x2 - x1, y2 - y1)
+          this.mainContext.strokeStyle = 'black'
+          this.mainContext.strokeRect(x1, y1, x2 - x1, y2 - y1)
         }
       }
 
@@ -77,7 +96,6 @@ export class WorkArea {
           Math.pow(this.selection.x2 - this.selection.x1, 2) +
             Math.pow(this.selection.y2 - this.selection.y1, 2)
         )
-        // se eu arrastar o mouse, longe o bastante
         if (distance > DRAGGING_DISTANCE) {
           this.mouseStatus = MouseStatus.MOVE
         }
@@ -87,24 +105,23 @@ export class WorkArea {
 
   private handleMouseUp(event: MouseEvent): void {
     if (this.mouseStatus === MouseStatus.MOVE) {
-      // Se tiver algo selecionado, lidar com a seleção primeiro
       if (this.transformBox && this.transformBox.isHandleDragging) {
         this.transformBox.handleMouseUp()
         this.mouseStatus = MouseStatus.UP
+        this.update()
         return
       }
 
-      // Busca todos os elementos embaixo da seleção
       const selectedElements = this.elements.filter((el) => el.isWithinBounds(this.selection))
       if (selectedElements.length) {
-        this.transformBox = new TransformBox(selectedElements, this.workAreaCanvas)
+        this.transformBox = new TransformBox(selectedElements, this.mainCanvas)
       } else {
         this.transformBox = null
       }
       this.selection = null
       this.mouseStatus = MouseStatus.UP
     }
-    // Se estiver apenas clicando, seleciona o que estiver embaixo do mouse
+
     if (this.mouseStatus === MouseStatus.DOWN) {
       this.selection = {
         x1: event.offsetX,
@@ -112,7 +129,7 @@ export class WorkArea {
         x2: event.offsetX,
         y2: event.offsetY
       }
-      // Retorna o elemento mais próximo usando o zDepth
+
       const selectedElement = this.elements.reduce(
         (topEl, currentEl) => {
           if (currentEl.isBelowSelection(this.selection)) {
@@ -126,7 +143,7 @@ export class WorkArea {
       )
 
       if (selectedElement) {
-        this.transformBox = new TransformBox([selectedElement], this.workAreaCanvas)
+        this.transformBox = new TransformBox([selectedElement], this.mainCanvas)
       } else {
         this.transformBox = null
       }
@@ -144,36 +161,64 @@ export class WorkArea {
     return this.instance
   }
 
+  private handleResize(): void {
+    this.mainCanvas.width = window.innerWidth * 0.7
+    this.mainCanvas.height = window.innerHeight
+    this.workArea = {
+      x: this.mainCanvas.width / 2 - WORK_AREA_WIDTH / 2,
+      y: this.mainCanvas.height / 2 - WORK_AREA_HEIGHT / 2,
+      width: WORK_AREA_WIDTH,
+      height: WORK_AREA_HEIGHT
+    }
+    this.update()
+  }
+
   public update(): void {
-    if (!this.context) {
+    if (!this.mainContext || !this.workAreaContext) {
       throw new Error('Canvas context is not available')
     }
-    this.clearCanvas()
+    this.clearCanvas(this.mainContext, this.mainCanvas)
+    this.clearCanvas(this.workAreaContext, this.workAreaCanvas)
     for (const element of this.elements) {
-      element.draw(this.context)
+      element.draw(this.workAreaContext)
     }
+    this.drawWorkArea()
     if (this.transformBox) {
-      this.transformBox.draw(this.context)
+      this.transformBox.draw(this.mainContext)
     }
   }
 
-  private clearCanvas(): void {
-    if (this.context) {
-      this.context.clearRect(0, 0, this.workAreaCanvas.width, this.workAreaCanvas.height)
+  private clearCanvas(context: CanvasRenderingContext2D, canvas: HTMLCanvasElement): void {
+    context.clearRect(0, 0, canvas.width, canvas.height)
+  }
+
+  private drawWorkArea(): void {
+    if (this.mainContext) {
+      this.mainContext.fillStyle = 'white'
+      this.mainContext.fillRect(
+        this.workArea.x,
+        this.workArea.y,
+        this.workArea.width,
+        this.workArea.height
+      )
+      this.mainContext.strokeStyle = 'black'
+      this.mainContext.strokeRect(
+        this.workArea.x,
+        this.workArea.y,
+        this.workArea.width,
+        this.workArea.height
+      )
+      this.mainContext.drawImage(this.workAreaCanvas, this.workArea.x, this.workArea.y)
     }
   }
 
   public addElement(): void {
     const width = 50
     const height = 50
-    const x = Math.floor(Math.random() * (this.workAreaCanvas.width - width))
-    const y = Math.floor(Math.random() * (this.workAreaCanvas.height - height))
+    const x = Math.floor(Math.random() * (this.workArea.width - width))
+    const y = Math.floor(Math.random() * (this.workArea.height - height))
     const newElement = new Element({ x, y }, { width, height }, this.elements.length)
     this.elements.push(newElement)
     this.update()
-  }
-
-  public getCanvas(): HTMLCanvasElement {
-    return this.workAreaCanvas
   }
 }
