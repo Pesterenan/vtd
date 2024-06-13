@@ -19,3 +19,19 @@ export enum MouseStatus {
   MOVE,
   UP
 }
+
+/**
+ * Ferramentas para manipular elementos
+ * @readonly
+ * @enum
+ * */
+export enum TOOL {
+  /** @prop SELECT - Selecionar elemento */
+  SELECT,
+  /** @prop GRAB - Mover elemento */
+  GRAB,
+  /** @prop ROTATE - Rotacionar elemento */
+  ROTATE,
+  /** @prop SCALE - Escalonar elemento */
+  SCALE
+}

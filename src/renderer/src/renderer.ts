@@ -3,6 +3,8 @@ import { WorkArea } from '../components/workArea'
 const initialize = (): void => {
   window.addEventListener('DOMContentLoaded', () => {
     const workArea = WorkArea.getInstance()
+    workArea.addElement();
+    workArea.addElement();
     createEventListeners()
   })
 }

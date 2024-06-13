@@ -10,12 +10,17 @@ export class TransformBox {
   private lastMousePosition: Position | null = null
   private canvasOffset: Position
   private workAreaOffset: Position
+  private isMoving: boolean = false
+  private isRotating: boolean = false
+  private rotation: number = 0
+  private context: CanvasRenderingContext2D | null
 
   public constructor(
     selectedElements: Element[],
     canvas: HTMLCanvasElement,
     workAreaOffset: Position
   ) {
+    this.context = canvas.getContext('2d')
     this.selectedElements = selectedElements
     this.recalculateBoundingBox()
     this.canvasOffset = this.calculateCanvasOffset(canvas)
@@ -59,8 +64,19 @@ export class TransformBox {
   }
 
   public draw(context: CanvasRenderingContext2D): void {
+    const centerHandle = this.getCenterHandlePosition()
     // Draw bounding box
     if (this.position && this.size) {
+      context.save()
+      context.translate(
+        centerHandle.x + this.workAreaOffset.x,
+        centerHandle.y + this.workAreaOffset.y
+      )
+      context.rotate((this.rotation * Math.PI) / 180)
+      context.translate(
+        -(centerHandle.x + this.workAreaOffset.x),
+        -(centerHandle.y + this.workAreaOffset.y)
+      )
       context.strokeStyle = 'red'
       context.setLineDash([3, 3])
       context.lineWidth = 2
@@ -72,10 +88,10 @@ export class TransformBox {
       )
       context.strokeStyle = ''
       context.setLineDash([])
+      context.restore()
     }
 
     // Draw center handle
-    const centerHandle = this.getCenterHandlePosition()
     context.fillStyle = 'blue'
     context.beginPath()
     context.arc(
@@ -98,7 +114,6 @@ export class TransformBox {
   }
 
   public handleMouseDown(event: MouseEvent): void {
-    console.log('mouse up transform box')
     const { offsetX, offsetY } = this.getMousePosition(event)
     const centerHandle = this.getCenterHandlePosition()
     const distance = Math.hypot(centerHandle.x - offsetX, centerHandle.y - offsetY)
@@ -134,6 +149,70 @@ export class TransformBox {
       console.log('it is on handle')
     }
     this.isHandleDragging = false
+    this.lastMousePosition = null
+  }
+
+  public startMove({ x, y }: Position): void {
+    this.lastMousePosition = { x, y }
+    this.isMoving = true
+  }
+
+  public move(currentMousePosition: Position): void {
+    if (!this.isMoving || !this.lastMousePosition) return
+
+    const { x: offsetX, y: offsetY } = currentMousePosition
+
+    const dx = offsetX - this.lastMousePosition.x
+    const dy = offsetY - this.lastMousePosition.y
+
+    this.moveSelectedElements({ x: dx, y: dy })
+    this.lastMousePosition = { x: offsetX, y: offsetY }
+  }
+
+  public endMove(): void {
+    this.isMoving = false
+    this.lastMousePosition = null
+  }
+
+  public rotateSelectedElements(angle: number): void {
+    const center = this.getCenterHandlePosition()
+    this.selectedElements.forEach((element) => {
+      const dx = element.position.x - center.x
+      const dy = element.position.y - center.y
+      const distance = Math.hypot(dx, dy)
+      const initialAngle = Math.atan2(dy, dx)
+      const newAngle = initialAngle + (angle * Math.PI) / 180
+      element.position.x = center.x + distance * Math.cos(newAngle) - dx
+      element.position.y = center.y + distance * Math.sin(newAngle) - dy
+      element.rotation = (element.rotation + (angle * Math.PI) / 180) % (2 * Math.PI)
+    })
+  }
+
+  public startRotate({ x, y }: Position): void {
+    this.lastMousePosition = { x, y }
+    this.isRotating = true
+  }
+
+  public rotate(currentMousePosition: Position): void {
+    if (!this.isRotating || !this.lastMousePosition) return
+
+    const { x: offsetX } = currentMousePosition
+    const dx = offsetX - this.lastMousePosition.x
+    let angle = dx % 360
+    if (angle < 0) {
+      angle += 360
+    }
+
+    this.rotateSelectedElements(angle - this.rotation)
+    this.rotation = angle
+    if (this.context) {
+      this.draw(this.context)
+    }
+  }
+
+  public endRotate(): void {
+    this.isRotating = false
+    this.rotation = 0
     this.lastMousePosition = null
   }
 }

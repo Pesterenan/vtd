@@ -1,6 +1,6 @@
 import { Element } from './element'
 import { TransformBox } from './transformBox'
-import { BoundingBox, MouseStatus, Rectangle } from './types'
+import { BoundingBox, MouseStatus, Position, Rectangle, TOOL } from './types'
 
 const DRAGGING_DISTANCE = 5
 const WORK_AREA_WIDTH = 480
@@ -17,6 +17,8 @@ export class WorkArea {
   private selection: BoundingBox | null = null
   private transformBox: TransformBox | null = null
   private workArea: Rectangle
+  private currentTool: TOOL = TOOL.SELECT
+  private currentMousePosition: Position
 
   private constructor() {
     this.mainCanvas = document.getElementById('main-canvas') as HTMLCanvasElement
@@ -27,6 +29,7 @@ export class WorkArea {
     this.mainCanvas.width = window.innerWidth * 0.7
     this.mainCanvas.height = window.innerHeight
     this.mainCanvas.style.backgroundColor = 'grey'
+    this.currentMousePosition = { x: this.mainCanvas.width / 2, y: this.mainCanvas.height / 2 }
 
     this.workAreaCanvas = document.createElement('canvas')
     this.workAreaCanvas.width = WORK_AREA_WIDTH
@@ -55,6 +58,7 @@ export class WorkArea {
     this.mainCanvas.addEventListener('mousedown', this.handleMouseDown.bind(this))
     this.mainCanvas.addEventListener('mousemove', this.handleMouseMove.bind(this))
     this.mainCanvas.addEventListener('mouseup', this.handleMouseUp.bind(this))
+    window.addEventListener('keypress', this.handleKeyPress.bind(this))
   }
 
   private adjustSelectionForOffset(selection: BoundingBox): BoundingBox {
@@ -63,6 +67,25 @@ export class WorkArea {
       y1: selection.y1 - this.workArea.y,
       x2: selection.x2 - this.workArea.x,
       y2: selection.y2 - this.workArea.y
+    }
+  }
+
+  private handleKeyPress(event: KeyboardEvent): void {
+    if (this.transformBox && this.currentTool === TOOL.SELECT) {
+      switch (event.code) {
+        case 'KeyG':
+          this.currentTool = TOOL.GRAB
+          this.transformBox.startMove(this.currentMousePosition)
+          this.mainCanvas.addEventListener('mousemove', this.handleGrabMove.bind(this))
+          console.log('GRAB MODE, ACTIVATED!')
+          break
+        case 'KeyR':
+          this.currentTool = TOOL.ROTATE
+          this.transformBox.startRotate(this.currentMousePosition)
+          this.mainCanvas.addEventListener('mousemove', this.handleRotateElements.bind(this))
+          console.log('ROTATE MODE, ACTIVATED!')
+          break
+      }
     }
   }
 
@@ -80,7 +103,29 @@ export class WorkArea {
     this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY }
   }
 
+  private handleGrabMove(event: MouseEvent): void {
+    if (this.transformBox !== null && this.currentTool === TOOL.GRAB) {
+      this.transformBox.move(this.currentMousePosition)
+      event.preventDefault()
+      this.update()
+    }
+  }
+
+  private handleRotateElements(event: MouseEvent): void {
+    if (this.transformBox !== null && this.currentTool === TOOL.ROTATE) {
+      this.transformBox.rotate(this.currentMousePosition)
+      event.preventDefault()
+      this.update()
+    }
+  }
+
   private handleMouseMove(event: MouseEvent): void {
+    const rect = this.mainCanvas.getBoundingClientRect()
+    this.currentMousePosition = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    }
+
     if (this.transformBox && this.transformBox.isHandleDragging) {
       this.transformBox.handleMouseMove(event)
       this.update()
@@ -113,13 +158,30 @@ export class WorkArea {
   }
 
   private handleMouseUp(event: MouseEvent): void {
-    if (this.transformBox && this.transformBox.isHandleDragging) {
-      this.transformBox.handleMouseUp(event)
-      this.mouseStatus = MouseStatus.UP
-      this.update()
-      return
+    if (this.transformBox) {
+      switch (this.currentTool) {
+        case TOOL.GRAB:
+          this.transformBox.endMove()
+          this.currentTool = TOOL.SELECT
+          this.mainCanvas.removeEventListener('mousemove', this.handleGrabMove.bind(this))
+          event.preventDefault()
+          break
+        case TOOL.ROTATE:
+          this.transformBox.endRotate()
+          this.currentTool = TOOL.SELECT
+          this.mainCanvas.removeEventListener('mousemove', this.handleRotateElements.bind(this))
+          event.preventDefault()
+          break
+        case TOOL.SELECT:
+          if (this.transformBox.isHandleDragging) {
+            this.transformBox.handleMouseUp(event)
+            this.mouseStatus = MouseStatus.UP
+            this.update()
+            event.preventDefault()
+            break
+          }
+      }
     }
-
     if (this.mouseStatus === MouseStatus.MOVE) {
       console.log('mouse up workarea')
 
