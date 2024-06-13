@@ -176,15 +176,15 @@ export class TransformBox {
 
   public rotateSelectedElements(angle: number): void {
     const center = this.getCenterHandlePosition()
+    const angleInRadians = (angle * Math.PI) / 180
     this.selectedElements.forEach((element) => {
       const dx = element.position.x - center.x
       const dy = element.position.y - center.y
-      const distance = Math.hypot(dx, dy)
-      const initialAngle = Math.atan2(dy, dx)
-      const newAngle = initialAngle + (angle * Math.PI) / 180
-      element.position.x = center.x + distance * Math.cos(newAngle) - dx
-      element.position.y = center.y + distance * Math.sin(newAngle) - dy
-      element.rotation = (element.rotation + (angle * Math.PI) / 180) % (2 * Math.PI)
+      const newX = dx * Math.cos(angleInRadians) - dy * Math.sin(angleInRadians)
+      const newY = dx * Math.sin(angleInRadians) + dy * Math.cos(angleInRadians)
+      element.position.x = center.x + newX
+      element.position.y = center.y + newY
+      element.rotation = element.rotation + angleInRadians
     })
   }
 
