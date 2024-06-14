@@ -1,5 +1,5 @@
 import { Element } from './element'
-import { TransformBox } from './transformBox'
+import { TransformBox } from './transformBox/transformBox'
 import { BoundingBox, MouseStatus, Position, Rectangle, TOOL } from './types'
 
 const DRAGGING_DISTANCE = 5

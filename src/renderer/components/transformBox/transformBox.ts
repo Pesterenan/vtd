@@ -1,6 +1,6 @@
-import { BB } from '../utils/bb'
-import { Element } from './element'
-import { Position, Size } from './types'
+import { BB } from '../../utils/bb'
+import { Element } from '../element'
+import { Position, Size } from '../types'
 
 export class TransformBox {
   private position: Position = { x: 0, y: 0 }
@@ -14,6 +14,8 @@ export class TransformBox {
   private isRotating: boolean = false
   private rotation: number = 0
   private context: CanvasRenderingContext2D | null
+  private centerHandleMove: HTMLImageElement
+  private centerHandleRotate: HTMLImageElement
 
   public constructor(
     selectedElements: Element[],
@@ -25,6 +27,10 @@ export class TransformBox {
     this.recalculateBoundingBox()
     this.canvasOffset = this.calculateCanvasOffset(canvas)
     this.workAreaOffset = workAreaOffset
+    this.centerHandleMove = new Image(24, 24)
+    this.centerHandleMove.src = '../../components/transformBox/assets/centerHandleMove.svg'
+    this.centerHandleRotate = new Image(24, 24)
+    this.centerHandleRotate.src = '../../components/transformBox/assets/centerHandleRotate.svg'
   }
 
   private calculateCanvasOffset(canvas: HTMLCanvasElement): Position {
@@ -91,18 +97,16 @@ export class TransformBox {
       context.restore()
     }
 
-    // Draw center handle
-    context.fillStyle = 'blue'
-    context.beginPath()
-    context.arc(
-      centerHandle.x + this.workAreaOffset.x,
-      centerHandle.y + this.workAreaOffset.y,
-      5,
-      0,
-      Math.PI * 2
-    )
-    context.fill()
-    context.closePath()
+    // Draw centerHandle.svg
+    if (this.centerHandleMove) {
+      context.drawImage(
+        this.centerHandleMove,
+        centerHandle.x + this.workAreaOffset.x - this.centerHandleMove.width / 2,
+        centerHandle.y + this.workAreaOffset.y - this.centerHandleMove.height / 2,
+        this.centerHandleMove.width,
+        this.centerHandleMove.height
+      )
+    }
   }
 
   public moveSelectedElements({ x, y }: Position): void {

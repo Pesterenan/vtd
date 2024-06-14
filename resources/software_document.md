@@ -27,7 +27,10 @@ plataforma escolhida para a criação do app redistribuível.
 ### Etapas de desenvolvimento
 ---
 
-Criar interface crua da aplicação
-Terá um canvas no meio com um menu de ferramentas na direita
-canvas poderá desenhar caixas como teste de render
+Criar interface crua da aplicação - OK
+Terá um canvas no meio com um menu de ferramentas na direita - OK
+Canvas poderá desenhar caixas como teste de render - OK
+Os elementos podem ser rotacionados e movidos pela área de montagem - OK
+A aplicação pode importar imagens dinamicamente
+A importação de vídeo deve conseguir usar o FFMPEG para extrair imagens
 
