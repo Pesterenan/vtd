@@ -265,7 +265,7 @@ export class WorkArea {
     }
     this.drawWorkArea()
     if (this.transformBox) {
-      this.transformBox.draw(this.mainContext)
+      this.transformBox.draw()
     }
   }
 

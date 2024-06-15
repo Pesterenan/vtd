@@ -14,8 +14,9 @@ export class TransformBox {
   private isRotating: boolean = false
   private rotation: number = 0
   private context: CanvasRenderingContext2D | null
-  private centerHandleMove: HTMLImageElement
-  private centerHandleRotate: HTMLImageElement
+  private IconMove: HTMLImageElement
+  private IconRotate: HTMLImageElement
+  private centerHandle: HTMLImageElement | null = null
 
   public constructor(
     selectedElements: Element[],
@@ -27,10 +28,10 @@ export class TransformBox {
     this.recalculateBoundingBox()
     this.canvasOffset = this.calculateCanvasOffset(canvas)
     this.workAreaOffset = workAreaOffset
-    this.centerHandleMove = new Image(24, 24)
-    this.centerHandleMove.src = '../../components/transformBox/assets/centerHandleMove.svg'
-    this.centerHandleRotate = new Image(24, 24)
-    this.centerHandleRotate.src = '../../components/transformBox/assets/centerHandleRotate.svg'
+    this.IconMove = new Image(24, 24)
+    this.IconMove.src = '../../components/transformBox/assets/centerHandleMove.svg'
+    this.IconRotate = new Image(24, 24)
+    this.IconRotate.src = '../../components/transformBox/assets/centerHandleRotate.svg'
   }
 
   private calculateCanvasOffset(canvas: HTMLCanvasElement): Position {
@@ -62,49 +63,50 @@ export class TransformBox {
     this.size = { width: maxX - minX, height: maxY - minY }
   }
 
-  public getCenterHandlePosition(): Position {
+  /** Returns the center of the transform box
+   * @param {boolean} withOffset - includes workAreaOffset if true
+   */
+  public getCenter(withOffset: boolean = true): Position {
+    if (withOffset) {
+      return {
+        x: this.position.x + this.size.width / 2 + this.workAreaOffset.x,
+        y: this.position.y + this.size.height / 2 + this.workAreaOffset.y
+      }
+    }
     return {
       x: this.position.x + this.size.width / 2,
       y: this.position.y + this.size.height / 2
     }
   }
 
-  public draw(context: CanvasRenderingContext2D): void {
-    const centerHandle = this.getCenterHandlePosition()
-    // Draw bounding box
-    if (this.position && this.size) {
-      context.save()
-      context.translate(
-        centerHandle.x + this.workAreaOffset.x,
-        centerHandle.y + this.workAreaOffset.y
-      )
-      context.rotate((this.rotation * Math.PI) / 180)
-      context.translate(
-        -(centerHandle.x + this.workAreaOffset.x),
-        -(centerHandle.y + this.workAreaOffset.y)
-      )
-      context.strokeStyle = 'red'
-      context.setLineDash([3, 3])
-      context.lineWidth = 2
-      context.strokeRect(
-        this.position.x + this.workAreaOffset.x,
-        this.position.y + this.workAreaOffset.y,
-        this.size.width,
-        this.size.height
-      )
-      context.strokeStyle = ''
-      context.setLineDash([])
-      context.restore()
-    }
+  public draw(): void {
+    if (!this.context) return
+    const centerPos = this.getCenter()
 
-    // Draw centerHandle.svg
-    if (this.centerHandleMove) {
-      context.drawImage(
-        this.centerHandleMove,
-        centerHandle.x + this.workAreaOffset.x - this.centerHandleMove.width / 2,
-        centerHandle.y + this.workAreaOffset.y - this.centerHandleMove.height / 2,
-        this.centerHandleMove.width,
-        this.centerHandleMove.height
+    // Draw bounding box
+    this.context.save()
+    this.context.translate(centerPos.x, centerPos.y)
+    this.context.rotate(this.rotation * (Math.PI / 180))
+    this.context.translate(-centerPos.x, -centerPos.y)
+    this.context.strokeStyle = 'red'
+    this.context.setLineDash([3, 3])
+    this.context.lineWidth = 2
+    this.context.strokeRect(
+      this.position.x + this.workAreaOffset.x,
+      this.position.y + this.workAreaOffset.y,
+      this.size.width,
+      this.size.height
+    )
+    this.context.restore()
+
+    // Draw centerHandle
+    if (this.centerHandle) {
+      this.context.drawImage(
+        this.centerHandle,
+        centerPos.x - this.centerHandle.width / 2,
+        centerPos.y - this.centerHandle.height / 2,
+        this.centerHandle.width,
+        this.centerHandle.height
       )
     }
   }
@@ -119,10 +121,11 @@ export class TransformBox {
 
   public handleMouseDown(event: MouseEvent): void {
     const { offsetX, offsetY } = this.getMousePosition(event)
-    const centerHandle = this.getCenterHandlePosition()
+    const centerHandle = this.getCenter(false)
     const distance = Math.hypot(centerHandle.x - offsetX, centerHandle.y - offsetY)
 
     if (distance <= 5) {
+      this.centerHandle = this.IconMove
       this.isHandleDragging = true
       this.lastMousePosition = { x: offsetX, y: offsetY }
       event.stopPropagation()
@@ -144,21 +147,23 @@ export class TransformBox {
     const { offsetX, offsetY } = this.getMousePosition(event)
     if (
       new BB({
-        x1: this.getCenterHandlePosition().x - 5,
-        x2: this.getCenterHandlePosition().x + 5,
-        y1: this.getCenterHandlePosition().y - 5,
-        y2: this.getCenterHandlePosition().y + 5
+        x1: this.getCenter(false).x - 5,
+        x2: this.getCenter(false).x + 5,
+        y1: this.getCenter(false).y - 5,
+        y2: this.getCenter(false).y + 5
       }).isPointWithinBB({ x: offsetX, y: offsetY })
     ) {
       console.log('it is on handle')
     }
     this.isHandleDragging = false
     this.lastMousePosition = null
+    this.centerHandle = null
   }
 
   public startMove({ x, y }: Position): void {
     this.lastMousePosition = { x, y }
     this.isMoving = true
+    this.centerHandle = this.IconMove
   }
 
   public move(currentMousePosition: Position): void {
@@ -178,8 +183,8 @@ export class TransformBox {
     this.lastMousePosition = null
   }
 
-  public rotateSelectedElements(angle: number): void {
-    const center = this.getCenterHandlePosition()
+  private rotateSelectedElements(angle: number): void {
+    const center = this.getCenter(false)
     const angleInRadians = (angle * Math.PI) / 180
     this.selectedElements.forEach((element) => {
       const dx = element.position.x - center.x
@@ -195,6 +200,7 @@ export class TransformBox {
   public startRotate({ x, y }: Position): void {
     this.lastMousePosition = { x, y }
     this.isRotating = true
+    this.centerHandle = this.IconRotate
   }
 
   public rotate(currentMousePosition: Position): void {
@@ -209,9 +215,6 @@ export class TransformBox {
 
     this.rotateSelectedElements(angle - this.rotation)
     this.rotation = angle
-    if (this.context) {
-      this.draw(this.context)
-    }
   }
 
   public endRotate(): void {
