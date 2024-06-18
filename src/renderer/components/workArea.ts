@@ -1,6 +1,6 @@
 import { Element } from './element'
 import { TransformBox } from './transformBox/transformBox'
-import { BoundingBox, MouseStatus, Position, Rectangle, TOOL } from './types'
+import { BoundingBox, MouseStatus, Position, TOOL } from './types'
 
 const DRAGGING_DISTANCE = 5
 const WORK_AREA_WIDTH = 480
@@ -16,7 +16,6 @@ export class WorkArea {
   private mouseStatus: MouseStatus = MouseStatus.UP
   private selection: BoundingBox | null = null
   private transformBox: TransformBox | null = null
-  private workArea: Rectangle
   private currentTool: TOOL = TOOL.SELECT
   private currentMousePosition: Position
 
@@ -42,12 +41,6 @@ export class WorkArea {
       throw new Error('Unable to get canvas context')
     }
 
-    this.workArea = {
-      x: this.mainCanvas.width / 2 - WORK_AREA_WIDTH / 2,
-      y: this.mainCanvas.height / 2 - WORK_AREA_HEIGHT / 2,
-      width: WORK_AREA_WIDTH,
-      height: WORK_AREA_HEIGHT
-    }
     this.createEventListeners()
     this.update()
 
@@ -62,11 +55,12 @@ export class WorkArea {
   }
 
   private adjustSelectionForOffset(selection: BoundingBox): BoundingBox {
+    const offset = this.getWorkAreaOffset()
     return {
-      x1: selection.x1 - this.workArea.x,
-      y1: selection.y1 - this.workArea.y,
-      x2: selection.x2 - this.workArea.x,
-      y2: selection.y2 - this.workArea.y
+      x1: selection.x1 - offset.x,
+      y1: selection.y1 - offset.y,
+      x2: selection.x2 - offset.x,
+      y2: selection.y2 - offset.y
     }
   }
 
@@ -75,24 +69,23 @@ export class WorkArea {
       switch (event.code) {
         case 'KeyG':
           this.currentTool = TOOL.GRAB
-          this.transformBox.startMove(this.currentMousePosition)
-          this.mainCanvas.addEventListener('mousemove', this.handleGrabMove.bind(this))
           console.log('GRAB MODE, ACTIVATED!')
           break
         case 'KeyR':
           this.currentTool = TOOL.ROTATE
-          this.transformBox.startRotate(this.currentMousePosition)
-          this.mainCanvas.addEventListener('mousemove', this.handleRotateElements.bind(this))
           console.log('ROTATE MODE, ACTIVATED!')
           break
       }
+      console.log(this.currentTool, this.currentMousePosition)
+      this.transformBox.startTransform(this.currentTool, this.currentMousePosition)
+      this.update()
     }
   }
 
   private handleMouseDown(event: MouseEvent): void {
+    console.log(`WorkArea, mouse down`)
     this.mouseStatus = MouseStatus.DOWN
     const { offsetX, offsetY } = event
-
     if (this.transformBox) {
       this.transformBox.handleMouseDown(event)
       if (this.transformBox.isHandleDragging) {
@@ -103,35 +96,19 @@ export class WorkArea {
     this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY }
   }
 
-  private handleGrabMove(event: MouseEvent): void {
-    if (this.transformBox !== null && this.currentTool === TOOL.GRAB) {
-      this.transformBox.move(this.currentMousePosition)
-      event.preventDefault()
-      this.update()
-    }
-  }
-
-  private handleRotateElements(event: MouseEvent): void {
-    if (this.transformBox !== null && this.currentTool === TOOL.ROTATE) {
-      this.transformBox.rotate(this.currentMousePosition)
-      event.preventDefault()
-      this.update()
-    }
-  }
-
   private handleMouseMove(event: MouseEvent): void {
-    const rect = this.mainCanvas.getBoundingClientRect()
     this.currentMousePosition = {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
+      x: event.clientX,
+      y: event.clientY
     }
 
-    if (this.transformBox && this.transformBox.isHandleDragging) {
+    if (this.transformBox) {
       this.transformBox.handleMouseMove(event)
       this.update()
       return
     }
 
+    console.log(`WorkArea, mouse move`)
     if (this.selection) {
       const { offsetX, offsetY } = event
       this.selection.x2 = offsetX
@@ -159,39 +136,21 @@ export class WorkArea {
 
   private handleMouseUp(event: MouseEvent): void {
     if (this.transformBox) {
-      switch (this.currentTool) {
-        case TOOL.GRAB:
-          this.transformBox.endMove()
-          this.currentTool = TOOL.SELECT
-          this.mainCanvas.removeEventListener('mousemove', this.handleGrabMove.bind(this))
-          event.preventDefault()
-          break
-        case TOOL.ROTATE:
-          this.transformBox.endRotate()
-          this.currentTool = TOOL.SELECT
-          this.mainCanvas.removeEventListener('mousemove', this.handleRotateElements.bind(this))
-          event.preventDefault()
-          break
-        case TOOL.SELECT:
-          if (this.transformBox.isHandleDragging) {
-            this.transformBox.handleMouseUp(event)
-            this.mouseStatus = MouseStatus.UP
-            this.update()
-            event.preventDefault()
-            break
-          }
+      this.transformBox.endTransform()
+      this.transformBox.handleMouseUp(event)
+      if (!this.transformBox.isHandleDragging) {
+        this.transformBox = null
       }
+      this.update()
+      this.mouseStatus = MouseStatus.UP
+      this.currentTool = TOOL.SELECT
     }
+    console.log(`WorkArea, mouse up`)
     if (this.mouseStatus === MouseStatus.MOVE) {
-      console.log('mouse up workarea')
-
       const adjustedSelection = this.adjustSelectionForOffset(this.selection as BoundingBox)
       const selectedElements = this.elements.filter((el) => el.isWithinBounds(adjustedSelection))
       if (selectedElements.length) {
-        this.transformBox = new TransformBox(selectedElements, this.mainCanvas, {
-          x: this.workArea.x,
-          y: this.workArea.y
-        })
+        this.transformBox = new TransformBox(selectedElements, this.mainCanvas)
       } else {
         this.transformBox = null
       }
@@ -221,10 +180,7 @@ export class WorkArea {
       )
 
       if (selectedElement) {
-        this.transformBox = new TransformBox([selectedElement], this.mainCanvas, {
-          x: this.workArea.x,
-          y: this.workArea.y
-        })
+        this.transformBox = new TransformBox([selectedElement], this.mainCanvas)
       } else {
         this.transformBox = null
       }
@@ -242,15 +198,23 @@ export class WorkArea {
     return this.instance
   }
 
+  private saveCanvas(canvas: HTMLCanvasElement): HTMLImageElement {
+    const canvasContext = canvas.getContext('2d')
+    const imageData = canvasContext!.getImageData(0, 0, canvas.width, canvas.height)
+
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = canvas.width
+    tempCanvas.height = canvas.height
+    const tempContext = tempCanvas.getContext('2d')
+    tempContext?.putImageData(imageData, 0, 0)
+    const image = new Image()
+    image.src = tempCanvas.toDataURL()
+    return image
+  }
+
   private handleResize(): void {
     this.mainCanvas.width = window.innerWidth * 0.7
     this.mainCanvas.height = window.innerHeight
-    this.workArea = {
-      x: this.mainCanvas.width / 2 - WORK_AREA_WIDTH / 2,
-      y: this.mainCanvas.height / 2 - WORK_AREA_HEIGHT / 2,
-      width: WORK_AREA_WIDTH,
-      height: WORK_AREA_HEIGHT
-    }
     this.update()
   }
 
@@ -273,31 +237,44 @@ export class WorkArea {
     context.clearRect(0, 0, canvas.width, canvas.height)
   }
 
+  public getWorkAreaOffset(): Position {
+    return {
+      x: this.mainCanvas.width / 2 - this.workAreaCanvas.width / 2,
+      y: this.mainCanvas.height / 2 - this.workAreaCanvas.height / 2
+    }
+  }
+
   private drawWorkArea(): void {
     if (this.mainContext) {
       this.mainContext.fillStyle = 'white'
       this.mainContext.fillRect(
-        this.workArea.x,
-        this.workArea.y,
-        this.workArea.width,
-        this.workArea.height
+        this.getWorkAreaOffset().x,
+        this.getWorkAreaOffset().y,
+        this.workAreaCanvas.width,
+        this.workAreaCanvas.height
       )
       this.mainContext.strokeStyle = 'black'
       this.mainContext.strokeRect(
-        this.workArea.x,
-        this.workArea.y,
-        this.workArea.width,
-        this.workArea.height
+        this.getWorkAreaOffset().x,
+        this.getWorkAreaOffset().y,
+        this.workAreaCanvas.width,
+        this.workAreaCanvas.height
       )
-      this.mainContext.drawImage(this.workAreaCanvas, this.workArea.x, this.workArea.y)
+      this.mainContext.drawImage(
+        this.workAreaCanvas,
+        this.getWorkAreaOffset().x,
+        this.getWorkAreaOffset().y
+      )
     }
   }
 
   public addElement(): void {
     const width = 50
     const height = 50
-    const x = Math.floor(Math.random() * (this.workArea.width - width))
-    const y = Math.floor(Math.random() * (this.workArea.height - height))
+    const x =
+      Math.floor(Math.random() * this.workAreaCanvas.width) + this.getWorkAreaOffset().x - width
+    const y =
+      Math.floor(Math.random() * this.workAreaCanvas.height) + this.getWorkAreaOffset().y - height
     const newElement = new Element({ x, y }, { width, height }, this.elements.length)
     this.elements.push(newElement)
     this.update()

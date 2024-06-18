@@ -1,6 +1,7 @@
 import { BB } from '../../utils/bb'
 import { Element } from '../element'
-import { Position, Size } from '../types'
+import { Position, Size, TOOL } from '../types'
+import { WorkArea } from '../workArea'
 
 export class TransformBox {
   private position: Position = { x: 0, y: 0 }
@@ -8,41 +9,28 @@ export class TransformBox {
   private selectedElements: Element[] = []
   public isHandleDragging: boolean = false
   private lastMousePosition: Position | null = null
-  private canvasOffset: Position
   private workAreaOffset: Position
-  private isMoving: boolean = false
-  private isRotating: boolean = false
   private rotation: number = 0
   private context: CanvasRenderingContext2D | null
   private IconMove: HTMLImageElement
   private IconRotate: HTMLImageElement
   private centerHandle: HTMLImageElement | null = null
+  private isTransforming: boolean = false
+  private currentTool: TOOL = TOOL.SELECT
 
-  public constructor(
-    selectedElements: Element[],
-    canvas: HTMLCanvasElement,
-    workAreaOffset: Position
-  ) {
+  public constructor(selectedElements: Element[], canvas: HTMLCanvasElement) {
     this.context = canvas.getContext('2d')
     this.selectedElements = selectedElements
     this.recalculateBoundingBox()
-    this.canvasOffset = this.calculateCanvasOffset(canvas)
-    this.workAreaOffset = workAreaOffset
+    this.workAreaOffset = WorkArea.getInstance().getWorkAreaOffset()
     this.IconMove = new Image(24, 24)
     this.IconMove.src = '../../components/transformBox/assets/centerHandleMove.svg'
     this.IconRotate = new Image(24, 24)
     this.IconRotate.src = '../../components/transformBox/assets/centerHandleRotate.svg'
   }
 
-  private calculateCanvasOffset(canvas: HTMLCanvasElement): Position {
-    const rect = canvas.getBoundingClientRect()
-    return { x: rect.left, y: rect.top }
-  }
-
-  private getMousePosition(event: MouseEvent): { offsetX: number; offsetY: number } {
-    const offsetX = event.clientX - this.canvasOffset.x - this.workAreaOffset.x
-    const offsetY = event.clientY - this.canvasOffset.y - this.workAreaOffset.y
-    return { offsetX, offsetY }
+  private getMousePosition(event: MouseEvent): Position {
+    return { x: event.clientX, y: event.clientY }
   }
 
   private recalculateBoundingBox(): void {
@@ -68,6 +56,7 @@ export class TransformBox {
    */
   public getCenter(withOffset: boolean = true): Position {
     if (withOffset) {
+      this.workAreaOffset = WorkArea.getInstance().getWorkAreaOffset()
       return {
         x: this.position.x + this.size.width / 2 + this.workAreaOffset.x,
         y: this.position.y + this.size.height / 2 + this.workAreaOffset.y
@@ -111,7 +100,54 @@ export class TransformBox {
     }
   }
 
-  public moveSelectedElements({ x, y }: Position): void {
+  public handleMouseDown(event: MouseEvent): void {
+    const { x, y } = this.getMousePosition(event)
+    const centerHandle = this.getCenter()
+    const distance = Math.hypot(centerHandle.x - x, centerHandle.y - y)
+
+    if (distance <= 5) {
+      this.startTransform(TOOL.GRAB, { x, y })
+      this.isHandleDragging = true
+      event.stopPropagation()
+    }
+  }
+
+  public handleMouseMove(event: MouseEvent): void {
+    console.log(`TransformBox, mouse move`)
+    const { x, y } = this.getMousePosition(event)
+    if (this.isTransforming) {
+      this.transform({ x, y })
+      return
+    }
+
+    if (!this.isHandleDragging || !this.lastMousePosition) return
+
+    const deltaX = x - this.lastMousePosition.x
+    const deltaY = y - this.lastMousePosition.y
+
+    this.moveSelectedElements({ x: deltaX, y: deltaY })
+    this.lastMousePosition = { x, y }
+  }
+
+  public handleMouseUp(event: MouseEvent): void {
+    console.log(`TransformBox, mouse up`)
+    const { x, y } = this.getMousePosition(event)
+    if (
+      new BB({
+        x1: this.getCenter().x - 5,
+        x2: this.getCenter().x + 5,
+        y1: this.getCenter().y - 5,
+        y2: this.getCenter().y + 5
+      }).isPointWithinBB({ x, y })
+    ) {
+      console.log('it is on handle')
+    }
+    this.isHandleDragging = false
+    this.endTransform()
+  }
+
+  // Tool transformations
+  private moveSelectedElements({ x, y }: Position): void {
     this.selectedElements.forEach((element) => {
       element.position.x += x
       element.position.y += y
@@ -119,107 +155,66 @@ export class TransformBox {
     this.recalculateBoundingBox()
   }
 
-  public handleMouseDown(event: MouseEvent): void {
-    const { offsetX, offsetY } = this.getMousePosition(event)
-    const centerHandle = this.getCenter(false)
-    const distance = Math.hypot(centerHandle.x - offsetX, centerHandle.y - offsetY)
-
-    if (distance <= 5) {
-      this.centerHandle = this.IconMove
-      this.isHandleDragging = true
-      this.lastMousePosition = { x: offsetX, y: offsetY }
-      event.stopPropagation()
-    }
-  }
-
-  public handleMouseMove(event: MouseEvent): void {
-    if (!this.isHandleDragging || !this.lastMousePosition) return
-
-    const { offsetX, offsetY } = this.getMousePosition(event)
-    const dx = offsetX - this.lastMousePosition.x
-    const dy = offsetY - this.lastMousePosition.y
-
-    this.moveSelectedElements({ x: dx, y: dy })
-    this.lastMousePosition = { x: offsetX, y: offsetY }
-  }
-
-  public handleMouseUp(event: MouseEvent): void {
-    const { offsetX, offsetY } = this.getMousePosition(event)
-    if (
-      new BB({
-        x1: this.getCenter(false).x - 5,
-        x2: this.getCenter(false).x + 5,
-        y1: this.getCenter(false).y - 5,
-        y2: this.getCenter(false).y + 5
-      }).isPointWithinBB({ x: offsetX, y: offsetY })
-    ) {
-      console.log('it is on handle')
-    }
-    this.isHandleDragging = false
-    this.lastMousePosition = null
-    this.centerHandle = null
-  }
-
-  public startMove({ x, y }: Position): void {
-    this.lastMousePosition = { x, y }
-    this.isMoving = true
-    this.centerHandle = this.IconMove
-  }
-
-  public move(currentMousePosition: Position): void {
-    if (!this.isMoving || !this.lastMousePosition) return
-
-    const { x: offsetX, y: offsetY } = currentMousePosition
-
-    const dx = offsetX - this.lastMousePosition.x
-    const dy = offsetY - this.lastMousePosition.y
-
-    this.moveSelectedElements({ x: dx, y: dy })
-    this.lastMousePosition = { x: offsetX, y: offsetY }
-  }
-
-  public endMove(): void {
-    this.isMoving = false
-    this.lastMousePosition = null
-  }
-
   private rotateSelectedElements(angle: number): void {
     const center = this.getCenter(false)
     const angleInRadians = (angle * Math.PI) / 180
     this.selectedElements.forEach((element) => {
-      const dx = element.position.x - center.x
-      const dy = element.position.y - center.y
-      const newX = dx * Math.cos(angleInRadians) - dy * Math.sin(angleInRadians)
-      const newY = dx * Math.sin(angleInRadians) + dy * Math.cos(angleInRadians)
+      const deltaX = element.position.x - center.x
+      const deltaY = element.position.y - center.y
+      const newX = deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians)
+      const newY = deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians)
       element.position.x = center.x + newX
       element.position.y = center.y + newY
-      element.rotation = element.rotation + angleInRadians
+      element.rotation += angleInRadians
     })
   }
 
-  public startRotate({ x, y }: Position): void {
+  public startTransform(tool: TOOL, { x, y }: Position): void {
+    this.currentTool = tool
     this.lastMousePosition = { x, y }
-    this.isRotating = true
-    this.centerHandle = this.IconRotate
-  }
-
-  public rotate(currentMousePosition: Position): void {
-    if (!this.isRotating || !this.lastMousePosition) return
-
-    const { x: offsetX } = currentMousePosition
-    const dx = offsetX - this.lastMousePosition.x
-    let angle = dx % 360
-    if (angle < 0) {
-      angle += 360
+    this.isTransforming = true
+    switch (this.currentTool) {
+      case TOOL.SELECT:
+        break
+      case TOOL.GRAB:
+        this.centerHandle = this.IconMove
+        break
+      case TOOL.ROTATE:
+        this.centerHandle = this.IconRotate
+        break
+      case TOOL.SCALE:
+        break
     }
-
-    this.rotateSelectedElements(angle - this.rotation)
-    this.rotation = angle
   }
 
-  public endRotate(): void {
-    this.isRotating = false
-    this.rotation = 0
+  public transform(currentMousePosition: Position): void {
+    if (!this.isTransforming || !this.lastMousePosition || this.currentTool === TOOL.SELECT) return
+    const { x, y } = currentMousePosition
+    const deltaX = x - this.lastMousePosition.x
+    const deltaY = y - this.lastMousePosition.y
+
+    if (this.currentTool === TOOL.GRAB) {
+      this.moveSelectedElements({ x: deltaX, y: deltaY })
+      this.lastMousePosition = { x, y }
+    }
+    if (this.currentTool === TOOL.ROTATE) {
+      let angle = deltaX % 360
+      if (angle < 0) {
+        angle += 360
+      }
+      console.log(angle, 'angle')
+
+      this.rotateSelectedElements(angle - this.rotation)
+      this.rotation = angle
+    }
+  }
+
+  public endTransform(): void {
+    this.isHandleDragging = false
+    this.isTransforming = false
     this.lastMousePosition = null
+    this.currentTool = TOOL.SELECT
+    this.centerHandle = null
+    this.rotation = 0
   }
 }
