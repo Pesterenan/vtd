@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import fs from 'fs'
 
 function createWindow(): void {
   // Create the browser window.
@@ -12,6 +13,8 @@ function createWindow(): void {
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: true,
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
     }
@@ -51,6 +54,17 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+  ipcMain.on('load-image', (event, filePath) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    fs.readFile(filePath, (err: any, data: any) => {
+      if (err) {
+        event.reply('load-image-response', { success: false, message: 'Failed to read file' })
+        return
+      }
+      const base64 = data.toString('base64')
+      event.reply('load-image-response', { success: true, data: base64 })
+    })
+  })
 
   createWindow()
 

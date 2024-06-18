@@ -279,4 +279,13 @@ export class WorkArea {
     this.elements.push(newElement)
     this.update()
   }
+
+  public addImageElement(filePath: string): void {
+    const x = this.mainCanvas.width / 2
+    const y = this.mainCanvas.height / 2
+    const newElement = new Element({ x, y }, { width: 100, height: 100 }, this.elements.length)
+    newElement.loadImage(filePath)
+    this.elements.push(newElement)
+    this.update()
+  }
 }
