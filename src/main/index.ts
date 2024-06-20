@@ -54,6 +54,7 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+  // Load images into vtd
   ipcMain.on('load-image', (event, filePath) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     fs.readFile(filePath, (err: any, data: any) => {

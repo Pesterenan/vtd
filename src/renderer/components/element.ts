@@ -70,24 +70,9 @@ export class Element {
     context.restore()
   }
 
-  public loadImage(data: Blob | File | string | HTMLImageElement): void {
-    // console.log(typeof data)
-    // this.image = data as HTMLImageElement
-    // this.size = { width: this.image?.width, height: this.image?.height }
-    // console.log(this)
-
-    // if (data instanceof HTMLImageElement) {
-    //   this.image = data
-    //   this.size = { width: this.image.width, height: this.image.height }
-    //   this.isImageLoaded = true
-    //   console.log('image loaded')
-    //   console.log(WorkArea.getInstance().elements)
-    // } else {
+  public loadImage(filePath: string, onLoadCallback: () => void): void {
     this.image = new Image()
-    if (typeof data === 'string') {
-      this.image.src = data
-      console.log(this.image.width)
-    }
+    this.image.src = filePath
     this.image.onload = (): void => {
       this.isImageLoaded = true
       this.size = { width: this.image!.width, height: this.image!.height }
@@ -99,8 +84,8 @@ export class Element {
         lowerLeft: { x: halfWidth, y: halfHeight },
         lowerRight: { x: -halfWidth, y: halfHeight }
       }
+      onLoadCallback()
     }
-    // }
   }
 
   public getTransformedBoundingBox(): BoundingBox {

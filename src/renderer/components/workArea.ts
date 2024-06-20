@@ -284,8 +284,7 @@ export class WorkArea {
     const x = this.mainCanvas.width / 2
     const y = this.mainCanvas.height / 2
     const newElement = new Element({ x, y }, { width: 100, height: 100 }, this.elements.length)
-    newElement.loadImage(filePath)
+    newElement.loadImage(filePath, this.update.bind(this))
     this.elements.push(newElement)
-    this.update()
   }
 }
