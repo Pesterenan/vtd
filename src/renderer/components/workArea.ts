@@ -3,8 +3,8 @@ import { TransformBox } from './transformBox/transformBox'
 import { BoundingBox, MouseStatus, Position, TOOL } from './types'
 
 const DRAGGING_DISTANCE = 5
-const WORK_AREA_WIDTH = 480
-const WORK_AREA_HEIGHT = 320
+const WORK_AREA_WIDTH = 600
+const WORK_AREA_HEIGHT = 480
 
 export class WorkArea {
   private static instance: WorkArea | null = null
@@ -75,9 +75,26 @@ export class WorkArea {
           this.currentTool = TOOL.ROTATE
           console.log('ROTATE MODE, ACTIVATED!')
           break
+        case 'KeyS':
+          this.currentTool = TOOL.SCALE
+          console.log('SCALE MODE, ACTIVATED!')
+          break
+        case 'KeyX':
+          this.currentTool = TOOL.SELECT
+          console.log('DELETED!')
+          this.removeSelectedElements()
+          return
       }
       console.log(this.currentTool, this.currentMousePosition)
       this.transformBox.startTransform(this.currentTool, this.currentMousePosition)
+      this.update()
+    }
+  }
+
+  private removeSelectedElements(): void {
+    if (this.transformBox) {
+      this.elements = this.elements.filter((element) => !this.transformBox.contains(element))
+      this.transformBox = null
       this.update()
     }
   }
@@ -281,9 +298,9 @@ export class WorkArea {
   }
 
   public addImageElement(filePath: string): void {
-    const x = this.mainCanvas.width / 2
-    const y = this.mainCanvas.height / 2
-    const newElement = new Element({ x, y }, { width: 100, height: 100 }, this.elements.length)
+    const x = this.mainCanvas.width * 0.5
+    const y = this.mainCanvas.height * 0.5
+    const newElement = new Element({ x, y }, { width: 0, height: 0 }, this.elements.length)
     newElement.loadImage(filePath, this.update.bind(this))
     this.elements.push(newElement)
   }

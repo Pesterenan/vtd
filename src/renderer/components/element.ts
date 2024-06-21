@@ -1,10 +1,10 @@
 import { BB } from '../utils/bb'
-import { BoundingBox, Position, Size } from './types'
-import { WorkArea } from './workArea'
+import { BoundingBox, Position, Scale, Size } from './types'
 
 export class Element {
   public position: Position
   public size: Size
+  public scale: Scale = { x: 1.0, y: 1.0 }
   public zDepth: number
   public color: string
   public rotation: number = 0
@@ -25,8 +25,8 @@ export class Element {
     const randomG = Math.floor(Math.random() * 99).toFixed(0)
     const randomB = Math.floor(Math.random() * 99).toFixed(0)
     this.color = `#${randomR.padEnd(2, 'F')}${randomG.padEnd(2, 'F')}${randomB.padEnd(2, 'F')}`
-    const halfWidth = this.size.width / 2
-    const halfHeight = this.size.height / 2
+    const halfWidth = this.size.width * 0.5 * this.scale.x
+    const halfHeight = this.size.height * 0.5 * this.scale.y
     this.corners = {
       upperLeft: { x: -halfWidth, y: -halfHeight },
       upperRight: { x: halfWidth, y: -halfHeight },
@@ -45,10 +45,10 @@ export class Element {
     if (this.isImageLoaded && this.image) {
       context.drawImage(
         this.image,
-        -this.size.width / 2,
-        -this.size.height / 2,
-        this.size.width,
-        this.size.height
+        (-this.size.width / 2) * this.scale.x,
+        (-this.size.height / 2) * this.scale.y,
+        this.size.width * this.scale.x,
+        this.size.height * this.scale.y
       )
     } else {
       // Draw the rectangle centered at the origin
@@ -76,8 +76,8 @@ export class Element {
     this.image.onload = (): void => {
       this.isImageLoaded = true
       this.size = { width: this.image!.width, height: this.image!.height }
-      const halfWidth = this.size.width / 2
-      const halfHeight = this.size.height / 2
+      const halfWidth = (this.size.width / 2) * this.scale.x
+      const halfHeight = (this.size.height / 2) * this.scale.y
       this.corners = {
         upperLeft: { x: -halfWidth, y: -halfHeight },
         upperRight: { x: halfWidth, y: -halfHeight },

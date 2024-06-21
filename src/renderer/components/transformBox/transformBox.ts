@@ -1,10 +1,11 @@
 import { BB } from '../../utils/bb'
 import { Element } from '../element'
-import { Position, Size, TOOL } from '../types'
+import { Position, Scale, Size, TOOL } from '../types'
 import { WorkArea } from '../workArea'
 
 export class TransformBox {
   private position: Position = { x: 0, y: 0 }
+  private scale: Scale = { x: 1.0, y: 1.0 }
   private size: Size = { width: 0, height: 0 }
   private selectedElements: Element[] = []
   public isHandleDragging: boolean = false
@@ -14,6 +15,7 @@ export class TransformBox {
   private context: CanvasRenderingContext2D | null
   private IconMove: HTMLImageElement
   private IconRotate: HTMLImageElement
+  private IconScale: HTMLImageElement
   private centerHandle: HTMLImageElement | null = null
   private isTransforming: boolean = false
   private currentTool: TOOL = TOOL.SELECT
@@ -27,6 +29,12 @@ export class TransformBox {
     this.IconMove.src = '../../components/transformBox/assets/centerHandleMove.svg'
     this.IconRotate = new Image(24, 24)
     this.IconRotate.src = '../../components/transformBox/assets/centerHandleRotate.svg'
+    this.IconScale = new Image(24, 24)
+    this.IconScale.src = '../../components/transformBox/assets/centerHandleScale.svg'
+  }
+
+  public contains(element: Element): boolean {
+    return !!this.selectedElements.find((el) => el.zDepth === element.zDepth)
   }
 
   private getMousePosition(event: MouseEvent): Position {
@@ -169,6 +177,14 @@ export class TransformBox {
     })
   }
 
+  private scaleSelectedElements(scale: number): void {
+    this.selectedElements.forEach((element) => {
+      element.scale.x += scale
+      element.scale.y += scale
+    })
+    this.recalculateBoundingBox()
+  }
+
   public startTransform(tool: TOOL, { x, y }: Position): void {
     this.currentTool = tool
     this.lastMousePosition = { x, y }
@@ -183,6 +199,7 @@ export class TransformBox {
         this.centerHandle = this.IconRotate
         break
       case TOOL.SCALE:
+        this.centerHandle = this.IconScale
         break
     }
   }
@@ -202,10 +219,13 @@ export class TransformBox {
       if (angle < 0) {
         angle += 360
       }
-      console.log(angle, 'angle')
-
       this.rotateSelectedElements(angle - this.rotation)
       this.rotation = angle
+    }
+    if (this.currentTool === TOOL.SCALE) {
+      const scale = (deltaX % 100) * 0.01
+      this.scaleSelectedElements(scale)
+      this.lastMousePosition = { x, y }
     }
   }
 
