@@ -16,6 +16,7 @@ export class TransformBox {
   private IconMove: HTMLImageElement
   private IconRotate: HTMLImageElement
   private IconScale: HTMLImageElement
+  private IconSelect: HTMLImageElement
   private centerHandle: HTMLImageElement | null = null
   private isTransforming: boolean = false
   private currentTool: TOOL = TOOL.SELECT
@@ -25,12 +26,15 @@ export class TransformBox {
     this.selectedElements = selectedElements
     this.recalculateBoundingBox()
     this.workAreaOffset = WorkArea.getInstance().getWorkAreaOffset()
+    this.IconSelect = new Image(24, 24)
+    this.IconSelect.src = '../../components/transformBox/assets/centerHandleSelect.svg'
     this.IconMove = new Image(24, 24)
     this.IconMove.src = '../../components/transformBox/assets/centerHandleMove.svg'
     this.IconRotate = new Image(24, 24)
     this.IconRotate.src = '../../components/transformBox/assets/centerHandleRotate.svg'
     this.IconScale = new Image(24, 24)
     this.IconScale.src = '../../components/transformBox/assets/centerHandleScale.svg'
+    this.centerHandle = this.IconSelect
   }
 
   public contains(element: Element): boolean {
@@ -66,13 +70,13 @@ export class TransformBox {
     if (withOffset) {
       this.workAreaOffset = WorkArea.getInstance().getWorkAreaOffset()
       return {
-        x: this.position.x + this.size.width / 2 + this.workAreaOffset.x,
-        y: this.position.y + this.size.height / 2 + this.workAreaOffset.y
+        x: this.position.x + this.size.width * 0.5 + this.workAreaOffset.x,
+        y: this.position.y + this.size.height * 0.5 + this.workAreaOffset.y
       }
     }
     return {
-      x: this.position.x + this.size.width / 2,
-      y: this.position.y + this.size.height / 2
+      x: this.position.x + this.size.width * 0.5,
+      y: this.position.y + this.size.height * 0.5
     }
   }
 
@@ -100,8 +104,8 @@ export class TransformBox {
     if (this.centerHandle) {
       this.context.drawImage(
         this.centerHandle,
-        centerPos.x - this.centerHandle.width / 2,
-        centerPos.y - this.centerHandle.height / 2,
+        centerPos.x - this.centerHandle.width * 0.5,
+        centerPos.y - this.centerHandle.height * 0.5,
         this.centerHandle.width,
         this.centerHandle.height
       )
@@ -177,10 +181,17 @@ export class TransformBox {
     })
   }
 
-  private scaleSelectedElements(scale: number): void {
+  private scaleSelectedElements(scaleFactor: number): void {
+    const center = this.getCenter(false)
     this.selectedElements.forEach((element) => {
-      element.scale.x += scale
-      element.scale.y += scale
+      const deltaX = element.position.x - center.x
+      const deltaY = element.position.y - center.y
+      // Update element scale
+      element.scale.x *= scaleFactor
+      element.scale.y *= scaleFactor
+      // Update element position
+      element.position.x = center.x + deltaX * scaleFactor
+      element.position.y = center.y + deltaY * scaleFactor
     })
     this.recalculateBoundingBox()
   }
@@ -191,6 +202,7 @@ export class TransformBox {
     this.isTransforming = true
     switch (this.currentTool) {
       case TOOL.SELECT:
+        this.centerHandle = this.IconSelect
         break
       case TOOL.GRAB:
         this.centerHandle = this.IconMove
@@ -223,8 +235,8 @@ export class TransformBox {
       this.rotation = angle
     }
     if (this.currentTool === TOOL.SCALE) {
-      const scale = (deltaX % 100) * 0.01
-      this.scaleSelectedElements(scale)
+      const scaleFactor = 1 + deltaX / 100
+      this.scaleSelectedElements(scaleFactor)
       this.lastMousePosition = { x, y }
     }
   }

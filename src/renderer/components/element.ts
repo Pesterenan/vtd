@@ -36,37 +36,39 @@ export class Element {
   }
 
   public draw(context: CanvasRenderingContext2D): void {
+    // Save context before transformations
     context.save()
     // Move the origin to the center of the element
     context.translate(this.position.x, this.position.y)
     // Rotate around the new origin
     context.rotate(this.rotation)
-
+    // Scale accordingly
+    context.scale(this.scale.x, this.scale.y)
+    // Draw the element's image
     if (this.isImageLoaded && this.image) {
       context.drawImage(
         this.image,
-        (-this.size.width / 2) * this.scale.x,
-        (-this.size.height / 2) * this.scale.y,
-        this.size.width * this.scale.x,
-        this.size.height * this.scale.y
+        -this.size.width * 0.5,
+        -this.size.height * 0.5,
+        this.size.width,
+        this.size.height
       )
     } else {
       // Draw the rectangle centered at the origin
       context.fillStyle = this.color
       context.fillRect(
-        -this.size.width / 2,
-        -this.size.height / 2,
+        -this.size.width * 0.5,
+        -this.size.height * 0.5,
         this.size.width,
         this.size.height
       )
-
       // Draw the zDepth text
       context.fillStyle = 'white'
       context.textAlign = 'center'
       context.textBaseline = 'middle'
       context.fillText(String(this.zDepth), 0, 0)
     }
-
+    // Restore the context after the transformations
     context.restore()
   }
 
@@ -76,8 +78,8 @@ export class Element {
     this.image.onload = (): void => {
       this.isImageLoaded = true
       this.size = { width: this.image!.width, height: this.image!.height }
-      const halfWidth = (this.size.width / 2) * this.scale.x
-      const halfHeight = (this.size.height / 2) * this.scale.y
+      const halfWidth = this.size.width * 0.5
+      const halfHeight = this.size.height * 0.5
       this.corners = {
         upperLeft: { x: -halfWidth, y: -halfHeight },
         upperRight: { x: halfWidth, y: -halfHeight },
@@ -91,9 +93,13 @@ export class Element {
   public getTransformedBoundingBox(): BoundingBox {
     const transformedCorners = Object.values(this.corners).map(({ x, y }) => {
       const transformedX =
-        this.position.x + x * Math.cos(this.rotation) - y * Math.sin(this.rotation)
+        this.position.x +
+        x * this.scale.x * Math.cos(this.rotation) -
+        y * this.scale.y * Math.sin(this.rotation)
       const transformedY =
-        this.position.y + x * Math.sin(this.rotation) + y * Math.cos(this.rotation)
+        this.position.y +
+        x * this.scale.x * Math.sin(this.rotation) +
+        y * this.scale.y * Math.cos(this.rotation)
       return { x: transformedX, y: transformedY }
     })
 

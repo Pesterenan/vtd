@@ -28,7 +28,7 @@ export class WorkArea {
     this.mainCanvas.width = window.innerWidth * 0.7
     this.mainCanvas.height = window.innerHeight
     this.mainCanvas.style.backgroundColor = 'grey'
-    this.currentMousePosition = { x: this.mainCanvas.width / 2, y: this.mainCanvas.height / 2 }
+    this.currentMousePosition = { x: this.mainCanvas.width * 0.5, y: this.mainCanvas.height * 0.5 }
 
     this.workAreaCanvas = document.createElement('canvas')
     this.workAreaCanvas.width = WORK_AREA_WIDTH
@@ -256,8 +256,8 @@ export class WorkArea {
 
   public getWorkAreaOffset(): Position {
     return {
-      x: this.mainCanvas.width / 2 - this.workAreaCanvas.width / 2,
-      y: this.mainCanvas.height / 2 - this.workAreaCanvas.height / 2
+      x: this.mainCanvas.width * 0.5 - this.workAreaCanvas.width * 0.5,
+      y: this.mainCanvas.height * 0.5 - this.workAreaCanvas.height * 0.5
     }
   }
 
@@ -288,18 +288,16 @@ export class WorkArea {
   public addElement(): void {
     const width = 50
     const height = 50
-    const x =
-      Math.floor(Math.random() * this.workAreaCanvas.width) + this.getWorkAreaOffset().x - width
-    const y =
-      Math.floor(Math.random() * this.workAreaCanvas.height) + this.getWorkAreaOffset().y - height
+    const x = Math.floor(Math.random() * this.workAreaCanvas.width) - width
+    const y = Math.floor(Math.random() * this.workAreaCanvas.height) - height
     const newElement = new Element({ x, y }, { width, height }, this.elements.length)
     this.elements.push(newElement)
     this.update()
   }
 
   public addImageElement(filePath: string): void {
-    const x = this.mainCanvas.width * 0.5
-    const y = this.mainCanvas.height * 0.5
+    const x = this.workAreaCanvas.width * 0.5
+    const y = this.workAreaCanvas.height * 0.5
     const newElement = new Element({ x, y }, { width: 0, height: 0 }, this.elements.length)
     newElement.loadImage(filePath, this.update.bind(this))
     this.elements.push(newElement)
