@@ -3,8 +3,8 @@ import { TransformBox } from './transformBox/transformBox'
 import { BoundingBox, MouseStatus, Position, TOOL } from './types'
 
 const DRAGGING_DISTANCE = 5
-const WORK_AREA_WIDTH = 600
-const WORK_AREA_HEIGHT = 480
+const WORK_AREA_WIDTH = 1920
+const WORK_AREA_HEIGHT = 1080
 
 export class WorkArea {
   private static instance: WorkArea | null = null
@@ -18,6 +18,7 @@ export class WorkArea {
   private transformBox: TransformBox | null = null
   private currentTool: TOOL = TOOL.SELECT
   private currentMousePosition: Position
+  private zoomLevel: number = 0.3
 
   private constructor() {
     this.mainCanvas = document.getElementById('main-canvas') as HTMLCanvasElement
@@ -47,6 +48,15 @@ export class WorkArea {
     window.addEventListener('resize', this.handleResize.bind(this))
   }
 
+  public setZoomLevel(zoomLevel: number): void {
+    this.zoomLevel = zoomLevel
+    this.update()
+  }
+
+  public getZoomLevel(): number {
+    return this.zoomLevel
+  }
+
   private createEventListeners(): void {
     this.mainCanvas.addEventListener('mousedown', this.handleMouseDown.bind(this))
     this.mainCanvas.addEventListener('mousemove', this.handleMouseMove.bind(this))
@@ -57,10 +67,10 @@ export class WorkArea {
   private adjustSelectionForOffset(selection: BoundingBox): BoundingBox {
     const offset = this.getWorkAreaOffset()
     return {
-      x1: selection.x1 - offset.x,
-      y1: selection.y1 - offset.y,
-      x2: selection.x2 - offset.x,
-      y2: selection.y2 - offset.y
+      x1: (selection.x1 - offset.x) / this.zoomLevel,
+      y1: (selection.y1 - offset.y) / this.zoomLevel,
+      x2: (selection.x2 - offset.x) / this.zoomLevel,
+      y2: (selection.y2 - offset.y) / this.zoomLevel
     }
   }
 
@@ -85,7 +95,6 @@ export class WorkArea {
           this.removeSelectedElements()
           return
       }
-      console.log(this.currentTool, this.currentMousePosition)
       this.transformBox.startTransform(this.currentTool, this.currentMousePosition)
       this.update()
     }
@@ -93,41 +102,46 @@ export class WorkArea {
 
   private removeSelectedElements(): void {
     if (this.transformBox) {
-      this.elements = this.elements.filter((element) => !this.transformBox.contains(element))
+      this.elements = this.elements.filter((element) => !this.transformBox?.contains(element))
       this.transformBox = null
       this.update()
     }
   }
 
+  private adjustForZoom(mousePosition: Position): Position {
+    return {
+      x: mousePosition.x / this.zoomLevel,
+      y: mousePosition.y / this.zoomLevel
+    }
+  }
+
   private handleMouseDown(event: MouseEvent): void {
-    console.log(`WorkArea, mouse down`)
     this.mouseStatus = MouseStatus.DOWN
     const { offsetX, offsetY } = event
+    const adjustedPosition = this.adjustForZoom({ x: offsetX, y: offsetY })
+    this.currentMousePosition = adjustedPosition
+    console.log(`WorkArea, mouse down`, { ox: offsetX, oy: offsetY }, adjustedPosition)
     if (this.transformBox) {
-      this.transformBox.handleMouseDown(event)
+      this.transformBox.handleMouseDown(event, this.currentMousePosition)
       if (this.transformBox.isHandleDragging) {
         return
       }
     }
-
     this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY }
   }
 
   private handleMouseMove(event: MouseEvent): void {
-    this.currentMousePosition = {
-      x: event.clientX,
-      y: event.clientY
-    }
+    const { offsetX, offsetY } = event
+    const adjustedPosition = this.adjustForZoom({ x: offsetX, y: offsetY })
+    this.currentMousePosition = adjustedPosition
 
     if (this.transformBox) {
-      this.transformBox.handleMouseMove(event)
+      this.transformBox.handleMouseMove(this.currentMousePosition)
       this.update()
       return
     }
 
-    console.log(`WorkArea, mouse move`)
     if (this.selection) {
-      const { offsetX, offsetY } = event
       this.selection.x2 = offsetX
       this.selection.y2 = offsetY
       if (this.mouseStatus === MouseStatus.MOVE) {
@@ -152,9 +166,10 @@ export class WorkArea {
   }
 
   private handleMouseUp(event: MouseEvent): void {
+    const { offsetX, offsetY } = event
     if (this.transformBox) {
       this.transformBox.endTransform()
-      this.transformBox.handleMouseUp(event)
+      this.transformBox.handleMouseUp()
       if (!this.transformBox.isHandleDragging) {
         this.transformBox = null
       }
@@ -162,7 +177,6 @@ export class WorkArea {
       this.mouseStatus = MouseStatus.UP
       this.currentTool = TOOL.SELECT
     }
-    console.log(`WorkArea, mouse up`)
     if (this.mouseStatus === MouseStatus.MOVE) {
       const adjustedSelection = this.adjustSelectionForOffset(this.selection as BoundingBox)
       const selectedElements = this.elements.filter((el) => el.isWithinBounds(adjustedSelection))
@@ -176,12 +190,7 @@ export class WorkArea {
     }
 
     if (this.mouseStatus === MouseStatus.DOWN) {
-      this.selection = {
-        x1: event.offsetX,
-        y1: event.offsetY,
-        x2: event.offsetX,
-        y2: event.offsetY
-      }
+      this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY }
 
       const adjustedSelection = this.adjustSelectionForOffset(this.selection)
       const selectedElement = this.elements.reduce(
@@ -256,41 +265,32 @@ export class WorkArea {
 
   public getWorkAreaOffset(): Position {
     return {
-      x: this.mainCanvas.width * 0.5 - this.workAreaCanvas.width * 0.5,
-      y: this.mainCanvas.height * 0.5 - this.workAreaCanvas.height * 0.5
+      x: (this.mainCanvas.width - this.workAreaCanvas.width * this.zoomLevel) * 0.5,
+      y: (this.mainCanvas.height - this.workAreaCanvas.height * this.zoomLevel) * 0.5
     }
   }
 
   private drawWorkArea(): void {
     if (this.mainContext) {
+      const offset = this.getWorkAreaOffset()
+      this.mainContext.save()
+      this.mainContext.translate(offset.x, offset.y)
+      this.mainContext.scale(this.zoomLevel, this.zoomLevel)
       this.mainContext.fillStyle = 'white'
-      this.mainContext.fillRect(
-        this.getWorkAreaOffset().x,
-        this.getWorkAreaOffset().y,
-        this.workAreaCanvas.width,
-        this.workAreaCanvas.height
-      )
+      this.mainContext.fillRect(0, 0, this.workAreaCanvas.width, this.workAreaCanvas.height)
       this.mainContext.strokeStyle = 'black'
-      this.mainContext.strokeRect(
-        this.getWorkAreaOffset().x,
-        this.getWorkAreaOffset().y,
-        this.workAreaCanvas.width,
-        this.workAreaCanvas.height
-      )
-      this.mainContext.drawImage(
-        this.workAreaCanvas,
-        this.getWorkAreaOffset().x,
-        this.getWorkAreaOffset().y
-      )
+      this.mainContext.strokeRect(0, 0, this.workAreaCanvas.width, this.workAreaCanvas.height)
+      this.mainContext.drawImage(this.workAreaCanvas, 0, 0)
+      this.mainContext.restore()
     }
   }
 
   public addElement(): void {
     const width = 50
     const height = 50
-    const x = Math.floor(Math.random() * this.workAreaCanvas.width) - width
-    const y = Math.floor(Math.random() * this.workAreaCanvas.height) - height
-    const newElement = new Element({ x, y }, { width, height }, this.elements.length)
+    // const x = Math.floor(Math.random() * this.workAreaCanvas.width) - width
+    // const y = Math.floor(Math.random() * this.workAreaCanvas.height) - height
+    const newElement = new Element({ x: 25, y: 25 }, { width, height }, this.elements.length)
     this.elements.push(newElement)
     this.update()
   }

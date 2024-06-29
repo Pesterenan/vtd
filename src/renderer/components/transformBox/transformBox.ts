@@ -1,16 +1,13 @@
-import { BB } from '../../utils/bb'
 import { Element } from '../element'
-import { Position, Scale, Size, TOOL } from '../types'
+import { Position, Size, TOOL } from '../types'
 import { WorkArea } from '../workArea'
 
 export class TransformBox {
   private position: Position = { x: 0, y: 0 }
-  private scale: Scale = { x: 1.0, y: 1.0 }
   private size: Size = { width: 0, height: 0 }
   private selectedElements: Element[] = []
   public isHandleDragging: boolean = false
   private lastMousePosition: Position | null = null
-  private workAreaOffset: Position
   private rotation: number = 0
   private context: CanvasRenderingContext2D | null
   private IconMove: HTMLImageElement
@@ -25,7 +22,6 @@ export class TransformBox {
     this.context = canvas.getContext('2d')
     this.selectedElements = selectedElements
     this.recalculateBoundingBox()
-    this.workAreaOffset = WorkArea.getInstance().getWorkAreaOffset()
     this.IconSelect = new Image(24, 24)
     this.IconSelect.src = '../../components/transformBox/assets/centerHandleSelect.svg'
     this.IconMove = new Image(24, 24)
@@ -39,10 +35,6 @@ export class TransformBox {
 
   public contains(element: Element): boolean {
     return !!this.selectedElements.find((el) => el.zDepth === element.zDepth)
-  }
-
-  private getMousePosition(event: MouseEvent): Position {
-    return { x: event.clientX, y: event.clientY }
   }
 
   private recalculateBoundingBox(): void {
@@ -63,17 +55,8 @@ export class TransformBox {
     this.size = { width: maxX - minX, height: maxY - minY }
   }
 
-  /** Returns the center of the transform box
-   * @param {boolean} withOffset - includes workAreaOffset if true
-   */
-  public getCenter(withOffset: boolean = true): Position {
-    if (withOffset) {
-      this.workAreaOffset = WorkArea.getInstance().getWorkAreaOffset()
-      return {
-        x: this.position.x + this.size.width * 0.5 + this.workAreaOffset.x,
-        y: this.position.y + this.size.height * 0.5 + this.workAreaOffset.y
-      }
-    }
+  /** Returns the center of the transform box */
+  public getCenter(): Position {
     return {
       x: this.position.x + this.size.width * 0.5,
       y: this.position.y + this.size.height * 0.5
@@ -82,51 +65,55 @@ export class TransformBox {
 
   public draw(): void {
     if (!this.context) return
-    const centerPos = this.getCenter()
+    this.recalculateBoundingBox()
+    const centerPosition = this.getCenter()
+    const workAreaZoom = WorkArea.getInstance().getZoomLevel()
+    const workAreaOffset = WorkArea.getInstance().getWorkAreaOffset()
 
     // Draw bounding box
     this.context.save()
-    this.context.translate(centerPos.x, centerPos.y)
-    this.context.rotate(this.rotation * (Math.PI / 180))
-    this.context.translate(-centerPos.x, -centerPos.y)
+    this.context.translate(workAreaOffset.x, workAreaOffset.y)
+    this.context.scale(workAreaZoom, workAreaZoom)
+    //
+    // this.context.translate(centerPos.x, centerPos.y)
+    // this.context.rotate(this.rotation * (Math.PI / 180))
+    // this.context.translate(-centerPos.x, -centerPos.y)
+
     this.context.strokeStyle = 'red'
-    this.context.setLineDash([3, 3])
-    this.context.lineWidth = 2
-    this.context.strokeRect(
-      this.position.x + this.workAreaOffset.x,
-      this.position.y + this.workAreaOffset.y,
-      this.size.width,
-      this.size.height
-    )
-    this.context.restore()
+    this.context.setLineDash([3 / workAreaZoom, 3 / workAreaZoom])
+    this.context.lineWidth = 2 / workAreaZoom
+    this.context.strokeRect(this.position.x, this.position.y, this.size.width, this.size.height)
 
     // Draw centerHandle
     if (this.centerHandle) {
       this.context.drawImage(
         this.centerHandle,
-        centerPos.x - this.centerHandle.width * 0.5,
-        centerPos.y - this.centerHandle.height * 0.5,
-        this.centerHandle.width,
-        this.centerHandle.height
+        centerPosition.x - (this.centerHandle.width * 0.5) / workAreaZoom,
+        centerPosition.y - (this.centerHandle.height * 0.5) / workAreaZoom,
+        this.centerHandle.width / workAreaZoom,
+        this.centerHandle.height / workAreaZoom
       )
     }
+    this.context.restore()
   }
 
-  public handleMouseDown(event: MouseEvent): void {
-    const { x, y } = this.getMousePosition(event)
-    const centerHandle = this.getCenter()
-    const distance = Math.hypot(centerHandle.x - x, centerHandle.y - y)
+  public handleMouseDown(event: MouseEvent, { x, y }: Position): void {
+    const centerPosition = this.getCenter()
+    const workAreaOffset = WorkArea.getInstance().getWorkAreaOffset()
+    const distance = Math.hypot(
+      centerPosition.x - x + workAreaOffset.x,
+      centerPosition.y - y + workAreaOffset.y
+    )
+    console.log('distance', distance)
 
-    if (distance <= 5) {
+    if (distance <= 10) {
       this.startTransform(TOOL.GRAB, { x, y })
       this.isHandleDragging = true
       event.stopPropagation()
     }
   }
 
-  public handleMouseMove(event: MouseEvent): void {
-    console.log(`TransformBox, mouse move`)
-    const { x, y } = this.getMousePosition(event)
+  public handleMouseMove({ x, y }: Position): void {
     if (this.isTransforming) {
       this.transform({ x, y })
       return
@@ -141,19 +128,7 @@ export class TransformBox {
     this.lastMousePosition = { x, y }
   }
 
-  public handleMouseUp(event: MouseEvent): void {
-    console.log(`TransformBox, mouse up`)
-    const { x, y } = this.getMousePosition(event)
-    if (
-      new BB({
-        x1: this.getCenter().x - 5,
-        x2: this.getCenter().x + 5,
-        y1: this.getCenter().y - 5,
-        y2: this.getCenter().y + 5
-      }).isPointWithinBB({ x, y })
-    ) {
-      console.log('it is on handle')
-    }
+  public handleMouseUp(): void {
     this.isHandleDragging = false
     this.endTransform()
   }
@@ -164,36 +139,34 @@ export class TransformBox {
       element.position.x += x
       element.position.y += y
     })
-    this.recalculateBoundingBox()
   }
 
   private rotateSelectedElements(angle: number): void {
-    const center = this.getCenter(false)
+    const centerPosition = this.getCenter()
     const angleInRadians = (angle * Math.PI) / 180
     this.selectedElements.forEach((element) => {
-      const deltaX = element.position.x - center.x
-      const deltaY = element.position.y - center.y
+      const deltaX = element.position.x - centerPosition.x
+      const deltaY = element.position.y - centerPosition.y
       const newX = deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians)
       const newY = deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians)
-      element.position.x = center.x + newX
-      element.position.y = center.y + newY
+      element.position.x = centerPosition.x + newX
+      element.position.y = centerPosition.y + newY
       element.rotation += angleInRadians
     })
   }
 
   private scaleSelectedElements(scaleFactor: number): void {
-    const center = this.getCenter(false)
+    const centerPosition = this.getCenter()
     this.selectedElements.forEach((element) => {
-      const deltaX = element.position.x - center.x
-      const deltaY = element.position.y - center.y
+      const deltaX = element.position.x - centerPosition.x
+      const deltaY = element.position.y - centerPosition.y
       // Update element scale
       element.scale.x *= scaleFactor
       element.scale.y *= scaleFactor
       // Update element position
-      element.position.x = center.x + deltaX * scaleFactor
-      element.position.y = center.y + deltaY * scaleFactor
+      element.position.x = centerPosition.x + deltaX * scaleFactor
+      element.position.y = centerPosition.y + deltaY * scaleFactor
     })
-    this.recalculateBoundingBox()
   }
 
   public startTransform(tool: TOOL, { x, y }: Position): void {
@@ -216,9 +189,8 @@ export class TransformBox {
     }
   }
 
-  public transform(currentMousePosition: Position): void {
+  public transform({ x, y }: Position): void {
     if (!this.isTransforming || !this.lastMousePosition || this.currentTool === TOOL.SELECT) return
-    const { x, y } = currentMousePosition
     const deltaX = x - this.lastMousePosition.x
     const deltaY = y - this.lastMousePosition.y
 
