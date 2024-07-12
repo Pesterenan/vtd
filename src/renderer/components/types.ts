@@ -1,3 +1,14 @@
+export interface IProjectData {
+  elements: {
+    imageSrc: string
+    position: Position
+    rotation: number
+    scale: Scale
+    size: Size
+    zDepth: number
+  }[]
+}
+
 export interface Rectangle {
   x: number
   y: number

@@ -1,6 +1,6 @@
 import { Element } from './element'
 import { TransformBox } from './transformBox/transformBox'
-import { BoundingBox, MouseStatus, Position, TOOL } from './types'
+import { BoundingBox, IProjectData, MouseStatus, Position, TOOL } from './types'
 
 const DRAGGING_DISTANCE = 5
 const WORK_AREA_WIDTH = 1920
@@ -222,6 +222,36 @@ export class WorkArea {
       this.instance = new WorkArea()
     }
     return this.instance
+  }
+
+  public loadProject(data: string): void {
+    const projectData: IProjectData = JSON.parse(data)
+
+    this.elements = projectData.elements.map((elData) => {
+      const element = new Element(elData.position, elData.size, elData.zDepth)
+      element.rotation = elData.rotation
+      element.scale = elData.scale
+      if (elData.imageSrc) {
+        element.loadImage(elData.imageSrc, this.update.bind(this))
+      }
+      return element
+    })
+
+    this.update()
+  }
+
+  public saveProject(): string {
+    const projectData = {
+      elements: this.elements.map((el) => ({
+        imageSrc: el.image?.src,
+        position: el.position,
+        rotation: el.rotation,
+        scale: el.scale,
+        size: el.size,
+        zDepth: el.zDepth
+      }))
+    }
+    return JSON.stringify(projectData)
   }
 
   private saveCanvas(canvas: HTMLCanvasElement): HTMLImageElement {

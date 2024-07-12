@@ -11,8 +11,20 @@ const initialize = (): void => {
 const createEventListeners = (workArea: WorkArea): void => {
   const openImageButton = document.getElementById('open-image-btn')
   const addElementButton = document.getElementById('add-element-btn')
+  const loadProjectButton = document.getElementById('load-project')
+  const saveProjectButton = document.getElementById('save-project')
   const fileInput = document.getElementById('file-input') as HTMLInputElement
   const zoomSlider = document.getElementById('zoom-slider') as HTMLInputElement
+
+  saveProjectButton?.addEventListener('click', () => {
+    const projectData = WorkArea.getInstance().saveProject()
+    // @ts-ignore api defined in main.ts
+    window.api.saveProject(projectData)
+  })
+  loadProjectButton?.addEventListener('click', () => {
+    // @ts-ignore api defined in main.ts
+    window.api.loadProject()
+  })
   zoomSlider.addEventListener('input', (event: Event) => {
     const zoomLevel = parseFloat(event?.target?.value as string)
     workArea.setZoomLevel(zoomLevel)
@@ -25,6 +37,8 @@ const createEventListeners = (workArea: WorkArea): void => {
       window.api.loadImage(file.path)
     }
   })
+  addElementButton?.addEventListener('click', () => WorkArea.getInstance().addElement())
+
   // @ts-ignore api defined in main.ts
   window.api.onLoadImageResponse((event, response) => {
     if (response.success) {
@@ -34,7 +48,20 @@ const createEventListeners = (workArea: WorkArea): void => {
       console.error(response.message)
     }
   })
-  addElementButton?.addEventListener('click', () => WorkArea.getInstance().addElement())
+  window.api.onSaveProjectResponse((event, response) => {
+    if (response.success) {
+      console.log(response.message)
+    } else {
+      console.error(response.message)
+    }
+  })
+  window.api.onLoadProjectResponse((event, response) => {
+    if (response.success) {
+      WorkArea.getInstance().loadProject(response.data)
+    } else {
+      console.error(response.message)
+    }
+  })
 }
 
 initialize()

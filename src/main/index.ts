@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -66,7 +66,42 @@ app.whenReady().then(() => {
       event.reply('load-image-response', { success: true, data: base64 })
     })
   })
+  // Save Project onto file
+  ipcMain.on('save-project', async (event, { dataString }: { dataString: string }) => {
+    const { filePath } = await dialog.showSaveDialog({
+      title: 'Salvar Projeto',
+      defaultPath: 'projeto.json',
+      filters: [{ name: 'JSON Files', extensions: ['json'] }]
+    })
+    if (filePath) {
+      fs.writeFile(filePath, dataString, (err) => {
+        if (err) {
+          event.reply('save-project-response', { success: false, message: 'Failed to save file' })
+          return
+        }
+        event.reply('save-project-response', { success: true, message: 'File saved successfully' })
+      })
+    }
+  })
 
+  // Load Project from file
+  ipcMain.on('load-project', async (event) => {
+    const { filePaths } = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'JSON Files', extensions: ['json'] }]
+    })
+    if (filePaths.length > 0) {
+      fs.readFile(filePaths[0], 'utf-8', (err, data: string) => {
+        if (err) {
+          event.reply('load-project-response', { success: false, message: 'Failed to load file' })
+          return
+        }
+        event.reply('load-project-response', { success: true, data })
+      })
+    } else {
+      event.reply('load-project-response', { success: false, message: 'No file selected' })
+    }
+  })
   createWindow()
 
   app.on('activate', function () {

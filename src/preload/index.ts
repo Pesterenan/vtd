@@ -4,8 +4,14 @@ import { electronAPI } from '@electron-toolkit/preload'
 // Custom APIs for renderer
 const api = {
   loadImage: (filePath: string): void => ipcRenderer.send('load-image', filePath),
+  loadProject: (): void => ipcRenderer.send('load-project'),
+  saveProject: (dataString: string): void => ipcRenderer.send('save-project', { dataString }),
   onLoadImageResponse: (callback): Electron.IpcRenderer =>
-    ipcRenderer.on('load-image-response', callback)
+    ipcRenderer.on('load-image-response', callback),
+  onLoadProjectResponse: (callback): Electron.IpcRenderer =>
+    ipcRenderer.on('load-project-response', callback),
+  onSaveProjectResponse: (callback): Electron.IpcRenderer =>
+    ipcRenderer.on('save-project-response', callback)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

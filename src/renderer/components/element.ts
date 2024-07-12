@@ -14,7 +14,7 @@ export class Element {
     lowerRight: Position
     lowerLeft: Position
   }
-  private image: HTMLImageElement | null = null
+  public image: HTMLImageElement | null = null
   private isImageLoaded: boolean = false
 
   public constructor(position: Position, size: Size, z: number) {
