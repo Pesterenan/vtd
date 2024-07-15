@@ -54,18 +54,45 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
   // Load images into vtd
-  ipcMain.on('load-image', (event, filePath) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    fs.readFile(filePath, (err: any, data: any) => {
-      if (err) {
-        event.reply('load-image-response', { success: false, message: 'Failed to read file' })
-        return
-      }
-      const base64 = data.toString('base64')
-      event.reply('load-image-response', { success: true, data: base64 })
+  ipcMain.on('load-image', async (event) => {
+    const { filePaths } = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [
+        { name: 'Arquivos de Imagem', extensions: ['jpg', 'jpeg', 'png', 'svg', 'bmp'] },
+        { name: 'Arquivos Bitmap', extensions: ['bmp'] },
+        { name: 'Arquivos JPG', extensions: ['jpg, jpeg'] },
+        { name: 'Arquivos PNG', extensions: ['png'] },
+        { name: 'Arquivos SVG', extensions: ['svg'] },
+        { name: 'Todos os Arquivos', extensions: ['*'] }
+      ]
     })
+    if (filePaths.length > 0) {
+      const filePath = filePaths[0]
+      const extension = filePath.split('.').pop()?.toLowerCase()
+      console.log(extension)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fs.readFile(filePaths[0], (err: any, data: any) => {
+        if (err) {
+          event.reply('load-image-response', { success: false, message: 'Failed to load file' })
+          return
+        }
+
+        if (extension === 'svg') {
+          const base64 = Buffer.from(data).toString('base64')
+          const base64Data = `data:image/svg+xml;base64,${base64}`
+          event.reply('load-image-response', { success: true, data: base64Data })
+        } else {
+          const base64 = data.toString('base64')
+          const mimeType = `image/${extension === 'jpg' ? 'jpeg' : extension}`
+          const base64Data = `data:${mimeType};base64,${base64}`
+          event.reply('load-image-response', { success: true, data: base64Data })
+        }
+      })
+    }
   })
+
   // Save Project onto file
   ipcMain.on('save-project', async (event, { dataString }: { dataString: string }) => {
     const { filePath } = await dialog.showSaveDialog({

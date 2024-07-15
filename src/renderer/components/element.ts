@@ -35,6 +35,34 @@ export class Element {
     }
   }
 
+  public static deserialize({ position, rotation, scale, size, zDepth, image }): Element {
+    const element = new Element(position, size, zDepth)
+    element.rotation = rotation
+    element.scale = scale
+    if (image) {
+      element.loadImage(image, () => {})
+    }
+    return element
+  }
+
+  public serialize(): {
+    position: Position
+    rotation: number
+    scale: Scale
+    size: Size
+    zDepth: number
+    image: string
+  } {
+    return {
+      position: this.position,
+      rotation: this.rotation,
+      scale: this.scale,
+      size: this.size,
+      zDepth: this.zDepth,
+      image: this.image ? this.image.src : ''
+    }
+  }
+
   public draw(context: CanvasRenderingContext2D): void {
     // Save context before transformations
     context.save()

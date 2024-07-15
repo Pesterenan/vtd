@@ -1,6 +1,6 @@
 export interface IProjectData {
   elements: {
-    imageSrc: string
+    image: string
     position: Position
     rotation: number
     scale: Scale

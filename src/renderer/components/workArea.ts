@@ -228,13 +228,7 @@ export class WorkArea {
     const projectData: IProjectData = JSON.parse(data)
 
     this.elements = projectData.elements.map((elData) => {
-      const element = new Element(elData.position, elData.size, elData.zDepth)
-      element.rotation = elData.rotation
-      element.scale = elData.scale
-      if (elData.imageSrc) {
-        element.loadImage(elData.imageSrc, this.update.bind(this))
-      }
-      return element
+      return Element.deserialize(elData)
     })
 
     this.update()
@@ -242,14 +236,7 @@ export class WorkArea {
 
   public saveProject(): string {
     const projectData = {
-      elements: this.elements.map((el) => ({
-        imageSrc: el.image?.src,
-        position: el.position,
-        rotation: el.rotation,
-        scale: el.scale,
-        size: el.size,
-        zDepth: el.zDepth
-      }))
+      elements: this.elements.map((el) => el.serialize())
     }
     return JSON.stringify(projectData)
   }
@@ -318,9 +305,9 @@ export class WorkArea {
   public addElement(): void {
     const width = 50
     const height = 50
-    // const x = Math.floor(Math.random() * this.workAreaCanvas.width) - width
-    // const y = Math.floor(Math.random() * this.workAreaCanvas.height) - height
-    const newElement = new Element({ x: 25, y: 25 }, { width, height }, this.elements.length)
+    const x = Math.floor(Math.random() * this.workAreaCanvas.width) - width
+    const y = Math.floor(Math.random() * this.workAreaCanvas.height) - height
+    const newElement = new Element({ x, y }, { width, height }, this.elements.length)
     this.elements.push(newElement)
     this.update()
   }
