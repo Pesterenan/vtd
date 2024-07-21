@@ -40,7 +40,7 @@ export class Element {
     element.rotation = rotation
     element.scale = scale
     if (image) {
-      element.loadImage(image, () => {})
+      element.loadImage(image)
     }
     return element
   }
@@ -100,7 +100,7 @@ export class Element {
     context.restore()
   }
 
-  public loadImage(filePath: string, onLoadCallback: () => void): void {
+  public loadImage(filePath: string, onLoadCallback?: () => void): void {
     this.image = new Image()
     this.image.src = filePath
     this.image.onload = (): void => {
@@ -114,7 +114,9 @@ export class Element {
         lowerLeft: { x: halfWidth, y: halfHeight },
         lowerRight: { x: -halfWidth, y: halfHeight }
       }
-      onLoadCallback()
+      if (onLoadCallback) {
+        onLoadCallback()
+      }
     }
   }
 

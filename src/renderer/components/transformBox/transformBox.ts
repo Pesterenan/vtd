@@ -18,6 +18,11 @@ export class TransformBox {
   private isTransforming: boolean = false
   private currentTool: TOOL = TOOL.SELECT
 
+  private xPosInput: { element: HTMLInputElement; listener: (event: Event) => void }
+  private yPosInput: { element: HTMLInputElement; listener: (event: Event) => void }
+  private widthSizeInput: { element: HTMLInputElement; listener: (event: Event) => void }
+  private heightSizeInput: { element: HTMLInputElement; listener: (event: Event) => void }
+
   public constructor(selectedElements: Element[], canvas: HTMLCanvasElement) {
     this.context = canvas.getContext('2d')
     this.selectedElements = selectedElements
@@ -31,6 +36,65 @@ export class TransformBox {
     this.IconScale = new Image(24, 24)
     this.IconScale.src = '../../components/transformBox/assets/centerHandleScale.svg'
     this.centerHandle = this.IconSelect
+
+    this.xPosInput = {
+      element: document.getElementById('x-pos-input') as HTMLInputElement,
+      listener: this.updateTransformBoxPosition.bind(this)
+    }
+    this.yPosInput = {
+      element: document.getElementById('y-pos-input') as HTMLInputElement,
+      listener: this.updateTransformBoxPosition.bind(this)
+    }
+    this.widthSizeInput = {
+      element: document.getElementById('width-size-input') as HTMLInputElement,
+      listener: this.updateTransformBoxSize.bind(this)
+    }
+    this.heightSizeInput = {
+      element: document.getElementById('height-size-input') as HTMLInputElement,
+      listener: this.updateTransformBoxSize.bind(this)
+    }
+
+    this.createEventListeners()
+    this.updateElementPropertiesMenu()
+  }
+
+  private createEventListeners(): void {
+    this.xPosInput.element.addEventListener('input', this.xPosInput.listener)
+    this.yPosInput.element.addEventListener('input', this.yPosInput.listener)
+    this.widthSizeInput.element.addEventListener('input', this.widthSizeInput.listener)
+    this.heightSizeInput.element.addEventListener('input', this.heightSizeInput.listener)
+  }
+
+  private removeEventListeners(): void {
+    this.xPosInput.element.removeEventListener('input', this.xPosInput.listener)
+    this.yPosInput.element.removeEventListener('input', this.yPosInput.listener)
+    this.widthSizeInput.element.removeEventListener('input', this.widthSizeInput.listener)
+    this.heightSizeInput.element.removeEventListener('input', this.heightSizeInput.listener)
+  }
+
+  private updateElementPropertiesMenu(): void {
+    const center = this.getCenter()
+    this.xPosInput.element.value = center.x.toFixed(0).toString()
+    this.yPosInput.element.value = center.y.toFixed(0).toString()
+    this.widthSizeInput.element.value = this.size.width.toFixed(0).toString()
+    this.heightSizeInput.element.value = this.size.height.toFixed(0).toString()
+  }
+
+  private updateTransformBoxPosition(): void {
+    const center = this.getCenter()
+    const deltaX = parseFloat(this.xPosInput.element.value) - center.x
+    const deltaY = parseFloat(this.yPosInput.element.value) - center.y
+    this.position.x += deltaX
+    this.position.y += deltaY
+    this.moveSelectedElements({ x: deltaX, y: deltaY })
+    this.updateElementPropertiesMenu()
+    WorkArea.getInstance().update()
+  }
+
+  private updateTransformBoxSize(): void {
+    this.size.width = parseFloat(this.widthSizeInput.element.value)
+    this.size.height = parseFloat(this.heightSizeInput.element.value)
+    WorkArea.getInstance().update()
   }
 
   public contains(element: Element): boolean {
@@ -128,6 +192,10 @@ export class TransformBox {
     this.lastMousePosition = { x, y }
   }
 
+  public remove(): void {
+    this.removeEventListeners()
+  }
+
   public handleMouseUp(): void {
     this.isHandleDragging = false
     this.endTransform()
@@ -211,6 +279,7 @@ export class TransformBox {
       this.scaleSelectedElements(scaleFactor)
       this.lastMousePosition = { x, y }
     }
+    this.updateElementPropertiesMenu()
   }
 
   public endTransform(): void {

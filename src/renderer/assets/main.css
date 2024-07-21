@@ -32,3 +32,26 @@ body {
   flex: 0 1 30%;
   padding: 1rem;
 }
+
+#transform-box-properties {
+  font-size: 0.75rem;
+  color: black;
+  display: flex;
+  align-items:center;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.number-input-group {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  flex: 1 1 100%;
+  width: fit-content;
+}
+
+.number-input {
+  text-align: center;
+  width: 8ch;
+}

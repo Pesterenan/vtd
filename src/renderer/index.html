@@ -19,6 +19,35 @@
         <label for="zoom-slider">Zoom</label>
         <button id="save-project" class="btn-common">Salvar Projeto</button>
         <button id="load-project" class="btn-common">Carregar Projeto</button>
+        <section id="transform-box-properties" class="element-properties-menu">
+          <p style="align-self: flex-start;">Caixa de Transformação:</p>
+          <div style="display: flex; flex-wrap: nowrap; width: 100%;">
+            <div class="number-input-group">
+              <p style="align-self: flex-start;">Posição:</p>
+              <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
+                <label for="x-pos-input">X:</label>
+                <input id="x-pos-input" class="number-input" type="number" value="0" />
+              </div>
+
+              <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
+                <label for="y-pos-input">Y:</label>
+                <input id="y-pos-input" class="number-input" type="number" value="0" />
+              </div>
+            </div>
+            <div class="number-input-group">
+              <p style="align-self: flex-start;">Tamanho:</p>
+
+              <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
+                <label for="width-size-input">Largura:</label>
+                <input id="width-size-input" class="number-input" type="number" value="0" />
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
+                <label for="height-size-input">Altura:</label>
+                <input id="height-size-input" class="number-input" type="number" value="0" />
+              </div>
+            </div>
+          </div>
+        </section>
       </menu>
     </main>
 

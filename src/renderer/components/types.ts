@@ -45,5 +45,9 @@ export enum TOOL {
   /** @prop ROTATE - Rotacionar elemento */
   ROTATE,
   /** @prop SCALE - Escalonar elemento */
-  SCALE
+  SCALE,
+  /** @prop HAND - Mover área de trabalho */
+  HAND,
+  /** @prop ZOOM - Modificar zoom */
+  ZOOM
 }
