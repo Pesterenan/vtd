@@ -164,11 +164,11 @@ export class TransformBox {
   public handleMouseDown(event: MouseEvent, { x, y }: Position): void {
     const centerPosition = this.getCenter()
     const workAreaOffset = WorkArea.getInstance().getWorkAreaOffset()
+    const workAreaZoomLevel = WorkArea.getInstance().getZoomLevel()
     const distance = Math.hypot(
-      centerPosition.x - x + workAreaOffset.x,
-      centerPosition.y - y + workAreaOffset.y
+      centerPosition.x - x + workAreaOffset.x / workAreaZoomLevel,
+      centerPosition.y - y + workAreaOffset.y / workAreaZoomLevel
     )
-    console.log('distance', distance)
 
     if (distance <= 10) {
       this.startTransform(TOOL.GRAB, { x, y })

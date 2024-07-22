@@ -115,7 +115,6 @@ export class WorkArea {
     if (this.currentTool === TOOL.SELECT) {
       switch (event.code) {
         case 'Space':
-          console.log(this.mouse.position, 'mouse Pos')
           this.currentTool = TOOL.HAND
           console.log('MOVING')
           return
@@ -163,8 +162,8 @@ export class WorkArea {
 
   private adjustForZoom(mousePosition: Position): Position {
     return {
-      x: mousePosition.x / this.zoomLevel,
-      y: mousePosition.y / this.zoomLevel
+      x: Number((mousePosition.x / this.zoomLevel).toFixed(0)),
+      y: Number((mousePosition.y / this.zoomLevel).toFixed(0))
     }
   }
 
@@ -196,12 +195,9 @@ export class WorkArea {
     const previousMousePosition = this.mouse.position
     const currentMousePosition = { x: offsetX, y: offsetY }
     const adjustedPosition = this.adjustForZoom(currentMousePosition)
-    // TODO: Work on zooming in the mouse
     if (this.currentTool === TOOL.ZOOM) {
       const deltaX = currentMousePosition.x - previousMousePosition.x
-      this.workArea.offset.x = deltaX
-      const newZoomLevel = remap(0, this.mainCanvas.width, 0.1, 2.0, deltaX, true)
-      console.log(deltaX, 'dx', newZoomLevel, 'nzl')
+      const newZoomLevel = remap(0, this.mainCanvas.width * 0.7, 0.1, 2.0, deltaX, true)
       this.setZoomLevel(newZoomLevel)
       this.update()
       return
@@ -214,7 +210,6 @@ export class WorkArea {
       const deltaY = currentMousePosition.y - previousMousePosition.y
       this.workArea.offset.x += deltaX
       this.workArea.offset.y += deltaY
-      console.log(this.workArea.offset, currentMousePosition)
       this.update()
       return
     }
