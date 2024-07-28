@@ -18,7 +18,7 @@ export class SelectTool extends Tool {
 
   private adjustSelectionForOffset(selection: BoundingBox): BoundingBox {
     const offset = this.workArea.getWorkAreaOffset()
-    const zoomLevel = this.workArea.getZoomLevel()
+    const zoomLevel = this.workArea.zoomLevel
     return {
       x1: (selection.x1 - offset.x) / zoomLevel,
       y1: (selection.y1 - offset.y) / zoomLevel,
@@ -29,7 +29,7 @@ export class SelectTool extends Tool {
 
   handleMouseDown(event: MouseEvent): void {
     const { offsetX, offsetY } = event
-    this.workArea.getMouse().status = MouseStatus.DOWN
+    this.workArea.mouse = { status: MouseStatus.DOWN }
     this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY }
     this.workArea.mainCanvas.addEventListener('mousemove', this.mouseMoveListener)
     this.workArea.mainCanvas.addEventListener('mouseup', this.mouseUpListener)
@@ -43,15 +43,15 @@ export class SelectTool extends Tool {
       const { x1, y1, x2, y2 } = this.selection
 
       // Only start drawing if distance is higher than DRAGGING_DISTANCE
-      if (this.workArea.getMouse().status === MouseStatus.DOWN) {
+      if (this.workArea.mouse.status === MouseStatus.DOWN) {
         const distance = Math.hypot(x2 - x1, y2 - y1)
         if (distance > DRAGGING_DISTANCE) {
-          this.workArea.getMouse().status = MouseStatus.MOVE
+          this.workArea.mouse = { status: MouseStatus.MOVE }
         }
       }
 
       // Draw selection box:
-      if (this.workArea.getMouse().status === MouseStatus.MOVE) {
+      if (this.workArea.mouse.status === MouseStatus.MOVE) {
         this.workArea.update()
         if (this.workArea.mainContext) {
           this.workArea.mainContext.save()
@@ -68,7 +68,7 @@ export class SelectTool extends Tool {
     if (this.selection) {
       const adjustedSelection = this.adjustSelectionForOffset(this.selection)
       this.workArea.createTransformBox(adjustedSelection)
-      this.workArea.getMouse().status = MouseStatus.UP
+      this.workArea.mouse = { status: MouseStatus.UP }
       this.selection = null
     }
     this.workArea.update()

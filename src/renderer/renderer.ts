@@ -17,7 +17,7 @@ const createEventListeners = (workArea: WorkArea): void => {
 
   zoomSlider.addEventListener('input', (event: InputEvent) => {
     const zoomLevel = parseFloat(event?.target?.value as string)
-    workArea.setZoomLevel(zoomLevel)
+    workArea.zoomLevel = zoomLevel
   })
   saveProjectButton?.addEventListener('click', () => {
     const projectData = WorkArea.getInstance().saveProject()

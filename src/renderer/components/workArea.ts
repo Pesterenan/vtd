@@ -1,7 +1,7 @@
 import { remap } from '../utils/easing'
 import { Element } from './element'
 import { SelectTool } from './tools/selectTool'
-import { Tool } from './tools/toolAbstract'
+import { Tool } from './tools/abstractTool'
 import { TransformBox } from './transformBox/transformBox'
 import { BoundingBox, IProjectData, MouseStatus, Position, TOOL } from './types'
 
@@ -25,9 +25,9 @@ export class WorkArea {
   public mainContext: CanvasRenderingContext2D | null = null
   private elements: Element[] = []
   private transformBox: TransformBox | null = null
-  private zoomLevel: number = 0.3
+  private _zoomLevel: number = 0.3
   private workArea: IWorkAreaProperties | Record<string, never>
-  private mouse: IMouseProperties
+  private _mouse: IMouseProperties = { status: MouseStatus.UP, position: { x: 0, y: 0 } }
   private tools: { [key in TOOL]: Tool }
   private currentTool: TOOL = TOOL.SELECT
 
@@ -53,10 +53,7 @@ export class WorkArea {
       x: this.mainCanvas.width * 0.5,
       y: this.mainCanvas.height * 0.5
     }
-    this.mouse = {
-      status: MouseStatus.UP,
-      position: currentMousePosition
-    }
+    this.mouse = { position: currentMousePosition }
 
     const workAreaCanvas = document.createElement('canvas')
     workAreaCanvas.width = WORK_AREA_WIDTH
@@ -85,17 +82,21 @@ export class WorkArea {
     window.addEventListener('resize', this.handleResize.bind(this))
   }
 
-  public setZoomLevel(zoomLevel: number): void {
-    this.zoomLevel = zoomLevel
+  public get zoomLevel(): number {
+    return this._zoomLevel
+  }
+
+  public set zoomLevel(zoomLevel: number) {
+    this._zoomLevel = zoomLevel
     this.update()
   }
 
-  public getZoomLevel(): number {
-    return this.zoomLevel
+  public get mouse(): IMouseProperties {
+    return this._mouse
   }
 
-  public getMouse(): IMouseProperties {
-    return this.mouse
+  public set mouse(value: Partial<IMouseProperties>) {
+    this._mouse = { ...this.mouse, ...value }
   }
 
   private createEventListeners(): void {
@@ -185,7 +186,7 @@ export class WorkArea {
     if (this.currentTool === TOOL.ZOOM) {
       const deltaX = currentMousePosition.x - previousMousePosition.x
       const newZoomLevel = remap(0, this.mainCanvas.width * 0.7, 0.1, 2.0, deltaX, true)
-      this.setZoomLevel(newZoomLevel)
+      this.zoomLevel = newZoomLevel
       this.update()
       return
     }
@@ -273,13 +274,13 @@ export class WorkArea {
     // If was just clicking on an element get the first one
     if (this.mouse.status === MouseStatus.DOWN) {
       const firstElement = this.elements.reduce(
-        (topEl, currentEl) => {
-          if (currentEl.isBelowSelection(selection)) {
-            if (!topEl || currentEl.zDepth > topEl.zDepth) {
-              return currentEl
+        (first, current) => {
+          if (current.isBelowSelection(selection)) {
+            if (!first || current.zDepth > first.zDepth) {
+              return current
             }
           }
-          return topEl
+          return first
         },
         null as Element | null
       )
