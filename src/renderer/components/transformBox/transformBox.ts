@@ -132,7 +132,7 @@ export class TransformBox {
     this.recalculateBoundingBox()
     const centerPosition = this.getCenter()
     const workAreaZoom = WorkArea.getInstance().zoomLevel
-    const workAreaOffset = WorkArea.getInstance().getWorkAreaOffset()
+    const workAreaOffset = WorkArea.getInstance().offset
 
     // Draw bounding box
     this.context.save()
@@ -163,7 +163,7 @@ export class TransformBox {
 
   public handleMouseDown(event: MouseEvent, { x, y }: Position): void {
     const centerPosition = this.getCenter()
-    const workAreaOffset = WorkArea.getInstance().getWorkAreaOffset()
+    const workAreaOffset = WorkArea.getInstance().offset
     const workAreaZoomLevel = WorkArea.getInstance().zoomLevel
     const distance = Math.hypot(
       centerPosition.x - x + workAreaOffset.x / workAreaZoomLevel,

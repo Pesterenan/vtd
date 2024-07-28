@@ -5,19 +5,14 @@ import { Tool } from './abstractTool'
 const DRAGGING_DISTANCE = 5
 
 export class SelectTool extends Tool {
-  private mouseMoveListener: (event: MouseEvent) => void
-  private mouseUpListener: (event: MouseEvent) => void
-
   private selection: BoundingBox | null = null
 
   constructor(workArea: WorkArea) {
     super(workArea)
-    this.mouseMoveListener = this.handleMouseMove.bind(this)
-    this.mouseUpListener = this.handleMouseUp.bind(this)
   }
 
   private adjustSelectionForOffset(selection: BoundingBox): BoundingBox {
-    const offset = this.workArea.getWorkAreaOffset()
+    const offset = this.workArea.offset
     const zoomLevel = this.workArea.zoomLevel
     return {
       x1: (selection.x1 - offset.x) / zoomLevel,
@@ -31,8 +26,6 @@ export class SelectTool extends Tool {
     const { offsetX, offsetY } = event
     this.workArea.mouse = { status: MouseStatus.DOWN }
     this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY }
-    this.workArea.mainCanvas.addEventListener('mousemove', this.mouseMoveListener)
-    this.workArea.mainCanvas.addEventListener('mouseup', this.mouseUpListener)
   }
 
   handleMouseMove(event: MouseEvent): void {
@@ -72,15 +65,11 @@ export class SelectTool extends Tool {
       this.selection = null
     }
     this.workArea.update()
-    this.workArea.mainCanvas.removeEventListener('mousemove', this.mouseMoveListener)
-    this.workArea.mainCanvas.removeEventListener('mouseup', this.mouseUpListener)
   }
 
-  handleKeyDown(): void {
-    throw new Error('Method not implemented.')
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  handleKeyDown(): void {}
 
-  handleKeyUp(): void {
-    throw new Error('Method not implemented.')
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  handleKeyUp(): void {}
 }

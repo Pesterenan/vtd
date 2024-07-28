@@ -4,6 +4,8 @@ import { SelectTool } from './tools/selectTool'
 import { Tool } from './tools/abstractTool'
 import { TransformBox } from './transformBox/transformBox'
 import { BoundingBox, IProjectData, MouseStatus, Position, TOOL } from './types'
+import { HandTool } from './tools/handTool'
+import { ZoomTool } from './tools/zoomTool'
 
 const WORK_AREA_WIDTH = 1920
 const WORK_AREA_HEIGHT = 1080
@@ -39,8 +41,8 @@ export class WorkArea {
     this.tools = {
       [TOOL.SELECT]: new SelectTool(this),
       [TOOL.GRAB]: new SelectTool(this),
-      [TOOL.HAND]: new SelectTool(this),
-      [TOOL.ZOOM]: new SelectTool(this),
+      [TOOL.HAND]: new HandTool(this),
+      [TOOL.ZOOM]: new ZoomTool(this),
       [TOOL.SCALE]: new SelectTool(this),
       [TOOL.ROTATE]: new SelectTool(this)
     }
@@ -109,6 +111,7 @@ export class WorkArea {
   }
 
   private handleKeyUp(event: KeyboardEvent): void {
+    this.tools[this.currentTool].handleKeyUp(event)
     switch (event.code) {
       case 'KeyZ':
       case 'Space':
@@ -124,13 +127,14 @@ export class WorkArea {
         case 'Space':
           this.currentTool = TOOL.HAND
           console.log('MOVING')
-          return
+          break
         case 'KeyZ':
           this.currentTool = TOOL.ZOOM
           console.log('ZOOMING')
-          return
+          break
       }
     }
+    this.tools[this.currentTool].handleKeyDown(event)
   }
 
   private handleKeyPress(event: KeyboardEvent): void {
@@ -179,28 +183,11 @@ export class WorkArea {
   }
 
   private handleMouseMove(event: MouseEvent): void {
+    this.tools[this.currentTool].handleMouseMove(event)
     const { offsetX, offsetY } = event
-    const previousMousePosition = this.mouse.position
     const currentMousePosition = { x: offsetX, y: offsetY }
     const adjustedPosition = this.adjustForZoom(currentMousePosition)
-    if (this.currentTool === TOOL.ZOOM) {
-      const deltaX = currentMousePosition.x - previousMousePosition.x
-      const newZoomLevel = remap(0, this.mainCanvas.width * 0.7, 0.1, 2.0, deltaX, true)
-      this.zoomLevel = newZoomLevel
-      this.update()
-      return
-    }
-
     this.mouse.position = currentMousePosition
-
-    if (this.currentTool === TOOL.HAND && this.workArea.offset) {
-      const deltaX = currentMousePosition.x - previousMousePosition.x
-      const deltaY = currentMousePosition.y - previousMousePosition.y
-      this.workArea.offset.x += deltaX
-      this.workArea.offset.y += deltaY
-      this.update()
-      return
-    }
 
     if (this.transformBox) {
       this.transformBox.handleMouseMove(adjustedPosition)
@@ -216,7 +203,7 @@ export class WorkArea {
     }
   }
 
-  private handleMouseUp(): void {
+  private handleMouseUp(event: MouseEvent): void {
     if (this.transformBox) {
       this.transformBox.endTransform()
       this.transformBox.handleMouseUp()
@@ -227,6 +214,7 @@ export class WorkArea {
       this.mouse.status = MouseStatus.UP
       this.currentTool = TOOL.SELECT
     }
+    this.tools[this.currentTool].handleMouseUp(event)
   }
 
   public static getInstance(): WorkArea {
@@ -321,18 +309,17 @@ export class WorkArea {
     context.clearRect(0, 0, canvas.width, canvas.height)
   }
 
-  public getWorkAreaOffset(): Position {
-    return {
-      x: this.workArea.offset.x,
-      y: this.workArea.offset.y
-    }
+  public get offset(): Position {
+    return this.workArea.offset
+  }
+  public set offset(value: Position) {
+    this.workArea.offset = value
   }
 
   private drawWorkArea(): void {
     if (this.mainContext) {
-      const offset = this.getWorkAreaOffset()
       this.mainContext.save()
-      this.mainContext.translate(offset.x, offset.y)
+      this.mainContext.translate(this.offset.x, this.offset.y)
       this.mainContext.scale(this.zoomLevel, this.zoomLevel)
       this.mainContext.fillStyle = 'white'
       this.mainContext.fillRect(0, 0, this.workArea.canvas.width, this.workArea.canvas.height)
