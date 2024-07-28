@@ -272,16 +272,20 @@ export class WorkArea {
     }
     // If was just clicking on an element get the first one
     if (this.mouse.status === MouseStatus.DOWN) {
-      selectedElements = [
-        this.elements.reduce((topEl, currentEl) => {
+      const firstElement = this.elements.reduce(
+        (topEl, currentEl) => {
           if (currentEl.isBelowSelection(selection)) {
             if (!topEl || currentEl.zDepth > topEl.zDepth) {
               return currentEl
             }
           }
           return topEl
-        }, {} as Element)
-      ]
+        },
+        null as Element | null
+      )
+      if (firstElement) {
+        selectedElements = [firstElement]
+      }
     }
     // If there's elements selected, create TransformBox
     if (selectedElements.length) {
