@@ -1,9 +1,10 @@
 import { remap } from '../utils/easing'
 import { Element } from './element'
+import { SelectTool } from './tools/selectTool'
+import { Tool } from './tools/toolAbstract'
 import { TransformBox } from './transformBox/transformBox'
 import { BoundingBox, IProjectData, MouseStatus, Position, TOOL } from './types'
 
-const DRAGGING_DISTANCE = 5
 const WORK_AREA_WIDTH = 1920
 const WORK_AREA_HEIGHT = 1080
 
@@ -20,27 +21,38 @@ interface IMouseProperties {
 
 export class WorkArea {
   private static instance: WorkArea | null = null
-  private mainCanvas: HTMLCanvasElement
-  private mainContext: CanvasRenderingContext2D | null = null
+  public mainCanvas: HTMLCanvasElement
+  public mainContext: CanvasRenderingContext2D | null = null
   private elements: Element[] = []
-  private selection: BoundingBox | null = null
   private transformBox: TransformBox | null = null
-  private currentTool: TOOL = TOOL.SELECT
   private zoomLevel: number = 0.3
   private workArea: IWorkAreaProperties | Record<string, never>
-  private mouse: IMouseProperties | Record<string, never>
+  private mouse: IMouseProperties
+  private tools: { [key in TOOL]: Tool }
+  private currentTool: TOOL = TOOL.SELECT
 
   private constructor() {
     this.mainCanvas = document.getElementById('main-canvas') as HTMLCanvasElement
     if (!this.mainCanvas) {
       throw new Error("Element with id 'main-canvas' was not found")
     }
+    this.tools = {
+      [TOOL.SELECT]: new SelectTool(this),
+      [TOOL.GRAB]: new SelectTool(this),
+      [TOOL.HAND]: new SelectTool(this),
+      [TOOL.ZOOM]: new SelectTool(this),
+      [TOOL.SCALE]: new SelectTool(this),
+      [TOOL.ROTATE]: new SelectTool(this)
+    }
 
     this.mainCanvas.width = window.innerWidth * 0.7
     this.mainCanvas.height = window.innerHeight
     this.mainCanvas.style.backgroundColor = 'grey'
 
-    const currentMousePosition = { x: this.mainCanvas.width * 0.5, y: this.mainCanvas.height * 0.5 }
+    const currentMousePosition = {
+      x: this.mainCanvas.width * 0.5,
+      y: this.mainCanvas.height * 0.5
+    }
     this.mouse = {
       status: MouseStatus.UP,
       position: currentMousePosition
@@ -82,6 +94,10 @@ export class WorkArea {
     return this.zoomLevel
   }
 
+  public getMouse(): IMouseProperties {
+    return this.mouse
+  }
+
   private createEventListeners(): void {
     this.mainCanvas.addEventListener('mousedown', this.handleMouseDown.bind(this))
     this.mainCanvas.addEventListener('mousemove', this.handleMouseMove.bind(this))
@@ -89,16 +105,6 @@ export class WorkArea {
     window.addEventListener('keydown', this.handleKeyDown.bind(this))
     window.addEventListener('keypress', this.handleKeyPress.bind(this))
     window.addEventListener('keyup', this.handleKeyUp.bind(this))
-  }
-
-  private adjustSelectionForOffset(selection: BoundingBox): BoundingBox {
-    const offset = this.getWorkAreaOffset()
-    return {
-      x1: (selection.x1 - offset.x) / this.zoomLevel,
-      y1: (selection.y1 - offset.y) / this.zoomLevel,
-      x2: (selection.x2 - offset.x) / this.zoomLevel,
-      y2: (selection.y2 - offset.y) / this.zoomLevel
-    }
   }
 
   private handleKeyUp(event: KeyboardEvent): void {
@@ -168,26 +174,7 @@ export class WorkArea {
   }
 
   private handleMouseDown(event: MouseEvent): void {
-    const { offsetX, offsetY } = event
-    const currentMousePosition = { x: offsetX, y: offsetY }
-    const adjustedPosition = this.adjustForZoom(currentMousePosition)
-    this.mouse = {
-      position: currentMousePosition,
-      status: MouseStatus.DOWN
-    }
-
-    if (this.transformBox) {
-      this.transformBox.handleMouseDown(event, adjustedPosition)
-      if (this.transformBox.isHandleDragging) {
-        return
-      }
-    }
-    this.selection = {
-      x1: currentMousePosition.x,
-      y1: currentMousePosition.y,
-      x2: currentMousePosition.x,
-      y2: currentMousePosition.y
-    }
+    this.tools[this.currentTool].handleMouseDown(event)
   }
 
   private handleMouseMove(event: MouseEvent): void {
@@ -219,29 +206,6 @@ export class WorkArea {
       this.update()
       return
     }
-
-    if (this.selection) {
-      this.selection.x2 = offsetX
-      this.selection.y2 = offsetY
-      if (this.mouse.status === MouseStatus.MOVE) {
-        this.update()
-        if (this.mainContext) {
-          const { x1, y1, x2, y2 } = this.selection
-          this.mainContext.strokeStyle = 'black'
-          this.mainContext.strokeRect(x1, y1, x2 - x1, y2 - y1)
-        }
-      }
-
-      if (this.mouse.status === MouseStatus.DOWN) {
-        const distance = Math.hypot(
-          this.selection.x2 - this.selection.x1,
-          this.selection.y2 - this.selection.y1
-        )
-        if (distance > DRAGGING_DISTANCE) {
-          this.mouse.status = MouseStatus.MOVE
-        }
-      }
-    }
   }
 
   private removeTransformBox(): void {
@@ -251,8 +215,7 @@ export class WorkArea {
     }
   }
 
-  private handleMouseUp(event: MouseEvent): void {
-    const { offsetX, offsetY } = event
+  private handleMouseUp(): void {
     if (this.transformBox) {
       this.transformBox.endTransform()
       this.transformBox.handleMouseUp()
@@ -263,44 +226,6 @@ export class WorkArea {
       this.mouse.status = MouseStatus.UP
       this.currentTool = TOOL.SELECT
     }
-    if (this.mouse.status === MouseStatus.MOVE) {
-      const adjustedSelection = this.adjustSelectionForOffset(this.selection as BoundingBox)
-      const selectedElements = this.elements.filter((el) => el.isWithinBounds(adjustedSelection))
-      if (selectedElements.length) {
-        this.transformBox = new TransformBox(selectedElements, this.mainCanvas)
-      } else {
-        this.removeTransformBox()
-      }
-      this.selection = null
-      this.mouse.status = MouseStatus.UP
-    }
-
-    if (this.mouse.status === MouseStatus.DOWN) {
-      this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY }
-
-      const adjustedSelection = this.adjustSelectionForOffset(this.selection)
-      const selectedElement = this.elements.reduce(
-        (topEl, currentEl) => {
-          if (currentEl.isBelowSelection(adjustedSelection)) {
-            if (!topEl || currentEl.zDepth > topEl.zDepth) {
-              return currentEl
-            }
-          }
-          return topEl
-        },
-        null as Element | null
-      )
-
-      if (selectedElement) {
-        this.transformBox = new TransformBox([selectedElement], this.mainCanvas)
-      } else {
-        this.removeTransformBox()
-      }
-
-      this.selection = null
-      this.mouse.status = MouseStatus.UP
-    }
-    this.update()
   }
 
   public static getInstance(): WorkArea {
@@ -337,6 +262,33 @@ export class WorkArea {
     const image = new Image()
     image.src = tempCanvas.toDataURL()
     return image
+  }
+
+  public createTransformBox(selection: BoundingBox): void {
+    let selectedElements: Element[] = []
+    // If was using a selecting box
+    if (this.mouse.status === MouseStatus.MOVE) {
+      selectedElements = this.elements.filter((el: Element) => el.isWithinBounds(selection))
+    }
+    // If was just clicking on an element get the first one
+    if (this.mouse.status === MouseStatus.DOWN) {
+      selectedElements = [
+        this.elements.reduce((topEl, currentEl) => {
+          if (currentEl.isBelowSelection(selection)) {
+            if (!topEl || currentEl.zDepth > topEl.zDepth) {
+              return currentEl
+            }
+          }
+          return topEl
+        }, {} as Element)
+      ]
+    }
+    // If there's elements selected, create TransformBox
+    if (selectedElements.length) {
+      this.transformBox = new TransformBox(selectedElements, this.mainCanvas)
+    } else {
+      this.removeTransformBox()
+    }
   }
 
   private handleResize(): void {

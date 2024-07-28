@@ -1,56 +1,59 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Video Thumbnail Designer</title>
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
-    <link href="./assets/main.css" type="text/css" rel="stylesheet" />
-  </head>
 
-  <body>
-    <main id="main-window">
-      <canvas id="main-canvas"></canvas>
-      <menu id="side-menu" class="side-menu">
-        <button id="import-image-btn" class="btn-common">Importar Imagem</button>
-        <br />
-        <button id="add-element-btn" class="btn-common">Criar elemento</button>
-        <input type="range" id="zoom-slider" min="0.1" max="2" step="0.05" value="0.3">
-        <label for="zoom-slider">Zoom</label>
-        <button id="save-project" class="btn-common">Salvar Projeto</button>
-        <button id="load-project" class="btn-common">Carregar Projeto</button>
-        <section id="transform-box-properties" class="element-properties-menu">
-          <p style="align-self: flex-start;">Caixa de Transformação:</p>
-          <div style="display: flex; flex-wrap: nowrap; width: 100%;">
-            <div class="number-input-group">
-              <p style="align-self: flex-start;">Posição:</p>
-              <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
-                <label for="x-pos-input">X:</label>
-                <input id="x-pos-input" class="number-input" type="number" value="0" />
-              </div>
+<head>
+  <meta charset="UTF-8" />
+  <title>Video Thumbnail Designer</title>
+  <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
+  <link href="./assets/main.css" type="text/css" rel="stylesheet" />
+</head>
 
-              <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
-                <label for="y-pos-input">Y:</label>
-                <input id="y-pos-input" class="number-input" type="number" value="0" />
-              </div>
+<body>
+  <main id="main-window">
+    <canvas id="main-canvas"></canvas>
+    <menu id="side-menu" class="side-menu">
+      <button id="import-image-btn" class="btn-common">Importar Imagem</button>
+      <br />
+      <button id="add-element-btn" class="btn-common">Criar elemento</button>
+      <input type="range" id="zoom-slider" min="0.1" max="2" step="0.05" value="0.3">
+      <label for="zoom-slider">Zoom</label>
+      <button id="save-project" class="btn-common">Salvar Projeto</button>
+      <button id="load-project" class="btn-common">Carregar Projeto</button>
+      <section id="transform-box-properties" class="element-properties-menu">
+        <p style="align-self: flex-start;">Caixa de Transformação:</p>
+        <div style="display: flex; flex-wrap: nowrap; width: 100%;">
+          <div class="number-input-group">
+            <p style="align-self: flex-start;">Posição:</p>
+            <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
+              <label for="x-pos-input">X:</label>
+              <input id="x-pos-input" class="number-input" type="number" value="0" />
             </div>
-            <div class="number-input-group">
-              <p style="align-self: flex-start;">Tamanho:</p>
 
-              <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
-                <label for="width-size-input">Largura:</label>
-                <input id="width-size-input" class="number-input" type="number" value="0" />
-              </div>
-              <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
-                <label for="height-size-input">Altura:</label>
-                <input id="height-size-input" class="number-input" type="number" value="0" />
-              </div>
+            <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
+              <label for="y-pos-input">Y:</label>
+              <input id="y-pos-input" class="number-input" type="number" value="0" />
             </div>
           </div>
-        </section>
-      </menu>
-    </main>
+          <div class="number-input-group">
+            <p style="align-self: flex-start;">Tamanho:</p>
 
-    <script type="module" src="./src/renderer.ts"></script>
-  </body>
+            <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
+              <label for="width-size-input">Largura:</label>
+              <input id="width-size-input" class="number-input" type="number" value="0" />
+            </div>
+            <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
+              <label for="height-size-input">Altura:</label>
+              <input id="height-size-input" class="number-input" type="number" value="0" />
+            </div>
+          </div>
+        </div>
+      </section>
+    </menu>
+  </main>
+
+  <script type="module" src="./renderer.ts"></script>
+</body>
+
 </html>

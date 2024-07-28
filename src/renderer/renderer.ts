@@ -1,4 +1,4 @@
-import { WorkArea } from '../components/workArea'
+import { WorkArea } from './components/workArea'
 
 const initialize = (): void => {
   window.addEventListener('DOMContentLoaded', () => {
