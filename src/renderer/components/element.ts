@@ -14,6 +14,7 @@ export class Element {
     lowerRight: Position
     lowerLeft: Position
   }
+  private _selected: boolean = false
   public image: HTMLImageElement | null = null
   private isImageLoaded: boolean = false
 
@@ -33,6 +34,14 @@ export class Element {
       lowerLeft: { x: halfWidth, y: halfHeight },
       lowerRight: { x: -halfWidth, y: halfHeight }
     }
+  }
+
+  public get selected(): boolean {
+    return this._selected
+  }
+
+  public set selected(value) {
+    this._selected = value
   }
 
   public static deserialize({ position, rotation, scale, size, zDepth, image }): Element {

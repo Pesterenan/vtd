@@ -7,6 +7,7 @@ export abstract class Tool {
     this.workArea = workArea
   }
 
+  abstract initializeTool(): void
   abstract handleMouseDown(event: MouseEvent): void
   abstract handleMouseUp(event: MouseEvent): void
   abstract handleMouseMove(event: MouseEvent): void

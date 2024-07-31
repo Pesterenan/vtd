@@ -1,4 +1,3 @@
-import { remap } from '../utils/easing'
 import { Element } from './element'
 import { SelectTool } from './tools/selectTool'
 import { Tool } from './tools/abstractTool'
@@ -6,6 +5,8 @@ import { TransformBox } from './transformBox/transformBox'
 import { BoundingBox, IProjectData, MouseStatus, Position, TOOL } from './types'
 import { HandTool } from './tools/handTool'
 import { ZoomTool } from './tools/zoomTool'
+import { GrabTool } from './tools/grabTool'
+import { RotateTool } from './tools/rotateTool'
 
 const WORK_AREA_WIDTH = 1920
 const WORK_AREA_HEIGHT = 1080
@@ -26,27 +27,21 @@ export class WorkArea {
   public mainCanvas: HTMLCanvasElement
   public mainContext: CanvasRenderingContext2D | null = null
   private elements: Element[] = []
-  private transformBox: TransformBox | null = null
+  private _transformBox: TransformBox | null = null
   private _zoomLevel: number = 0.3
   private workArea: IWorkAreaProperties | Record<string, never>
-  private _mouse: IMouseProperties = { status: MouseStatus.UP, position: { x: 0, y: 0 } }
+  private _mouse: IMouseProperties = {
+    position: { x: 0, y: 0 },
+    status: MouseStatus.UP
+  }
   private tools: { [key in TOOL]: Tool }
-  private currentTool: TOOL = TOOL.SELECT
+  public currentTool: TOOL = TOOL.SELECT
 
   private constructor() {
     this.mainCanvas = document.getElementById('main-canvas') as HTMLCanvasElement
     if (!this.mainCanvas) {
       throw new Error("Element with id 'main-canvas' was not found")
     }
-    this.tools = {
-      [TOOL.SELECT]: new SelectTool(this),
-      [TOOL.GRAB]: new SelectTool(this),
-      [TOOL.HAND]: new HandTool(this),
-      [TOOL.ZOOM]: new ZoomTool(this),
-      [TOOL.SCALE]: new SelectTool(this),
-      [TOOL.ROTATE]: new SelectTool(this)
-    }
-
     this.mainCanvas.width = window.innerWidth * 0.7
     this.mainCanvas.height = window.innerHeight
     this.mainCanvas.style.backgroundColor = 'grey'
@@ -78,10 +73,27 @@ export class WorkArea {
       offset: workAreaOffset
     }
 
+    this.tools = {
+      [TOOL.SELECT]: new SelectTool(this),
+      [TOOL.GRAB]: new GrabTool(this),
+      [TOOL.HAND]: new HandTool(this),
+      [TOOL.ZOOM]: new ZoomTool(this),
+      [TOOL.SCALE]: new GrabTool(this),
+      [TOOL.ROTATE]: new RotateTool(this)
+    }
+
     this.createEventListeners()
     this.update()
 
     window.addEventListener('resize', this.handleResize.bind(this))
+  }
+
+  public get transformBox(): TransformBox | null {
+    return this._transformBox
+  }
+
+  public set transformBox(value) {
+    this._transformBox = value
   }
 
   public get zoomLevel(): number {
@@ -105,19 +117,48 @@ export class WorkArea {
     this.mainCanvas.addEventListener('mousedown', this.handleMouseDown.bind(this))
     this.mainCanvas.addEventListener('mousemove', this.handleMouseMove.bind(this))
     this.mainCanvas.addEventListener('mouseup', this.handleMouseUp.bind(this))
+    window.addEventListener('keypress', this.changeTool.bind(this))
     window.addEventListener('keydown', this.handleKeyDown.bind(this))
-    window.addEventListener('keypress', this.handleKeyPress.bind(this))
     window.addEventListener('keyup', this.handleKeyUp.bind(this))
   }
 
+  private changeTool(event: KeyboardEvent): void {
+    if (this.currentTool === TOOL.SELECT) {
+      if (this.transformBox) {
+        switch (event.code) {
+          case 'KeyG':
+            this.currentTool = TOOL.GRAB
+            console.log('GRAB MODE, ACTIVATED!')
+            break
+          case 'KeyR':
+            this.currentTool = TOOL.ROTATE
+            console.log('ROTATE MODE, ACTIVATED!')
+            break
+          case 'KeyS':
+            this.currentTool = TOOL.SCALE
+            console.log('SCALE MODE, ACTIVATED!')
+            break
+          case 'KeyX':
+            this.currentTool = TOOL.SELECT
+            console.log('DELETED!')
+            this.removeSelectedElements()
+            return
+        }
+        this.tools[this.currentTool].initializeTool()
+      }
+    }
+  }
+
   private handleKeyUp(event: KeyboardEvent): void {
-    this.tools[this.currentTool].handleKeyUp(event)
-    switch (event.code) {
-      case 'KeyZ':
-      case 'Space':
-        this.currentTool = TOOL.SELECT
-        console.log('SELECTING')
-        return
+    if (this.currentTool === TOOL.ZOOM || this.currentTool === TOOL.HAND) {
+      switch (event.code) {
+        case 'KeyZ':
+        case 'Space':
+          this.tools[this.currentTool].handleKeyUp(event)
+          this.currentTool = TOOL.SELECT
+          console.log('SELECTING')
+          return
+      }
     }
   }
 
@@ -133,33 +174,14 @@ export class WorkArea {
           console.log('ZOOMING')
           break
       }
+      this.tools[this.currentTool].handleKeyDown(event)
     }
-    this.tools[this.currentTool].handleKeyDown(event)
   }
 
-  private handleKeyPress(event: KeyboardEvent): void {
-    if (this.transformBox && this.currentTool === TOOL.SELECT) {
-      switch (event.code) {
-        case 'KeyG':
-          this.currentTool = TOOL.GRAB
-          console.log('GRAB MODE, ACTIVATED!')
-          break
-        case 'KeyR':
-          this.currentTool = TOOL.ROTATE
-          console.log('ROTATE MODE, ACTIVATED!')
-          break
-        case 'KeyS':
-          this.currentTool = TOOL.SCALE
-          console.log('SCALE MODE, ACTIVATED!')
-          break
-        case 'KeyX':
-          this.currentTool = TOOL.SELECT
-          console.log('DELETED!')
-          this.removeSelectedElements()
-          return
-      }
-      this.transformBox.startTransform(this.currentTool, this.adjustForZoom(this.mouse.position))
-      this.update()
+  public removeTransformBox(): void {
+    if (this.transformBox) {
+      this.transformBox.remove()
+      this.transformBox = null
     }
   }
 
@@ -171,7 +193,7 @@ export class WorkArea {
     }
   }
 
-  private adjustForZoom(mousePosition: Position): Position {
+  public adjustForZoom(mousePosition: Position): Position {
     return {
       x: Number((mousePosition.x / this.zoomLevel).toFixed(0)),
       y: Number((mousePosition.y / this.zoomLevel).toFixed(0))
@@ -183,37 +205,12 @@ export class WorkArea {
   }
 
   private handleMouseMove(event: MouseEvent): void {
-    this.tools[this.currentTool].handleMouseMove(event)
     const { offsetX, offsetY } = event
-    const currentMousePosition = { x: offsetX, y: offsetY }
-    const adjustedPosition = this.adjustForZoom(currentMousePosition)
-    this.mouse.position = currentMousePosition
-
-    if (this.transformBox) {
-      this.transformBox.handleMouseMove(adjustedPosition)
-      this.update()
-      return
-    }
-  }
-
-  private removeTransformBox(): void {
-    if (this.transformBox) {
-      this.transformBox.remove()
-      this.transformBox = null
-    }
+    this.mouse = { position: { x: offsetX, y: offsetY } }
+    this.tools[this.currentTool].handleMouseMove(event)
   }
 
   private handleMouseUp(event: MouseEvent): void {
-    if (this.transformBox) {
-      this.transformBox.endTransform()
-      this.transformBox.handleMouseUp()
-      if (!this.transformBox.isHandleDragging) {
-        this.removeTransformBox()
-      }
-      this.update()
-      this.mouse.status = MouseStatus.UP
-      this.currentTool = TOOL.SELECT
-    }
     this.tools[this.currentTool].handleMouseUp(event)
   }
 
@@ -253,29 +250,28 @@ export class WorkArea {
     return image
   }
 
-  public createTransformBox(selection: BoundingBox): void {
-    let selectedElements: Element[] = []
+  public getSelectedElements(): Element[] | null {
+    return this.elements.filter((el) => el.selected)
+  }
+
+  public selectElements(selection: BoundingBox): void {
+    // Deselect all
+    this.elements.forEach((el) => (el.selected = false))
     // If was using a selecting box
     if (this.mouse.status === MouseStatus.MOVE) {
-      selectedElements = this.elements.filter((el: Element) => el.isWithinBounds(selection))
+      this.elements.forEach((el) => (el.selected = el.isWithinBounds(selection)))
     }
     // If was just clicking on an element get the first one
     if (this.mouse.status === MouseStatus.DOWN) {
-      const firstElement = this.elements.reduce(
-        (first, current) => {
-          if (current.isBelowSelection(selection)) {
-            if (!first || current.zDepth > first.zDepth) {
-              return current
-            }
-          }
-          return first
-        },
-        null as Element | null
-      )
+      const firstElement = this.elements.findLast((el) => el.isBelowSelection(selection))
       if (firstElement) {
-        selectedElements = [firstElement]
+        firstElement.selected = true
       }
     }
+  }
+
+  public createTransformBox(): void {
+    const selectedElements: Element[] = this.elements.filter((el) => el.selected)
     // If there's elements selected, create TransformBox
     if (selectedElements.length) {
       this.transformBox = new TransformBox(selectedElements, this.mainCanvas)

@@ -10,9 +10,12 @@ export class HandTool extends Tool {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
+  initializeTool(): void {}
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseDown(): void {}
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseUp(): void {}
+
   handleMouseMove(event: MouseEvent): void {
     if (this.previousMousePosition) {
       const { offsetX, offsetY } = event
@@ -24,11 +27,13 @@ export class HandTool extends Tool {
       this.previousMousePosition = { x: offsetX, y: offsetY }
     }
   }
+
   handleKeyDown(): void {
     if (!this.previousMousePosition) {
       this.previousMousePosition = this.workArea.mouse.position
     }
   }
+
   handleKeyUp(): void {
     this.previousMousePosition = null
   }

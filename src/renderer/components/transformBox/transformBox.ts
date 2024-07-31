@@ -14,7 +14,7 @@ export class TransformBox {
   private IconRotate: HTMLImageElement
   private IconScale: HTMLImageElement
   private IconSelect: HTMLImageElement
-  private centerHandle: HTMLImageElement | null = null
+  public centerHandle: HTMLImageElement | null = null
   private isTransforming: boolean = false
   private currentTool: TOOL = TOOL.SELECT
 
@@ -27,13 +27,13 @@ export class TransformBox {
     this.context = canvas.getContext('2d')
     this.selectedElements = selectedElements
     this.recalculateBoundingBox()
-    this.IconSelect = new Image(24, 24)
+    this.IconSelect = new Image(8, 8)
     this.IconSelect.src = '../../components/transformBox/assets/centerHandleSelect.svg'
-    this.IconMove = new Image(24, 24)
+    this.IconMove = new Image(8, 8)
     this.IconMove.src = '../../components/transformBox/assets/centerHandleMove.svg'
-    this.IconRotate = new Image(24, 24)
+    this.IconRotate = new Image(8, 8)
     this.IconRotate.src = '../../components/transformBox/assets/centerHandleRotate.svg'
-    this.IconScale = new Image(24, 24)
+    this.IconScale = new Image(8, 8)
     this.IconScale.src = '../../components/transformBox/assets/centerHandleScale.svg'
     this.centerHandle = this.IconSelect
 
@@ -262,10 +262,10 @@ export class TransformBox {
     const deltaX = x - this.lastMousePosition.x
     const deltaY = y - this.lastMousePosition.y
 
-    if (this.currentTool === TOOL.GRAB) {
-      this.moveSelectedElements({ x: deltaX, y: deltaY })
-      this.lastMousePosition = { x, y }
-    }
+    //if (this.currentTool === TOOL.GRAB) {
+    //  this.moveSelectedElements({ x: deltaX, y: deltaY })
+    //  this.lastMousePosition = { x, y }
+    //}
     if (this.currentTool === TOOL.ROTATE) {
       let angle = deltaX % 360
       if (angle < 0) {

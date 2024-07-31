@@ -11,6 +11,9 @@ export class SelectTool extends Tool {
     super(workArea)
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  initializeTool(): void {}
+
   private adjustSelectionForOffset(selection: BoundingBox): BoundingBox {
     const offset = this.workArea.offset
     const zoomLevel = this.workArea.zoomLevel
@@ -60,7 +63,8 @@ export class SelectTool extends Tool {
   handleMouseUp(): void {
     if (this.selection) {
       const adjustedSelection = this.adjustSelectionForOffset(this.selection)
-      this.workArea.createTransformBox(adjustedSelection)
+      this.workArea.selectElements(adjustedSelection)
+      this.workArea.createTransformBox()
       this.workArea.mouse = { status: MouseStatus.UP }
       this.selection = null
     }

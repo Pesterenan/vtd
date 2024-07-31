@@ -14,9 +14,12 @@ export class ZoomTool extends Tool {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
+  initializeTool(): void {}
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseDown(): void {}
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseUp(): void {}
+
   handleMouseMove({ offsetX }: MouseEvent): void {
     if (this.previousMousePosition) {
       const deltaX = offsetX - this.previousMousePosition.x
@@ -32,6 +35,7 @@ export class ZoomTool extends Tool {
       this.workArea.update()
     }
   }
+
   handleKeyDown(): void {
     if (!this.previousMousePosition) {
       const currentZoomPosition = remap(
@@ -46,6 +50,7 @@ export class ZoomTool extends Tool {
       this.previousMousePosition.x -= currentZoomPosition
     }
   }
+
   handleKeyUp(): void {
     this.previousMousePosition = null
   }

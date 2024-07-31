@@ -32,6 +32,15 @@ export enum MouseStatus {
   UP
 }
 
+/** Botões do mouse */
+export enum MOUSE_BUTTONS {
+  LEFT = 0,
+  MIDDLE = 1,
+  RIGHT = 2,
+  BACK = 3,
+  FORWARD = 4
+}
+
 /**
  * Ferramentas para manipular elementos
  * @readonly
