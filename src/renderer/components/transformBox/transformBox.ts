@@ -185,11 +185,11 @@ export class TransformBox {
 
     if (!this.isHandleDragging || !this.lastMousePosition) return
 
-    const deltaX = x - this.lastMousePosition.x
-    const deltaY = y - this.lastMousePosition.y
+    //const deltaX = x - this.lastMousePosition.x
+    //const deltaY = y - this.lastMousePosition.y
 
-    this.moveSelectedElements({ x: deltaX, y: deltaY })
-    this.lastMousePosition = { x, y }
+    //this.moveSelectedElements({ x: deltaX, y: deltaY })
+    //this.lastMousePosition = { x, y }
   }
 
   public remove(): void {
@@ -201,41 +201,41 @@ export class TransformBox {
     this.endTransform()
   }
 
-  // Tool transformations
-  private moveSelectedElements({ x, y }: Position): void {
-    this.selectedElements.forEach((element) => {
-      element.position.x += x
-      element.position.y += y
-    })
-  }
-
-  private rotateSelectedElements(angle: number): void {
-    const centerPosition = this.getCenter()
-    const angleInRadians = (angle * Math.PI) / 180
-    this.selectedElements.forEach((element) => {
-      const deltaX = element.position.x - centerPosition.x
-      const deltaY = element.position.y - centerPosition.y
-      const newX = deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians)
-      const newY = deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians)
-      element.position.x = centerPosition.x + newX
-      element.position.y = centerPosition.y + newY
-      element.rotation += angleInRadians
-    })
-  }
-
-  private scaleSelectedElements(scaleFactor: number): void {
-    const centerPosition = this.getCenter()
-    this.selectedElements.forEach((element) => {
-      const deltaX = element.position.x - centerPosition.x
-      const deltaY = element.position.y - centerPosition.y
-      // Update element scale
-      element.scale.x *= scaleFactor
-      element.scale.y *= scaleFactor
-      // Update element position
-      element.position.x = centerPosition.x + deltaX * scaleFactor
-      element.position.y = centerPosition.y + deltaY * scaleFactor
-    })
-  }
+  //// Tool transformations
+  //private moveSelectedElements({ x, y }: Position): void {
+  //  this.selectedElements.forEach((element) => {
+  //    element.position.x += x
+  //    element.position.y += y
+  //  })
+  //}
+  //
+  //private rotateSelectedElements(angle: number): void {
+  //  const centerPosition = this.getCenter()
+  //  const angleInRadians = (angle * Math.PI) / 180
+  //  this.selectedElements.forEach((element) => {
+  //    const deltaX = element.position.x - centerPosition.x
+  //    const deltaY = element.position.y - centerPosition.y
+  //    const newX = deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians)
+  //    const newY = deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians)
+  //    element.position.x = centerPosition.x + newX
+  //    element.position.y = centerPosition.y + newY
+  //    element.rotation += angleInRadians
+  //  })
+  //}
+  //
+  //private scaleSelectedElements(scaleFactor: number): void {
+  //  const centerPosition = this.getCenter()
+  //  this.selectedElements.forEach((element) => {
+  //    const deltaX = element.position.x - centerPosition.x
+  //    const deltaY = element.position.y - centerPosition.y
+  //    // Update element scale
+  //    element.scale.x *= scaleFactor
+  //    element.scale.y *= scaleFactor
+  //    // Update element position
+  //    element.position.x = centerPosition.x + deltaX * scaleFactor
+  //    element.position.y = centerPosition.y + deltaY * scaleFactor
+  //  })
+  //}
 
   public startTransform(tool: TOOL, { x, y }: Position): void {
     this.currentTool = tool
@@ -259,26 +259,6 @@ export class TransformBox {
 
   public transform({ x, y }: Position): void {
     if (!this.isTransforming || !this.lastMousePosition || this.currentTool === TOOL.SELECT) return
-    const deltaX = x - this.lastMousePosition.x
-    const deltaY = y - this.lastMousePosition.y
-
-    //if (this.currentTool === TOOL.GRAB) {
-    //  this.moveSelectedElements({ x: deltaX, y: deltaY })
-    //  this.lastMousePosition = { x, y }
-    //}
-    if (this.currentTool === TOOL.ROTATE) {
-      let angle = deltaX % 360
-      if (angle < 0) {
-        angle += 360
-      }
-      this.rotateSelectedElements(angle - this.rotation)
-      this.rotation = angle
-    }
-    if (this.currentTool === TOOL.SCALE) {
-      const scaleFactor = 1 + deltaX / 100
-      this.scaleSelectedElements(scaleFactor)
-      this.lastMousePosition = { x, y }
-    }
     this.updateElementPropertiesMenu()
   }
 

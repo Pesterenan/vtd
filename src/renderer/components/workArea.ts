@@ -7,6 +7,7 @@ import { HandTool } from './tools/handTool'
 import { ZoomTool } from './tools/zoomTool'
 import { GrabTool } from './tools/grabTool'
 import { RotateTool } from './tools/rotateTool'
+import { ScaleTool } from './tools/scaleTool'
 
 const WORK_AREA_WIDTH = 1920
 const WORK_AREA_HEIGHT = 1080
@@ -78,7 +79,7 @@ export class WorkArea {
       [TOOL.GRAB]: new GrabTool(this),
       [TOOL.HAND]: new HandTool(this),
       [TOOL.ZOOM]: new ZoomTool(this),
-      [TOOL.SCALE]: new GrabTool(this),
+      [TOOL.SCALE]: new ScaleTool(this),
       [TOOL.ROTATE]: new RotateTool(this)
     }
 

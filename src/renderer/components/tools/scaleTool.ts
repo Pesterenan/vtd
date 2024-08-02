@@ -1,33 +1,33 @@
 import { Element } from '../element'
-import { MOUSE_BUTTONS, MouseStatus, Position, TOOL } from '../types'
+import { MOUSE_BUTTONS, MouseStatus, Position, Scale, TOOL } from '../types'
 import { WorkArea } from '../workArea'
 import { Tool } from './abstractTool'
 
-export class RotateTool extends Tool {
+export class ScaleTool extends Tool {
   private startingPosition: Position | null = null
   private centerPosition: Position | null = null
-  private lastRotation: number = 0
+  private lastPosition: Position | null = null
   private toolIcon: HTMLImageElement | null = null
   private selectedElements: Element[] | null = null
-  private resetParameters: { position: Position; rotation: number }[] | null = null
+  private resetParameters: { position: Position; scale: Scale }[] | null = null
 
   constructor(workArea: WorkArea) {
     super(workArea)
     this.toolIcon = new Image(24, 24)
-    this.toolIcon.src = '../transformBox/assets/centerHandleRotate.svg'
+    this.toolIcon.src = '../transformBox/assets/centerHandleScale.svg'
   }
 
   initializeTool(): void {
     if (!this.startingPosition && this.workArea.transformBox) {
       this.startingPosition = this.workArea.adjustForZoom(this.workArea.mouse.position)
       this.centerPosition = this.workArea.transformBox.getCenter()
-      this.lastRotation = 0
+      this.lastPosition = this.startingPosition
       //this.workArea.transformBox.centerHandle = this.toolIcon
       this.selectedElements = this.workArea.getSelectedElements()
       if (this.selectedElements) {
         this.resetParameters = this.selectedElements.map((el) => ({
           position: { ...el.position },
-          rotation: el.rotation
+          scale: { ...el.scale }
         }))
       }
       this.workArea.update()
@@ -39,21 +39,21 @@ export class RotateTool extends Tool {
 
   handleMouseUp(event: MouseEvent): void {
     if (event.button === MOUSE_BUTTONS.LEFT) {
-      console.log('Accept rotation')
+      console.log('Accept scale')
     }
     if (event.button === MOUSE_BUTTONS.RIGHT) {
       if (this.selectedElements) {
         this.selectedElements.forEach((element, index) => {
           if (this.resetParameters) {
             element.position = this.resetParameters[index].position
-            element.rotation = this.resetParameters[index].rotation
+            element.scale = this.resetParameters[index].scale
           }
         })
-        console.log('Reset rotation')
+        console.log('Reset scale')
       }
     }
     this.startingPosition = null
-    this.lastRotation = 0
+    this.lastPosition = null
     this.workArea.mouse.status = MouseStatus.UP
     this.workArea.currentTool = TOOL.SELECT
     this.workArea.update()
@@ -61,27 +61,23 @@ export class RotateTool extends Tool {
 
   handleMouseMove(event: MouseEvent): void {
     if (this.workArea.transformBox) {
-      if (this.selectedElements && this.startingPosition) {
+      if (this.selectedElements && this.lastPosition) {
         const adjustedPosition = this.workArea.adjustForZoom({ x: event.offsetX, y: event.offsetY })
-        const deltaX = adjustedPosition.x - this.startingPosition.x
-
-        let angle = (deltaX / 4) % 360
-        if (angle < 0) {
-          angle += 360
-        }
-        const angleInRadians = ((angle - this.lastRotation) * Math.PI) / 180
+        const deltaX = adjustedPosition.x - this.lastPosition.x
+        const deltaY = adjustedPosition.y - this.lastPosition.y
+        const scaleX = 1 + deltaX / 4 / 100
+        const scaleY = 1 + deltaY / 4 / 100
         this.selectedElements.forEach((element) => {
           if (this.centerPosition) {
-            const deltaX = element.position.x - this.centerPosition.x
-            const deltaY = element.position.y - this.centerPosition.y
-            const newX = deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians)
-            const newY = deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians)
-            element.position.x = this.centerPosition.x + newX
-            element.position.y = this.centerPosition.y + newY
-            element.rotation += angleInRadians
+            const newX = element.position.x - this.centerPosition.x
+            const newY = element.position.y - this.centerPosition.y
+            element.scale.x *= scaleX
+            element.scale.y *= scaleY
+            element.position.x = this.centerPosition.x + newX * scaleX
+            element.position.y = this.centerPosition.y + newY * scaleY
           }
         })
-        this.lastRotation = angle
+        this.lastPosition = adjustedPosition
       }
       this.workArea.update()
     }

@@ -27,25 +27,8 @@ export class GrabTool extends Tool {
     }
   }
 
-  handleMouseDown(): void {
-    //if (this.workArea.transformBox) {
-    //  if (event.button === MOUSE_BUTTONS.LEFT) {
-    //    console.log('accept move')
-    //  }
-    //  if (event.button === MOUSE_BUTTONS.RIGHT) {
-    //    if (this.startingPosition) {
-    //      this.workArea.transformBox.handleMouseMove(this.startingPosition)
-    //      console.log('cancel move')
-    //    }
-    //  }
-    //  this.workArea.transformBox.endTransform()
-    //  this.workArea.transformBox.handleMouseUp()
-    //  if (!this.workArea.transformBox.isHandleDragging) {
-    //    this.workArea.removeTransformBox()
-    //  }
-    //}
-    //this.workArea.update()
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  handleMouseDown(): void {}
 
   handleMouseUp(event: MouseEvent): void {
     if (event.button === MOUSE_BUTTONS.LEFT) {
