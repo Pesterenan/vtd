@@ -1,25 +1,25 @@
 export interface IProjectData {
   elements: {
-    image: string
-    position: Position
-    rotation: number
-    scale: Scale
-    size: Size
-    zDepth: number
-  }[]
+    image: string;
+    position: Position;
+    rotation: number;
+    scale: Scale;
+    size: Size;
+    zDepth: number;
+  }[];
 }
 
 export interface Rectangle {
-  x: number
-  y: number
-  width: number
-  height: number
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
-export type BoundingBox = { x1: number; y1: number; x2: number; y2: number }
-export type Position = { x: number; y: number }
-export type Scale = { x: number; y: number }
-export type Size = { width: number; height: number }
+export type BoundingBox = { x1: number; y1: number; x2: number; y2: number };
+export type Position = { x: number; y: number };
+export type Scale = { x: number; y: number };
+export type Size = { width: number; height: number };
 
 /** Status do mouse durante os cliques
  * @param DOWN - Mouse clicado

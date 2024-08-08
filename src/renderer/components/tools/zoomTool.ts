@@ -1,16 +1,16 @@
-import { remap } from '../../utils/easing'
-import { Position } from '../types'
-import { WorkArea } from '../workArea'
-import { Tool } from './abstractTool'
+import { remap } from '../../utils/easing';
+import { Position } from '../types';
+import { WorkArea } from '../workArea';
+import { Tool } from './abstractTool';
 
-const MIN_ZOOM_LEVEL = 0.1
-const MAX_ZOOM_LEVEL = 2.0
+const MIN_ZOOM_LEVEL = 0.1;
+const MAX_ZOOM_LEVEL = 2.0;
 
 export class ZoomTool extends Tool {
-  private previousMousePosition: Position | null = null
+  private previousMousePosition: Position | null = null;
 
   constructor(workArea: WorkArea) {
-    super(workArea)
+    super(workArea);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -22,7 +22,7 @@ export class ZoomTool extends Tool {
 
   handleMouseMove({ offsetX }: MouseEvent): void {
     if (this.previousMousePosition) {
-      const deltaX = offsetX - this.previousMousePosition.x
+      const deltaX = offsetX - this.previousMousePosition.x;
       const newZoomLevel = remap(
         0,
         this.workArea.mainCanvas.width * 0.7,
@@ -30,9 +30,9 @@ export class ZoomTool extends Tool {
         MAX_ZOOM_LEVEL,
         deltaX,
         true
-      )
-      this.workArea.zoomLevel = newZoomLevel
-      this.workArea.update()
+      );
+      this.workArea.zoomLevel = newZoomLevel;
+      this.workArea.update();
     }
   }
 
@@ -45,13 +45,13 @@ export class ZoomTool extends Tool {
         this.workArea.mainCanvas.width * 0.7,
         this.workArea.zoomLevel,
         true
-      )
-      this.previousMousePosition = this.workArea.mouse.position
-      this.previousMousePosition.x -= currentZoomPosition
+      );
+      this.previousMousePosition = this.workArea.mouse.position;
+      this.previousMousePosition.x -= currentZoomPosition;
     }
   }
 
   handleKeyUp(): void {
-    this.previousMousePosition = null
+    this.previousMousePosition = null;
   }
 }

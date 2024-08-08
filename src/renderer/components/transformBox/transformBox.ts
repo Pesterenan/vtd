@@ -1,122 +1,112 @@
-import { Element } from '../element'
-import { Position, Size, TOOL } from '../types'
-import { WorkArea } from '../workArea'
+import { Element } from '../element';
+import { GrabTool } from '../tools/grabTool';
+import { Position, Size, TOOL } from '../types';
+import { WorkArea } from '../workArea';
 
 export class TransformBox {
-  private position: Position = { x: 0, y: 0 }
-  private size: Size = { width: 0, height: 0 }
-  private selectedElements: Element[] = []
-  public isHandleDragging: boolean = false
-  private lastMousePosition: Position | null = null
-  private rotation: number = 0
-  private context: CanvasRenderingContext2D | null
-  private IconMove: HTMLImageElement
-  private IconRotate: HTMLImageElement
-  private IconScale: HTMLImageElement
-  private IconSelect: HTMLImageElement
-  public centerHandle: HTMLImageElement | null = null
-  private isTransforming: boolean = false
-  private currentTool: TOOL = TOOL.SELECT
+  private position: Position = { x: 0, y: 0 };
+  private size: Size = { width: 0, height: 0 };
+  private selectedElements: Element[] = [];
+  public isHandleDragging: boolean = false;
+  private lastMousePosition: Position | null = null;
+  private context: CanvasRenderingContext2D | null;
+  public centerHandle: HTMLImageElement | null = null;
+  private isTransforming: boolean = false;
+  private currentTool: TOOL = TOOL.SELECT;
 
-  private xPosInput: { element: HTMLInputElement; listener: (event: Event) => void }
-  private yPosInput: { element: HTMLInputElement; listener: (event: Event) => void }
-  private widthSizeInput: { element: HTMLInputElement; listener: (event: Event) => void }
-  private heightSizeInput: { element: HTMLInputElement; listener: (event: Event) => void }
+  private xPosInput: { element: HTMLInputElement; listener: (event: Event) => void };
+  private yPosInput: { element: HTMLInputElement; listener: (event: Event) => void };
+  private widthSizeInput: { element: HTMLInputElement; listener: (event: Event) => void };
+  private heightSizeInput: { element: HTMLInputElement; listener: (event: Event) => void };
 
   public constructor(selectedElements: Element[], canvas: HTMLCanvasElement) {
-    this.context = canvas.getContext('2d')
-    this.selectedElements = selectedElements
-    this.recalculateBoundingBox()
-    this.IconSelect = new Image(8, 8)
-    this.IconSelect.src = '../../components/transformBox/assets/centerHandleSelect.svg'
-    this.IconMove = new Image(8, 8)
-    this.IconMove.src = '../../components/transformBox/assets/centerHandleMove.svg'
-    this.IconRotate = new Image(8, 8)
-    this.IconRotate.src = '../../components/transformBox/assets/centerHandleRotate.svg'
-    this.IconScale = new Image(8, 8)
-    this.IconScale.src = '../../components/transformBox/assets/centerHandleScale.svg'
-    this.centerHandle = this.IconSelect
+    this.context = canvas.getContext('2d');
+    this.selectedElements = selectedElements;
+    this.recalculateBoundingBox();
 
     this.xPosInput = {
       element: document.getElementById('x-pos-input') as HTMLInputElement,
       listener: this.updateTransformBoxPosition.bind(this)
-    }
+    };
     this.yPosInput = {
       element: document.getElementById('y-pos-input') as HTMLInputElement,
       listener: this.updateTransformBoxPosition.bind(this)
-    }
+    };
     this.widthSizeInput = {
       element: document.getElementById('width-size-input') as HTMLInputElement,
       listener: this.updateTransformBoxSize.bind(this)
-    }
+    };
     this.heightSizeInput = {
       element: document.getElementById('height-size-input') as HTMLInputElement,
       listener: this.updateTransformBoxSize.bind(this)
-    }
+    };
 
-    this.createEventListeners()
-    this.updateElementPropertiesMenu()
+    this.createEventListeners();
+    this.updateElementPropertiesMenu();
   }
 
   private createEventListeners(): void {
-    this.xPosInput.element.addEventListener('input', this.xPosInput.listener)
-    this.yPosInput.element.addEventListener('input', this.yPosInput.listener)
-    this.widthSizeInput.element.addEventListener('input', this.widthSizeInput.listener)
-    this.heightSizeInput.element.addEventListener('input', this.heightSizeInput.listener)
+    this.xPosInput.element.addEventListener('input', this.xPosInput.listener);
+    this.yPosInput.element.addEventListener('input', this.yPosInput.listener);
+    this.widthSizeInput.element.addEventListener('input', this.widthSizeInput.listener);
+    this.heightSizeInput.element.addEventListener('input', this.heightSizeInput.listener);
   }
 
   private removeEventListeners(): void {
-    this.xPosInput.element.removeEventListener('input', this.xPosInput.listener)
-    this.yPosInput.element.removeEventListener('input', this.yPosInput.listener)
-    this.widthSizeInput.element.removeEventListener('input', this.widthSizeInput.listener)
-    this.heightSizeInput.element.removeEventListener('input', this.heightSizeInput.listener)
+    this.xPosInput.element.removeEventListener('input', this.xPosInput.listener);
+    this.yPosInput.element.removeEventListener('input', this.yPosInput.listener);
+    this.widthSizeInput.element.removeEventListener('input', this.widthSizeInput.listener);
+    this.heightSizeInput.element.removeEventListener('input', this.heightSizeInput.listener);
   }
 
   private updateElementPropertiesMenu(): void {
-    const center = this.getCenter()
-    this.xPosInput.element.value = center.x.toFixed(0).toString()
-    this.yPosInput.element.value = center.y.toFixed(0).toString()
-    this.widthSizeInput.element.value = this.size.width.toFixed(0).toString()
-    this.heightSizeInput.element.value = this.size.height.toFixed(0).toString()
+    const center = this.getCenter();
+    this.xPosInput.element.value = center.x.toFixed(0).toString();
+    this.yPosInput.element.value = center.y.toFixed(0).toString();
+    this.widthSizeInput.element.value = this.size.width.toFixed(0).toString();
+    this.heightSizeInput.element.value = this.size.height.toFixed(0).toString();
   }
 
   private updateTransformBoxPosition(): void {
-    const center = this.getCenter()
-    const deltaX = parseFloat(this.xPosInput.element.value) - center.x
-    const deltaY = parseFloat(this.yPosInput.element.value) - center.y
-    this.position.x += deltaX
-    this.position.y += deltaY
-    this.moveSelectedElements({ x: deltaX, y: deltaY })
-    this.updateElementPropertiesMenu()
-    WorkArea.getInstance().update()
+    const center = this.getCenter();
+    const deltaX = parseFloat(this.xPosInput.element.value) - center.x;
+    const deltaY = parseFloat(this.yPosInput.element.value) - center.y;
+    this.position.x += deltaX;
+    this.position.y += deltaY;
+    GrabTool.moveSelectedElements(WorkArea.getInstance().getSelectedElements(), {
+      x: deltaX,
+      y: deltaY
+    });
+    this.updateElementPropertiesMenu();
+    WorkArea.getInstance().update();
   }
 
   private updateTransformBoxSize(): void {
-    this.size.width = parseFloat(this.widthSizeInput.element.value)
-    this.size.height = parseFloat(this.heightSizeInput.element.value)
-    WorkArea.getInstance().update()
+    this.size.width = parseFloat(this.widthSizeInput.element.value);
+    this.size.height = parseFloat(this.heightSizeInput.element.value);
+    WorkArea.getInstance().update();
   }
 
   public contains(element: Element): boolean {
-    return !!this.selectedElements.find((el) => el.zDepth === element.zDepth)
+    return !!this.selectedElements.find((el) => el.zDepth === element.zDepth);
   }
 
   private recalculateBoundingBox(): void {
-    let minX = Infinity
-    let minY = Infinity
-    let maxX = -Infinity
-    let maxY = -Infinity
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
 
     this.selectedElements.forEach((element: Element) => {
-      const boundingBox = element.getTransformedBoundingBox()
-      if (boundingBox.x1 < minX) minX = boundingBox.x1
-      if (boundingBox.y1 < minY) minY = boundingBox.y1
-      if (boundingBox.x2 > maxX) maxX = boundingBox.x2
-      if (boundingBox.y2 > maxY) maxY = boundingBox.y2
-    })
+      const boundingBox = element.getTransformedBoundingBox();
+      if (boundingBox.x1 < minX) minX = boundingBox.x1;
+      if (boundingBox.y1 < minY) minY = boundingBox.y1;
+      if (boundingBox.x2 > maxX) maxX = boundingBox.x2;
+      if (boundingBox.y2 > maxY) maxY = boundingBox.y2;
+    });
 
-    this.position = { x: minX, y: minY }
-    this.size = { width: maxX - minX, height: maxY - minY }
+    this.position = { x: minX, y: minY };
+    this.size = { width: maxX - minX, height: maxY - minY };
   }
 
   /** Returns the center of the transform box */
@@ -124,29 +114,29 @@ export class TransformBox {
     return {
       x: this.position.x + this.size.width * 0.5,
       y: this.position.y + this.size.height * 0.5
-    }
+    };
   }
 
   public draw(): void {
-    if (!this.context) return
-    this.recalculateBoundingBox()
-    const centerPosition = this.getCenter()
-    const workAreaZoom = WorkArea.getInstance().zoomLevel
-    const workAreaOffset = WorkArea.getInstance().offset
+    if (!this.context) return;
+    this.recalculateBoundingBox();
+    const centerPosition = this.getCenter();
+    const workAreaZoom = WorkArea.getInstance().zoomLevel;
+    const workAreaOffset = WorkArea.getInstance().offset;
 
     // Draw bounding box
-    this.context.save()
-    this.context.translate(workAreaOffset.x, workAreaOffset.y)
-    this.context.scale(workAreaZoom, workAreaZoom)
+    this.context.save();
+    this.context.translate(workAreaOffset.x, workAreaOffset.y);
+    this.context.scale(workAreaZoom, workAreaZoom);
     //
     // this.context.translate(centerPos.x, centerPos.y)
     // this.context.rotate(this.rotation * (Math.PI / 180))
     // this.context.translate(-centerPos.x, -centerPos.y)
 
-    this.context.strokeStyle = 'red'
-    this.context.setLineDash([3 / workAreaZoom, 3 / workAreaZoom])
-    this.context.lineWidth = 2 / workAreaZoom
-    this.context.strokeRect(this.position.x, this.position.y, this.size.width, this.size.height)
+    this.context.strokeStyle = 'red';
+    this.context.setLineDash([3 / workAreaZoom, 3 / workAreaZoom]);
+    this.context.lineWidth = 2 / workAreaZoom;
+    this.context.strokeRect(this.position.x, this.position.y, this.size.width, this.size.height);
 
     // Draw centerHandle
     if (this.centerHandle) {
@@ -156,34 +146,34 @@ export class TransformBox {
         centerPosition.y - (this.centerHandle.height * 0.5) / workAreaZoom,
         this.centerHandle.width / workAreaZoom,
         this.centerHandle.height / workAreaZoom
-      )
+      );
     }
-    this.context.restore()
+    this.context.restore();
   }
 
   public handleMouseDown(event: MouseEvent, { x, y }: Position): void {
-    const centerPosition = this.getCenter()
-    const workAreaOffset = WorkArea.getInstance().offset
-    const workAreaZoomLevel = WorkArea.getInstance().zoomLevel
+    const centerPosition = this.getCenter();
+    const workAreaOffset = WorkArea.getInstance().offset;
+    const workAreaZoomLevel = WorkArea.getInstance().zoomLevel;
     const distance = Math.hypot(
       centerPosition.x - x + workAreaOffset.x / workAreaZoomLevel,
       centerPosition.y - y + workAreaOffset.y / workAreaZoomLevel
-    )
+    );
 
     if (distance <= 10) {
-      this.startTransform(TOOL.GRAB, { x, y })
-      this.isHandleDragging = true
-      event.stopPropagation()
+      this.startTransform(TOOL.GRAB, { x, y });
+      this.isHandleDragging = true;
+      event.stopPropagation();
     }
   }
 
   public handleMouseMove({ x, y }: Position): void {
     if (this.isTransforming) {
-      this.transform({ x, y })
-      return
+      this.transform({ x, y });
+      return;
     }
 
-    if (!this.isHandleDragging || !this.lastMousePosition) return
+    if (!this.isHandleDragging || !this.lastMousePosition) return;
 
     //const deltaX = x - this.lastMousePosition.x
     //const deltaY = y - this.lastMousePosition.y
@@ -193,12 +183,12 @@ export class TransformBox {
   }
 
   public remove(): void {
-    this.removeEventListeners()
+    this.removeEventListeners();
   }
 
   public handleMouseUp(): void {
-    this.isHandleDragging = false
-    this.endTransform()
+    this.isHandleDragging = false;
+    this.endTransform();
   }
 
   //// Tool transformations
@@ -238,36 +228,36 @@ export class TransformBox {
   //}
 
   public startTransform(tool: TOOL, { x, y }: Position): void {
-    this.currentTool = tool
-    this.lastMousePosition = { x, y }
-    this.isTransforming = true
+    this.currentTool = tool;
+    this.lastMousePosition = { x, y };
+    this.isTransforming = true;
     switch (this.currentTool) {
       case TOOL.SELECT:
-        this.centerHandle = this.IconSelect
-        break
+        this.centerHandle = this.IconSelect;
+        break;
       case TOOL.GRAB:
-        this.centerHandle = this.IconMove
-        break
+        this.centerHandle = this.IconMove;
+        break;
       case TOOL.ROTATE:
-        this.centerHandle = this.IconRotate
-        break
+        this.centerHandle = this.IconRotate;
+        break;
       case TOOL.SCALE:
-        this.centerHandle = this.IconScale
-        break
+        this.centerHandle = this.IconScale;
+        break;
     }
   }
 
   public transform({ x, y }: Position): void {
-    if (!this.isTransforming || !this.lastMousePosition || this.currentTool === TOOL.SELECT) return
-    this.updateElementPropertiesMenu()
+    if (!this.isTransforming || !this.lastMousePosition || this.currentTool === TOOL.SELECT) return;
+    this.updateElementPropertiesMenu();
   }
 
   public endTransform(): void {
-    this.isHandleDragging = false
-    this.isTransforming = false
-    this.lastMousePosition = null
-    this.currentTool = TOOL.SELECT
-    this.centerHandle = null
-    this.rotation = 0
+    this.isHandleDragging = false;
+    this.isTransforming = false;
+    this.lastMousePosition = null;
+    this.currentTool = TOOL.SELECT;
+    this.centerHandle = null;
+    this.rotation = 0;
   }
 }

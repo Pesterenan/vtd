@@ -1,14 +1,14 @@
 export const linearInterpolation = (start: number, end: number, value: number): number => {
-  return (1.0 - value) * start + value * end
-}
+  return (1.0 - value) * start + value * end;
+};
 
 export const inverseLinearInterpolation = (start: number, end: number, value: number): number => {
-  return (value - start) / (end - start)
-}
+  return (value - start) / (end - start);
+};
 
 export const clamp = (value: number, minimum: number, maximum: number): number => {
-  return Math.max(Math.min(value, maximum), minimum)
-}
+  return Math.max(Math.min(value, maximum), minimum);
+};
 
 /** Remaps an input value to an output value using lerp
  * @param {number} inputMin - min starting from
@@ -26,7 +26,7 @@ export const remap = (
   value: number,
   clampOutput: boolean = false
 ): number => {
-  const between = inverseLinearInterpolation(inputMin, inputMax, value)
-  const remappedOutput = linearInterpolation(outputMin, outputMax, between)
-  return clampOutput ? clamp(remappedOutput, outputMin, outputMax) : remappedOutput
-}
+  const between = inverseLinearInterpolation(inputMin, inputMax, value);
+  const remappedOutput = linearInterpolation(outputMin, outputMax, between);
+  return clampOutput ? clamp(remappedOutput, outputMin, outputMax) : remappedOutput;
+};
