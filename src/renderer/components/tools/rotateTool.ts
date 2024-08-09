@@ -19,7 +19,7 @@ export class RotateTool extends Tool {
 
   initializeTool(): void {
     if (!this.startingPosition && this.workArea.transformBox) {
-      this.startingPosition = this.workArea.adjustForZoom(this.workArea.mouse.position);
+      this.startingPosition = this.workArea.mouse.position;
       this.centerPosition = this.workArea.transformBox.getCenter();
       this.lastRotation = 0;
       this.selectedElements = this.workArea.getSelectedElements();
@@ -62,28 +62,17 @@ export class RotateTool extends Tool {
   handleMouseMove(event: MouseEvent): void {
     if (this.workArea.transformBox) {
       if (this.selectedElements && this.startingPosition) {
-        const adjustedPosition = this.workArea.adjustForZoom({
-          x: event.offsetX,
-          y: event.offsetY
-        });
-        const deltaX = adjustedPosition.x - this.startingPosition.x;
+        const deltaX = event.offsetX - this.startingPosition.x;
 
-        let angle = (deltaX / 4) % 360;
+        let angle = deltaX % 360;
         if (angle < 0) {
           angle += 360;
         }
-        const angleInRadians = ((angle - this.lastRotation) * Math.PI) / 180;
-        this.selectedElements.forEach((element) => {
-          if (this.centerPosition) {
-            const deltaX = element.position.x - this.centerPosition.x;
-            const deltaY = element.position.y - this.centerPosition.y;
-            const newX = deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians);
-            const newY = deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians);
-            element.position.x = this.centerPosition.x + newX;
-            element.position.y = this.centerPosition.y + newY;
-            element.rotation += angleInRadians;
-          }
-        });
+        RotateTool.rotateSelectedElements(
+          this.selectedElements,
+          this.centerPosition,
+          angle - this.lastRotation
+        );
         this.lastRotation = angle;
       }
       this.workArea.update();
@@ -94,4 +83,23 @@ export class RotateTool extends Tool {
   handleKeyDown(): void {}
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleKeyUp(): void {}
+
+  public static rotateSelectedElements(
+    elements: Element[] | null,
+    origin: Position | null,
+    angle: number
+  ): void {
+    if (elements && origin) {
+      const angleInRadians = (angle * Math.PI) / 180;
+      elements.forEach((element) => {
+        const deltaX = element.position.x - origin.x;
+        const deltaY = element.position.y - origin.y;
+        const newX = deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians);
+        const newY = deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians);
+        element.position.x = origin.x + newX;
+        element.position.y = origin.y + newY;
+        element.rotation += angleInRadians;
+      });
+    }
+  }
 }

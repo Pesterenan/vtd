@@ -196,8 +196,8 @@ export class WorkArea {
 
   public adjustForZoom(mousePosition: Position): Position {
     return {
-      x: Number((mousePosition.x / this.zoomLevel).toFixed(0)),
-      y: Number((mousePosition.y / this.zoomLevel).toFixed(0))
+      x: Number(mousePosition.x / this.zoomLevel),
+      y: Number(mousePosition.y / this.zoomLevel)
     };
   }
 
