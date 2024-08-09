@@ -19,7 +19,7 @@ export class ScaleTool extends Tool {
 
   initializeTool(): void {
     if (!this.startingPosition && this.workArea.transformBox) {
-      this.startingPosition = this.workArea.adjustForZoom(this.workArea.mouse.position);
+      this.startingPosition = this.workArea.mouse.position;
       this.centerPosition = this.workArea.transformBox.getCenter();
       this.lastPosition = this.startingPosition;
       this.selectedElements = this.workArea.getSelectedElements();
@@ -62,25 +62,14 @@ export class ScaleTool extends Tool {
   handleMouseMove(event: MouseEvent): void {
     if (this.workArea.transformBox) {
       if (this.selectedElements && this.lastPosition) {
-        const adjustedPosition = this.workArea.adjustForZoom({
+        const deltaX = event.offsetX - this.lastPosition.x;
+        const deltaY = event.offsetY - this.lastPosition.y;
+        const delta = { x: 1 + deltaX / 100, y: 1 + deltaY / 100 };
+        ScaleTool.scaleSelectedElements(this.selectedElements, this.centerPosition, delta);
+        this.lastPosition = {
           x: event.offsetX,
           y: event.offsetY
-        });
-        const deltaX = adjustedPosition.x - this.lastPosition.x;
-        const deltaY = adjustedPosition.y - this.lastPosition.y;
-        const scaleX = 1 + deltaX / 4 / 100;
-        const scaleY = 1 + deltaY / 4 / 100;
-        this.selectedElements.forEach((element) => {
-          if (this.centerPosition) {
-            const newX = element.position.x - this.centerPosition.x;
-            const newY = element.position.y - this.centerPosition.y;
-            element.scale.x *= scaleX;
-            element.scale.y *= scaleY;
-            element.position.x = this.centerPosition.x + newX * scaleX;
-            element.position.y = this.centerPosition.y + newY * scaleY;
-          }
-        });
-        this.lastPosition = adjustedPosition;
+        };
       }
       this.workArea.update();
     }
@@ -90,4 +79,21 @@ export class ScaleTool extends Tool {
   handleKeyDown(): void {}
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleKeyUp(): void {}
+
+  public static scaleSelectedElements(
+    elements: Element[] | null,
+    origin: Position | null,
+    delta: Scale | null
+  ): void {
+    if (elements && origin && delta) {
+      elements.forEach((element) => {
+        const newX = element.position.x - origin.x;
+        const newY = element.position.y - origin.y;
+        element.scale.x *= delta.x;
+        element.scale.y *= delta.y;
+        element.position.x = origin.x + newX * delta.x;
+        element.position.y = origin.y + newY * delta.y;
+      });
+    }
+  }
 }
