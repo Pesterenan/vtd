@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Video Thumbnail Designer</title>
+  <title>Video Frame Extractor</title>
   <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
@@ -11,12 +11,11 @@
 </head>
 
 <body>
-  <!--<canvas id="video-canvas"-->
-  <!--  style="background-color: red; position: fixed; top: 0; left: 0; z-index: 110; height: 240px; width: 320px;"></canvas>-->
-  <!--<input type="range" id="slider" min="0" max="100" step="1" value="0">-->
-  <main id="main-window" />
+  <canvas id="video-canvas"
+    style="background-color: red; position: fixed; top: 0; left: 0; z-index: 110; height: 240px; width: 320px;"></canvas>
+  <input type="range" id="slider" min="0" max="100" step="1" value="0">
 
-  <script type="module" src="./renderer.ts"></script>
+  <script type="module" src="./index.ts"></script>
 </body>
 
 </html>

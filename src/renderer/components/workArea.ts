@@ -25,12 +25,12 @@ interface IMouseProperties {
 
 export class WorkArea {
   private static instance: WorkArea | null = null;
-  public mainCanvas: HTMLCanvasElement;
+  public mainCanvas?: HTMLCanvasElement;
   public mainContext: CanvasRenderingContext2D | null = null;
   private elements: Element[] = [];
   private _transformBox: TransformBox | null = null;
   private _zoomLevel: number = 0.3;
-  private workArea: IWorkAreaProperties | Record<string, never>;
+  private workArea: IWorkAreaProperties | Record<string, never> = {};
   private _mouse: IMouseProperties = {
     position: { x: 0, y: 0 },
     status: MouseStatus.UP
@@ -39,19 +39,36 @@ export class WorkArea {
   public currentTool: TOOL = TOOL.SELECT;
 
   private constructor() {
-    this.mainCanvas = document.getElementById('main-canvas') as HTMLCanvasElement;
-    if (!this.mainCanvas) {
-      throw new Error("Element with id 'main-canvas' was not found");
-    }
-    this.mainCanvas.width = window.innerWidth * 0.7;
-    this.mainCanvas.height = window.innerHeight;
-    this.mainCanvas.style.backgroundColor = 'grey';
+    this.tools = {
+      [TOOL.SELECT]: new SelectTool(this),
+      [TOOL.GRAB]: new GrabTool(this),
+      [TOOL.HAND]: new HandTool(this),
+      [TOOL.ZOOM]: new ZoomTool(this),
+      [TOOL.SCALE]: new ScaleTool(this),
+      [TOOL.ROTATE]: new RotateTool(this)
+    };
 
+    this.createWorkAreaDOMElements();
+
+    if (!this.mainCanvas) throw new Error('Main canvas not available');
     const currentMousePosition = {
       x: this.mainCanvas.width * 0.5,
       y: this.mainCanvas.height * 0.5
     };
     this.mouse = { position: currentMousePosition };
+
+    this.createEventListeners();
+    this.update();
+  }
+
+  private createWorkAreaDOMElements(): void {
+    const mainWindow = document.getElementById('main-window');
+    this.mainCanvas = document.createElement('canvas');
+    this.mainCanvas.id = 'main-canvas';
+    this.mainCanvas.width = window.innerWidth * 0.7;
+    this.mainCanvas.height = window.innerHeight;
+    this.mainCanvas.style.backgroundColor = 'grey';
+    this.mainContext = this.mainCanvas.getContext('2d');
 
     const workAreaCanvas = document.createElement('canvas');
     workAreaCanvas.width = WORK_AREA_WIDTH;
@@ -63,7 +80,6 @@ export class WorkArea {
       y: this.mainCanvas.height * 0.5 - workAreaCanvas.height * this.zoomLevel * 0.5
     };
 
-    this.mainContext = this.mainCanvas.getContext('2d');
     if (!this.mainContext || !workAreaContext) {
       throw new Error('Unable to get canvas context');
     }
@@ -74,19 +90,9 @@ export class WorkArea {
       offset: workAreaOffset
     };
 
-    this.tools = {
-      [TOOL.SELECT]: new SelectTool(this),
-      [TOOL.GRAB]: new GrabTool(this),
-      [TOOL.HAND]: new HandTool(this),
-      [TOOL.ZOOM]: new ZoomTool(this),
-      [TOOL.SCALE]: new ScaleTool(this),
-      [TOOL.ROTATE]: new RotateTool(this)
-    };
-
-    this.createEventListeners();
-    this.update();
-
-    window.addEventListener('resize', this.handleResize.bind(this));
+    if (mainWindow) {
+      mainWindow.appendChild(this.mainCanvas);
+    }
   }
 
   public get transformBox(): TransformBox | null {
@@ -115,12 +121,19 @@ export class WorkArea {
   }
 
   private createEventListeners(): void {
-    this.mainCanvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-    this.mainCanvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
-    this.mainCanvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
-    window.addEventListener('keypress', this.changeTool.bind(this));
-    window.addEventListener('keydown', this.handleKeyDown.bind(this));
-    window.addEventListener('keyup', this.handleKeyUp.bind(this));
+    if (this.mainCanvas) {
+      this.mainCanvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+      this.mainCanvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+      this.mainCanvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+      window.addEventListener('keypress', this.changeTool.bind(this));
+      window.addEventListener('keydown', this.handleKeyDown.bind(this));
+      window.addEventListener('keyup', this.handleKeyUp.bind(this));
+      window.addEventListener('resize', this.handleResize.bind(this));
+      window.addEventListener('evt_update-workarea', () => {
+        console.log('updating workarea');
+        this.update();
+      });
+    }
   }
 
   private changeTool(event: KeyboardEvent): void {
@@ -272,23 +285,24 @@ export class WorkArea {
   }
 
   public createTransformBox(): void {
+    this.removeTransformBox();
     const selectedElements: Element[] = this.elements.filter((el) => el.selected);
     // If there's elements selected, create TransformBox
-    if (selectedElements.length) {
+    if (this.mainCanvas && selectedElements.length) {
       this.transformBox = new TransformBox(selectedElements, this.mainCanvas);
-    } else {
-      this.removeTransformBox();
     }
   }
 
   private handleResize(): void {
-    this.mainCanvas.width = window.innerWidth * 0.7;
-    this.mainCanvas.height = window.innerHeight;
-    this.update();
+    if (this.mainCanvas) {
+      this.mainCanvas.width = window.innerWidth * 0.7;
+      this.mainCanvas.height = window.innerHeight;
+      this.update();
+    }
   }
 
-  public update(): void {
-    if (!this.mainContext || !this.workArea.context) {
+  private update(): void {
+    if (!this.mainContext || !this.workArea.context || !this.mainCanvas) {
       throw new Error('Canvas context is not available');
     }
     this.clearCanvas(this.mainContext, this.mainCanvas);

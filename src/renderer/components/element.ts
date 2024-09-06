@@ -123,9 +123,7 @@ export class Element {
         lowerLeft: { x: halfWidth, y: halfHeight },
         lowerRight: { x: -halfWidth, y: halfHeight }
       };
-      if (onLoadCallback) {
-        onLoadCallback();
-      }
+      window.dispatchEvent(new CustomEvent('evt_update-workarea'));
     };
   }
 

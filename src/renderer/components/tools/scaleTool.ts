@@ -30,7 +30,7 @@ export class ScaleTool extends Tool {
         }));
       }
       this.workArea.transformBox.centerHandle = this.toolIcon;
-      this.workArea.update();
+      window.dispatchEvent(new CustomEvent('evt_update-workarea'));
     }
   }
 
@@ -56,7 +56,7 @@ export class ScaleTool extends Tool {
     this.lastPosition = null;
     this.workArea.mouse.status = MouseStatus.UP;
     this.workArea.currentTool = TOOL.SELECT;
-    this.workArea.update();
+    window.dispatchEvent(new CustomEvent('evt_update-workarea'));
   }
 
   handleMouseMove(event: MouseEvent): void {
@@ -71,7 +71,7 @@ export class ScaleTool extends Tool {
           y: event.offsetY
         };
       }
-      this.workArea.update();
+      window.dispatchEvent(new CustomEvent('evt_update-workarea'));
     }
   }
 

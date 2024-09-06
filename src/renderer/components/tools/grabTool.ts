@@ -58,7 +58,8 @@ export class GrabTool extends Tool {
           x: event.offsetX - this.lastPosition.x,
           y: event.offsetY - this.lastPosition.y
         };
-        GrabTool.moveSelectedElements(this.selectedElements, delta);
+        const adjustedDelta = WorkArea.getInstance().adjustForZoom(delta);
+        GrabTool.moveSelectedElements(this.selectedElements, adjustedDelta);
         this.lastPosition = { x: event.offsetX, y: event.offsetY };
       }
       this.workArea.update();
@@ -72,10 +73,9 @@ export class GrabTool extends Tool {
 
   public static moveSelectedElements(elements: Element[] | null, delta: Position): void {
     if (elements) {
-      const adjustedDelta = WorkArea.getInstance().adjustForZoom(delta);
       elements.forEach((element) => {
-        element.position.x += adjustedDelta.x;
-        element.position.y += adjustedDelta.y;
+        element.position.x += delta.x;
+        element.position.y += delta.y;
       });
     }
   }
