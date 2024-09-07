@@ -84,7 +84,6 @@ export class SideMenu {
     openVideoBtn.innerText = 'Open Video';
     openVideoBtn.className = 'btn-common';
     openVideoBtn.onclick = (): void => {
-      window.api.openFrameExtractorWindow();
       window.api.loadVideo();
     };
     domElements.push(openVideoBtn);

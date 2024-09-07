@@ -3,7 +3,6 @@ import { electronAPI } from '@electron-toolkit/preload';
 
 // Custom APIs for renderer
 const api = {
-  openFrameExtractorWindow: (): void => ipcRenderer.send('frame-extractor-window'),
   loadImage: (filePath: string): void => ipcRenderer.send('load-image', filePath),
   loadVideo: (filePath: string): void => ipcRenderer.send('load-video', filePath),
   loadProject: (): void => ipcRenderer.send('load-project'),
@@ -19,7 +18,12 @@ const api = {
   onLoadProjectResponse: (callback): Electron.IpcRenderer =>
     ipcRenderer.on('load-project-response', callback),
   onSaveProjectResponse: (callback): Electron.IpcRenderer =>
-    ipcRenderer.on('save-project-response', callback)
+    ipcRenderer.on('save-project-response', callback),
+  onVideoMetadata: (callback): Electron.IpcRenderer => {
+    ipcRenderer.on('video-metadata', (event, metadata) => {
+      callback(metadata);
+    });
+  }
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

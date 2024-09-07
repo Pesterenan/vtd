@@ -39,11 +39,14 @@ function createWindow(): void {
   }
 }
 
-function createFrameExtractorWindow(): void {
+function createFrameExtractorWindow(metadata): void {
   // Create the browser window.
+  console.log('metadata', metadata);
+  const videoRatio = metadata.width / metadata.height;
+
   const modalWindow = new BrowserWindow({
-    width: 800,
-    height: 400,
+    width: 1024,
+    height: 768,
     parent: BrowserWindow.getFocusedWindow()!,
     modal: true,
     show: false,
@@ -65,6 +68,7 @@ function createFrameExtractorWindow(): void {
   }
   modalWindow.once('ready-to-show', () => {
     modalWindow.show();
+    modalWindow.webContents.send('video-metadata', metadata);
   });
 }
 
@@ -99,38 +103,42 @@ app.whenReady().then(() => {
       if (!fs.existsSync(filePath)) {
         throw new Error('Arquivo não encontrado');
       }
-      const SCALE_FACTOR = 2;
-      let width = 320;
-      let height = 240;
-      const videoInfo = await new Promise((resolve, reject) => {
+
+      const videoMetadata = await new Promise((resolve, reject) => {
         ffmpeg.ffprobe(filePath, (err, metadata) => {
           if (err) {
             reject(err);
           }
           const duration = metadata.format.duration;
-          width = metadata.streams[0].width / SCALE_FACTOR;
-          height = metadata.streams[0].height / SCALE_FACTOR;
+          const width = metadata.streams[0].width;
+          const height = metadata.streams[0].height;
           const frameRate = metadata.streams[0].r_frame_rate;
+          const totalFrames = Math.floor(Number(duration * frameRate.split('/')[0]));
           console.log(`Duração: ${duration} segundos`);
           console.log(`Resolução: ${width}x${height}`);
           console.log(`Taxa de quadros: ${frameRate}`);
-          ffmpeg(filePath).screenshots({
-            count: 5,
-            folder: './temp',
-            size: `${width}x${height}`
-          });
-          resolve(metadata);
+          console.log(`Quadros totais: ${totalFrames}`);
+          const parsedMetadata = {
+            filePath,
+            duration,
+            width,
+            height,
+            frameRate,
+            totalFrames
+          };
+          resolve(parsedMetadata);
         });
       });
-      event.reply('load-video-response', { success: true, data: videoInfo });
+      if (videoMetadata instanceof Error) {
+        event.reply('load-video-response', {
+          success: false,
+          message: "Couldn't parse video metadata"
+        });
+        return;
+      }
+      createFrameExtractorWindow(videoMetadata);
+      event.reply('load-video-response', { success: true, data: videoMetadata });
     }
-  });
-
-  // Open Video Extractor Window
-  ipcMain.on('frame-extractor-window', () => {
-    console.log('abrindo janela');
-    createFrameExtractorWindow();
-    console.log('janela abrida');
   });
 
   // Process video frame
@@ -140,11 +148,12 @@ app.whenReady().then(() => {
     const chunks: Uint8Array[] = [];
     const videoFrame = await new Promise((resolve, reject) => {
       ffmpeg(filePath)
-        .seekInput(timeInSeconds)
-        .frames(1)
-        .outputOptions('-f', 'image2pipe')
-        .outputOptions('-vcodec', 'png')
-        .pipe()
+        .seekInput(timeInSeconds) // Pula para o tempo especificado
+        .frames(1) // Captura 1 frame
+        .outputOptions('-f', 'rawvideo') // Define o formato como rawvideo para obter os dados brutos dos pixels
+        .outputOptions('-pix_fmt', 'rgba') // Especifica o formato de pixel como RGBA (4 bytes por pixel)
+        .outputOptions('-vcodec', 'rawvideo') // Usa rawvideo como codec
+        .pipe() // Pipe dos dados para o Node.js
         .on('data', (chunk) => {
           chunks.push(chunk);
         })
@@ -157,7 +166,7 @@ app.whenReady().then(() => {
             combined.set(chunk, offset);
             offset += chunk.length;
           }
-          resolve(combined);
+          resolve(combined); // Retorna os dados brutos do frame como Uint8Array
         })
         .on('error', (err) => {
           event.reply('process-video-frame-response', {

@@ -12,6 +12,7 @@ const initializeVTD = (): void => {
 
 const createEventListeners = (workArea: WorkArea): void => {
   window.api.onProcessVideoFrameResponse((event, response) => {
+    console.log(response, 'response');
     if (response.success) {
       const uint8Array = new Uint8Array(response.data);
       const blob = new Blob([uint8Array], { type: 'image/png' });
