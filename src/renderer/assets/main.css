@@ -5,9 +5,21 @@ body {
   --primary_main: hsl(var(--primary_hue), 50%, 60%);
   --primary_dark: hsl(var(--primary_hue), 50%, 30%);
   --primary_light: hsl(var(--primary_hue), 50%, 75%);
+  --error_hue: 0;
+  --error_main: hsl(var(--error_hue), 50%, 60%);
+  --error_dark: hsl(var(--error_hue), 50%, 30%);
+  --error_light: hsl(var(--error_hue), 50%, 75%);
+  --text_hue: var(--primary_hue);
+  --text_main: hsl(var(--text_hue), 30%, 20%);
+  --text_dark: hsl(var(--text_hue), 20%, 10%);
+  --text_light: hsl(var(--text_hue), 50%, 50%);
+  --font-small: 0.75rem;
+  --font-medium: 1rem;
+  --font-large: 1.25rem;
+  --font-extra-large: 1.5rem;
   display: flex;
   align-items: center;
-  ustify-content: center;
+  justify-content: center;
   overflow: hidden;
   background-size: cover;
   user-select: none;
@@ -23,9 +35,9 @@ body {
   height: 100%;
 }
 
-#main-canvas{
+#main-canvas {
   flex: 0 1 70%;
-  background-color:grey;
+  background-color: grey;
 }
 
 #side-menu {
@@ -38,11 +50,11 @@ body {
 }
 
 #sec_transform-box-properties {
-  align-items:center;
+  align-items: center;
   color: black;
   display: flex;
   flex-direction: column;
-  font-size: 0.75rem;
+  font-size: var(--font-small);
   justify-content: space-between;
   margin-block: 0.1rem;
   padding: 0.25rem;
@@ -66,14 +78,47 @@ body {
   &:hover {
     background-color: var(--primary_light);
   }
+
   &:active {
     color: var(--primary_light);
     background-color: var(--primary_dark);
   }
+
   background-color: var(--primary_main);
   color: var(--primary_dark);
   border-radius: 1rem;
   border: 2px solid var(--primary_dark);
   height: 2rem;
   font-weight: bold;
+}
+
+.error-element {
+  background-color: var(--error_light);
+  color: var(--error_main);
+  border-radius: 0.1rem;
+  border: 1px solid var(--error_dark);
+  font-size: var(--font-small);
+  font-style: italic;
+  padding-inline: 0.3rem;
+}
+
+#sec_layers-menu {
+  align-items: center;
+  background-color: var(--primary_main);
+  color: var(--text_main);
+  display: flex;
+  flex-direction: column;
+  font-size: var(--font-small);
+  justify-content: center;
+  padding-inline: 0.25rem;
+  width: 100%;
+}
+
+#ul_layers-list {
+  width: inherit;
+}
+
+.li_layer-item {
+  background-color: var(--error_light);
+  width: 100%;
 }

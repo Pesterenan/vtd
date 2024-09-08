@@ -1,3 +1,4 @@
+import { LayersMenu } from './layersMenu';
 import { WorkArea } from './workArea';
 
 export class SideMenu {
@@ -8,9 +9,10 @@ export class SideMenu {
   private yPosInput: HTMLInputElement | null = null;
   private widthSizeInput: HTMLInputElement | null = null;
   private heightSizeInput: HTMLInputElement | null = null;
+  private layersTab: HTMLElement | null = null;
 
   constructor() {
-    this.createSideMenuDOMElements();
+    this.createDOMElements();
     this.xPosInput = document.getElementById('x-pos-input') as HTMLInputElement;
     this.yPosInput = document.getElementById('y-pos-input') as HTMLInputElement;
     this.widthSizeInput = document.getElementById('width-size-input') as HTMLInputElement;
@@ -23,6 +25,9 @@ export class SideMenu {
         this.heightSizeInput.value = evt.detail.size.height.toFixed(0).toString();
       }
     });
+    window.addEventListener('evt_layers-reorganized', (evt: CustomEvent) => {
+      console.log('event received:', evt);
+    });
   }
 
   private createHR(): HTMLHRElement {
@@ -31,7 +36,7 @@ export class SideMenu {
     return horizontalDivider;
   }
 
-  private createSideMenuDOMElements(): void {
+  private createDOMElements(): void {
     const mainWindow = document.getElementById('main-window');
     this.sideMenu = document.createElement('menu');
     this.sideMenu.id = 'side-menu';
@@ -144,6 +149,11 @@ export class SideMenu {
     domElements.push(this.transformBox);
     domElements.push(this.createHR());
 
+    this.layersTab = LayersMenu.getInstance().getMenu();
+    domElements.push(this.layersTab);
+    domElements.push(this.createHR());
+
+    // APPEND ELEMENTS TO SIDE MENU:
     for (const el of domElements) {
       this.sideMenu.appendChild(el);
     }
@@ -151,6 +161,25 @@ export class SideMenu {
     if (mainWindow) {
       mainWindow.appendChild(this.sideMenu);
     }
+
+    const listItems = document.querySelectorAll('#ul_layers-list li');
+    console.log(listItems);
+    let draggedItem: Element | null = null;
+
+    listItems.forEach((item) => {
+      item.addEventListener('dragstart', () => {
+        draggedItem = item;
+      });
+      item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+      });
+      item.addEventListener('drop', () => {
+        if (draggedItem) {
+          item.before(draggedItem);
+          draggedItem = null;
+        }
+      });
+    });
   }
 
   public static getInstance(): SideMenu {

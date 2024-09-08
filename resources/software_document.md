@@ -31,6 +31,12 @@ Criar interface crua da aplicação - OK
 Terá um canvas no meio com um menu de ferramentas na direita - OK
 Canvas poderá desenhar caixas como teste de render - OK
 Os elementos podem ser rotacionados e movidos pela área de montagem - OK
-A aplicação pode importar imagens dinamicamente
-A importação de vídeo deve conseguir usar o FFMPEG para extrair imagens
+A aplicação pode importar imagens dinamicamente - OK
+A importação de vídeo deve conseguir usar o FFMPEG para extrair imagens - OK
+O video  escolhido para importação deve abrir uma nova janela para extrair o frame - OK
+O usuário pode escolher qual parte do frame ele quer extrair para a aplicação
+Os elementos (imagens, textos) podem ser reorganizados de acordo com seu z-index
+A aplicação tem um sistema de gerenciar camadas
+A aplicação pode criar e editar elementos de texto
+A aplicação pode salvar a imagem final do projeto como um JPG ou PNG
 
