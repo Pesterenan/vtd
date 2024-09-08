@@ -355,7 +355,7 @@ export class WorkArea {
     const x = this.workArea.canvas.width * 0.5;
     const y = this.workArea.canvas.height * 0.5;
     const newElement = new Element({ x, y }, { width: 0, height: 0 }, this.elements.length);
-    newElement.loadImage(filePath, this.update.bind(this));
+    newElement.loadImage(filePath);
     this.elements.push(newElement);
   }
 }

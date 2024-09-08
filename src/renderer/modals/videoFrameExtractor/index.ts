@@ -1,40 +1,71 @@
-console.log('arquivo index do vfe');
-window.api.onVideoMetadata((metadata) => {
-  console.log('Video Metadata:', metadata);
-  const videoRatio = metadata.width / metadata.height;
+(function initializeVideoFrameExtractor(): void {
+  let filePath = '';
+  const extractFrameBtn = document.getElementById('btn_extract-frame') as HTMLButtonElement;
 
-  // Configurando o canvas com as dimensões corretas
-  const canvas = document.getElementById('video-canvas') as HTMLCanvasElement;
-  canvas.width = metadata.width;
-  canvas.height = metadata.height;
-  canvas.setAttribute('style', 'background-color: grey;');
+  extractFrameBtn.onclick = (): void => {
+    console.log('extracting frame');
+    if (offScreenCanvas) {
+      const canvasContext = offScreenCanvas.getContext('2d');
+      if (canvasContext) {
+        const imageData = canvasContext!.getImageData(0, 0, 1920, 1080);
 
-  const slider = document.getElementById('slider') as HTMLInputElement;
-  slider.max = metadata.duration.toString();
-  slider.oninput = (): void => {
-    window.api.processVideoFrame(metadata.filePath, slider.value);
-    console.log(slider.value);
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 1920;
+        tempCanvas.height = 1080;
+        const tempContext = tempCanvas.getContext('2d');
+        if (tempContext) {
+          tempContext.putImageData(imageData, 0, 0);
+          const imageUrl = tempCanvas.toDataURL('image/png');
+          console.log('sending...', imageUrl.slice(0, 100));
+          window.api.sendFrameToWorkArea(imageUrl);
+        }
+      }
+    }
   };
 
-  // Aqui você pode continuar com a lógica de exibir os frames do vídeo
-});
-window.api.onProcessVideoFrameResponse((event, response) => {
-  console.log(response, 'response from video frame extractor');
-  if (response.success) {
-    const videoCanvas = document.getElementById('video-canvas') as HTMLCanvasElement;
-    const videoCanvasCtx = videoCanvas.getContext('2d');
-    const uint8Array = new Uint8ClampedArray(response.data);
+  const videoCanvas = document.getElementById('video-canvas') as HTMLCanvasElement;
+  const videoCanvasCtx = videoCanvas.getContext('2d');
+  let offScreenCanvas: OffscreenCanvas | null = null;
+  let offScreenContext: OffscreenCanvasRenderingContext2D | null = null;
+  let videoRatio = 1;
 
-    const imageData = new ImageData(uint8Array, videoCanvas.width, videoCanvas.height);
+  window.api.onVideoMetadata((metadata) => {
+    videoRatio = metadata.height / metadata.width;
+    filePath = metadata.filePath;
+    console.log('VFE initialized', filePath);
 
-    videoCanvasCtx?.putImageData(imageData, 0, 0);
-    //const reader = new FileReader();
-    //reader.onloadend = function (): void {
-    //  const dataURL = reader.result as string;
-    //  workArea.addImageElement(dataURL);
-    //};
-    //reader.readAsDataURL(blob);
-  } else {
-    console.error(response.message);
-  }
-});
+    offScreenCanvas = new OffscreenCanvas(metadata.width, metadata.height);
+    offScreenContext = offScreenCanvas.getContext('2d');
+
+    const slider = document.getElementById('slider') as HTMLInputElement;
+    slider.oninput = (): void => {
+      const sliderValueInterpolated = (metadata.duration * Number(slider.value)) / 100;
+      window.api.processVideoFrame(filePath, sliderValueInterpolated);
+      console.log(slider.value);
+    };
+  });
+
+  window.api.onProcessVideoFrameResponse((event, response) => {
+    console.log(response, 'response from video frame extractor');
+    if (response.success) {
+      const uint8Array = new Uint8ClampedArray(response.data);
+
+      if (offScreenCanvas && videoCanvasCtx) {
+        const imageData = new ImageData(uint8Array, offScreenCanvas.width, offScreenCanvas.height);
+        offScreenContext?.putImageData(imageData, 0, 0);
+
+        videoCanvasCtx.save();
+        videoCanvasCtx.drawImage(
+          offScreenCanvas,
+          0,
+          0,
+          videoCanvas.width,
+          Math.ceil(videoCanvas.width * videoRatio)
+        );
+        videoCanvasCtx.restore();
+      }
+    } else {
+      console.error(response.message);
+    }
+  });
+})();

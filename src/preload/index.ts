@@ -9,6 +9,8 @@ const api = {
   processVideoFrame: (filePath: string, timeInSeconds: number): void =>
     ipcRenderer.send('process-video-frame', filePath, timeInSeconds),
   saveProject: (dataString: string): void => ipcRenderer.send('save-project', { dataString }),
+  sendFrameToWorkArea: (imageUrl: string): void =>
+    ipcRenderer.send('send-frame-to-work-area', imageUrl),
   onProcessVideoFrameResponse: (callback): Electron.IpcRenderer =>
     ipcRenderer.on('process-video-frame-response', callback),
   onLoadImageResponse: (callback): Electron.IpcRenderer =>

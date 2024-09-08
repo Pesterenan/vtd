@@ -5,9 +5,11 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
 import fs from 'fs';
 
+let mainWindow: BrowserWindow | null = null;
+let modalWindow: BrowserWindow | null = null;
 function createWindow(): void {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -22,7 +24,7 @@ function createWindow(): void {
   });
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show();
+    mainWindow?.show();
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -41,13 +43,10 @@ function createWindow(): void {
 
 function createFrameExtractorWindow(metadata): void {
   // Create the browser window.
-  console.log('metadata', metadata);
-  const videoRatio = metadata.width / metadata.height;
-
-  const modalWindow = new BrowserWindow({
+  modalWindow = new BrowserWindow({
     width: 1024,
     height: 768,
-    parent: BrowserWindow.getFocusedWindow()!,
+    parent: mainWindow!, // BrowserWindow.getFocusedWindow()!,
     modal: true,
     show: false,
     webPreferences: {
@@ -67,8 +66,8 @@ function createFrameExtractorWindow(metadata): void {
     );
   }
   modalWindow.once('ready-to-show', () => {
-    modalWindow.show();
-    modalWindow.webContents.send('video-metadata', metadata);
+    modalWindow?.show();
+    modalWindow?.webContents.send('video-metadata', metadata);
   });
 }
 
@@ -137,7 +136,6 @@ app.whenReady().then(() => {
         return;
       }
       createFrameExtractorWindow(videoMetadata);
-      event.reply('load-video-response', { success: true, data: videoMetadata });
     }
   });
 
@@ -180,6 +178,12 @@ app.whenReady().then(() => {
     event.reply('process-video-frame-response', { success: true, data: videoFrame });
   });
 
+  // Send frame to WorkArea
+  ipcMain.on('send-frame-to-work-area', async (event, imageUrl) => {
+    console.log('Received frame from video:', imageUrl.slice(0, 100));
+    mainWindow?.webContents.send('load-image-response', { success: true, data: imageUrl });
+  });
+
   // Load images into vtd
   ipcMain.on('load-image', async (event) => {
     const { filePaths } = await dialog.showOpenDialog({
@@ -196,7 +200,6 @@ app.whenReady().then(() => {
     if (filePaths.length > 0) {
       const filePath = filePaths[0];
       const extension = filePath.split('.').pop()?.toLowerCase();
-      console.log(extension);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fs.readFile(filePaths[0], (err: any, data: any) => {
         if (err) {

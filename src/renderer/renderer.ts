@@ -35,6 +35,7 @@ const createEventListeners = (workArea: WorkArea): void => {
     }
   });
   window.api.onLoadImageResponse((event, response) => {
+    console.log(response, 'load-image-response');
     if (response.success) {
       workArea.addImageElement(response.data);
     } else {

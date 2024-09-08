@@ -109,7 +109,7 @@ export class Element {
     context.restore();
   }
 
-  public loadImage(filePath: string, onLoadCallback?: () => void): void {
+  public loadImage(filePath: string): void {
     this.image = new Image();
     this.image.src = filePath;
     this.image.onload = (): void => {
