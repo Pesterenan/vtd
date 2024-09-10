@@ -9,7 +9,7 @@ export class SideMenu {
   private yPosInput: HTMLInputElement | null = null;
   private widthSizeInput: HTMLInputElement | null = null;
   private heightSizeInput: HTMLInputElement | null = null;
-  private layersTab: HTMLElement | null = null;
+  private layersMenu: HTMLElement | null = null;
 
   constructor() {
     this.createDOMElements();
@@ -149,8 +149,8 @@ export class SideMenu {
     domElements.push(this.transformBox);
     domElements.push(this.createHR());
 
-    this.layersTab = LayersMenu.getInstance().getMenu();
-    domElements.push(this.layersTab);
+    this.layersMenu = LayersMenu.getInstance().getMenu();
+    domElements.push(this.layersMenu);
     domElements.push(this.createHR());
 
     // APPEND ELEMENTS TO SIDE MENU:
@@ -161,25 +161,6 @@ export class SideMenu {
     if (mainWindow) {
       mainWindow.appendChild(this.sideMenu);
     }
-
-    const listItems = document.querySelectorAll('#ul_layers-list li');
-    console.log(listItems);
-    let draggedItem: Element | null = null;
-
-    listItems.forEach((item) => {
-      item.addEventListener('dragstart', () => {
-        draggedItem = item;
-      });
-      item.addEventListener('dragover', (e) => {
-        e.preventDefault();
-      });
-      item.addEventListener('drop', () => {
-        if (draggedItem) {
-          item.before(draggedItem);
-          draggedItem = null;
-        }
-      });
-    });
   }
 
   public static getInstance(): SideMenu {

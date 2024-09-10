@@ -2,7 +2,9 @@ import { BB } from '../utils/bb';
 import { BoundingBox, Position, Scale, Size } from './types';
 
 export class Element {
+  public static elementIds: number = 0;
   public position: Position;
+  public elementId: number;
   public size: Size;
   public scale: Scale = { x: 1.0, y: 1.0 };
   public zDepth: number;
@@ -34,6 +36,10 @@ export class Element {
       lowerLeft: { x: halfWidth, y: halfHeight },
       lowerRight: { x: -halfWidth, y: halfHeight }
     };
+    this.elementId = Element.elementIds++;
+    window.dispatchEvent(
+      new CustomEvent('evt_add-element', { detail: { elementId: this.elementId } })
+    );
   }
 
   public get selected(): boolean {
@@ -100,9 +106,10 @@ export class Element {
         this.size.height
       );
       // Draw the zDepth text
-      context.fillStyle = 'white';
+      context.fillStyle = 'lightblue';
       context.textAlign = 'center';
       context.textBaseline = 'middle';
+      context.font = 'bold 4rem Arial';
       context.fillText(String(this.zDepth), 0, 0);
     }
     // Restore the context after the transformations

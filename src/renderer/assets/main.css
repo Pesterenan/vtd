@@ -115,6 +115,7 @@ body {
 }
 
 #ul_layers-list {
+  padding-left: 1rem;
   width: inherit;
 }
 

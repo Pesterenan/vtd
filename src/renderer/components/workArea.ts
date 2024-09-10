@@ -133,6 +133,11 @@ export class WorkArea {
         console.log('updating workarea');
         this.update();
       });
+      window.addEventListener('evt_delete-element', (event: CustomEvent) => {
+        const elementId = event.detail.elementId as number;
+        this.elements = this.elements.filter((el) => el.elementId !== elementId);
+        this.update();
+      });
     }
   }
 
@@ -201,7 +206,12 @@ export class WorkArea {
 
   private removeSelectedElements(): void {
     if (this.transformBox) {
-      this.elements = this.elements.filter((element) => !this.transformBox?.contains(element));
+      const idsToRemove = this.getSelectedElements()?.map((el) => el.elementId);
+      if (idsToRemove) {
+        idsToRemove.forEach((elementId) =>
+          window.dispatchEvent(new CustomEvent('evt_delete-element', { detail: { elementId } }))
+        );
+      }
       this.removeTransformBox();
       this.update();
     }
@@ -307,7 +317,9 @@ export class WorkArea {
     }
     this.clearCanvas(this.mainContext, this.mainCanvas);
     this.clearCanvas(this.workArea.context, this.workArea.canvas);
+    let zDepth = 0;
     for (const element of this.elements) {
+      element.zDepth = zDepth++;
       element.draw(this.workArea.context);
     }
     this.drawWorkArea();
