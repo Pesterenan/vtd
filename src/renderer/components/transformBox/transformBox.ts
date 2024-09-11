@@ -1,3 +1,4 @@
+import EVENT from '../../utils/customEvents';
 import { Element } from '../element';
 import { GrabTool } from '../tools/grabTool';
 import { ScaleTool } from '../tools/scaleTool';
@@ -65,7 +66,7 @@ export class TransformBox {
     this.position.x += delta.x;
     this.position.y += delta.y;
     GrabTool.moveSelectedElements(WorkArea.getInstance().getSelectedElements(), delta);
-    window.dispatchEvent(new CustomEvent('evt_update-workarea'));
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   private updateTransformBoxSize(): void {
@@ -90,7 +91,7 @@ export class TransformBox {
     //  x: event.offsetX,
     //  y: event.offsetY
     //};
-    window.dispatchEvent(new CustomEvent('evt_update-workarea'));
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   public contains(element: Element): boolean {
@@ -114,7 +115,7 @@ export class TransformBox {
     this.position = { x: minX, y: minY };
     this.size = { width: maxX - minX, height: maxY - minY };
     window.dispatchEvent(
-      new CustomEvent('evt_transform-box-recalculated', {
+      new CustomEvent(EVENT.RECALCULATE_TRANSFORM_BOX, {
         detail: { position: this.getCenter(), size: this.size }
       })
     );

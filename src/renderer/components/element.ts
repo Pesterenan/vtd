@@ -1,4 +1,5 @@
 import { BB } from '../utils/bb';
+import EVENT from '../utils/customEvents';
 import { BoundingBox, Position, Scale, Size } from './types';
 
 export class Element {
@@ -38,7 +39,7 @@ export class Element {
     };
     this.elementId = Element.elementIds++;
     window.dispatchEvent(
-      new CustomEvent('evt_add-element', { detail: { elementId: this.elementId } })
+      new CustomEvent(EVENT.ADD_ELEMENT, { detail: { elementId: this.elementId } })
     );
   }
 
@@ -130,7 +131,7 @@ export class Element {
         lowerLeft: { x: halfWidth, y: halfHeight },
         lowerRight: { x: -halfWidth, y: halfHeight }
       };
-      window.dispatchEvent(new CustomEvent('evt_update-workarea'));
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     };
   }
 

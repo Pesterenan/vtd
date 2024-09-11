@@ -1,15 +1,22 @@
+import EVENT from '../utils/customEvents';
 import ErrorElement from './errorElement';
 
 export class LayersMenu {
   private static instance: LayersMenu | null = null;
   private layersSection: HTMLElement | null = null;
-  private layerCount: number = 0;
   private draggedlayerLI: HTMLLIElement | null = null;
 
   private constructor() {
     this.createDOMElements();
-    window.addEventListener('evt_add-element', this.createLayer.bind(this));
-    window.addEventListener('evt_delete-element', this.deleteLayer.bind(this));
+    window.addEventListener(EVENT.ADD_ELEMENT, this.createLayer.bind(this));
+    window.addEventListener(EVENT.DELETE_ELEMENT, this.deleteLayer.bind(this));
+    window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
+      console.log('clearing layer list');
+      const layerList = document.getElementById('ul_layers-list');
+      if (layerList) {
+        layerList.innerHTML = '';
+      }
+    });
   }
 
   private createLayer(event: CustomEvent): void {
@@ -33,10 +40,11 @@ export class LayersMenu {
     const deleteBtn = document.createElement('button');
     deleteBtn.innerText = 'X';
     deleteBtn.onclick = (): void => {
-      window.dispatchEvent(new CustomEvent('evt_delete-element', { detail: { elementId } }));
+      window.dispatchEvent(new CustomEvent(EVENT.DELETE_ELEMENT, { detail: { elementId } }));
     };
 
     layerLI.id = `layer-${elementId}`;
+    layerLI.dataset.id = String(elementId);
     layerLI.className = 'li_layer-item';
     layerLI.draggable = true;
 
@@ -52,6 +60,14 @@ export class LayersMenu {
       if (this.draggedlayerLI) {
         layerLI.before(this.draggedlayerLI);
         this.draggedlayerLI = null;
+
+        const layerList = document.getElementById('ul_layers-list');
+        const childNodes = layerList?.querySelectorAll('li');
+        const order: number[] = [];
+        childNodes?.forEach((child, index) => {
+          order.push(parseInt(child.dataset.id || String(index), 10));
+        });
+        window.dispatchEvent(new CustomEvent(EVENT.REORGANIZE_LAYERS, { detail: { order } }));
       }
     });
     return layerLI;

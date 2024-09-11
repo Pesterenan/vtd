@@ -1,3 +1,4 @@
+import EVENT from '../../utils/customEvents';
 import { Element } from '../element';
 import { MOUSE_BUTTONS, MouseStatus, Position, Scale, TOOL } from '../types';
 import { WorkArea } from '../workArea';
@@ -30,7 +31,7 @@ export class ScaleTool extends Tool {
         }));
       }
       this.workArea.transformBox.centerHandle = this.toolIcon;
-      window.dispatchEvent(new CustomEvent('evt_update-workarea'));
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
 
@@ -56,7 +57,7 @@ export class ScaleTool extends Tool {
     this.lastPosition = null;
     this.workArea.mouse.status = MouseStatus.UP;
     this.workArea.currentTool = TOOL.SELECT;
-    window.dispatchEvent(new CustomEvent('evt_update-workarea'));
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   handleMouseMove(event: MouseEvent): void {
@@ -71,7 +72,7 @@ export class ScaleTool extends Tool {
           y: event.offsetY
         };
       }
-      window.dispatchEvent(new CustomEvent('evt_update-workarea'));
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
 

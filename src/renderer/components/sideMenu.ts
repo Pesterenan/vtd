@@ -1,3 +1,4 @@
+import EVENT from '../utils/customEvents';
 import { LayersMenu } from './layersMenu';
 import { WorkArea } from './workArea';
 
@@ -17,16 +18,13 @@ export class SideMenu {
     this.yPosInput = document.getElementById('y-pos-input') as HTMLInputElement;
     this.widthSizeInput = document.getElementById('width-size-input') as HTMLInputElement;
     this.heightSizeInput = document.getElementById('height-size-input') as HTMLInputElement;
-    window.addEventListener('evt_transform-box-recalculated', (evt: CustomEvent) => {
+    window.addEventListener(EVENT.RECALCULATE_TRANSFORM_BOX, (evt: CustomEvent) => {
       if (this.xPosInput && this.yPosInput && this.widthSizeInput && this.heightSizeInput) {
         this.xPosInput.value = evt.detail.position.x.toFixed(0).toString();
         this.yPosInput.value = evt.detail.position.y.toFixed(0).toString();
         this.widthSizeInput.value = evt.detail.size.width.toFixed(0).toString();
         this.heightSizeInput.value = evt.detail.size.height.toFixed(0).toString();
       }
-    });
-    window.addEventListener('evt_layers-reorganized', (evt: CustomEvent) => {
-      console.log('event received:', evt);
     });
   }
 

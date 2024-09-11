@@ -8,6 +8,7 @@ import { ZoomTool } from './tools/zoomTool';
 import { GrabTool } from './tools/grabTool';
 import { RotateTool } from './tools/rotateTool';
 import { ScaleTool } from './tools/scaleTool';
+import EVENT from '../utils/customEvents';
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -129,13 +130,26 @@ export class WorkArea {
       window.addEventListener('keydown', this.handleKeyDown.bind(this));
       window.addEventListener('keyup', this.handleKeyUp.bind(this));
       window.addEventListener('resize', this.handleResize.bind(this));
-      window.addEventListener('evt_update-workarea', () => {
+      window.addEventListener(EVENT.UPDATE_WORKAREA, () => {
         console.log('updating workarea');
         this.update();
       });
-      window.addEventListener('evt_delete-element', (event: CustomEvent) => {
+      window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
+        console.log('clearing workarea');
+        this.elements.length = 0;
+      });
+      window.addEventListener(EVENT.DELETE_ELEMENT, (event: CustomEvent) => {
         const elementId = event.detail.elementId as number;
         this.elements = this.elements.filter((el) => el.elementId !== elementId);
+        this.update();
+      });
+      window.addEventListener(EVENT.REORGANIZE_LAYERS, (evt: CustomEvent) => {
+        const newOrder: number[] = evt.detail.order;
+        newOrder.forEach((id, index) => {
+          const element = this.elements.find((el) => el.elementId === id);
+          if (element) element.zDepth = index;
+        });
+        this.elements.sort((a, b) => a.zDepth - b.zDepth);
         this.update();
       });
     }
@@ -209,7 +223,7 @@ export class WorkArea {
       const idsToRemove = this.getSelectedElements()?.map((el) => el.elementId);
       if (idsToRemove) {
         idsToRemove.forEach((elementId) =>
-          window.dispatchEvent(new CustomEvent('evt_delete-element', { detail: { elementId } }))
+          window.dispatchEvent(new CustomEvent(EVENT.DELETE_ELEMENT, { detail: { elementId } }))
         );
       }
       this.removeTransformBox();
@@ -246,6 +260,7 @@ export class WorkArea {
   }
 
   public loadProject(data: string): void {
+    window.dispatchEvent(new CustomEvent(EVENT.CLEAR_WORKAREA));
     const projectData: IProjectData = JSON.parse(data);
     this.elements = projectData.elements.map((elData) => {
       return Element.deserialize(elData);
@@ -317,9 +332,9 @@ export class WorkArea {
     }
     this.clearCanvas(this.mainContext, this.mainCanvas);
     this.clearCanvas(this.workArea.context, this.workArea.canvas);
-    let zDepth = 0;
+    //let zDepth = 0;
     for (const element of this.elements) {
-      element.zDepth = zDepth++;
+      //element.zDepth = zDepth++;
       element.draw(this.workArea.context);
     }
     this.drawWorkArea();
