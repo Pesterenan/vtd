@@ -20,6 +20,8 @@ export class Element {
   private _selected: boolean = false;
   public image: HTMLImageElement | null = null;
   private isImageLoaded: boolean = false;
+  public isVisible: boolean = true;
+  public layerName: string = '';
 
   public constructor(position: Position, size: Size, z: number) {
     this.position = position;
@@ -38,9 +40,6 @@ export class Element {
       lowerRight: { x: -halfWidth, y: halfHeight }
     };
     this.elementId = Element.elementIds++;
-    window.dispatchEvent(
-      new CustomEvent(EVENT.ADD_ELEMENT, { detail: { elementId: this.elementId } })
-    );
   }
 
   public get selected(): boolean {
@@ -51,10 +50,21 @@ export class Element {
     this._selected = value;
   }
 
-  public static deserialize({ position, rotation, scale, size, zDepth, image }): Element {
+  public static deserialize({
+    position,
+    rotation,
+    scale,
+    size,
+    zDepth,
+    image,
+    isVisible,
+    layerName
+  }): Element {
     const element = new Element(position, size, zDepth);
     element.rotation = rotation;
     element.scale = scale;
+    element.isVisible = isVisible;
+    element.layerName = layerName;
     if (image) {
       element.loadImage(image);
     }
@@ -68,6 +78,8 @@ export class Element {
     size: Size;
     zDepth: number;
     image: string;
+    isVisible: boolean;
+    layerName: string;
   } {
     return {
       position: this.position,
@@ -75,11 +87,14 @@ export class Element {
       scale: this.scale,
       size: this.size,
       zDepth: this.zDepth,
-      image: this.image ? this.image.src : ''
+      image: this.image ? this.image.src : '',
+      isVisible: this.isVisible,
+      layerName: this.layerName
     };
   }
 
   public draw(context: CanvasRenderingContext2D): void {
+    if (!this.isVisible) return;
     // Save context before transformations
     context.save();
     // Move the origin to the center of the element

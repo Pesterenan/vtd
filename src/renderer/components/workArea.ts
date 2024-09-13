@@ -152,6 +152,30 @@ export class WorkArea {
         this.elements.sort((a, b) => a.zDepth - b.zDepth);
         this.update();
       });
+      window.addEventListener(EVENT.TOGGLE_ELEMENT_VISIBILITY, (evt: CustomEvent) => {
+        const { elementId, isVisible } = evt.detail;
+        const elementToToggleVisibility = this.elements.find((el) => el.elementId === elementId);
+        if (elementToToggleVisibility) {
+          elementToToggleVisibility.isVisible = isVisible;
+        }
+        this.update();
+      });
+      window.addEventListener(EVENT.SELECT_ELEMENT, (evt: CustomEvent) => {
+        const { elementId } = evt.detail;
+        const elementToSelect = this.elements.find((el) => el.elementId === elementId);
+        if (elementToSelect) {
+          elementToSelect.selected = !elementToSelect.selected;
+        }
+        this.createTransformBox();
+        this.update();
+      });
+      window.addEventListener(EVENT.CHANGE_LAYER_NAME, (evt: CustomEvent) => {
+        const { elementId, name } = evt.detail;
+        const elementToRename = this.elements.find((el) => el.elementId === elementId);
+        if (elementToRename) {
+          elementToRename.layerName = name;
+        }
+      });
     }
   }
 
@@ -263,7 +287,13 @@ export class WorkArea {
     window.dispatchEvent(new CustomEvent(EVENT.CLEAR_WORKAREA));
     const projectData: IProjectData = JSON.parse(data);
     this.elements = projectData.elements.map((elData) => {
-      return Element.deserialize(elData);
+      const newElement = Element.deserialize(elData);
+      window.dispatchEvent(
+        new CustomEvent(EVENT.ADD_ELEMENT, {
+          detail: { elementId: newElement.elementId, layerName: newElement.layerName }
+        })
+      );
+      return newElement;
     });
     this.update();
   }
@@ -332,9 +362,7 @@ export class WorkArea {
     }
     this.clearCanvas(this.mainContext, this.mainCanvas);
     this.clearCanvas(this.workArea.context, this.workArea.canvas);
-    //let zDepth = 0;
     for (const element of this.elements) {
-      //element.zDepth = zDepth++;
       element.draw(this.workArea.context);
     }
     this.drawWorkArea();
@@ -375,6 +403,11 @@ export class WorkArea {
     const y = Math.floor(Math.random() * this.workArea.canvas.height) - height;
     const newElement = new Element({ x, y }, { width, height }, this.elements.length);
     this.elements.push(newElement);
+    window.dispatchEvent(
+      new CustomEvent(EVENT.ADD_ELEMENT, {
+        detail: { elementId: newElement.elementId, layerName: newElement.layerName }
+      })
+    );
     this.update();
   }
 
@@ -384,5 +417,10 @@ export class WorkArea {
     const newElement = new Element({ x, y }, { width: 0, height: 0 }, this.elements.length);
     newElement.loadImage(filePath);
     this.elements.push(newElement);
+    window.dispatchEvent(
+      new CustomEvent(EVENT.ADD_ELEMENT, {
+        detail: { elementId: newElement.elementId, layerName: newElement.layerName }
+      })
+    );
   }
 }

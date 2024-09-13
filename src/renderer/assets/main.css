@@ -120,6 +120,16 @@ body {
 }
 
 .li_layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   background-color: var(--error_light);
   width: 100%;
+}
+
+.btn_delete-layer {
+  height: 1rem;
+  width: 1rem;
+  padding: 0px;
+  font-size: var(--font-small);
 }

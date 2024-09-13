@@ -6,6 +6,8 @@ export interface IProjectData {
     scale: Scale;
     size: Size;
     zDepth: number;
+    isVisible: boolean;
+    layerName: string;
   }[];
 }
 

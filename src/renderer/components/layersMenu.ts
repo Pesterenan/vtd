@@ -20,10 +20,10 @@ export class LayersMenu {
   }
 
   private createLayer(event: CustomEvent): void {
-    const elementId = event.detail.elementId as number;
+    const { elementId, layerName } = event.detail;
     console.log('creating layer', elementId);
     const layerList = document.getElementById('ul_layers-list');
-    layerList?.append(this.LayerListItem(elementId));
+    layerList?.append(this.LayerListItem(elementId, layerName));
   }
 
   private deleteLayer(event: CustomEvent): void {
@@ -34,22 +34,67 @@ export class LayersMenu {
     layerList?.removeChild(layerToDelete as Node);
   }
 
-  private LayerListItem(elementId: number): HTMLLIElement {
-    console.log(elementId);
-    const layerLI = document.createElement('li');
-    const deleteBtn = document.createElement('button');
+  private LayerListItem(elementId: number, layerName?: string): HTMLLIElement {
+    const layerLI = document.createElement('li') as HTMLLIElement;
+    const visibilityInput = document.createElement('input') as HTMLInputElement;
+    const layerNameSpan = document.createElement('strong') as HTMLSpanElement;
+    const layerNameInput = document.createElement('input') as HTMLInputElement;
+    const deleteBtn = document.createElement('button') as HTMLButtonElement;
+
+    layerNameSpan.innerText = layerName ? layerName : `Layer ${elementId}`;
+    layerNameInput.value = `Layer ${elementId}`;
+    layerNameInput.type = 'text';
+    layerNameInput.setAttribute('style', 'display: none;');
+
+    visibilityInput.type = 'checkbox';
+    visibilityInput.checked = true;
+    visibilityInput.onclick = (): void => {
+      window.dispatchEvent(
+        new CustomEvent(EVENT.TOGGLE_ELEMENT_VISIBILITY, {
+          detail: { elementId, isVisible: visibilityInput.checked }
+        })
+      );
+    };
+
     deleteBtn.innerText = 'X';
     deleteBtn.onclick = (): void => {
       window.dispatchEvent(new CustomEvent(EVENT.DELETE_ELEMENT, { detail: { elementId } }));
     };
+    deleteBtn.className = 'btn_delete-layer';
 
     layerLI.id = `layer-${elementId}`;
     layerLI.dataset.id = String(elementId);
     layerLI.className = 'li_layer-item';
     layerLI.draggable = true;
+    layerLI.append(visibilityInput, layerNameSpan, layerNameInput, deleteBtn);
 
-    layerLI.innerHTML = `<strong>Layer ${elementId}</strong>`;
-    layerLI.append(deleteBtn);
+    layerNameSpan.addEventListener('dblclick', () => {
+      layerNameSpan.setAttribute('style', 'display: none;');
+      layerNameInput.setAttribute('style', 'display: block;');
+    });
+
+    layerNameInput.addEventListener('keydown', (evt) => {
+      if (evt.key === 'Enter' || evt.key === 'Escape') {
+        if (evt.key === 'Enter') {
+          layerNameSpan.innerText = layerNameInput.value;
+        }
+        if (evt.key === 'Escape') {
+          layerNameInput.value = layerNameSpan.innerText;
+        }
+        layerNameSpan.setAttribute('style', 'display: block;');
+        layerNameInput.setAttribute('style', 'display: none;');
+        window.dispatchEvent(
+          new CustomEvent(EVENT.CHANGE_LAYER_NAME, {
+            detail: { elementId, name: layerNameSpan.innerText }
+          })
+        );
+      }
+    });
+
+    layerLI.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent(EVENT.SELECT_ELEMENT, { detail: { elementId } }));
+    });
+
     layerLI.addEventListener('dragstart', () => {
       this.draggedlayerLI = layerLI;
     });
