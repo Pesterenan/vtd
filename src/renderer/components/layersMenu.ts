@@ -44,6 +44,7 @@ export class LayersMenu {
     layerNameSpan.innerText = layerName ? layerName : `Layer ${elementId}`;
     layerNameInput.value = `Layer ${elementId}`;
     layerNameInput.type = 'text';
+    layerNameInput.className = 'li_layer-name-input';
     layerNameInput.setAttribute('style', 'display: none;');
 
     visibilityInput.type = 'checkbox';
@@ -73,6 +74,14 @@ export class LayersMenu {
       layerNameInput.setAttribute('style', 'display: block;');
     });
 
+    layerNameSpan.addEventListener('click', (evt) => {
+      evt.stopPropagation();
+    });
+
+    layerNameInput.addEventListener('click', (evt) => {
+      evt.stopPropagation();
+    });
+
     layerNameInput.addEventListener('keydown', (evt) => {
       if (evt.key === 'Enter' || evt.key === 'Escape') {
         if (evt.key === 'Enter') {
@@ -92,6 +101,7 @@ export class LayersMenu {
     });
 
     layerLI.addEventListener('click', () => {
+      layerLI.classList.toggle('selected');
       window.dispatchEvent(new CustomEvent(EVENT.SELECT_ELEMENT, { detail: { elementId } }));
     });
 
