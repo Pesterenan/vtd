@@ -1,3 +1,4 @@
+import EVENT from '../../utils/customEvents';
 import { Element } from '../element';
 import { MOUSE_BUTTONS, MouseStatus, Position, TOOL } from '../types';
 import { WorkArea } from '../workArea';
@@ -30,7 +31,7 @@ export class RotateTool extends Tool {
         }));
       }
       this.workArea.transformBox.centerHandle = this.toolIcon;
-      this.workArea.update();
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
 
@@ -56,7 +57,7 @@ export class RotateTool extends Tool {
     this.lastRotation = 0;
     this.workArea.mouse.status = MouseStatus.UP;
     this.workArea.currentTool = TOOL.SELECT;
-    this.workArea.update();
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   handleMouseMove(event: MouseEvent): void {
@@ -75,7 +76,7 @@ export class RotateTool extends Tool {
         );
         this.lastRotation = angle;
       }
-      this.workArea.update();
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
 

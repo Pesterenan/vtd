@@ -152,9 +152,7 @@ export class SideMenu {
     domElements.push(this.createHR());
 
     // APPEND ELEMENTS TO SIDE MENU:
-    for (const el of domElements) {
-      this.sideMenu.appendChild(el);
-    }
+    this.sideMenu.append(...domElements);
 
     if (mainWindow) {
       mainWindow.appendChild(this.sideMenu);

@@ -1,3 +1,4 @@
+import EVENT from '../../utils/customEvents';
 import { remap } from '../../utils/easing';
 import { Position } from '../types';
 import { WorkArea } from '../workArea';
@@ -32,7 +33,7 @@ export class ZoomTool extends Tool {
         true
       );
       this.workArea.zoomLevel = newZoomLevel;
-      this.workArea.update();
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
 

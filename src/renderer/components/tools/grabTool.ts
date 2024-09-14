@@ -1,3 +1,4 @@
+import EVENT from '../../utils/customEvents';
 import { Element } from '../element';
 import { MOUSE_BUTTONS, MouseStatus, Position, TOOL } from '../types';
 import { WorkArea } from '../workArea';
@@ -21,7 +22,7 @@ export class GrabTool extends Tool {
       this.lastPosition = this.startingPosition;
       this.selectedElements = this.workArea.getSelectedElements();
       this.workArea.transformBox.centerHandle = this.toolIcon;
-      this.workArea.update();
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
 
@@ -48,7 +49,7 @@ export class GrabTool extends Tool {
     this.lastPosition = null;
     this.workArea.mouse.status = MouseStatus.UP;
     this.workArea.currentTool = TOOL.SELECT;
-    this.workArea.update();
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   handleMouseMove(event: MouseEvent): void {
@@ -62,7 +63,7 @@ export class GrabTool extends Tool {
         GrabTool.moveSelectedElements(this.selectedElements, adjustedDelta);
         this.lastPosition = { x: event.offsetX, y: event.offsetY };
       }
-      this.workArea.update();
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
 

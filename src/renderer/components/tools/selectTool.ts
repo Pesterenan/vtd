@@ -1,3 +1,4 @@
+import EVENT from '../../utils/customEvents';
 import { BoundingBox, MouseStatus } from '../types';
 import { WorkArea } from '../workArea';
 import { Tool } from './abstractTool';
@@ -48,7 +49,7 @@ export class SelectTool extends Tool {
 
       // Draw selection box:
       if (this.workArea.mouse.status === MouseStatus.MOVE) {
-        this.workArea.update();
+        window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
         if (this.workArea.mainContext) {
           this.workArea.mainContext.save();
           this.workArea.mainContext.strokeStyle = 'black';
@@ -64,11 +65,10 @@ export class SelectTool extends Tool {
     if (this.selection) {
       const adjustedSelection = this.adjustSelectionForOffset(this.selection);
       this.workArea.selectElements(adjustedSelection);
-      this.workArea.createTransformBox();
       this.workArea.mouse = { status: MouseStatus.UP };
       this.selection = null;
     }
-    this.workArea.update();
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function

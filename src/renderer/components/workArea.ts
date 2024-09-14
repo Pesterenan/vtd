@@ -160,15 +160,21 @@ export class WorkArea {
         }
         this.update();
       });
-      window.addEventListener(EVENT.SELECT_ELEMENT, (evt: CustomEvent) => {
-        const { elementId } = evt.detail;
-        const elementToSelect = this.elements.find((el) => el.elementId === elementId);
-        if (elementToSelect) {
-          elementToSelect.selected = !elementToSelect.selected;
+      window.addEventListener(
+        EVENT.SELECT_ELEMENT,
+        (evt: CustomEvent<{ elementsId: Set<number> }>) => {
+          const { elementsId } = evt.detail;
+          this.elements.forEach((el) => {
+            if (elementsId.has(el.elementId)) {
+              el.selected = true;
+            } else {
+              el.selected = false;
+            }
+          });
+          this.createTransformBox();
+          this.update();
         }
-        this.createTransformBox();
-        this.update();
-      });
+      );
       window.addEventListener(EVENT.CHANGE_LAYER_NAME, (evt: CustomEvent) => {
         const { elementId, name } = evt.detail;
         const elementToRename = this.elements.find((el) => el.elementId === elementId);
@@ -324,19 +330,21 @@ export class WorkArea {
   }
 
   public selectElements(selection: BoundingBox): void {
-    // Deselect all
-    this.elements.forEach((el) => (el.selected = false));
-    // If was using a selecting box
+    let selectedElements: Element[] = [];
     if (this.mouse.status === MouseStatus.MOVE) {
-      this.elements.forEach((el) => (el.selected = el.isWithinBounds(selection)));
+      selectedElements = this.elements.filter((el) => el.isWithinBounds(selection));
     }
-    // If was just clicking on an element get the first one
     if (this.mouse.status === MouseStatus.DOWN) {
       const firstElement = this.elements.findLast((el) => el.isBelowSelection(selection));
       if (firstElement) {
-        firstElement.selected = true;
+        selectedElements = [firstElement];
       }
     }
+    window.dispatchEvent(
+      new CustomEvent(EVENT.SELECT_ELEMENT, {
+        detail: { elementsId: new Set(selectedElements.map((el) => el.elementId)) }
+      })
+    );
   }
 
   public createTransformBox(): void {

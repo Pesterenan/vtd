@@ -5,6 +5,7 @@ export class LayersMenu {
   private static instance: LayersMenu | null = null;
   private layersSection: HTMLElement | null = null;
   private draggedlayerLI: HTMLLIElement | null = null;
+  private selectedLayersId: Set<number> = new Set();
 
   private constructor() {
     this.createDOMElements();
@@ -17,6 +18,22 @@ export class LayersMenu {
         layerList.innerHTML = '';
       }
     });
+    window.addEventListener(
+      EVENT.SELECT_ELEMENT,
+      (evt: CustomEvent<{ elementsId: Set<number> }>) => {
+        const { elementsId } = evt.detail;
+        this.selectedLayersId = elementsId;
+        const layerList = document.getElementById('ul_layers-list');
+        const childNodes = layerList?.querySelectorAll('li');
+        childNodes?.forEach((node) => {
+          if (this.selectedLayersId.has(Number(node.dataset.id))) {
+            node.classList.add('selected');
+          } else {
+            node.classList.remove('selected');
+          }
+        });
+      }
+    );
   }
 
   private createLayer(event: CustomEvent): void {
@@ -100,9 +117,22 @@ export class LayersMenu {
       }
     });
 
-    layerLI.addEventListener('click', () => {
-      layerLI.classList.toggle('selected');
-      window.dispatchEvent(new CustomEvent(EVENT.SELECT_ELEMENT, { detail: { elementId } }));
+    layerLI.addEventListener('click', (evt: MouseEvent): void => {
+      if (evt.ctrlKey) {
+        if (this.selectedLayersId.has(elementId)) {
+          this.selectedLayersId.delete(elementId);
+        } else {
+          this.selectedLayersId.add(elementId);
+        }
+      } else {
+        this.selectedLayersId.clear();
+        this.selectedLayersId.add(elementId);
+      }
+      window.dispatchEvent(
+        new CustomEvent(EVENT.SELECT_ELEMENT, {
+          detail: { elementsId: this.selectedLayersId }
+        })
+      );
     });
 
     layerLI.addEventListener('dragstart', () => {
