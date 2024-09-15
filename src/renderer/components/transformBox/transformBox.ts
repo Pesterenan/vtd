@@ -1,7 +1,6 @@
 import EVENT from '../../utils/customEvents';
 import { Element } from '../element';
 import { GrabTool } from '../tools/grabTool';
-import { ScaleTool } from '../tools/scaleTool';
 import { Position, Size } from '../types';
 import { WorkArea } from '../workArea';
 

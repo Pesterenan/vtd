@@ -18,33 +18,33 @@ export class LayersMenu {
         layerList.innerHTML = '';
       }
     });
-    window.addEventListener(
-      EVENT.SELECT_ELEMENT,
-      (evt: CustomEvent<{ elementsId: Set<number> }>) => {
-        const { elementsId } = evt.detail;
-        this.selectedLayersId = elementsId;
-        const layerList = document.getElementById('ul_layers-list');
-        const childNodes = layerList?.querySelectorAll('li');
-        childNodes?.forEach((node) => {
-          if (this.selectedLayersId.has(Number(node.dataset.id))) {
-            node.classList.add('selected');
-          } else {
-            node.classList.remove('selected');
-          }
-        });
-      }
-    );
+    window.addEventListener(EVENT.SELECT_ELEMENT, (evt: Event) => {
+      const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
+      const { elementsId } = customEvent.detail;
+      this.selectedLayersId = elementsId;
+      const layerList = document.getElementById('ul_layers-list');
+      const childNodes = layerList?.querySelectorAll('li');
+      childNodes?.forEach((node) => {
+        if (this.selectedLayersId.has(Number(node.dataset.id))) {
+          node.classList.add('selected');
+        } else {
+          node.classList.remove('selected');
+        }
+      });
+    });
   }
 
-  private createLayer(event: CustomEvent): void {
-    const { elementId, layerName } = event.detail;
+  private createLayer(evt: Event): void {
+    const customEvent = evt as CustomEvent;
+    const { elementId, layerName } = customEvent.detail;
     console.log('creating layer', elementId);
     const layerList = document.getElementById('ul_layers-list');
     layerList?.append(this.LayerListItem(elementId, layerName));
   }
 
-  private deleteLayer(event: CustomEvent): void {
-    const elementId = event.detail.elementId;
+  private deleteLayer(evt: Event): void {
+    const customEvent = evt as CustomEvent;
+    const elementId = customEvent.detail.elementId;
     console.log('deleting:', elementId);
     const layerList = document.getElementById('ul_layers-list');
     const layerToDelete = document.getElementById(`layer-${elementId}`);

@@ -138,13 +138,15 @@ export class WorkArea {
         console.log('clearing workarea');
         this.elements.length = 0;
       });
-      window.addEventListener(EVENT.DELETE_ELEMENT, (event: CustomEvent) => {
-        const elementId = event.detail.elementId as number;
+      window.addEventListener(EVENT.DELETE_ELEMENT, (evt: Event): void => {
+        const customEvent = evt as CustomEvent<{ elementId: number }>;
+        const elementId = customEvent.detail.elementId;
         this.elements = this.elements.filter((el) => el.elementId !== elementId);
         this.update();
       });
-      window.addEventListener(EVENT.REORGANIZE_LAYERS, (evt: CustomEvent) => {
-        const newOrder: number[] = evt.detail.order;
+      window.addEventListener(EVENT.REORGANIZE_LAYERS, (evt: Event) => {
+        const customEvent = evt as CustomEvent<{ order: number[] }>;
+        const newOrder = customEvent.detail.order;
         newOrder.forEach((id, index) => {
           const element = this.elements.find((el) => el.elementId === id);
           if (element) element.zDepth = index;
@@ -152,31 +154,31 @@ export class WorkArea {
         this.elements.sort((a, b) => a.zDepth - b.zDepth);
         this.update();
       });
-      window.addEventListener(EVENT.TOGGLE_ELEMENT_VISIBILITY, (evt: CustomEvent) => {
-        const { elementId, isVisible } = evt.detail;
+      window.addEventListener(EVENT.TOGGLE_ELEMENT_VISIBILITY, (evt: Event) => {
+        const customEvent = evt as CustomEvent<{ elementId: number; isVisible: boolean }>;
+        const { elementId, isVisible } = customEvent.detail;
         const elementToToggleVisibility = this.elements.find((el) => el.elementId === elementId);
         if (elementToToggleVisibility) {
           elementToToggleVisibility.isVisible = isVisible;
         }
         this.update();
       });
-      window.addEventListener(
-        EVENT.SELECT_ELEMENT,
-        (evt: CustomEvent<{ elementsId: Set<number> }>) => {
-          const { elementsId } = evt.detail;
-          this.elements.forEach((el) => {
-            if (elementsId.has(el.elementId)) {
-              el.selected = true;
-            } else {
-              el.selected = false;
-            }
-          });
-          this.createTransformBox();
-          this.update();
-        }
-      );
-      window.addEventListener(EVENT.CHANGE_LAYER_NAME, (evt: CustomEvent) => {
-        const { elementId, name } = evt.detail;
+      window.addEventListener(EVENT.SELECT_ELEMENT, (evt: Event) => {
+        const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
+        const { elementsId } = customEvent.detail;
+        this.elements.forEach((el) => {
+          if (elementsId.has(el.elementId)) {
+            el.selected = true;
+          } else {
+            el.selected = false;
+          }
+        });
+        this.createTransformBox();
+        this.update();
+      });
+      window.addEventListener(EVENT.CHANGE_LAYER_NAME, (evt: Event) => {
+        const customEvent = evt as CustomEvent<{ elementId: number; name: string }>;
+        const { elementId, name } = customEvent.detail;
         const elementToRename = this.elements.find((el) => el.elementId === elementId);
         if (elementToRename) {
           elementToRename.layerName = name;
@@ -311,18 +313,14 @@ export class WorkArea {
     return JSON.stringify(projectData);
   }
 
-  private saveCanvas(canvas: HTMLCanvasElement): HTMLImageElement {
-    const canvasContext = canvas.getContext('2d');
-    const imageData = canvasContext!.getImageData(0, 0, canvas.width, canvas.height);
-
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
-    const tempContext = tempCanvas.getContext('2d');
-    tempContext?.putImageData(imageData, 0, 0);
-    const image = new Image();
-    image.src = tempCanvas.toDataURL();
-    return image;
+  public exportCanvas(): string {
+    console.log('exporting canvas');
+    if (!this.workArea.canvas) {
+      console.error('Canvas not found');
+      return '';
+    }
+    console.log(this.workArea.canvas.toDataURL('image/png'));
+    return this.workArea.canvas.toDataURL('image/png');
   }
 
   public getSelectedElements(): Element[] | null {

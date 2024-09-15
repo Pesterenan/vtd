@@ -22,7 +22,7 @@ export class ZoomTool extends Tool {
   handleMouseUp(): void {}
 
   handleMouseMove({ offsetX }: MouseEvent): void {
-    if (this.previousMousePosition) {
+    if (this.previousMousePosition && this.workArea.mainCanvas) {
       const deltaX = offsetX - this.previousMousePosition.x;
       const newZoomLevel = remap(
         0,
@@ -38,7 +38,7 @@ export class ZoomTool extends Tool {
   }
 
   handleKeyDown(): void {
-    if (!this.previousMousePosition) {
+    if (!this.previousMousePosition && this.workArea.mainCanvas) {
       const currentZoomPosition = remap(
         MIN_ZOOM_LEVEL,
         MAX_ZOOM_LEVEL,

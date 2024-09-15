@@ -18,12 +18,14 @@ export class SideMenu {
     this.yPosInput = document.getElementById('y-pos-input') as HTMLInputElement;
     this.widthSizeInput = document.getElementById('width-size-input') as HTMLInputElement;
     this.heightSizeInput = document.getElementById('height-size-input') as HTMLInputElement;
-    window.addEventListener(EVENT.RECALCULATE_TRANSFORM_BOX, (evt: CustomEvent) => {
+    window.addEventListener(EVENT.RECALCULATE_TRANSFORM_BOX, (evt: Event) => {
+      const customEvent = evt as CustomEvent;
+      const { position, size } = customEvent.detail;
       if (this.xPosInput && this.yPosInput && this.widthSizeInput && this.heightSizeInput) {
-        this.xPosInput.value = evt.detail.position.x.toFixed(0).toString();
-        this.yPosInput.value = evt.detail.position.y.toFixed(0).toString();
-        this.widthSizeInput.value = evt.detail.size.width.toFixed(0).toString();
-        this.heightSizeInput.value = evt.detail.size.height.toFixed(0).toString();
+        this.xPosInput.value = position.x.toFixed(0).toString();
+        this.yPosInput.value = position.y.toFixed(0).toString();
+        this.widthSizeInput.value = size.width.toFixed(0).toString();
+        this.heightSizeInput.value = size.height.toFixed(0).toString();
       }
     });
   }
@@ -45,8 +47,19 @@ export class SideMenu {
     importImageBtn.id = 'btn_import-image';
     importImageBtn.innerText = 'Importar Imagem';
     importImageBtn.className = 'btn-common';
+    // @ts-ignore api defined in main.ts
     importImageBtn.addEventListener('click', () => window.api.loadImage());
     domElements.push(importImageBtn);
+
+    const exportImageBtn = document.createElement('button');
+    exportImageBtn.id = 'btn_export-image';
+    exportImageBtn.innerText = 'Exportar Imagem';
+    exportImageBtn.className = 'btn-common';
+    exportImageBtn.addEventListener('click', () =>
+      // @ts-ignore api defined in main.ts
+      window.api.exportCanvas(WorkArea.getInstance().exportCanvas())
+    );
+    domElements.push(exportImageBtn);
 
     const addElementBtn = document.createElement('button');
     addElementBtn.id = 'btn_add-element';
@@ -87,6 +100,7 @@ export class SideMenu {
     openVideoBtn.innerText = 'Open Video';
     openVideoBtn.className = 'btn-common';
     openVideoBtn.onclick = (): void => {
+      // @ts-ignore api defined in main.ts
       window.api.loadVideo();
     };
     domElements.push(openVideoBtn);
@@ -103,8 +117,8 @@ export class SideMenu {
     zoomSlider.max = '2';
     zoomSlider.step = '0.05';
     zoomSlider.value = '0.3';
-    zoomSlider.addEventListener('input', (event) => {
-      const zoomLevel = parseFloat(event.target.value);
+    zoomSlider.addEventListener('input', (evt: Event) => {
+      const zoomLevel = parseFloat((evt.target as HTMLInputElement).value);
       const workArea = WorkArea.getInstance();
       workArea.zoomLevel = zoomLevel;
     });

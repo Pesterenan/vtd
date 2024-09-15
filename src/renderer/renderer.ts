@@ -4,14 +4,15 @@ import { WorkArea } from './components/workArea';
 const initializeVTD = (): void => {
   window.addEventListener('DOMContentLoaded', () => {
     const workArea = WorkArea.getInstance();
-    const sideMenu = SideMenu.getInstance();
+    SideMenu.getInstance();
     workArea.addElement();
     createEventListeners(workArea);
   });
 };
 
 const createEventListeners = (workArea: WorkArea): void => {
-  window.api.onProcessVideoFrameResponse((event, response) => {
+  // @ts-ignore defined in main.ts
+  window.api.onProcessVideoFrameResponse((_, response) => {
     console.log(response, 'response');
     if (response.success) {
       const uint8Array = new Uint8Array(response.data);
@@ -27,14 +28,17 @@ const createEventListeners = (workArea: WorkArea): void => {
       console.error(response.message);
     }
   });
-  window.api.onLoadVideoResponse((event, response) => {
+  // @ts-ignore defined in main.ts
+  window.api.onLoadVideoResponse((_, response) => {
     if (response.success) {
+      // @ts-ignore defined in main.ts
       window.api.processVideoFrame(response.data.format.filename, 0.15);
     } else {
       console.error(response.message);
     }
   });
-  window.api.onLoadImageResponse((event, response) => {
+  // @ts-ignore defined in main.ts
+  window.api.onLoadImageResponse((_, response) => {
     console.log(response, 'load-image-response');
     if (response.success) {
       workArea.addImageElement(response.data);
@@ -42,14 +46,16 @@ const createEventListeners = (workArea: WorkArea): void => {
       console.error(response.message);
     }
   });
-  window.api.onSaveProjectResponse((event, response) => {
+  // @ts-ignore defined in main.ts
+  window.api.onSaveProjectResponse((_, response) => {
     if (response.success) {
       console.log(response.message);
     } else {
       console.error(response.message);
     }
   });
-  window.api.onLoadProjectResponse((event, response) => {
+  // @ts-ignore defined in main.ts
+  window.api.onLoadProjectResponse((_, response) => {
     if (response.success) {
       WorkArea.getInstance().loadProject(response.data);
     } else {

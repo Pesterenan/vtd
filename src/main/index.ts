@@ -179,7 +179,7 @@ app.whenReady().then(() => {
   });
 
   // Send frame to WorkArea
-  ipcMain.on('send-frame-to-work-area', async (event, imageUrl) => {
+  ipcMain.on('send-frame-to-work-area', async (_, imageUrl) => {
     console.log('Received frame from video:', imageUrl.slice(0, 100));
     mainWindow?.webContents.send('load-image-response', { success: true, data: imageUrl });
   });
@@ -216,6 +216,30 @@ app.whenReady().then(() => {
           const base64Data = `data:${mimeType};base64,${base64}`;
           event.reply('load-image-response', { success: true, data: base64Data });
         }
+      });
+    }
+  });
+
+  // Export Canvas as a PNG
+  ipcMain.on('export-canvas', async (event, { dataString }: { dataString: string }) => {
+    const { filePath } = await dialog.showSaveDialog({
+      title: 'Exportar Canvas',
+      defaultPath: 'canvas.png',
+      filters: [{ name: 'PNG Files', extensions: ['png'] }]
+    });
+    if (filePath) {
+      const base64Data = dataString.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      fs.writeFile(filePath, buffer, (err) => {
+        if (err) {
+          event.reply('export-canvas-response', { success: false, message: 'Failed to save file' });
+          return;
+        }
+        event.reply('export-canvas-response', {
+          success: true,
+          message: 'File saved successfully'
+        });
       });
     }
   });

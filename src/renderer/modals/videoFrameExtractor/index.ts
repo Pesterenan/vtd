@@ -17,6 +17,7 @@
           tempContext.putImageData(imageData, 0, 0);
           const imageUrl = tempCanvas.toDataURL('image/png');
           console.log('sending...', imageUrl.slice(0, 100));
+          // @ts-ignore defined in main.ts
           window.api.sendFrameToWorkArea(imageUrl);
         }
       }
@@ -29,6 +30,7 @@
   let offScreenContext: OffscreenCanvasRenderingContext2D | null = null;
   let videoRatio = 1;
 
+  // @ts-ignore defined in main.ts
   window.api.onVideoMetadata((metadata) => {
     videoRatio = metadata.height / metadata.width;
     filePath = metadata.filePath;
@@ -40,12 +42,14 @@
     const slider = document.getElementById('slider') as HTMLInputElement;
     slider.oninput = (): void => {
       const sliderValueInterpolated = (metadata.duration * Number(slider.value)) / 100;
+      // @ts-ignore defined in main.ts
       window.api.processVideoFrame(filePath, sliderValueInterpolated);
       console.log(slider.value);
     };
   });
 
-  window.api.onProcessVideoFrameResponse((event, response) => {
+  // @ts-ignore defined in main.ts
+  window.api.onProcessVideoFrameResponse((_, response) => {
     console.log(response, 'response from video frame extractor');
     if (response.success) {
       const uint8Array = new Uint8ClampedArray(response.data);
