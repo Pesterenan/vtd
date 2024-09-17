@@ -1,4 +1,4 @@
-import ffmpeg from 'fluent-ffmpeg';
+import ffmpeg, { FfprobeData } from 'fluent-ffmpeg';
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
@@ -6,9 +6,9 @@ import icon from '../../resources/icon.png?asset';
 import fs from 'fs';
 
 let mainWindow: BrowserWindow | null = null;
-let modalWindow: BrowserWindow | null = null;
-function createWindow(): void {
-  // Create the browser window.
+let frameExtractorWindow: BrowserWindow | null = null;
+
+function createMainWindow(): void {
   mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
@@ -41,14 +41,14 @@ function createWindow(): void {
   }
 }
 
-function createFrameExtractorWindow(metadata): void {
-  // Create the browser window.
-  modalWindow = new BrowserWindow({
+function createFrameExtractorWindow(metadata: IVideoMetadata): void {
+  frameExtractorWindow = new BrowserWindow({
     width: 1024,
     height: 768,
-    parent: mainWindow!, // BrowserWindow.getFocusedWindow()!,
+    parent: mainWindow!,
     modal: true,
     show: false,
+    autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: true,
@@ -57,17 +57,17 @@ function createFrameExtractorWindow(metadata): void {
   });
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    modalWindow.loadURL(
+    frameExtractorWindow.loadURL(
       `${process.env['ELECTRON_RENDERER_URL']}/modals/videoFrameExtractor/video-frame-extractor.html`
     );
   } else {
-    modalWindow.loadFile(
+    frameExtractorWindow.loadFile(
       join(__dirname, '../renderer/modals/videoFrameExtractor/video-frame-extractor.html')
     );
   }
-  modalWindow.once('ready-to-show', () => {
-    modalWindow?.show();
-    modalWindow?.webContents.send('video-metadata', metadata);
+  frameExtractorWindow.once('ready-to-show', () => {
+    frameExtractorWindow?.show();
+    frameExtractorWindow?.webContents.send('video-metadata', metadata);
   });
 }
 
@@ -93,7 +93,7 @@ app.whenReady().then(() => {
     const { filePaths } = await dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [
-        { name: 'Arquivos de Video', extensions: ['mkv', 'mpg', 'mpeg', 'avi', 'mov'] },
+        { name: 'Arquivos de Video', extensions: ['mkv', 'mpg', 'mpeg', 'avi', 'mov', 'mp4'] },
         { name: 'Todos os Arquivos', extensions: ['*'] }
       ]
     });
@@ -104,7 +104,7 @@ app.whenReady().then(() => {
       }
 
       const videoMetadata = await new Promise((resolve, reject) => {
-        ffmpeg.ffprobe(filePath, (err, metadata) => {
+        ffmpeg.ffprobe(filePath, (err, metadata: FfprobeData) => {
           if (err) {
             reject(err);
           }
@@ -112,20 +112,22 @@ app.whenReady().then(() => {
           const width = metadata.streams[0].width;
           const height = metadata.streams[0].height;
           const frameRate = metadata.streams[0].r_frame_rate;
-          const totalFrames = Math.floor(Number(duration * frameRate.split('/')[0]));
+          const totalFrames = Math.floor(Number(duration) * Number(frameRate?.split('/')[0]));
           console.log(`Duração: ${duration} segundos`);
           console.log(`Resolução: ${width}x${height}`);
           console.log(`Taxa de quadros: ${frameRate}`);
           console.log(`Quadros totais: ${totalFrames}`);
-          const parsedMetadata = {
-            filePath,
-            duration,
-            width,
-            height,
-            frameRate,
-            totalFrames
-          };
-          resolve(parsedMetadata);
+          if (duration && width && height && frameRate && totalFrames) {
+            const parsedMetadata: IVideoMetadata = {
+              filePath,
+              duration,
+              width,
+              height,
+              frameRate,
+              totalFrames
+            };
+            resolve(parsedMetadata);
+          }
         });
       });
       if (videoMetadata instanceof Error) {
@@ -135,7 +137,7 @@ app.whenReady().then(() => {
         });
         return;
       }
-      createFrameExtractorWindow(videoMetadata);
+      createFrameExtractorWindow(videoMetadata as IVideoMetadata);
     }
   });
 
@@ -280,12 +282,12 @@ app.whenReady().then(() => {
       event.reply('load-project-response', { success: false, message: 'No file selected' });
     }
   });
-  createWindow();
+  createMainWindow();
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
   });
 });
 

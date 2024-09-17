@@ -1,4 +1,5 @@
 import EVENT from '../utils/customEvents';
+import getElementById from '../utils/getElementById';
 import ErrorElement from './errorElement';
 
 export class LayersMenu {
@@ -13,7 +14,7 @@ export class LayersMenu {
     window.addEventListener(EVENT.DELETE_ELEMENT, this.deleteLayer.bind(this));
     window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
       console.log('clearing layer list');
-      const layerList = document.getElementById('ul_layers-list');
+      const layerList = getElementById<HTMLUListElement>('ul_layers-list');
       if (layerList) {
         layerList.innerHTML = '';
       }
@@ -22,7 +23,7 @@ export class LayersMenu {
       const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
       const { elementsId } = customEvent.detail;
       this.selectedLayersId = elementsId;
-      const layerList = document.getElementById('ul_layers-list');
+      const layerList = getElementById<HTMLUListElement>('ul_layers-list');
       const childNodes = layerList?.querySelectorAll('li');
       childNodes?.forEach((node) => {
         if (this.selectedLayersId.has(Number(node.dataset.id))) {
@@ -38,7 +39,7 @@ export class LayersMenu {
     const customEvent = evt as CustomEvent;
     const { elementId, layerName } = customEvent.detail;
     console.log('creating layer', elementId);
-    const layerList = document.getElementById('ul_layers-list');
+    const layerList = getElementById<HTMLUListElement>('ul_layers-list');
     layerList?.append(this.LayerListItem(elementId, layerName));
   }
 
@@ -46,9 +47,9 @@ export class LayersMenu {
     const customEvent = evt as CustomEvent;
     const elementId = customEvent.detail.elementId;
     console.log('deleting:', elementId);
-    const layerList = document.getElementById('ul_layers-list');
-    const layerToDelete = document.getElementById(`layer-${elementId}`);
-    layerList?.removeChild(layerToDelete as Node);
+    const layerList = getElementById<HTMLUListElement>('ul_layers-list');
+    const layerToDelete = getElementById<HTMLLIElement>(`layer-${elementId}`);
+    layerList?.removeChild(layerToDelete);
   }
 
   private LayerListItem(elementId: number, layerName?: string): HTMLLIElement {
@@ -146,7 +147,7 @@ export class LayersMenu {
         layerLI.before(this.draggedlayerLI);
         this.draggedlayerLI = null;
 
-        const layerList = document.getElementById('ul_layers-list');
+        const layerList = getElementById<HTMLUListElement>('ul_layers-list');
         const childNodes = layerList?.querySelectorAll('li');
         const order: number[] = [];
         childNodes?.forEach((child, index) => {

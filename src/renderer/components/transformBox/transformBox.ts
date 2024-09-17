@@ -1,4 +1,5 @@
 import EVENT from '../../utils/customEvents';
+import getElementById from '../../utils/getElementById';
 import { Element } from '../element';
 import { GrabTool } from '../tools/grabTool';
 import { Position, Size } from '../types';
@@ -23,19 +24,19 @@ export class TransformBox {
     this.recalculateBoundingBox();
 
     this.xPosInput = {
-      element: document.getElementById('x-pos-input') as HTMLInputElement,
+      element: getElementById<HTMLInputElement>('x-pos-input'),
       listener: this.updateTransformBoxPosition.bind(this)
     };
     this.yPosInput = {
-      element: document.getElementById('y-pos-input') as HTMLInputElement,
+      element: getElementById<HTMLInputElement>('y-pos-input'),
       listener: this.updateTransformBoxPosition.bind(this)
     };
     this.widthSizeInput = {
-      element: document.getElementById('width-size-input') as HTMLInputElement,
+      element: getElementById<HTMLInputElement>('width-size-input'),
       listener: this.updateTransformBoxSize.bind(this)
     };
     this.heightSizeInput = {
-      element: document.getElementById('height-size-input') as HTMLInputElement,
+      element: getElementById<HTMLInputElement>('height-size-input'),
       listener: this.updateTransformBoxSize.bind(this)
     };
 

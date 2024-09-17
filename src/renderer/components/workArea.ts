@@ -9,6 +9,7 @@ import { GrabTool } from './tools/grabTool';
 import { RotateTool } from './tools/rotateTool';
 import { ScaleTool } from './tools/scaleTool';
 import EVENT from '../utils/customEvents';
+import getElementById from '../utils/getElementById';
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -63,7 +64,7 @@ export class WorkArea {
   }
 
   private createWorkAreaDOMElements(): void {
-    const mainWindow = document.getElementById('main-window');
+    const mainWindow = getElementById<HTMLDivElement>('main-window');
     this.mainCanvas = document.createElement('canvas');
     this.mainCanvas.id = 'main-canvas';
     this.mainCanvas.width = window.innerWidth * 0.7;

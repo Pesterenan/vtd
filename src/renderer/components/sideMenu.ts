@@ -1,4 +1,5 @@
 import EVENT from '../utils/customEvents';
+import getElementById from '../utils/getElementById';
 import { LayersMenu } from './layersMenu';
 import { WorkArea } from './workArea';
 
@@ -6,18 +7,18 @@ export class SideMenu {
   private static instance: SideMenu | null = null;
   private sideMenu?: HTMLMenuElement;
   private transformBox?: HTMLElement;
-  private xPosInput: HTMLInputElement | null = null;
-  private yPosInput: HTMLInputElement | null = null;
-  private widthSizeInput: HTMLInputElement | null = null;
-  private heightSizeInput: HTMLInputElement | null = null;
+  private xPosInput: HTMLInputElement;
+  private yPosInput: HTMLInputElement;
+  private widthSizeInput: HTMLInputElement;
+  private heightSizeInput: HTMLInputElement;
   private layersMenu: HTMLElement | null = null;
 
   constructor() {
     this.createDOMElements();
-    this.xPosInput = document.getElementById('x-pos-input') as HTMLInputElement;
-    this.yPosInput = document.getElementById('y-pos-input') as HTMLInputElement;
-    this.widthSizeInput = document.getElementById('width-size-input') as HTMLInputElement;
-    this.heightSizeInput = document.getElementById('height-size-input') as HTMLInputElement;
+    this.xPosInput = getElementById<HTMLInputElement>('x-pos-input');
+    this.yPosInput = getElementById<HTMLInputElement>('y-pos-input');
+    this.widthSizeInput = getElementById<HTMLInputElement>('width-size-input');
+    this.heightSizeInput = getElementById<HTMLInputElement>('height-size-input');
     window.addEventListener(EVENT.RECALCULATE_TRANSFORM_BOX, (evt: Event) => {
       const customEvent = evt as CustomEvent;
       const { position, size } = customEvent.detail;
@@ -37,7 +38,7 @@ export class SideMenu {
   }
 
   private createDOMElements(): void {
-    const mainWindow = document.getElementById('main-window');
+    const mainWindow = getElementById<HTMLDivElement>('main-window');
     this.sideMenu = document.createElement('menu');
     this.sideMenu.id = 'side-menu';
     this.sideMenu.className = 'side-menu';

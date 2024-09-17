@@ -1,6 +1,12 @@
+import getElementById from '../../utils/getElementById';
+import { IVideoMetadata } from '../../../const/types';
+
 (function initializeVideoFrameExtractor(): void {
   let filePath = '';
-  const extractFrameBtn = document.getElementById('btn_extract-frame') as HTMLButtonElement;
+  const extractFrameBtn = getElementById<HTMLButtonElement>('btn_extract-frame');
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = 1920;
+  tempCanvas.height = 1080;
 
   extractFrameBtn.onclick = (): void => {
     console.log('extracting frame');
@@ -9,9 +15,6 @@
       if (canvasContext) {
         const imageData = canvasContext!.getImageData(0, 0, 1920, 1080);
 
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = 1920;
-        tempCanvas.height = 1080;
         const tempContext = tempCanvas.getContext('2d');
         if (tempContext) {
           tempContext.putImageData(imageData, 0, 0);
@@ -24,14 +27,14 @@
     }
   };
 
-  const videoCanvas = document.getElementById('video-canvas') as HTMLCanvasElement;
+  const videoCanvas = getElementById<HTMLCanvasElement>('video-canvas');
   const videoCanvasCtx = videoCanvas.getContext('2d');
   let offScreenCanvas: OffscreenCanvas | null = null;
   let offScreenContext: OffscreenCanvasRenderingContext2D | null = null;
   let videoRatio = 1;
 
   // @ts-ignore defined in main.ts
-  window.api.onVideoMetadata((metadata) => {
+  window.api.onVideoMetadata((metadata: IVideoMetadata) => {
     videoRatio = metadata.height / metadata.width;
     filePath = metadata.filePath;
     console.log('VFE initialized', filePath);
@@ -39,7 +42,7 @@
     offScreenCanvas = new OffscreenCanvas(metadata.width, metadata.height);
     offScreenContext = offScreenCanvas.getContext('2d');
 
-    const slider = document.getElementById('slider') as HTMLInputElement;
+    const slider = getElementById<HTMLInputElement>('slider');
     slider.oninput = (): void => {
       const sliderValueInterpolated = (metadata.duration * Number(slider.value)) / 100;
       // @ts-ignore defined in main.ts
