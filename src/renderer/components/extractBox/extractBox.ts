@@ -1,8 +1,8 @@
 import EVENT from '../../utils/customEvents';
 import { BoundingBox, Position, Size } from '../types';
 
-const LINE_WIDTH = 8;
-const CENTER_RADIUS = 10;
+const LINE_WIDTH = 4;
+const CENTER_RADIUS = 6;
 const FRAME_RATIO: Record<string, number> = {
   vertical_wide: 1.77,
   horizontal_wide: 0.5625,
@@ -81,7 +81,6 @@ export class ExtractBox {
       y: this.canvas.height * 0.5 - height * 0.5
     };
     this.size = { height, width };
-    console.log(this.size);
   }
 
   /** Returns the center of the transform box */

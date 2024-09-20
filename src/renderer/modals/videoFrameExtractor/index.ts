@@ -33,6 +33,7 @@ export class VideoFrameExtractor {
     this.offScreen = { canvas: offScreenCanvas, context: offScreenContext! };
 
     this.extractFrameBtn = getElementById<HTMLButtonElement>('btn_extract-frame');
+    this.extractFrameBtn.classList.add('btn-common');
     this.slider = getElementById<HTMLInputElement>('slider');
 
     this.createEventListeners();
@@ -80,6 +81,8 @@ export class VideoFrameExtractor {
         this.offScreen.canvas.width = width;
         this.offScreen.canvas.height = height;
       }
+      // @ts-ignore defined in main.ts
+      window.api.processVideoFrame(this.videoMetadata.filePath, 0);
     });
 
     // @ts-ignore defined in main.ts

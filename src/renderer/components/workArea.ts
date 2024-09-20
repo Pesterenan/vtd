@@ -69,7 +69,6 @@ export class WorkArea {
     this.mainCanvas.id = 'main-canvas';
     this.mainCanvas.width = window.innerWidth * 0.7;
     this.mainCanvas.height = window.innerHeight;
-    this.mainCanvas.style.backgroundColor = 'grey';
     this.mainContext = this.mainCanvas.getContext('2d');
 
     const workAreaCanvas = document.createElement('canvas');

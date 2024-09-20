@@ -37,7 +37,7 @@ body {
 
 #main-canvas {
   flex: 0 1 70%;
-  background-color: grey;
+  background-color: #404040;
 }
 
 #side-menu {
