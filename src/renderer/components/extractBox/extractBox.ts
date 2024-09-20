@@ -1,3 +1,4 @@
+import EVENT from '../../utils/customEvents';
 import { BoundingBox, Position, Size } from '../types';
 
 const LINE_WIDTH = 8;
@@ -11,21 +12,21 @@ const FRAME_RATIO: Record<string, number> = {
 export class ExtractBox {
   private position: Position = { x: 0, y: 0 };
   public size: Size = { width: 0, height: 0 };
-  //private centerHandle: HTMLImageElement | null = null;
   private canvas: HTMLCanvasElement;
+  private isDragging: boolean = false;
+  private lastMousePosition: Position | null = { x: 0, y: 0 };
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.setupInitialBox();
     this.draw();
-    this.canvas.addEventListener('click', this.moveExtractBox.bind(this));
   }
 
   public getBoundingBox(): BoundingBox {
-    return { x1: this.position.x, x2: this.size.width, y1: this.position.y, y2: this.size.height };
+    return { x1: this.position.x, y1: this.position.y, x2: this.size.width, y2: this.size.height };
   }
 
-  private moveExtractBox(evt: MouseEvent): void {
+  public onClick(evt: MouseEvent): void {
     const { offsetX: x, offsetY: y } = evt;
     const centerPosition = this.getCenter();
     if (
@@ -34,11 +35,41 @@ export class ExtractBox {
       y > centerPosition.y - CENTER_RADIUS &&
       y < centerPosition.y + CENTER_RADIUS
     ) {
-      console.log('no centro', centerPosition, x, y);
+      this.isDragging = true;
+      this.lastMousePosition = { x, y };
+      const onMouseMove = (evt: MouseEvent): void => this.onMouseMove(evt);
+      const onMouseUp = (): void => {
+        this.isDragging = false;
+        this.lastMousePosition = null;
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
     }
   }
+
+  private onMouseMove(evt: MouseEvent): void {
+    if (this.isDragging && this.lastMousePosition) {
+      const dX = evt.offsetX - this.lastMousePosition.x;
+      const dY = evt.offsetY - this.lastMousePosition.y;
+      this.moveExtractBox(dX, dY);
+      this.lastMousePosition = { x: evt.offsetX, y: evt.offsetY };
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_VFE));
+    }
+  }
+
+  private moveExtractBox(deltaX: number, deltaY: number): void {
+    this.position.x += deltaX;
+    this.position.y += deltaY;
+
+    // Garantir que a caixa não vá além dos limites do canvas
+    this.position.x = Math.max(0, Math.min(this.canvas.width - this.size.width, this.position.x));
+    this.position.y = Math.max(0, Math.min(this.canvas.height - this.size.height, this.position.y));
+  }
+
   private setupInitialBox(): void {
-    const ratio = FRAME_RATIO['horizontal_wide']; //this.canvasSize.height / this.canvasSize.width;
+    const ratio = FRAME_RATIO['horizontal_wide'];
     let width = this.canvas.width;
     let height = Math.ceil(this.canvas.width * ratio);
     if (height > this.canvas.height) {
@@ -50,8 +81,7 @@ export class ExtractBox {
       y: this.canvas.height * 0.5 - height * 0.5
     };
     this.size = { height, width };
-    console.log('position: ', this.position);
-    console.log('size: ', this.size);
+    console.log(this.size);
   }
 
   /** Returns the center of the transform box */

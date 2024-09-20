@@ -7,7 +7,8 @@ const EVENT: Record<string, string> = {
   RECALCULATE_TRANSFORM_BOX: 'evt_transform-box-recalculated',
   SELECT_ELEMENT: 'evt_select_element',
   TOGGLE_ELEMENT_VISIBILITY: 'evt_toggle_element_visibility',
-  UPDATE_WORKAREA: 'evt_update-workarea'
+  UPDATE_WORKAREA: 'evt_update-workarea',
+  UPDATE_VFE: 'evt_update-video-frame-extractor'
 } as const;
 
 export default EVENT;

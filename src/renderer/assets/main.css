@@ -119,6 +119,8 @@ body {
   width: inherit;
   max-height: 6rem;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column-reverse;
 }
 
 .li_layer-item {

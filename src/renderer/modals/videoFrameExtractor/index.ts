@@ -1,7 +1,7 @@
 import getElementById from '../../utils/getElementById';
 import { IVideoMetadata } from '../../../const/types';
 import { ExtractBox } from '../../components/extractBox/extractBox';
-import { BoundingBox } from '../../components/types';
+import EVENT from '../../utils/customEvents';
 
 const PREVIEW_CANVAS_HEIGHT = 432;
 const PREVIEW_CANVAS_WIDTH = 768;
@@ -17,7 +17,7 @@ export class VideoFrameExtractor {
   } | null = null;
   private videoMetadata: (IVideoMetadata & { videoRatio?: number }) | null = null;
   private slider: HTMLInputElement;
-  private extractBox: ExtractBox;
+  private extractBox: ExtractBox | null = null;
 
   private constructor() {
     const previewCanvas = getElementById<HTMLCanvasElement>('video-canvas');
@@ -40,6 +40,15 @@ export class VideoFrameExtractor {
 
   private createEventListeners(): void {
     this.slider.oninput = this.requestProcessFrame.bind(this);
+    if (this.preview) {
+      this.preview.canvas.addEventListener('mousedown', (evt) => {
+        if (this.extractBox) {
+          return this.extractBox.onClick(evt);
+        }
+      });
+    }
+
+    window.addEventListener(EVENT.UPDATE_VFE, () => this.update());
 
     // @ts-ignore defined in main.ts
     window.api.onVideoMetadata((metadata: IVideoMetadata) => {
@@ -55,13 +64,16 @@ export class VideoFrameExtractor {
       }
 
       if (this.preview) {
-        console.log(this.preview.canvas.width);
         this.preview.canvas.width = canvasWidth;
         this.preview.canvas.height = canvasHeight;
-        console.log(this.preview.canvas.width, '------------');
         this.extractBox = new ExtractBox(this.preview.canvas);
-        this.extractFrameBtn.onclick = (): void =>
-          this.extractFrame(this.extractBox.getBoundingBox());
+        this.extractFrameBtn.onclick = (): void => {
+          if (this.extractBox) {
+            this.extractFrame();
+          } else {
+            console.error('Extract Box not initialized');
+          }
+        };
       }
 
       if (this.offScreen) {
@@ -73,35 +85,13 @@ export class VideoFrameExtractor {
     // @ts-ignore defined in main.ts
     window.api.onProcessVideoFrameResponse((_, response) => {
       if (response.success) {
-        const videoFrame = new Uint8ClampedArray(response.data);
-
         if (this.offScreen && this.preview && this.videoMetadata) {
           const { width, height } = this.offScreen.canvas;
-
+          const videoFrame = new Uint8ClampedArray(response.data);
           const videoFrameData = new ImageData(videoFrame, width, height);
           this.offScreen.context.putImageData(videoFrameData, 0, 0);
-
-          this.preview.context.clearRect(
-            0,
-            0,
-            this.preview.canvas.width,
-            this.preview.canvas.height
-          );
-          this.preview.context.save();
-          this.preview.context.drawImage(
-            this.offScreen.canvas,
-            0,
-            0,
-            width,
-            height,
-            0,
-            0,
-            this.preview.canvas.width,
-            this.preview.canvas.height
-          );
-          this.preview.context.restore();
+          this.update();
         }
-        this.extractBox.draw();
       } else {
         console.error(response.message);
       }
@@ -115,21 +105,67 @@ export class VideoFrameExtractor {
     return this.instance;
   }
 
+  private update(): void {
+    if (this.offScreen && this.preview && this.videoMetadata) {
+      this.clearCanvas(this.preview.context, this.preview.canvas);
+      const { width, height } = this.offScreen.canvas;
+      this.preview.context.save();
+      this.preview.context.drawImage(
+        this.offScreen.canvas,
+        0,
+        0,
+        width,
+        height,
+        0,
+        0,
+        this.preview.canvas.width,
+        this.preview.canvas.height
+      );
+      this.preview.context.restore();
+    }
+    if (this.extractBox) {
+      this.extractBox.draw();
+    }
+  }
+
+  private clearCanvas(context: CanvasRenderingContext2D, canvas: HTMLCanvasElement): void {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
   /** Copies the image from the `offScreen.canvas` within a selection to the `extract.canvas` so it
    * can be sent to the WorkArea as a new element.
    * @param selection - Area to extract from the frame.
    * */
-  private extractFrame(selection: BoundingBox): void {
-    console.log(selection);
-    if (this.offScreen) {
-      const { x1, x2, y1, y2 } = selection;
-      const imageData = this.offScreen.context.getImageData(x1, y1, x2, y2);
+  private extractFrame(): void {
+    if (this.offScreen && this.preview && this.extractBox) {
+      const { width: previewWidth, height: previewHeight } = this.preview.canvas;
+      const { width: originalWidth, height: originalHeight } = this.offScreen.canvas;
+
+      const scaleX = originalWidth / previewWidth;
+      const scaleY = originalHeight / previewHeight;
+
+      const { x1, x2, y1, y2 } = this.extractBox.getBoundingBox();
+      const scaledXPos = x1 * scaleX;
+      const scaledWidth = x2 * scaleX;
+      const scaledYPos = y1 * scaleY;
+      const scaledHeight = y2 * scaleY;
+
+      const imageData = this.offScreen.context.getImageData(
+        scaledXPos,
+        scaledYPos,
+        scaledWidth,
+        scaledHeight
+      );
+
+      // Atualize o canvas de extração
       if (this.extract) {
-        this.extract.canvas.width = x1 - x2;
-        this.extract.canvas.height = y1 - y2;
+        this.extract.canvas.width = scaledWidth;
+        this.extract.canvas.height = scaledHeight;
+        console.log(this.extract.canvas);
         this.extract.context.putImageData(imageData, 0, 0);
+
         const imageUrl = this.extract.canvas.toDataURL('image/png');
-        // @ts-ignore defined in main.ts
+        // @ts-ignore definida no main.ts
         window.api.sendFrameToWorkArea(imageUrl);
       }
     }
