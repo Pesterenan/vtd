@@ -1,5 +1,7 @@
 import getElementById from '../../utils/getElementById';
 import { IVideoMetadata } from '../../../const/types';
+import { ExtractBox } from '../../components/extractBox/extractBox';
+import { BoundingBox } from '../../components/types';
 
 const PREVIEW_CANVAS_HEIGHT = 432;
 const PREVIEW_CANVAS_WIDTH = 768;
@@ -15,6 +17,7 @@ export class VideoFrameExtractor {
   } | null = null;
   private videoMetadata: (IVideoMetadata & { videoRatio?: number }) | null = null;
   private slider: HTMLInputElement;
+  private extractBox: ExtractBox;
 
   private constructor() {
     const previewCanvas = getElementById<HTMLCanvasElement>('video-canvas');
@@ -36,7 +39,6 @@ export class VideoFrameExtractor {
   }
 
   private createEventListeners(): void {
-    this.extractFrameBtn.onclick = this.extractFrame.bind(this);
     this.slider.oninput = this.requestProcessFrame.bind(this);
 
     // @ts-ignore defined in main.ts
@@ -53,8 +55,13 @@ export class VideoFrameExtractor {
       }
 
       if (this.preview) {
+        console.log(this.preview.canvas.width);
         this.preview.canvas.width = canvasWidth;
         this.preview.canvas.height = canvasHeight;
+        console.log(this.preview.canvas.width, '------------');
+        this.extractBox = new ExtractBox(this.preview.canvas);
+        this.extractFrameBtn.onclick = (): void =>
+          this.extractFrame(this.extractBox.getBoundingBox());
       }
 
       if (this.offScreen) {
@@ -94,6 +101,7 @@ export class VideoFrameExtractor {
           );
           this.preview.context.restore();
         }
+        this.extractBox.draw();
       } else {
         console.error(response.message);
       }
@@ -111,13 +119,14 @@ export class VideoFrameExtractor {
    * can be sent to the WorkArea as a new element.
    * @param selection - Area to extract from the frame.
    * */
-  private extractFrame(): void {
+  private extractFrame(selection: BoundingBox): void {
+    console.log(selection);
     if (this.offScreen) {
-      const { width, height } = this.offScreen.canvas;
-      const imageData = this.offScreen.context.getImageData(0, 0, width, height);
+      const { x1, x2, y1, y2 } = selection;
+      const imageData = this.offScreen.context.getImageData(x1, y1, x2, y2);
       if (this.extract) {
-        this.extract.canvas.width = width;
-        this.extract.canvas.height = height;
+        this.extract.canvas.width = x1 - x2;
+        this.extract.canvas.height = y1 - y2;
         this.extract.context.putImageData(imageData, 0, 0);
         const imageUrl = this.extract.canvas.toDataURL('image/png');
         // @ts-ignore defined in main.ts
