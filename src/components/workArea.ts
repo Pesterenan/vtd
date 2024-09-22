@@ -339,6 +339,7 @@ export class WorkArea {
       );
       return newElement;
     });
+    this.selectElements();
     this.update();
   }
 
@@ -363,19 +364,22 @@ export class WorkArea {
     return this.elements.filter((el) => el.selected);
   }
 
-  public selectElements(selection: BoundingBox): void {
+  public selectElements(selection?: BoundingBox): void {
     let selectedElements: Element[] = [];
-    if (this.mouse.status === MouseStatus.MOVE) {
-      selectedElements = this.elements.filter((el) =>
-        el.isWithinBounds(selection),
-      );
-    }
-    if (this.mouse.status === MouseStatus.DOWN) {
-      const firstElement = this.elements.findLast((el) =>
-        el.isBelowSelection(selection),
-      );
-      if (firstElement) {
-        selectedElements = [firstElement];
+
+    if (selection) {
+      if (this.mouse.status === MouseStatus.MOVE) {
+        selectedElements = this.elements.filter(
+          (el) => el.isVisible && el.isWithinBounds(selection),
+        );
+      }
+      if (this.mouse.status === MouseStatus.DOWN) {
+        const firstElement = this.elements.findLast(
+          (el) => el.isVisible && el.isBelowSelection(selection),
+        );
+        if (firstElement) {
+          selectedElements = [firstElement];
+        }
       }
     }
     window.dispatchEvent(

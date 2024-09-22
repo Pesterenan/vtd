@@ -36,9 +36,9 @@ A importação de vídeo deve conseguir usar o FFMPEG para extrair imagens - OK
 O video  escolhido para importação deve abrir uma nova janela para extrair o frame - OK
 Os elementos (imagens, textos) podem ser reorganizados de acordo com seu z-index - OK
 A aplicação tem um sistema de gerenciar camadas - OK
+O usuário pode escolher qual parte do frame ele quer extrair para a aplicação - OK
+Os elementos tem visibilidade alternável e só podem ser selecionados se estiverem visiveis - OK
 
-Os elementos tem visibilidade alternável e só podem ser selecionados se estiverem visiveis - PARCIAL
 A aplicação pode salvar a imagem final do projeto como um JPG ou PNG - PARCIAL
 
-O usuário pode escolher qual parte do frame ele quer extrair para a aplicação
 A aplicação pode criar e editar elementos de texto
