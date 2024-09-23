@@ -1,10 +1,23 @@
-import { BoundingBox, Position } from '../components/types';
+import { BoundingBox, Position } from "../components/types";
 
 export class BB {
   private bb: BoundingBox;
 
-  constructor(bb: BoundingBox) {
-    this.bb = bb;
+  constructor(center: Position, radius: number);
+  constructor(bb: BoundingBox);
+
+  constructor(bbOrCenter: BoundingBox | Position, radius?: number) {
+    if (typeof radius === "number" && "x" in bbOrCenter && "y" in bbOrCenter) {
+      const center = bbOrCenter as Position;
+      this.bb = {
+        x1: center.x - radius,
+        x2: center.x + radius,
+        y1: center.y - radius,
+        y2: center.y + radius,
+      };
+    } else {
+      this.bb = bbOrCenter as BoundingBox;
+    }
   }
 
   public isPointWithinBB(point: Position): boolean {
