@@ -149,12 +149,10 @@ export class WorkArea {
       window.addEventListener("keydown", this.handleKeyDown.bind(this));
       window.addEventListener("keyup", this.handleKeyUp.bind(this));
       window.addEventListener("resize", this.handleResize.bind(this));
-      window.addEventListener(EVENT.UPDATE_WORKAREA, () => {
-        console.log("updating workarea");
-        this.update();
-      });
+
+      window.addEventListener(EVENT.UPDATE_WORKAREA, this.update.bind(this));
       window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
-        console.log("clearing workarea");
+        this.removeTransformBox();
         this.elements.length = 0;
       });
       window.addEventListener(EVENT.DELETE_ELEMENT, (evt: Event): void => {

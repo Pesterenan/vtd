@@ -1,12 +1,6 @@
 import EVENT from "../../utils/customEvents";
 import { Element } from "../element";
-import {
-  BoundingBox,
-  MOUSE_BUTTONS,
-  MouseStatus,
-  Position,
-  TOOL,
-} from "../types";
+import { MOUSE_BUTTONS, MouseStatus, Position, TOOL } from "../types";
 import { WorkArea } from "../workArea";
 import { Tool } from "./abstractTool";
 import centerHandleMove from "../../components/transformBox/assets/centerHandleMove.svg";
@@ -17,7 +11,7 @@ export class GrabTool extends Tool {
   private lastPosition: Position | null = null;
   private toolIcon: HTMLImageElement | null = null;
   private selectedElements: Element[] | null = null;
-  private isDraggingCenter: boolean = false;
+  private isDraggingCenter = false;
 
   constructor(workArea: WorkArea) {
     super(workArea);
