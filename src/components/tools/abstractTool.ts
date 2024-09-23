@@ -6,7 +6,8 @@ export abstract class Tool {
     this.canvas = canvas;
   }
 
-  abstract initializeTool(): void;
+  abstract equipTool(): void;
+  abstract unequipTool(): void;
   abstract draw(): void;
   abstract handleMouseDown(event: MouseEvent): void;
   abstract handleMouseUp(event: MouseEvent): void;

@@ -7,6 +7,7 @@ const DRAGGING_DISTANCE = 5;
 
 export class SelectTool extends Tool {
   private selection: BoundingBox | null = null;
+  private onMouseDown: ((evt: MouseEvent) => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -14,8 +15,9 @@ export class SelectTool extends Tool {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  initializeTool(): void {
-    const onMouseDown = (evt: MouseEvent) => {
+  equipTool(): void {
+    this.onMouseDown = (evt: MouseEvent) => {
+      console.log("onmousedown select tool");
       this.handleMouseDown(evt);
       const onMouseMove = (evt: MouseEvent) => {
         this.handleMouseMove(evt);
@@ -29,7 +31,13 @@ export class SelectTool extends Tool {
       this.canvas.addEventListener("mousemove", onMouseMove);
       this.canvas.addEventListener("mouseup", onMouseUp);
     };
-    this.canvas.addEventListener("mousedown", onMouseDown);
+    this.canvas.addEventListener("mousedown", this.onMouseDown);
+  }
+
+  unequipTool(): void {
+    if (this.onMouseDown) {
+      this.canvas.removeEventListener("mousedown", this.onMouseDown);
+    }
   }
 
   public draw(): void {
