@@ -1,71 +1,71 @@
-import EVENT from '../../utils/customEvents';
-import { BoundingBox, MouseStatus } from '../types';
-import { WorkArea } from '../workArea';
-import { Tool } from './abstractTool';
+import EVENT from "../../utils/customEvents";
+import { BoundingBox } from "../types";
+import { WorkArea } from "../workArea";
+import { Tool } from "./abstractTool";
 
 const DRAGGING_DISTANCE = 5;
 
 export class SelectTool extends Tool {
   private selection: BoundingBox | null = null;
 
-  constructor(workArea: WorkArea) {
-    super(workArea);
+  constructor(canvas: HTMLCanvasElement) {
+    super(canvas);
+    this.context = canvas.getContext("2d");
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  initializeTool(): void {}
+  initializeTool(): void {
+    const onMouseDown = (evt: MouseEvent) => {
+      this.handleMouseDown(evt);
+      const onMouseMove = (evt: MouseEvent) => {
+        this.handleMouseMove(evt);
+      };
+      const onMouseUp = (): void => {
+        this.handleMouseUp();
+        this.canvas.removeEventListener("mouseup", onMouseUp);
+        this.canvas.removeEventListener("mousemove", onMouseMove);
+      };
 
-  private adjustSelectionForOffset(selection: BoundingBox): BoundingBox {
-    const offset = this.workArea.offset;
-    const zoomLevel = this.workArea.zoomLevel;
-    return {
-      x1: (selection.x1 - offset.x) / zoomLevel,
-      y1: (selection.y1 - offset.y) / zoomLevel,
-      x2: (selection.x2 - offset.x) / zoomLevel,
-      y2: (selection.y2 - offset.y) / zoomLevel
+      this.canvas.addEventListener("mousemove", onMouseMove);
+      this.canvas.addEventListener("mouseup", onMouseUp);
     };
+    this.canvas.addEventListener("mousedown", onMouseDown);
   }
 
-  handleMouseDown(event: MouseEvent): void {
-    const { offsetX, offsetY } = event;
-    this.workArea.mouse = { status: MouseStatus.DOWN };
-    this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY };
-  }
-
-  handleMouseMove(event: MouseEvent): void {
-    const { offsetX, offsetY } = event;
+  public draw(): void {
+    if (!this.context) throw new Error("Couldn't draw select tool");
     if (this.selection) {
-      this.selection.x2 = offsetX;
-      this.selection.y2 = offsetY;
       const { x1, y1, x2, y2 } = this.selection;
+      this.context.save();
+      this.context.strokeStyle = "black";
+      this.context.setLineDash([3, 3]);
+      this.context.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      this.context.restore();
+    }
+  }
 
-      // Only start drawing if distance is higher than DRAGGING_DISTANCE
-      if (this.workArea.mouse.status === MouseStatus.DOWN) {
-        const distance = Math.hypot(x2 - x1, y2 - y1);
-        if (distance > DRAGGING_DISTANCE) {
-          this.workArea.mouse = { status: MouseStatus.MOVE };
-        }
-      }
+  handleMouseDown(evt: MouseEvent): void {
+    const { offsetX, offsetY } = evt;
+    this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY };
+    console.log("starting selection", this.selection);
+  }
 
-      // Draw selection box:
-      if (this.workArea.mouse.status === MouseStatus.MOVE) {
+  handleMouseMove(evt: MouseEvent): void {
+    const { offsetX, offsetY } = evt;
+    if (this.selection) {
+      const { x1, y1 } = this.selection;
+      const distance = Math.hypot(offsetX - x1, offsetY - y1);
+      if (distance > DRAGGING_DISTANCE) {
+        this.selection.x2 = offsetX;
+        this.selection.y2 = offsetY;
         window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-        if (this.workArea.mainContext) {
-          this.workArea.mainContext.save();
-          this.workArea.mainContext.strokeStyle = 'black';
-          this.workArea.mainContext.setLineDash([3, 3]);
-          this.workArea.mainContext.strokeRect(x1, y1, x2 - x1, y2 - y1);
-          this.workArea.mainContext.restore();
-        }
       }
     }
   }
 
   handleMouseUp(): void {
     if (this.selection) {
-      const adjustedSelection = this.adjustSelectionForOffset(this.selection);
-      this.workArea.selectElements(adjustedSelection);
-      this.workArea.mouse = { status: MouseStatus.UP };
+      WorkArea.getInstance().selectElements(this.selection);
       this.selection = null;
     }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));

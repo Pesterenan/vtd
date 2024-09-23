@@ -47,18 +47,20 @@ export class WorkArea {
   public currentTool: TOOL = TOOL.SELECT;
 
   private constructor() {
+    this.createWorkAreaDOMElements();
+
+    if (!this.mainCanvas) throw new Error("Main canvas not available");
+
     this.tools = {
-      [TOOL.SELECT]: new SelectTool(this),
-      [TOOL.GRAB]: new GrabTool(this),
+      [TOOL.SELECT]: new SelectTool(this.mainCanvas),
+      [TOOL.GRAB]: new GrabTool(this.mainCanvas),
       [TOOL.HAND]: new HandTool(this),
       [TOOL.ZOOM]: new ZoomTool(this),
       [TOOL.SCALE]: new ScaleTool(this),
       [TOOL.ROTATE]: new RotateTool(this),
     };
+    this.tools[this.currentTool].initializeTool();
 
-    this.createWorkAreaDOMElements();
-
-    if (!this.mainCanvas) throw new Error("Main canvas not available");
     const currentMousePosition = {
       x: this.mainCanvas.width * 0.5,
       y: this.mainCanvas.height * 0.5,
@@ -133,18 +135,6 @@ export class WorkArea {
 
   private createEventListeners(): void {
     if (this.mainCanvas) {
-      this.mainCanvas.addEventListener(
-        "mousedown",
-        this.handleMouseDown.bind(this),
-      );
-      this.mainCanvas.addEventListener(
-        "mousemove",
-        this.handleMouseMove.bind(this),
-      );
-      this.mainCanvas.addEventListener(
-        "mouseup",
-        this.handleMouseUp.bind(this),
-      );
       window.addEventListener("keypress", this.changeTool.bind(this));
       window.addEventListener("keydown", this.handleKeyDown.bind(this));
       window.addEventListener("keyup", this.handleKeyUp.bind(this));
@@ -362,24 +352,36 @@ export class WorkArea {
     return this.elements.filter((el) => el.selected);
   }
 
+  private adjustForWorkAreaCanvas(selection: BoundingBox): BoundingBox {
+    const offset = this.workArea.offset;
+    const zoomLevel = this.zoomLevel;
+    return {
+      x1: Math.floor((selection.x1 - offset.x) / zoomLevel),
+      y1: Math.floor((selection.y1 - offset.y) / zoomLevel),
+      x2: Math.floor((selection.x2 - offset.x) / zoomLevel),
+      y2: Math.floor((selection.y2 - offset.y) / zoomLevel),
+    };
+  }
+
   public selectElements(selection?: BoundingBox): void {
     let selectedElements: Element[] = [];
 
     if (selection) {
-      if (this.mouse.status === MouseStatus.MOVE) {
-        selectedElements = this.elements.filter(
-          (el) => el.isVisible && el.isWithinBounds(selection),
-        );
-      }
-      if (this.mouse.status === MouseStatus.DOWN) {
+      const adjustedSelection = this.adjustForWorkAreaCanvas(selection);
+      if (selection.x1 === selection.x2 && selection.y1 === selection.y2) {
         const firstElement = this.elements.findLast(
-          (el) => el.isVisible && el.isBelowSelection(selection),
+          (el) => el.isVisible && el.isBelowSelection(adjustedSelection),
         );
         if (firstElement) {
           selectedElements = [firstElement];
         }
+      } else {
+        selectedElements = this.elements.filter(
+          (el) => el.isVisible && el.isWithinBounds(adjustedSelection),
+        );
       }
     }
+
     window.dispatchEvent(
       new CustomEvent(EVENT.SELECT_ELEMENT, {
         detail: {
@@ -420,6 +422,9 @@ export class WorkArea {
     this.drawWorkArea();
     if (this.transformBox) {
       this.transformBox.draw();
+    }
+    if (this.tools[this.currentTool].draw()) {
+      this.tools[this.currentTool].draw();
     }
   }
 

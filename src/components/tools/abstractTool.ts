@@ -1,13 +1,13 @@
-import { WorkArea } from '../workArea';
-
 export abstract class Tool {
-  protected workArea: WorkArea;
+  protected canvas: HTMLCanvasElement;
+  protected context: CanvasRenderingContext2D | null = null;
 
-  constructor(workArea: WorkArea) {
-    this.workArea = workArea;
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
   }
 
   abstract initializeTool(): void;
+  abstract draw(): void;
   abstract handleMouseDown(event: MouseEvent): void;
   abstract handleMouseUp(event: MouseEvent): void;
   abstract handleMouseMove(event: MouseEvent): void;
