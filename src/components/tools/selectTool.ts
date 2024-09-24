@@ -7,42 +7,21 @@ const DRAGGING_DISTANCE = 5;
 
 export class SelectTool extends Tool {
   private selection: BoundingBox | null = null;
-  private onMouseDown: ((evt: MouseEvent) => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
-    this.context = canvas.getContext("2d");
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   equipTool(): void {
-    this.onMouseDown = (evt: MouseEvent) => {
-      console.log("onmousedown select tool");
-      this.handleMouseDown(evt);
-      const onMouseMove = (evt: MouseEvent) => {
-        this.handleMouseMove(evt);
-      };
-      const onMouseUp = (): void => {
-        this.handleMouseUp();
-        this.canvas.removeEventListener("mouseup", onMouseUp);
-        this.canvas.removeEventListener("mousemove", onMouseMove);
-      };
-
-      this.canvas.addEventListener("mousemove", onMouseMove);
-      this.canvas.addEventListener("mouseup", onMouseUp);
-    };
-    this.canvas.addEventListener("mousedown", this.onMouseDown);
+    super.equipTool();
   }
 
   unequipTool(): void {
-    if (this.onMouseDown) {
-      this.canvas.removeEventListener("mousedown", this.onMouseDown);
-    }
+    super.unequipTool();
   }
 
   public draw(): void {
-    if (!this.context) throw new Error("Couldn't draw select tool");
-    if (this.selection) {
+    if (this.selection && this.context) {
       const { x1, y1, x2, y2 } = this.selection;
       this.context.save();
       this.context.strokeStyle = "black";
@@ -55,7 +34,8 @@ export class SelectTool extends Tool {
   handleMouseDown(evt: MouseEvent): void {
     const { offsetX, offsetY } = evt;
     this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY };
-    console.log("starting selection", this.selection);
+    this.canvas.addEventListener("mousemove", this.onMouseMove);
+    this.canvas.addEventListener("mouseup", this.onMouseUp);
   }
 
   handleMouseMove(evt: MouseEvent): void {
@@ -76,6 +56,8 @@ export class SelectTool extends Tool {
       WorkArea.getInstance().selectElements(this.selection);
       this.selection = null;
     }
+    this.canvas.removeEventListener("mousemove", this.onMouseMove);
+    this.canvas.removeEventListener("mouseup", this.onMouseUp);
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 

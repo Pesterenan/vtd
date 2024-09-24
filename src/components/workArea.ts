@@ -54,10 +54,10 @@ export class WorkArea {
     this.tools = {
       [TOOL.SELECT]: new SelectTool(this.mainCanvas),
       [TOOL.GRAB]: new GrabTool(this.mainCanvas),
-      [TOOL.HAND]: new HandTool(this),
-      [TOOL.ZOOM]: new ZoomTool(this),
-      [TOOL.SCALE]: new ScaleTool(this),
-      [TOOL.ROTATE]: new RotateTool(this),
+      [TOOL.HAND]: new HandTool(this.mainCanvas),
+      [TOOL.ZOOM]: new ZoomTool(this.mainCanvas),
+      [TOOL.SCALE]: new ScaleTool(this.mainCanvas),
+      [TOOL.ROTATE]: new RotateTool(this.mainCanvas),
     };
     this.tools[this.currentTool].equipTool();
 
@@ -243,34 +243,34 @@ export class WorkArea {
     }
   }
 
-  private handleKeyUp(event: KeyboardEvent): void {
-    if (this.currentTool === TOOL.ZOOM || this.currentTool === TOOL.HAND) {
-      switch (event.code) {
-        case "KeyZ":
-        case "Space":
-          this.tools[this.currentTool].handleKeyUp(event);
-          this.currentTool = TOOL.SELECT;
-          console.log("SELECTING");
-          return;
-      }
-    }
-  }
+  //private handlekeyup(event: keyboardevent): void {
+  //  if (this.currenttool === tool.zoom || this.currenttool === tool.hand) {
+  //    switch (event.code) {
+  //      case "keyz":
+  //      case "space":
+  //        this.tools[this.currenttool].handlekeyup(event);
+  //        this.currenttool = tool.select;
+  //        console.log("selecting");
+  //        return;
+  //    }
+  //  }
+  //}
 
-  private handleKeyDown(event: KeyboardEvent): void {
-    if (this.currentTool === TOOL.SELECT) {
-      switch (event.code) {
-        case "Space":
-          this.currentTool = TOOL.HAND;
-          console.log("MOVING");
-          break;
-        case "KeyZ":
-          this.currentTool = TOOL.ZOOM;
-          console.log("ZOOMING");
-          break;
-      }
-      this.tools[this.currentTool].handleKeyDown(event);
-    }
-  }
+  //private handlekeydown(event: keyboardevent): void {
+  //  if (this.currenttool === tool.select) {
+  //    switch (event.code) {
+  //      case "space":
+  //        this.currenttool = tool.hand;
+  //        console.log("moving");
+  //        break;
+  //      case "keyz":
+  //        this.currenttool = tool.zoom;
+  //        console.log("zooming");
+  //        break;
+  //    }
+  //    this.tools[this.currenttool].handlekeydown(event);
+  //  }
+  //}
 
   public removeTransformBox(): void {
     if (this.transformBox) {
@@ -301,19 +301,19 @@ export class WorkArea {
     };
   }
 
-  private handleMouseDown(event: MouseEvent): void {
-    this.tools[this.currentTool].handleMouseDown(event);
-  }
-
-  private handleMouseMove(event: MouseEvent): void {
-    const { offsetX, offsetY } = event;
-    this.mouse = { position: { x: offsetX, y: offsetY } };
-    this.tools[this.currentTool].handleMouseMove(event);
-  }
-
-  private handleMouseUp(event: MouseEvent): void {
-    this.tools[this.currentTool].handleMouseUp(event);
-  }
+  //private handleMouseDown(event: MouseEvent): void {
+  //  this.tools[this.currentTool].handleMouseDown(event);
+  //}
+  //
+  //private handleMouseMove(event: MouseEvent): void {
+  //  const { offsetX, offsetY } = event;
+  //  this.mouse = { position: { x: offsetX, y: offsetY } };
+  //  this.tools[this.currentTool].handleMouseMove(event);
+  //}
+  //
+  //private handleMouseUp(event: MouseEvent): void {
+  //  this.tools[this.currentTool].handleMouseUp(event);
+  //}
 
   public static getInstance(): WorkArea {
     if (this.instance === null) {

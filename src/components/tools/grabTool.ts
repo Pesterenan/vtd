@@ -1,6 +1,6 @@
 import EVENT from "../../utils/customEvents";
 import { Element } from "../element";
-import { MOUSE_BUTTONS, Position } from "../types";
+import { Position } from "../types";
 import { WorkArea } from "../workArea";
 import { Tool } from "./abstractTool";
 import centerHandleMove from "../../components/transformBox/assets/centerHandleMove.svg";
@@ -8,19 +8,16 @@ import { BB } from "../../utils/bb";
 import { TransformBox } from "../transformBox/transformBox";
 
 export class GrabTool extends Tool {
-  private startingPosition: Position | null = null;
   private lastPosition: Position | null = null;
   private toolIcon: HTMLImageElement | null = null;
   private selectedElements: Element[] | null = null;
   private isDraggingCenter = false;
   private transformBox: TransformBox | null = null;
-  private onMouseDown: ((evt: MouseEvent) => void) | null = null;
   private onHover: ((evt: MouseEvent) => void) | null = null;
   private isHovering = false;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
-    this.context = canvas.getContext("2d");
     this.toolIcon = new Image(20, 20);
     this.toolIcon.src = centerHandleMove;
   }
@@ -48,33 +45,22 @@ export class GrabTool extends Tool {
 
     this.selectedElements = WorkArea.getInstance().getSelectedElements();
     this.transformBox = WorkArea.getInstance().transformBox;
-    this.onMouseDown = (evt: MouseEvent) => {
-      this.handleMouseDown(evt);
-      const onMouseMove = (evt: MouseEvent) => this.handleMouseMove(evt);
-      const onMouseUp = (evt: MouseEvent): void => {
-        this.handleMouseUp(evt);
-        this.canvas.removeEventListener("mouseup", onMouseUp);
-        this.canvas.removeEventListener("mousemove", onMouseMove);
-      };
 
-      this.canvas.addEventListener("mousemove", onMouseMove);
-      this.canvas.addEventListener("mouseup", onMouseUp);
-    };
     this.canvas.addEventListener("mousedown", this.onMouseDown);
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   unequipTool(): void {
-    if (this.onMouseDown) {
-      this.canvas.removeEventListener("mousedown", this.onMouseDown);
-      this.transformBox = null;
-      this.resetTool();
+    super.unequipTool();
+    if (this.onHover) {
+      this.canvas.removeEventListener("mousemove", this.onHover);
     }
+    this.transformBox = null;
+    this.resetTool();
   }
 
   draw(): void {
-    if (!this.context) throw new Error("Couldn't draw grab tool");
-    if (this.toolIcon && this.transformBox) {
+    if (this.toolIcon && this.transformBox && this.context) {
       const centerPosition = this.transformBox.getCenter();
       const workAreaZoom = WorkArea.getInstance().zoomLevel;
       const workAreaOffset = WorkArea.getInstance().offset;
@@ -107,36 +93,23 @@ export class GrabTool extends Tool {
       const centerBB = new BB(transformBoxCenter, 8);
       if (centerBB.isPointWithinBB(mouseDownPosition)) {
         this.isDraggingCenter = true;
-        this.startingPosition = { x: evt.offsetX, y: evt.offsetY };
         this.lastPosition = { x: evt.offsetX, y: evt.offsetY };
+        this.canvas.addEventListener("mousemove", this.onMouseMove);
+        this.canvas.addEventListener("mouseup", this.onMouseUp);
       }
     }
   }
 
-  handleMouseUp(event: MouseEvent): void {
-    if (event.button === MOUSE_BUTTONS.LEFT) {
-      if (this.isDraggingCenter) {
-        console.log("Accept position");
-        this.resetTool();
-      }
+  handleMouseUp(): void {
+    if (this.isDraggingCenter) {
+      console.log("Accept position");
+      this.canvas.removeEventListener("mousemove", this.onMouseMove);
+      this.canvas.removeEventListener("mouseup", this.onMouseUp);
+      this.resetTool();
     }
-    //if (event.button === MOUSE_BUTTONS.RIGHT) {
-    //  if (this.selectedElements) {
-    //    if (this.startingPosition && this.lastPosition) {
-    //      const delta = {
-    //        x: this.startingPosition.x - this.lastPosition.x,
-    //        y: this.startingPosition.y - this.lastPosition.y,
-    //      };
-    //      const adjustedDelta = WorkArea.getInstance().adjustForZoom(delta);
-    //      GrabTool.moveSelectedElements(this.selectedElements, adjustedDelta);
-    //    }
-    //    console.log("Reset position");
-    //  }
-    //}
   }
 
   resetTool() {
-    this.startingPosition = null;
     this.lastPosition = null;
     this.isDraggingCenter = false;
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));

@@ -1,83 +1,127 @@
 import EVENT from "../../utils/customEvents";
 import { Element } from "../element";
-import { MOUSE_BUTTONS, MouseStatus, Position, TOOL } from "../types";
+import { MOUSE_BUTTONS, Position } from "../types";
 import { WorkArea } from "../workArea";
 import { Tool } from "./abstractTool";
 import centerHandleRotate from "../../components/transformBox/assets/centerHandleRotate.svg";
+import { TransformBox } from "../transformBox/transformBox";
 
 export class RotateTool extends Tool {
   private startingPosition: Position | null = null;
   private centerPosition: Position | null = null;
   private lastRotation = 0;
   private toolIcon: HTMLImageElement | null = null;
+  private transformBox: TransformBox | null = null;
   private selectedElements: Element[] | null = null;
-  private resetParameters: { position: Position; rotation: number }[] | null =
-    null;
+  private isRotating = false;
 
-  constructor(workArea: WorkArea) {
-    super(workArea);
-    this.toolIcon = new Image(12, 12);
+  constructor(canvas: HTMLCanvasElement) {
+    super(canvas);
+    this.toolIcon = new Image(20, 20);
     this.toolIcon.src = centerHandleRotate;
   }
 
-  initializeTool(): void {
-    if (!this.startingPosition && this.workArea.transformBox) {
-      this.startingPosition = this.workArea.mouse.position;
-      this.centerPosition = this.workArea.transformBox.getCenter();
+  equipTool(): void {
+    this.transformBox = WorkArea.getInstance().transformBox;
+    this.selectedElements = WorkArea.getInstance().getSelectedElements();
+
+    if (this.transformBox) {
+      this.centerPosition = this.transformBox.getCenter();
       this.lastRotation = 0;
-      this.selectedElements = this.workArea.getSelectedElements();
-      if (this.selectedElements) {
-        this.resetParameters = this.selectedElements.map((el) => ({
-          position: { ...el.position },
-          rotation: el.rotation,
-        }));
-      }
-      this.workArea.transformBox.centerHandle = this.toolIcon;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
-  }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleMouseDown(): void {}
-
-  handleMouseUp(event: MouseEvent): void {
-    if (event.button === MOUSE_BUTTONS.LEFT) {
-      console.log("Accept rotation");
-    }
-    if (event.button === MOUSE_BUTTONS.RIGHT) {
-      if (this.selectedElements) {
-        this.selectedElements.forEach((element, index) => {
-          if (this.resetParameters) {
-            element.position = this.resetParameters[index].position;
-            element.rotation = this.resetParameters[index].rotation;
-          }
-        });
-        console.log("Reset rotation");
-      }
-    }
-    this.startingPosition = null;
-    this.lastRotation = 0;
-    this.workArea.mouse.status = MouseStatus.UP;
-    this.workArea.currentTool = TOOL.SELECT;
+    super.equipTool();
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
-  handleMouseMove(event: MouseEvent): void {
-    if (this.workArea.transformBox) {
-      if (this.selectedElements && this.startingPosition) {
-        const deltaX = event.offsetX - this.startingPosition.x;
+  unequipTool(): void {
+    super.unequipTool();
+    this.transformBox = null;
+    this.resetTool();
+  }
 
-        let angle = deltaX % 360;
-        if (angle < 0) {
-          angle += 360;
-        }
-        RotateTool.rotateSelectedElements(
-          this.selectedElements,
-          this.centerPosition,
-          angle - this.lastRotation,
-        );
-        this.lastRotation = angle;
+  draw(): void {
+    if (
+      this.toolIcon &&
+      this.transformBox &&
+      this.centerPosition &&
+      this.context
+    ) {
+      const workAreaZoom = WorkArea.getInstance().zoomLevel;
+      const workAreaOffset = WorkArea.getInstance().offset;
+
+      this.context.save();
+      this.context.translate(workAreaOffset.x, workAreaOffset.y);
+      this.context.scale(workAreaZoom, workAreaZoom);
+      this.context.drawImage(
+        this.toolIcon,
+        this.centerPosition.x - (this.toolIcon.width * 0.5) / workAreaZoom,
+        this.centerPosition.y - (this.toolIcon.height * 0.5) / workAreaZoom,
+        this.toolIcon.width / workAreaZoom,
+        this.toolIcon.height / workAreaZoom,
+      );
+      this.context.restore();
+    }
+  }
+
+  resetTool() {
+    this.startingPosition = null;
+    this.centerPosition = null;
+    this.isRotating = false;
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  handleMouseDown(evt: MouseEvent): void {
+    if (evt.altKey && this.transformBox) {
+      evt.preventDefault();
+      evt.stopPropagation();
+      this.centerPosition = WorkArea.getInstance().adjustForZoom({
+        x: evt.offsetX - WorkArea.getInstance().offset.x,
+        y: evt.offsetY - WorkArea.getInstance().offset.y,
+      });
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      return;
+    }
+    if (!this.isRotating) {
+      this.isRotating = true;
+      this.startingPosition = { x: evt.offsetX, y: evt.offsetY };
+      this.canvas.addEventListener("mousemove", this.onMouseMove);
+      this.canvas.addEventListener("mouseup", this.onMouseUp);
+    }
+  }
+
+  handleMouseUp(evt: MouseEvent): void {
+    if (evt.button === MOUSE_BUTTONS.LEFT) {
+      console.log("Accept rotation");
+    }
+    this.isRotating = false;
+    this.startingPosition = null;
+    this.lastRotation = 0;
+    this.canvas.removeEventListener("mousemove", this.onMouseMove);
+    this.canvas.removeEventListener("mouseup", this.onMouseUp);
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+  }
+
+  handleMouseMove(evt: MouseEvent): void {
+    if (
+      this.isRotating &&
+      this.transformBox &&
+      this.selectedElements &&
+      this.startingPosition
+    ) {
+      const deltaX = evt.offsetX - this.startingPosition.x;
+
+      let angle = deltaX % 360;
+      if (angle < 0) {
+        angle += 360;
       }
+      RotateTool.rotateSelectedElements(
+        this.selectedElements,
+        this.centerPosition,
+        angle - this.lastRotation,
+      );
+      this.lastRotation = angle;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }

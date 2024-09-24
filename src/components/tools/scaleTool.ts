@@ -6,6 +6,9 @@ import { Tool } from "./abstractTool";
 import centerHandleScale from "../../components/transformBox/assets/centerHandleScale.svg";
 
 export class ScaleTool extends Tool {
+  draw(): void {
+    throw new Error("Method not implemented.");
+  }
   private startingPosition: Position | null = null;
   private centerPosition: Position | null = null;
   private lastPosition: Position | null = null;
@@ -13,25 +16,25 @@ export class ScaleTool extends Tool {
   private selectedElements: Element[] | null = null;
   private resetParameters: { position: Position; scale: Scale }[] | null = null;
 
-  constructor(workArea: WorkArea) {
-    super(workArea);
+  constructor(canvas: HTMLCanvasElement) {
+    super(canvas);
     this.toolIcon = new Image(12, 12);
     this.toolIcon.src = centerHandleScale;
   }
 
   initializeTool(): void {
-    if (!this.startingPosition && this.workArea.transformBox) {
-      this.startingPosition = this.workArea.mouse.position;
-      this.centerPosition = this.workArea.transformBox.getCenter();
+    if (!this.startingPosition && this.canvas.transformBox) {
+      this.startingPosition = this.canvas.mouse.position;
+      this.centerPosition = this.canvas.transformBox.getCenter();
       this.lastPosition = this.startingPosition;
-      this.selectedElements = this.workArea.getSelectedElements();
+      this.selectedElements = this.canvas.getSelectedElements();
       if (this.selectedElements) {
         this.resetParameters = this.selectedElements.map((el) => ({
           position: { ...el.position },
           scale: { ...el.scale },
         }));
       }
-      this.workArea.transformBox.centerHandle = this.toolIcon;
+      this.canvas.transformBox.centerHandle = this.toolIcon;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
@@ -56,13 +59,13 @@ export class ScaleTool extends Tool {
     }
     this.startingPosition = null;
     this.lastPosition = null;
-    this.workArea.mouse.status = MouseStatus.UP;
-    this.workArea.currentTool = TOOL.SELECT;
+    this.canvas.mouse.status = MouseStatus.UP;
+    this.canvas.currentTool = TOOL.SELECT;
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   handleMouseMove(event: MouseEvent): void {
-    if (this.workArea.transformBox) {
+    if (this.canvas.transformBox) {
       if (this.selectedElements && this.lastPosition) {
         const deltaX = event.offsetX - this.lastPosition.x;
         const deltaY = event.offsetY - this.lastPosition.y;
