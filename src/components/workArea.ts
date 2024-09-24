@@ -136,8 +136,8 @@ export class WorkArea {
   private createEventListeners(): void {
     if (this.mainCanvas) {
       window.addEventListener("keypress", this.changeTool.bind(this));
-      //window.addEventListener("keydown", this.handleKeyDown.bind(this));
-      //window.addEventListener("keyup", this.handleKeyUp.bind(this));
+      window.addEventListener("keydown", this.handleKeyDown.bind(this));
+      window.addEventListener("keyup", this.handleKeyUp.bind(this));
       window.addEventListener("resize", this.handleResize.bind(this));
 
       window.addEventListener(EVENT.UPDATE_WORKAREA, this.update.bind(this));
@@ -243,34 +243,37 @@ export class WorkArea {
     }
   }
 
-  //private handlekeyup(event: keyboardevent): void {
-  //  if (this.currenttool === tool.zoom || this.currenttool === tool.hand) {
-  //    switch (event.code) {
-  //      case "keyz":
-  //      case "space":
-  //        this.tools[this.currenttool].handlekeyup(event);
-  //        this.currenttool = tool.select;
-  //        console.log("selecting");
-  //        return;
-  //    }
-  //  }
-  //}
+  private handleKeyUp(event: KeyboardEvent): void {
+    if (this.currentTool === TOOL.ZOOM || this.currentTool === TOOL.HAND) {
+      switch (event.code) {
+        case "KeyZ":
+        case "Space":
+          this.tools[this.currentTool].unequipTool();
+          this.currentTool = TOOL.SELECT;
+          console.log("selecting");
+          this.tools[this.currentTool].equipTool();
+          return;
+      }
+    }
+  }
 
-  //private handlekeydown(event: keyboardevent): void {
-  //  if (this.currenttool === tool.select) {
-  //    switch (event.code) {
-  //      case "space":
-  //        this.currenttool = tool.hand;
-  //        console.log("moving");
-  //        break;
-  //      case "keyz":
-  //        this.currenttool = tool.zoom;
-  //        console.log("zooming");
-  //        break;
-  //    }
-  //    this.tools[this.currenttool].handlekeydown(event);
-  //  }
-  //}
+  private handleKeyDown(event: KeyboardEvent): void {
+    event.preventDefault();
+    if (this.currentTool === TOOL.SELECT) {
+      this.tools[this.currentTool].unequipTool();
+      switch (event.code) {
+        case "Space":
+          this.currentTool = TOOL.HAND;
+          console.log("moving");
+          break;
+        case "KeyZ":
+          this.currentTool = TOOL.ZOOM;
+          console.log("zooming");
+          break;
+      }
+      this.tools[this.currentTool].equipTool();
+    }
+  }
 
   public removeTransformBox(): void {
     if (this.transformBox) {

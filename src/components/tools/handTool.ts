@@ -1,43 +1,53 @@
 import EVENT from "../../utils/customEvents";
 import { Position } from "../types";
+import { WorkArea } from "../workArea";
 import { Tool } from "./abstractTool";
 
 export class HandTool extends Tool {
-  draw(): void {
-    throw new Error("Method not implemented.");
-  }
-  private previousMousePosition: Position | null = null;
+  private startingPosition: Position | null = null;
+  private isMoving = false;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  initializeTool(): void {}
+  draw(): void {}
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleMouseDown(): void {}
+  equipTool(): void {
+    super.equipTool();
+  }
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleMouseUp(): void {}
+  unequipTool(): void {
+    super.unequipTool();
+  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  handleMouseDown(evt: MouseEvent): void {
+    this.isMoving = true;
+    this.startingPosition = { x: evt.offsetX, y: evt.offsetY };
+    super.handleMouseDown();
+  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  handleMouseUp(): void {
+    this.startingPosition = null;
+    super.handleMouseUp();
+  }
 
-  handleMouseMove(event: MouseEvent): void {
-    if (this.previousMousePosition) {
-      const { offsetX, offsetY } = event;
-      const deltaX = offsetX - this.previousMousePosition.x;
-      const deltaY = offsetY - this.previousMousePosition.y;
-      this.canvas.offset.x += deltaX;
-      this.canvas.offset.y += deltaY;
+  handleMouseMove(evt: MouseEvent): void {
+    if (this.startingPosition && this.isMoving) {
+      const { offsetX, offsetY } = evt;
+      const deltaX = offsetX - this.startingPosition.x;
+      const deltaY = offsetY - this.startingPosition.y;
+      WorkArea.getInstance().offset.x += deltaX;
+      WorkArea.getInstance().offset.y += deltaY;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-      this.previousMousePosition = { x: offsetX, y: offsetY };
+      this.startingPosition = { x: offsetX, y: offsetY };
     }
   }
 
-  handleKeyDown(): void {
-    if (!this.previousMousePosition) {
-      this.previousMousePosition = this.canvas.mouse.position;
-    }
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  handleKeyDown(): void {}
 
-  handleKeyUp(): void {
-    this.previousMousePosition = null;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  handleKeyUp(): void {}
 }
