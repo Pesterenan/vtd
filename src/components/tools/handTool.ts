@@ -13,14 +13,15 @@ export class HandTool extends Tool {
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   draw(): void {}
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+
   equipTool(): void {
     super.equipTool();
   }
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+
   unequipTool(): void {
     super.unequipTool();
   }
+
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseDown(evt: MouseEvent): void {
     this.isMoving = true;
@@ -33,9 +34,8 @@ export class HandTool extends Tool {
     super.handleMouseUp();
   }
 
-  handleMouseMove(evt: MouseEvent): void {
+  handleMouseMove({ offsetX, offsetY }: MouseEvent): void {
     if (this.startingPosition && this.isMoving) {
-      const { offsetX, offsetY } = evt;
       const deltaX = offsetX - this.startingPosition.x;
       const deltaY = offsetY - this.startingPosition.y;
       WorkArea.getInstance().offset.x += deltaX;

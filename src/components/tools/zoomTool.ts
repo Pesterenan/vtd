@@ -8,28 +8,69 @@ const MIN_ZOOM_LEVEL = 0.1;
 const MAX_ZOOM_LEVEL = 2.0;
 
 export class ZoomTool extends Tool {
-  draw(): void {
-    throw new Error("Method not implemented.");
-  }
-  private previousMousePosition: Position | null = null;
+  private startingPosition: Position | null = null;
+  private isZooming = false;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  initializeTool(): void {}
+  draw(): void {
+    if (this.context && this.startingPosition) {
+      this.context.save();
+      this.context.fillStyle = "black";
+
+      this.context.font = "bold 16px serif";
+      this.context.fillText(
+        `Zoom: ${Number(WorkArea.getInstance().zoomLevel).toFixed(2)}`,
+        this.canvas.clientTop + 20,
+        this.canvas.clientLeft + 20,
+      );
+      this.context.restore();
+    }
+  }
+
+  equipTool(): void {
+    this.draw();
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    super.equipTool();
+  }
+
+  unequipTool(): void {
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    super.unequipTool();
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleMouseDown(): void {}
+  handleMouseDown(evt: MouseEvent): void {
+    this.isZooming = true;
+    const currentZoomPosition = remap(
+      MIN_ZOOM_LEVEL,
+      MAX_ZOOM_LEVEL,
+      0,
+      this.canvas.width,
+      WorkArea.getInstance().zoomLevel,
+      true,
+    );
+    this.startingPosition = {
+      x: evt.offsetX - currentZoomPosition,
+      y: evt.offsetY,
+    };
+    super.handleMouseDown();
+  }
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleMouseUp(): void {}
+  handleMouseUp(): void {
+    this.startingPosition = null;
+    super.handleMouseUp();
+  }
 
   handleMouseMove({ offsetX }: MouseEvent): void {
-    if (this.previousMousePosition && this.canvas) {
-      const deltaX = offsetX - this.previousMousePosition.x;
+    if (this.startingPosition && this.isZooming) {
+      const deltaX = offsetX - this.startingPosition.x;
       const newZoomLevel = remap(
         0,
-        this.canvas.width * 0.7,
+        this.canvas.width,
         MIN_ZOOM_LEVEL,
         MAX_ZOOM_LEVEL,
         deltaX,
@@ -40,22 +81,9 @@ export class ZoomTool extends Tool {
     }
   }
 
-  handleKeyDown(): void {
-    if (!this.previousMousePosition && this.canvas) {
-      const currentZoomPosition = remap(
-        MIN_ZOOM_LEVEL,
-        MAX_ZOOM_LEVEL,
-        0,
-        this.canvas.width * 0.7,
-        WorkArea.getInstance().zoomLevel,
-        true,
-      );
-      this.previousMousePosition = this.canvas.mouse.position;
-      this.previousMousePosition.x -= currentZoomPosition;
-    }
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  handleKeyDown(): void {}
 
-  handleKeyUp(): void {
-    this.previousMousePosition = null;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  handleKeyUp(): void {}
 }
