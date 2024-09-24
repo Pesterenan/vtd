@@ -2,7 +2,7 @@ import EVENT from "../../utils/customEvents";
 import getElementById from "../../utils/getElementById";
 import { Element } from "../element";
 import { GrabTool } from "../tools/grabTool";
-import { Position, Size } from "../types";
+import { BoundingBox, Position, Size } from "../types";
 import { WorkArea } from "../workArea";
 
 export class TransformBox {
@@ -12,6 +12,7 @@ export class TransformBox {
   public isHandleDragging = false;
   private context: CanvasRenderingContext2D | null;
   public centerHandle: HTMLImageElement | null = null;
+  public boundingBox: BoundingBox | null = null;
 
   private xPosInput: {
     element: HTMLInputElement;
@@ -147,6 +148,12 @@ export class TransformBox {
 
     this.position = { x: minX, y: minY };
     this.size = { width: maxX - minX, height: maxY - minY };
+    this.boundingBox = {
+      x1: this.position.x,
+      y1: this.position.y,
+      x2: this.size.width,
+      y2: this.size.height,
+    };
     window.dispatchEvent(
       new CustomEvent(EVENT.RECALCULATE_TRANSFORM_BOX, {
         detail: { position: this.getCenter(), size: this.size },

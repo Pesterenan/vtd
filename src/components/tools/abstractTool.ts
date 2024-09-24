@@ -14,6 +14,7 @@ export abstract class Tool {
     this.onMouseUp = this.handleMouseUp.bind(this);
   }
 
+  abstract draw(): void;
   equipTool(): void {
     this.canvas.addEventListener("mousedown", this.onMouseDown);
   }
@@ -22,10 +23,17 @@ export abstract class Tool {
     this.canvas.removeEventListener("mousemove", this.onMouseMove);
     this.canvas.removeEventListener("mouseup", this.onMouseUp);
   }
-  abstract draw(): void;
-  abstract handleMouseDown(event: MouseEvent): void;
-  abstract handleMouseUp(event: MouseEvent): void;
-  abstract handleMouseMove(event: MouseEvent): void;
-  abstract handleKeyDown(event: KeyboardEvent): void;
-  abstract handleKeyUp(event: KeyboardEvent): void;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  handleMouseDown(_evt?: MouseEvent): void {
+    this.canvas.addEventListener("mousemove", this.onMouseMove);
+    this.canvas.addEventListener("mouseup", this.onMouseUp);
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  handleMouseUp(_evt?: MouseEvent): void {
+    this.canvas.removeEventListener("mousemove", this.onMouseMove);
+    this.canvas.removeEventListener("mouseup", this.onMouseUp);
+  }
+  abstract handleMouseMove(evt: MouseEvent): void;
+  abstract handleKeyDown(evt: KeyboardEvent): void;
+  abstract handleKeyUp(evt: KeyboardEvent): void;
 }

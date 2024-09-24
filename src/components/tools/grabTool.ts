@@ -46,7 +46,7 @@ export class GrabTool extends Tool {
     this.selectedElements = WorkArea.getInstance().getSelectedElements();
     this.transformBox = WorkArea.getInstance().transformBox;
 
-    this.canvas.addEventListener("mousedown", this.onMouseDown);
+    super.equipTool();
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -94,8 +94,7 @@ export class GrabTool extends Tool {
       if (centerBB.isPointWithinBB(mouseDownPosition)) {
         this.isDraggingCenter = true;
         this.lastPosition = { x: evt.offsetX, y: evt.offsetY };
-        this.canvas.addEventListener("mousemove", this.onMouseMove);
-        this.canvas.addEventListener("mouseup", this.onMouseUp);
+        super.handleMouseDown();
       }
     }
   }
@@ -103,8 +102,7 @@ export class GrabTool extends Tool {
   handleMouseUp(): void {
     if (this.isDraggingCenter) {
       console.log("Accept position");
-      this.canvas.removeEventListener("mousemove", this.onMouseMove);
-      this.canvas.removeEventListener("mouseup", this.onMouseUp);
+      super.handleMouseUp();
       this.resetTool();
     }
   }

@@ -1,20 +1,18 @@
 import EVENT from "../../utils/customEvents";
 import { Element } from "../element";
-import { MOUSE_BUTTONS, MouseStatus, Position, Scale, TOOL } from "../types";
-import { WorkArea } from "../workArea";
+import { Position, Scale } from "../types";
 import { Tool } from "./abstractTool";
 import centerHandleScale from "../../components/transformBox/assets/centerHandleScale.svg";
+import { WorkArea } from "../workArea";
+import { TransformBox } from "../transformBox/transformBox";
 
 export class ScaleTool extends Tool {
-  draw(): void {
-    throw new Error("Method not implemented.");
-  }
   private startingPosition: Position | null = null;
   private centerPosition: Position | null = null;
-  private lastPosition: Position | null = null;
   private toolIcon: HTMLImageElement | null = null;
   private selectedElements: Element[] | null = null;
-  private resetParameters: { position: Position; scale: Scale }[] | null = null;
+  private transformBox: TransformBox | null = null;
+  private isScaling = false;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -22,64 +20,89 @@ export class ScaleTool extends Tool {
     this.toolIcon.src = centerHandleScale;
   }
 
-  initializeTool(): void {
-    if (!this.startingPosition && this.canvas.transformBox) {
-      this.startingPosition = this.canvas.mouse.position;
-      this.centerPosition = this.canvas.transformBox.getCenter();
-      this.lastPosition = this.startingPosition;
-      this.selectedElements = this.canvas.getSelectedElements();
-      if (this.selectedElements) {
-        this.resetParameters = this.selectedElements.map((el) => ({
-          position: { ...el.position },
-          scale: { ...el.scale },
-        }));
-      }
-      this.canvas.transformBox.centerHandle = this.toolIcon;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+  equipTool(): void {
+    this.selectedElements = WorkArea.getInstance().getSelectedElements();
+    this.transformBox = WorkArea.getInstance().transformBox;
+    if (this.transformBox) {
+      this.centerPosition = this.transformBox.getCenter();
+    }
+    super.equipTool();
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+  }
+
+  unequipTool(): void {
+    super.unequipTool();
+    this.transformBox = null;
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+  }
+
+  draw(): void {
+    if (
+      this.toolIcon &&
+      this.transformBox &&
+      this.centerPosition &&
+      this.context
+    ) {
+      const workAreaZoom = WorkArea.getInstance().zoomLevel;
+      const workAreaOffset = WorkArea.getInstance().offset;
+
+      this.context.save();
+      this.context.translate(workAreaOffset.x, workAreaOffset.y);
+      this.context.scale(workAreaZoom, workAreaZoom);
+      this.context.drawImage(
+        this.toolIcon,
+        this.centerPosition.x - (this.toolIcon.width * 0.5) / workAreaZoom,
+        this.centerPosition.y - (this.toolIcon.height * 0.5) / workAreaZoom,
+        this.toolIcon.width / workAreaZoom,
+        this.toolIcon.height / workAreaZoom,
+      );
+      this.context.restore();
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleMouseDown(): void {}
+  handleMouseDown(evt: MouseEvent): void {
+    if (evt.altKey && this.transformBox) {
+      this.centerPosition = WorkArea.getInstance().adjustForZoom({
+        x: evt.offsetX - WorkArea.getInstance().offset.x,
+        y: evt.offsetY - WorkArea.getInstance().offset.y,
+      });
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      return;
+    }
+    if (!this.isScaling) {
+      this.isScaling = true;
+      this.startingPosition = { x: evt.offsetX, y: evt.offsetY };
+      super.handleMouseDown();
+    }
+  }
 
-  handleMouseUp(event: MouseEvent): void {
-    if (event.button === MOUSE_BUTTONS.LEFT) {
-      console.log("Accept scale");
-    }
-    if (event.button === MOUSE_BUTTONS.RIGHT) {
-      if (this.selectedElements) {
-        this.selectedElements.forEach((element, index) => {
-          if (this.resetParameters) {
-            element.position = this.resetParameters[index].position;
-            element.scale = this.resetParameters[index].scale;
-          }
-        });
-        console.log("Reset scale");
-      }
-    }
+  handleMouseUp(): void {
     this.startingPosition = null;
-    this.lastPosition = null;
-    this.canvas.mouse.status = MouseStatus.UP;
-    this.canvas.currentTool = TOOL.SELECT;
+    this.isScaling = false;
+    super.handleMouseUp();
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   handleMouseMove(event: MouseEvent): void {
-    if (this.canvas.transformBox) {
-      if (this.selectedElements && this.lastPosition) {
-        const deltaX = event.offsetX - this.lastPosition.x;
-        const deltaY = event.offsetY - this.lastPosition.y;
-        const delta = { x: 1 + deltaX / 100, y: 1 + deltaY / 100 };
-        ScaleTool.scaleSelectedElements(
-          this.selectedElements,
-          this.centerPosition,
-          delta,
-        );
-        this.lastPosition = {
-          x: event.offsetX,
-          y: event.offsetY,
-        };
-      }
+    if (
+      this.transformBox &&
+      this.selectedElements &&
+      this.startingPosition &&
+      this.isScaling
+    ) {
+      const deltaX = event.offsetX - this.startingPosition.x;
+      const deltaY = event.offsetY - this.startingPosition.y;
+      const delta = { x: 1 + deltaX / 100, y: 1 + deltaY / 100 };
+      ScaleTool.scaleSelectedElements(
+        this.selectedElements,
+        this.centerPosition,
+        delta,
+      );
+      this.startingPosition = {
+        x: event.offsetX,
+        y: event.offsetY,
+      };
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }

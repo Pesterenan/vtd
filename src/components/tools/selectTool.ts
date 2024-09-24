@@ -34,8 +34,7 @@ export class SelectTool extends Tool {
   handleMouseDown(evt: MouseEvent): void {
     const { offsetX, offsetY } = evt;
     this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY };
-    this.canvas.addEventListener("mousemove", this.onMouseMove);
-    this.canvas.addEventListener("mouseup", this.onMouseUp);
+    super.handleMouseDown();
   }
 
   handleMouseMove(evt: MouseEvent): void {
@@ -56,8 +55,7 @@ export class SelectTool extends Tool {
       WorkArea.getInstance().selectElements(this.selection);
       this.selection = null;
     }
-    this.canvas.removeEventListener("mousemove", this.onMouseMove);
-    this.canvas.removeEventListener("mouseup", this.onMouseUp);
+    super.handleMouseUp();
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 

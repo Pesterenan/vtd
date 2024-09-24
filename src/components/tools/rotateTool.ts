@@ -24,12 +24,10 @@ export class RotateTool extends Tool {
   equipTool(): void {
     this.transformBox = WorkArea.getInstance().transformBox;
     this.selectedElements = WorkArea.getInstance().getSelectedElements();
-
     if (this.transformBox) {
       this.centerPosition = this.transformBox.getCenter();
       this.lastRotation = 0;
     }
-
     super.equipTool();
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
@@ -74,8 +72,6 @@ export class RotateTool extends Tool {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseDown(evt: MouseEvent): void {
     if (evt.altKey && this.transformBox) {
-      evt.preventDefault();
-      evt.stopPropagation();
       this.centerPosition = WorkArea.getInstance().adjustForZoom({
         x: evt.offsetX - WorkArea.getInstance().offset.x,
         y: evt.offsetY - WorkArea.getInstance().offset.y,
@@ -86,8 +82,7 @@ export class RotateTool extends Tool {
     if (!this.isRotating) {
       this.isRotating = true;
       this.startingPosition = { x: evt.offsetX, y: evt.offsetY };
-      this.canvas.addEventListener("mousemove", this.onMouseMove);
-      this.canvas.addEventListener("mouseup", this.onMouseUp);
+      super.handleMouseDown();
     }
   }
 
@@ -98,8 +93,7 @@ export class RotateTool extends Tool {
     this.isRotating = false;
     this.startingPosition = null;
     this.lastRotation = 0;
-    this.canvas.removeEventListener("mousemove", this.onMouseMove);
-    this.canvas.removeEventListener("mouseup", this.onMouseUp);
+    super.handleMouseUp();
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
