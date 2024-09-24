@@ -59,7 +59,7 @@ export class WorkArea {
       [TOOL.SCALE]: new ScaleTool(this),
       [TOOL.ROTATE]: new RotateTool(this),
     };
-    this.tools[this.currentTool].initializeTool();
+    this.tools[this.currentTool].equipTool();
 
     const currentMousePosition = {
       x: this.mainCanvas.width * 0.5,
@@ -136,8 +136,8 @@ export class WorkArea {
   private createEventListeners(): void {
     if (this.mainCanvas) {
       window.addEventListener("keypress", this.changeTool.bind(this));
-      window.addEventListener("keydown", this.handleKeyDown.bind(this));
-      window.addEventListener("keyup", this.handleKeyUp.bind(this));
+      //window.addEventListener("keydown", this.handleKeyDown.bind(this));
+      //window.addEventListener("keyup", this.handleKeyUp.bind(this));
       window.addEventListener("resize", this.handleResize.bind(this));
 
       window.addEventListener(EVENT.UPDATE_WORKAREA, this.update.bind(this));
@@ -209,6 +209,7 @@ export class WorkArea {
   private changeTool(event: KeyboardEvent): void {
     if (this.currentTool === TOOL.SELECT) {
       if (this.transformBox) {
+        this.tools[this.currentTool].unequipTool();
         switch (event.code) {
           case "KeyG":
             this.currentTool = TOOL.GRAB;
@@ -228,8 +229,17 @@ export class WorkArea {
             this.removeSelectedElements();
             return;
         }
-        this.tools[this.currentTool].initializeTool();
+        this.tools[this.currentTool].equipTool();
       }
+    } else {
+      this.tools[this.currentTool].unequipTool();
+      switch (event.code) {
+        case "KeyV":
+          this.currentTool = TOOL.SELECT;
+          console.log("SELECTING");
+          break;
+      }
+      this.tools[this.currentTool].equipTool();
     }
   }
 
@@ -423,9 +433,7 @@ export class WorkArea {
     if (this.transformBox) {
       this.transformBox.draw();
     }
-    if (this.tools[this.currentTool].draw()) {
-      this.tools[this.currentTool].draw();
-    }
+    this.tools[this.currentTool].draw();
   }
 
   private clearCanvas(
