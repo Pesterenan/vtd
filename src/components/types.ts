@@ -1,14 +1,29 @@
+export interface IElementData {
+  position: Position;
+  rotation: number;
+  scale: Scale;
+  size: Size;
+  zDepth: number;
+  isVisible: boolean;
+  layerName: string;
+}
+
+export interface ITextElementData extends IElementData {
+  type: "text";
+  content: string;
+  font: string;
+  fontSize: number;
+}
+
+export interface IImageElementData extends IElementData {
+  type: "image";
+  image: string;
+}
+
+export type TElementData = IImageElementData | ITextElementData;
+
 export interface IProjectData {
-  elements: {
-    image: string;
-    position: Position;
-    rotation: number;
-    scale: Scale;
-    size: Size;
-    zDepth: number;
-    isVisible: boolean;
-    layerName: string;
-  }[];
+  elements: TElementData[];
 }
 
 export interface Rectangle {
@@ -31,7 +46,7 @@ export type Size = { width: number; height: number };
 export enum MouseStatus {
   DOWN,
   MOVE,
-  UP
+  UP,
 }
 
 /** Botões do mouse */
@@ -40,7 +55,7 @@ export enum MOUSE_BUTTONS {
   MIDDLE = 1,
   RIGHT = 2,
   BACK = 3,
-  FORWARD = 4
+  FORWARD = 4,
 }
 
 /**
@@ -60,5 +75,5 @@ export enum TOOL {
   /** @prop HAND - Mover área de trabalho */
   HAND,
   /** @prop ZOOM - Modificar zoom */
-  ZOOM
+  ZOOM,
 }

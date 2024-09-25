@@ -4,6 +4,7 @@ import { Tool } from "./tools/abstractTool";
 import { TransformBox } from "./transformBox/transformBox";
 import {
   BoundingBox,
+  TElementData,
   IProjectData,
   MouseStatus,
   Position,
@@ -16,6 +17,8 @@ import { RotateTool } from "./tools/rotateTool";
 import { ScaleTool } from "./tools/scaleTool";
 import EVENT from "../utils/customEvents";
 import getElementById from "../utils/getElementById";
+import { ImageElement } from "./imageElement";
+import { TextElement } from "./textElement";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -324,11 +327,30 @@ export class WorkArea {
     return this.instance;
   }
 
-  public loadProject(data: string): void {
-    window.dispatchEvent(new CustomEvent(EVENT.CLEAR_WORKAREA));
-    const projectData: IProjectData = JSON.parse(data);
-    this.elements = projectData.elements.map((elData) => {
-      const newElement = Element.deserialize(elData);
+  private createElementFromData(elData: TElementData): Element | null {
+    let newElement = null;
+    switch (elData.type) {
+      case "image":
+        newElement = new ImageElement(
+          elData.position,
+          elData.size,
+          elData.zDepth,
+        );
+        newElement.deserialize(elData);
+        break;
+      case "text":
+        newElement = new TextElement(
+          elData.position,
+          elData.size,
+          elData.zDepth,
+        );
+        newElement.deserialize(elData);
+        break;
+      default:
+        console.warn(`Unknown element type from data: ${elData}`);
+        break;
+    }
+    if (newElement) {
       window.dispatchEvent(
         new CustomEvent(EVENT.ADD_ELEMENT, {
           detail: {
@@ -337,8 +359,16 @@ export class WorkArea {
           },
         }),
       );
-      return newElement;
-    });
+    }
+    return newElement as Element;
+  }
+
+  public loadProject(data: string): void {
+    window.dispatchEvent(new CustomEvent(EVENT.CLEAR_WORKAREA));
+    const projectData: IProjectData = JSON.parse(data);
+    this.elements = projectData.elements
+      .map(this.createElementFromData)
+      .filter((el) => el !== null);
     this.selectElements();
     this.update();
   }
@@ -481,7 +511,7 @@ export class WorkArea {
     const height = 50;
     const x = Math.floor(Math.random() * this.workArea.canvas.width) - width;
     const y = Math.floor(Math.random() * this.workArea.canvas.height) - height;
-    const newElement = new Element(
+    const newElement = new ImageElement(
       { x, y },
       { width, height },
       this.elements.length,
@@ -501,7 +531,7 @@ export class WorkArea {
   public addImageElement(filePath: string): void {
     const x = this.workArea.canvas.width * 0.5;
     const y = this.workArea.canvas.height * 0.5;
-    const newElement = new Element(
+    const newElement = new ImageElement(
       { x, y },
       { width: 0, height: 0 },
       this.elements.length,
