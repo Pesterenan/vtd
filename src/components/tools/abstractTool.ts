@@ -4,6 +4,8 @@ export abstract class Tool {
   protected onMouseDown: (evt: MouseEvent) => void;
   protected onMouseMove: (evt: MouseEvent) => void;
   protected onMouseUp: (evt: MouseEvent) => void;
+  protected onKeyDown: (evt: KeyboardEvent) => void;
+  protected onKeyUp: (evt: KeyboardEvent) => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -12,6 +14,8 @@ export abstract class Tool {
     this.onMouseDown = this.handleMouseDown.bind(this);
     this.onMouseMove = this.handleMouseMove.bind(this);
     this.onMouseUp = this.handleMouseUp.bind(this);
+    this.onKeyDown = this.handleKeyDown.bind(this);
+    this.onKeyUp = this.handleKeyUp.bind(this);
   }
 
   abstract draw(): void;

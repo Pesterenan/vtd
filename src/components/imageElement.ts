@@ -1,10 +1,9 @@
 import { BB } from "../utils/bb";
 import EVENT from "../utils/customEvents";
 import { Element } from "./element";
-import { BoundingBox, IImageElementData, Position, Scale, Size } from "./types";
+import { BoundingBox, IImageElementData, Position, Size } from "./types";
 
 export class ImageElement extends Element {
-  public static elementIds = 0;
   public color: string;
   private corners: {
     upperLeft: Position;
