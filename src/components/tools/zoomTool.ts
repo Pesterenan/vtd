@@ -15,17 +15,28 @@ export class ZoomTool extends Tool {
     super(canvas);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   draw(): void {
     if (this.context && this.startingPosition) {
       this.context.save();
-      this.context.fillStyle = "black";
-
       this.context.font = "bold 16px serif";
+      this.context.strokeStyle = "black";
+      this.context.fillStyle = "white";
+      this.context.beginPath();
+      this.context.roundRect(
+        this.canvas.clientLeft + 10,
+        this.canvas.clientTop + 10,
+        90,
+        24,
+        5,
+      );
+      this.context.fill();
+      this.context.stroke();
+
+      this.context.fillStyle = "black";
       this.context.fillText(
         `Zoom: ${Number(WorkArea.getInstance().zoomLevel).toFixed(2)}`,
-        this.canvas.clientTop + 20,
-        this.canvas.clientLeft + 20,
+        this.canvas.clientLeft + 16,
+        this.canvas.clientTop + 28,
       );
       this.context.restore();
     }
@@ -62,6 +73,7 @@ export class ZoomTool extends Tool {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseUp(): void {
     this.startingPosition = null;
+    this.isZooming = false;
     super.handleMouseUp();
   }
 
@@ -76,6 +88,7 @@ export class ZoomTool extends Tool {
         deltaX,
         true,
       );
+
       WorkArea.getInstance().zoomLevel = newZoomLevel;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }

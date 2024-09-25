@@ -258,7 +258,6 @@ export class WorkArea {
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
-    event.preventDefault();
     if (this.currentTool === TOOL.SELECT) {
       this.tools[this.currentTool].unequipTool();
       switch (event.code) {
