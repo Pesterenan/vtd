@@ -76,4 +76,6 @@ export enum TOOL {
   HAND,
   /** @prop ZOOM - Modificar zoom */
   ZOOM,
+  /** @prop TEXT - Selecionar e editar texto */
+  TEXT,
 }

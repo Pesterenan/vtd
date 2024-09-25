@@ -19,6 +19,7 @@ import EVENT from "../utils/customEvents";
 import getElementById from "../utils/getElementById";
 import { ImageElement } from "./imageElement";
 import { TextElement } from "./textElement";
+import { TextTool } from "./tools/textTool";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -61,6 +62,7 @@ export class WorkArea {
       [TOOL.ZOOM]: new ZoomTool(this.mainCanvas),
       [TOOL.SCALE]: new ScaleTool(this.mainCanvas),
       [TOOL.ROTATE]: new RotateTool(this.mainCanvas),
+      [TOOL.TEXT]: new TextTool(this.mainCanvas),
     };
     this.tools[this.currentTool].equipTool();
 
@@ -210,9 +212,9 @@ export class WorkArea {
   }
 
   private changeTool(event: KeyboardEvent): void {
+    this.tools[this.currentTool].unequipTool();
     if (this.currentTool === TOOL.SELECT) {
       if (this.transformBox) {
-        this.tools[this.currentTool].unequipTool();
         switch (event.code) {
           case "KeyG":
             this.currentTool = TOOL.GRAB;
@@ -232,18 +234,20 @@ export class WorkArea {
             this.removeSelectedElements();
             return;
         }
-        this.tools[this.currentTool].equipTool();
       }
     } else {
-      this.tools[this.currentTool].unequipTool();
       switch (event.code) {
         case "KeyV":
           this.currentTool = TOOL.SELECT;
           console.log("SELECTING");
           break;
       }
-      this.tools[this.currentTool].equipTool();
     }
+    if (event.code === "KeyT") {
+      this.currentTool = TOOL.TEXT;
+      console.log("TEXT MODE, ACTIVATED!");
+    }
+    this.tools[this.currentTool].equipTool();
   }
 
   private handleKeyUp(event: KeyboardEvent): void {
@@ -504,6 +508,28 @@ export class WorkArea {
       );
       this.mainContext.restore();
     }
+  }
+
+  public addTextElement(): void {
+    const width = 10;
+    const height = 10;
+    const x = Math.floor(Math.random() * this.workArea.canvas.width) - width;
+    const y = Math.floor(Math.random() * this.workArea.canvas.height) - height;
+    const newElement = new TextElement(
+      { x, y },
+      { width, height },
+      this.elements.length,
+    );
+    this.elements.push(newElement);
+    window.dispatchEvent(
+      new CustomEvent(EVENT.ADD_ELEMENT, {
+        detail: {
+          elementId: newElement.elementId,
+          layerName: newElement.layerName,
+        },
+      }),
+    );
+    this.update();
   }
 
   public addElement(): void {

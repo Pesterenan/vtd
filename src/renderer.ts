@@ -8,6 +8,7 @@ const initializeVTD = (): void => {
     const workArea = WorkArea.getInstance();
     SideMenu.getInstance();
     workArea.addElement();
+    workArea.addTextElement();
     createEventListeners(workArea);
   });
 };
