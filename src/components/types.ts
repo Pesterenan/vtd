@@ -10,7 +10,7 @@ export interface IElementData {
 
 export interface ITextElementData extends IElementData {
   type: "text";
-  content: string;
+  content: string[];
   font: string;
   fontSize: number;
 }

@@ -2,10 +2,13 @@ import { Element } from "./element";
 import { BoundingBox, ITextElementData, Position, Size } from "./types";
 
 export class TextElement extends Element {
-  public content: string;
+  public content: string[];
   public font: string;
-  private fontSize: number;
-  public color: string;
+  public fontSize: number;
+  public strokeColor: string;
+  public fillColor: string;
+  public lineHeight: number;
+  public lineVerticalSpacing: number;
   private corners: {
     upperLeft: Position;
     upperRight: Position;
@@ -15,14 +18,17 @@ export class TextElement extends Element {
 
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
-    this.content = "Sample Text";
+    this.content = ["Sample", "Text"];
     this.font = "Arial";
     this.fontSize = 32;
+    this.lineHeight = 1.2;
+    this.lineVerticalSpacing = this.fontSize * this.lineHeight;
 
     const randomR = Math.floor(Math.random() * 99).toFixed(0);
     const randomG = Math.floor(Math.random() * 99).toFixed(0);
     const randomB = Math.floor(Math.random() * 99).toFixed(0);
-    this.color = `#${randomR.padEnd(2, "F")}${randomG.padEnd(2, "F")}${randomB.padEnd(2, "F")}`;
+    this.fillColor = `#${randomR.padEnd(2, "F")}${randomG.padEnd(2, "F")}${randomB.padEnd(2, "F")}`;
+    this.strokeColor = `#${randomR.padEnd(2, "F")}${randomG.padEnd(2, "F")}${randomB.padEnd(2, "F")}`;
 
     const halfWidth = this.size.width * 0.5 * this.scale.x;
     const halfHeight = this.size.height * 0.5 * this.scale.y;
@@ -52,11 +58,20 @@ export class TextElement extends Element {
 
   private updateBoundingBox(context: CanvasRenderingContext2D): void {
     context.save();
-    const metrics = context.measureText(this.content);
-    this.size.width =
-      metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight;
-    this.size.height =
-      metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+    const totalSize = this.content.reduce(
+      (acc, line) => {
+        const metrics = context.measureText(line);
+        const linewidth =
+          metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight;
+        if (acc.width < linewidth) {
+          acc.width = linewidth;
+        }
+        acc.height += this.lineVerticalSpacing;
+        return acc;
+      },
+      { width: 0, height: 0 },
+    );
+    this.size = { ...totalSize };
     const halfWidth = this.size.width * 0.5 * this.scale.x;
     const halfHeight = this.size.height * 0.5 * this.scale.y;
     this.corners = {
@@ -70,9 +85,8 @@ export class TextElement extends Element {
 
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return;
-    this.size.width = context.measureText(this.content).width;
     context.save();
-    context.fillStyle = this.color;
+    context.fillStyle = this.fillColor;
     context.font = `${this.fontSize}px ${this.font}`;
     context.textAlign = "center";
     context.textBaseline = "middle";
@@ -81,8 +95,12 @@ export class TextElement extends Element {
     context.rotate(this.rotation);
     context.scale(this.scale.x, this.scale.y);
 
-    context.fillText(this.content, 0, 0);
-
+    // Desenha cada linha de texto com deslocamento vertical
+    let yOffset = -(this.content.length - 1) * this.lineVerticalSpacing * 0.5; // Centraliza verticalmente as linhas
+    for (const line of this.content) {
+      context.fillText(line, 0, yOffset);
+      yOffset += this.lineVerticalSpacing;
+    }
     context.restore();
   }
 
