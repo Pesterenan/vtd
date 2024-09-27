@@ -19,8 +19,8 @@ export class TextElement extends Element {
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
     this.content = ["Sample", "Text"];
-    this.font = "Arial";
-    this.fontSize = 32;
+    this.font = "Impact";
+    this.fontSize = 64;
     this.lineHeight = 1.2;
     this.lineVerticalSpacing = this.fontSize * this.lineHeight;
 

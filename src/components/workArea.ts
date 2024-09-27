@@ -145,6 +145,11 @@ export class WorkArea {
       window.addEventListener("keyup", this.handleKeyUp.bind(this));
       window.addEventListener("resize", this.handleResize.bind(this));
 
+      window.addEventListener(EVENT.ADD_TEXT_ELEMENT, (evt: Event) => {
+        const customEvent = evt as CustomEvent;
+        const { posX, posY } = customEvent.detail;
+        this.addTextElement(posX, posY);
+      });
       window.addEventListener(EVENT.UPDATE_WORKAREA, this.update.bind(this));
       window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
         this.removeTransformBox();
@@ -510,13 +515,24 @@ export class WorkArea {
     }
   }
 
-  public addTextElement(): void {
+  public addTextElement(position?: Position): void {
     const width = 10;
     const height = 10;
-    const x = Math.floor(Math.random() * this.workArea.canvas.width) - width;
-    const y = Math.floor(Math.random() * this.workArea.canvas.height) - height;
+    let adjustedPosition = null;
+    if (position) {
+      const offsetPos = {
+        x: position.x - this.workArea.offset.x,
+        y: position.y - this.workArea.offset.y,
+      };
+      adjustedPosition = this.adjustForZoom(offsetPos);
+    } else {
+      adjustedPosition = {
+        x: Math.floor(Math.random() * this.workArea.canvas.width) - width,
+        y: Math.floor(Math.random() * this.workArea.canvas.height) - height,
+      };
+    }
     const newElement = new TextElement(
-      { x, y },
+      adjustedPosition,
       { width, height },
       this.elements.length,
     );
