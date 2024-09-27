@@ -1,6 +1,5 @@
 const EVENT: Record<string, string> = {
   ADD_ELEMENT: "evt_add-element",
-  ADD_TEXT_ELEMENT: "evt_add-text-element",
   CLEAR_WORKAREA: "evt_clear-workarea",
   CHANGE_LAYER_NAME: "evt_change_layer_name",
   DELETE_ELEMENT: "evt_delete-element",

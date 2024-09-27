@@ -145,11 +145,6 @@ export class WorkArea {
       window.addEventListener("keyup", this.handleKeyUp.bind(this));
       window.addEventListener("resize", this.handleResize.bind(this));
 
-      window.addEventListener(EVENT.ADD_TEXT_ELEMENT, (evt: Event) => {
-        const customEvent = evt as CustomEvent;
-        const { posX, posY } = customEvent.detail;
-        this.addTextElement(posX, posY);
-      });
       window.addEventListener(EVENT.UPDATE_WORKAREA, this.update.bind(this));
       window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
         this.removeTransformBox();
@@ -217,6 +212,12 @@ export class WorkArea {
   }
 
   private changeTool(event: KeyboardEvent): void {
+    const activeElement = document.activeElement;
+    const isTyping =
+      activeElement?.tagName === "TEXTAREA" ||
+      activeElement?.tagName === "INPUT";
+    if (isTyping) return;
+
     this.tools[this.currentTool].unequipTool();
     if (this.currentTool === TOOL.SELECT) {
       if (this.transformBox) {
@@ -256,6 +257,12 @@ export class WorkArea {
   }
 
   private handleKeyUp(event: KeyboardEvent): void {
+    const activeElement = document.activeElement;
+    const isTyping =
+      activeElement?.tagName === "TEXTAREA" ||
+      activeElement?.tagName === "INPUT";
+    if (isTyping) return;
+
     if (this.currentTool === TOOL.ZOOM || this.currentTool === TOOL.HAND) {
       switch (event.code) {
         case "KeyZ":
@@ -270,6 +277,12 @@ export class WorkArea {
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
+    const activeElement = document.activeElement;
+    const isTyping =
+      activeElement?.tagName === "TEXTAREA" ||
+      activeElement?.tagName === "INPUT";
+    if (isTyping) return;
+
     if (this.currentTool === TOOL.SELECT) {
       this.tools[this.currentTool].unequipTool();
       switch (event.code) {

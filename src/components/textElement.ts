@@ -1,13 +1,13 @@
 import { Element } from "./element";
-import { BoundingBox, ITextElementData, Position, Size } from "./types";
+import {
+  BoundingBox,
+  ITextElementData,
+  Position,
+  PropertyValue,
+  Size,
+} from "./types";
 
 export class TextElement extends Element {
-  public content: string[];
-  public font: string;
-  private _fontSize: number;
-  public strokeColor: string;
-  public fillColor: string;
-  private _lineHeight: number;
   public lineVerticalSpacing: number;
   private corners: {
     upperLeft: Position;
@@ -15,20 +15,84 @@ export class TextElement extends Element {
     lowerRight: Position;
     lowerLeft: Position;
   };
+  private needsBoundingBoxUpdate = true;
+  private properties: Map<string, PropertyValue> = new Map<
+    string,
+    PropertyValue
+  >([
+    ["content", "Sample Text"],
+    ["fillColor", "#bababa"],
+    ["font", "Impact"],
+    ["fontSize", 64],
+    ["hasFill", true],
+    ["hasStroke", false],
+    ["lineHeight", 1.2],
+    ["strokeColor", "#202020"],
+    ["strokeWidth", 5],
+  ]);
+
+  public get font(): string {
+    return this.properties.get("font") as string;
+  }
+  public set font(value: string) {
+    this.properties.set("font", value);
+    this.needsBoundingBoxUpdate = true;
+  }
+  public get fillColor(): string {
+    return this.properties.get("fillColor") as string;
+  }
+  public set fillColor(value: string) {
+    this.properties.set("fillColor", value);
+  }
+  public get strokeColor(): string {
+    return this.properties.get("strokeColor") as string;
+  }
+  public set strokeColor(value: string) {
+    this.properties.set("strokeColor", value);
+  }
+  public get strokeWidth(): number {
+    return this.properties.get("strokeWidth") as number;
+  }
+  public set strokeWidth(value: number) {
+    this.properties.set("strokeWidth", value);
+    this.needsBoundingBoxUpdate = true;
+  }
+  public get hasFill(): boolean {
+    return this.properties.get("hasFill") as boolean;
+  }
+  public set hasFill(value: boolean) {
+    this.properties.set("hasFill", value);
+  }
+  public get hasStroke(): boolean {
+    return this.properties.get("hasStroke") as boolean;
+  }
+  public set hasStroke(value: boolean) {
+    this.properties.set("hasStroke", value);
+  }
+  public get fontSize(): number {
+    return this.properties.get("fontSize") as number;
+  }
+  public set fontSize(value: number) {
+    if (value > 1) {
+      this.properties.set("fontSize", value);
+      this.lineVerticalSpacing = this.lineHeight * value;
+      this.needsBoundingBoxUpdate = true;
+    }
+  }
+  public get lineHeight(): number {
+    return this.properties.get("lineHeight") as number;
+  }
+  public set lineHeight(value: number) {
+    if (value > 0.1) {
+      this.properties.set("lineHeight", value);
+      this.lineVerticalSpacing = this.fontSize * value;
+      this.needsBoundingBoxUpdate = true;
+    }
+  }
 
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
-    this.content = ["Sample Text"];
-    this.font = "Impact";
-    this._fontSize = 64;
-    this._lineHeight = 1.2;
     this.lineVerticalSpacing = this.fontSize * this.lineHeight;
-
-    const randomR = Math.floor(Math.random() * 99).toFixed(0);
-    const randomG = Math.floor(Math.random() * 99).toFixed(0);
-    const randomB = Math.floor(Math.random() * 99).toFixed(0);
-    this.fillColor = `#${randomR.padEnd(2, "F")}${randomG.padEnd(2, "F")}${randomB.padEnd(2, "F")}`;
-    this.strokeColor = `#${randomR.padEnd(2, "F")}${randomG.padEnd(2, "F")}${randomB.padEnd(2, "F")}`;
 
     const halfWidth = this.size.width * 0.5 * this.scale.x;
     const halfHeight = this.size.height * 0.5 * this.scale.y;
@@ -40,43 +104,39 @@ export class TextElement extends Element {
     };
   }
 
-  public get fontSize(): number {
-    return this._fontSize;
+  public get content(): string[] {
+    const content = this.properties.get("content") as string;
+    return content.split("\n") as string[];
   }
-  public set fontSize(value: number) {
-    if (value > 1) {
-      this._fontSize = value;
-      this.lineVerticalSpacing = this.lineHeight * value;
-    }
-  }
-  public get lineHeight(): number {
-    return this._lineHeight;
-  }
-  public set lineHeight(value: number) {
-    if (value > 0.1) {
-      this._lineHeight = value;
-      this.lineVerticalSpacing = this.fontSize * value;
-    }
+  public set content(value: string[]) {
+    this.properties.set("content", value.join("\n"));
+    this.needsBoundingBoxUpdate = true;
   }
 
   public deserialize(data: ITextElementData): void {
     super.deserialize(data);
-    this.font = data.font;
-    this.fontSize = data.fontSize;
-    this.content = data.content;
+    Object.keys(data).forEach((key) => {
+      if (this.properties.has(key)) {
+        this.properties.set(key, data[key]);
+      }
+    });
   }
 
   public serialize(): ITextElementData {
     const serializedText = super.serialize() as ITextElementData;
     serializedText.type = "text";
-    serializedText.content = this.content;
-    serializedText.font = this.font;
-    serializedText.fontSize = this.fontSize;
+
+    this.properties.forEach((value: PropertyValue, key: string) => {
+      if (key in serializedText) {
+        serializedText[key] = value;
+      }
+    });
     return serializedText;
   }
 
   private updateBoundingBox(context: CanvasRenderingContext2D): void {
     context.save();
+    if (!this.needsBoundingBoxUpdate) return;
     const totalSize = this.content.reduce(
       (acc, line) => {
         const metrics = context.measureText(line);
@@ -91,6 +151,7 @@ export class TextElement extends Element {
       { width: 0, height: 0 },
     );
     this.size = { ...totalSize };
+    this.needsBoundingBoxUpdate = false;
     const halfWidth = this.size.width * 0.5 * this.scale.x;
     const halfHeight = this.size.height * 0.5 * this.scale.y;
     this.corners = {
@@ -105,8 +166,10 @@ export class TextElement extends Element {
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return;
     context.save();
+    context.strokeStyle = this.strokeColor;
+    context.lineWidth = this.strokeWidth;
     context.fillStyle = this.fillColor;
-    context.font = `${this.fontSize}px ${this.font}`;
+    context.font = `${this.fontSize}pt ${this.font}`;
     context.textAlign = "center";
     context.textBaseline = "middle";
     this.updateBoundingBox(context);
@@ -117,7 +180,12 @@ export class TextElement extends Element {
     // Desenha cada linha de texto com deslocamento vertical
     let yOffset = -(this.content.length - 1) * this.lineVerticalSpacing * 0.5; // Centraliza verticalmente as linhas
     for (const line of this.content) {
-      context.fillText(line, 0, yOffset);
+      if (this.hasStroke) {
+        context.strokeText(line, 0, yOffset);
+      }
+      if (this.hasFill) {
+        context.fillText(line, 0, yOffset);
+      }
       yOffset += this.lineVerticalSpacing;
     }
     context.restore();

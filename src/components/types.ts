@@ -11,8 +11,7 @@ export interface IElementData {
 export interface ITextElementData extends IElementData {
   type: "text";
   content: string[];
-  font: string;
-  fontSize: number;
+  [key: string]: PropertyValue;
 }
 
 export interface IImageElementData extends IElementData {
@@ -37,6 +36,7 @@ export type BoundingBox = { x1: number; y1: number; x2: number; y2: number };
 export type Position = { x: number; y: number };
 export type Scale = { x: number; y: number };
 export type Size = { width: number; height: number };
+export type PropertyValue = string | number | boolean;
 
 /** Status do mouse durante os cliques
  * @param DOWN - Mouse clicado

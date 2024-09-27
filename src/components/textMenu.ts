@@ -12,6 +12,8 @@ export class TextMenu {
   private lineHeight: HTMLInputElement | null = null;
   private fillColor: HTMLInputElement | null = null;
   private strokeColor: HTMLInputElement | null = null;
+  private fillCheckbox: HTMLInputElement | null = null;
+  private strokeCheckbox: HTMLInputElement | null = null;
   private acceptButton: HTMLButtonElement | null = null;
   private declineButton: HTMLButtonElement | null = null;
   private activeTextElement: TextElement | null = null;
@@ -56,33 +58,39 @@ export class TextMenu {
     this.textMenuSection.id = "sec_text-menu";
     this.textMenuSection.className = "sec_menu-style";
     this.textMenuSection.innerHTML = `
-      <p style="align-self: flex-start;">Texto:</p>
-      <div class='container jc-sb'>
-        <div class='container ai-jc-center'>
-          <textarea id="inp_text-input" style="resize: none;"></textarea>
-        </div>
-        <div class='container-column ai-jc-center'>
-          <button id="btn_accept-text-changes" type="button">V</button>
-          <button id="btn_decline-text-changes" type="button">X</button>
-        </div>
-      </div>
-      <div class='container jc-sb' style="padding-inline: 0.5rem;">
-        <label for="inp_font-size">Tamanho:</label>
-        <input id="inp_font-size" class="number-input" type="number" style="width: 40px;"/>
-        <label for="inp_font-spacing">Espaçamento:</label>
-        <input id="inp_line-height" class="number-input" type="number" min="0.1" max="10" step="0.1" style="width: 40px;"/>
-      </div>
-      <div class='container jc-sb' style="padding-inline: 0.5rem;">
-        <label for="inp_fill-color" style="display: inline-block; overflow: hidden; text-overflow: ellipsis;">
-          Preenchimento:
-        </label>
-        <input id="inp_fill-color" type="color" style="width: 40px;"/>
-      </div>
-      <div class='container jc-sb' style="padding-inline: 0.5rem;">
-        <label for="inp_stroke-color">Contorno:</label>
-        <input id="inp_stroke-color" type="color" style="width: 40px;"/>
-      </div>
-    `;
+<p style="align-self: flex-start;">Texto:</p>
+<div class='container jc-sb'>
+  <div class='container ai-jc-c'>
+    <textarea id="inp_text-input" style="resize: none;"></textarea>
+  </div>
+  <div class='container-column ai-jc-c'>
+    <button id="btn_accept-text-changes" type="button">V</button>
+    <button id="btn_decline-text-changes" type="button">X</button>
+  </div>
+</div>
+<div class='container jc-sb' style="padding-inline: 0.5rem;">
+  <label for="inp_font-size">Tamanho:</label>
+  <input id="inp_font-size" class="number-input" type="number" style="width: 40px;"/>
+  <label for="inp_font-spacing">Espaçamento:</label>
+  <input id="inp_line-height" class="number-input" type="number" min="0.1" max="10" step="0.1" style="width: 40px;"/>
+</div>
+<div class='container ai-c jc-sb' style="padding-inline: 0.5rem;">
+  <div class='container ai-c jc-sb g-05'>
+    <input id="chk_fill" type="checkbox"/>
+    <label for="inp_fill-color" style="display: inline-block; overflow: hidden; text-overflow: ellipsis;">
+      Preenchimento:
+    </label>
+  </div>
+  <input id="inp_fill-color" type="color"  value="#FFFFFF"style="width: 40px;"/>
+</div>
+<div class='container jc-sb' style="padding-inline: 0.5rem;">
+  <div class='container ai-c jc-sb g-05'>
+    <input id="chk_stroke" type="checkbox"/>
+    <label for="inp_stroke-color">Contorno:</label>
+  </div>
+  <input id="inp_stroke-color" type="color" value="#000000" style="width: 40px;"/>
+</div>
+`;
   }
 
   private linkDOMElements(): void {
@@ -103,10 +111,16 @@ export class TextMenu {
     this.fillColor = getElementById<HTMLInputElement>("inp_fill-color");
     this.fillColor.value = this.activeTextElement?.fillColor || "#000000";
     this.fillColor.addEventListener("input", this.handleFillColorChange);
+    this.fillCheckbox = getElementById<HTMLInputElement>("chk_fill");
+    this.fillCheckbox.checked = this.activeTextElement?.hasFill || false;
+    this.fillCheckbox.addEventListener("change", this.handleFillChange);
 
     this.strokeColor = getElementById<HTMLInputElement>("inp_stroke-color");
     this.strokeColor.value = this.activeTextElement?.strokeColor || "#000000";
     this.strokeColor.addEventListener("input", this.handleStrokeColorChange);
+    this.strokeCheckbox = getElementById<HTMLInputElement>("chk_stroke");
+    this.strokeCheckbox.checked = this.activeTextElement?.hasStroke || false;
+    this.strokeCheckbox.addEventListener("change", this.handleStrokeChange);
 
     this.acceptButton = getElementById<HTMLButtonElement>(
       "btn_accept-text-changes",
@@ -135,10 +149,16 @@ export class TextMenu {
     this.fillColor = getElementById<HTMLInputElement>("inp_fill-color");
     this.fillColor.value = "#FFFFFF";
     this.fillColor.removeEventListener("input", this.handleFillColorChange);
+    this.fillCheckbox = getElementById<HTMLInputElement>("chk_fill");
+    this.fillCheckbox.checked = false;
+    this.fillCheckbox.removeEventListener("change", this.handleFillChange);
 
     this.strokeColor = getElementById<HTMLInputElement>("inp_stroke-color");
     this.strokeColor.value = "#000000";
     this.strokeColor.removeEventListener("input", this.handleStrokeColorChange);
+    this.strokeCheckbox = getElementById<HTMLInputElement>("chk_stroke");
+    this.strokeCheckbox.checked = false;
+    this.strokeCheckbox.removeEventListener("change", this.handleStrokeChange);
 
     this.acceptButton = getElementById<HTMLButtonElement>(
       "btn_accept-text-changes",
@@ -154,7 +174,7 @@ export class TextMenu {
     );
   }
 
-  private handleTextInput = (evt: Event): void => {
+  private handleTextInput = (): void => {
     if (this.activeTextElement && this.textInput) {
       this.activeTextElement.content = this.textInput.value.split("\n");
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
@@ -175,6 +195,13 @@ export class TextMenu {
     }
   };
 
+  private handleFillChange = (): void => {
+    if (this.activeTextElement && this.fillCheckbox) {
+      this.activeTextElement.hasFill = this.fillCheckbox.checked;
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    }
+  };
+
   private handleFillColorChange = (): void => {
     if (this.activeTextElement && this.fillColor) {
       this.activeTextElement.fillColor = this.fillColor.value;
@@ -185,6 +212,13 @@ export class TextMenu {
   private handleStrokeColorChange = (): void => {
     if (this.activeTextElement && this.strokeColor) {
       this.activeTextElement.strokeColor = this.strokeColor.value;
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    }
+  };
+
+  private handleStrokeChange = (): void => {
+    if (this.activeTextElement && this.strokeCheckbox) {
+      this.activeTextElement.hasStroke = this.strokeCheckbox.checked;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   };

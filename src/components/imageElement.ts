@@ -16,10 +16,18 @@ export class ImageElement extends Element {
 
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
-    const randomR = Math.floor(Math.random() * 99).toFixed(0);
-    const randomG = Math.floor(Math.random() * 99).toFixed(0);
-    const randomB = Math.floor(Math.random() * 99).toFixed(0);
-    this.color = `#${randomR.padEnd(2, "F")}${randomG.padEnd(2, "F")}${randomB.padEnd(2, "F")}`;
+
+    const randomR = Math.floor(Math.random() * 256)
+      .toString(16)
+      .padStart(2, "0");
+    const randomG = Math.floor(Math.random() * 256)
+      .toString(16)
+      .padStart(2, "0");
+    const randomB = Math.floor(Math.random() * 256)
+      .toString(16)
+      .padStart(2, "0");
+
+    this.color = `#${randomR}${randomG}${randomB}`;
     const halfWidth = this.size.width * 0.5 * this.scale.x;
     const halfHeight = this.size.height * 0.5 * this.scale.y;
     this.corners = {

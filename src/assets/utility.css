@@ -8,11 +8,23 @@
   flex-direction: column;
 }
 
+.ai-c {
+  align-items: center;
+}
+
 .jc-sb {
   justify-content: space-between;
 }
 
-.ai-jc-center {
+.ai-jc-c {
   align-items: center;
   justify-content: center;
+}
+
+.g-05 {
+  gap: 0.5rem;
+}
+
+.g-1 {
+  gap: 1rem;
 }
