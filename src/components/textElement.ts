@@ -4,10 +4,10 @@ import { BoundingBox, ITextElementData, Position, Size } from "./types";
 export class TextElement extends Element {
   public content: string[];
   public font: string;
-  public fontSize: number;
+  private _fontSize: number;
   public strokeColor: string;
   public fillColor: string;
-  public lineHeight: number;
+  private _lineHeight: number;
   public lineVerticalSpacing: number;
   private corners: {
     upperLeft: Position;
@@ -18,10 +18,10 @@ export class TextElement extends Element {
 
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
-    this.content = ["Sample", "Text"];
+    this.content = ["Sample Text"];
     this.font = "Impact";
-    this.fontSize = 64;
-    this.lineHeight = 1.2;
+    this._fontSize = 64;
+    this._lineHeight = 1.2;
     this.lineVerticalSpacing = this.fontSize * this.lineHeight;
 
     const randomR = Math.floor(Math.random() * 99).toFixed(0);
@@ -38,6 +38,25 @@ export class TextElement extends Element {
       lowerLeft: { x: halfWidth, y: halfHeight },
       lowerRight: { x: -halfWidth, y: halfHeight },
     };
+  }
+
+  public get fontSize(): number {
+    return this._fontSize;
+  }
+  public set fontSize(value: number) {
+    if (value > 1) {
+      this._fontSize = value;
+      this.lineVerticalSpacing = this.lineHeight * value;
+    }
+  }
+  public get lineHeight(): number {
+    return this._lineHeight;
+  }
+  public set lineHeight(value: number) {
+    if (value > 0.1) {
+      this._lineHeight = value;
+      this.lineVerticalSpacing = this.fontSize * value;
+    }
   }
 
   public deserialize(data: ITextElementData): void {

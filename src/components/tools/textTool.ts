@@ -29,6 +29,9 @@ export class TextTool extends Tool {
       this.context.save();
       this.context.font = "bold 16px Times New Roman";
       this.context.fillStyle = "black";
+      this.context.strokeStyle = "#FFFFFF";
+      this.context.lineWidth = 2;
+      this.context.strokeText("T|", this.lastPosition.x, this.lastPosition.y);
       this.context.fillText("T|", this.lastPosition.x, this.lastPosition.y);
       this.context.restore();
     }

@@ -9,6 +9,7 @@ export class TextMenu {
   private textMenuSection: HTMLElement | null = null;
   private textInput: HTMLTextAreaElement | null = null;
   private fontSize: HTMLInputElement | null = null;
+  private lineHeight: HTMLInputElement | null = null;
   private fillColor: HTMLInputElement | null = null;
   private strokeColor: HTMLInputElement | null = null;
   private acceptButton: HTMLButtonElement | null = null;
@@ -68,6 +69,8 @@ export class TextMenu {
       <div class='container jc-sb' style="padding-inline: 0.5rem;">
         <label for="inp_font-size">Tamanho:</label>
         <input id="inp_font-size" class="number-input" type="number" style="width: 40px;"/>
+        <label for="inp_font-spacing">Espaçamento:</label>
+        <input id="inp_line-height" class="number-input" type="number" min="0.1" max="10" step="0.1" style="width: 40px;"/>
       </div>
       <div class='container jc-sb' style="padding-inline: 0.5rem;">
         <label for="inp_fill-color" style="display: inline-block; overflow: hidden; text-overflow: ellipsis;">
@@ -92,6 +95,11 @@ export class TextMenu {
     this.fontSize.value = this.activeTextElement?.fontSize.toString() || "16";
     this.fontSize.addEventListener("input", this.handleFontSizeChange);
 
+    this.lineHeight = getElementById<HTMLInputElement>("inp_line-height");
+    this.lineHeight.value =
+      this.activeTextElement?.lineHeight.toString() || "1.2";
+    this.lineHeight.addEventListener("input", this.handleLineHeightChange);
+
     this.fillColor = getElementById<HTMLInputElement>("inp_fill-color");
     this.fillColor.value = this.activeTextElement?.fillColor || "#000000";
     this.fillColor.addEventListener("input", this.handleFillColorChange);
@@ -109,7 +117,6 @@ export class TextMenu {
       "btn_decline-text-changes",
     );
     this.declineButton.addEventListener("click", this.handleDeclineTextChange);
-    this.textInput.focus();
   }
 
   private unlinkDOMElements(): void {
@@ -120,6 +127,10 @@ export class TextMenu {
     this.fontSize = getElementById<HTMLInputElement>("inp_font-size");
     this.fontSize.value = "";
     this.fontSize.removeEventListener("input", this.handleFontSizeChange);
+
+    this.lineHeight = getElementById<HTMLInputElement>("inp_line-height");
+    this.lineHeight.value = "";
+    this.lineHeight.removeEventListener("input", this.handleLineHeightChange);
 
     this.fillColor = getElementById<HTMLInputElement>("inp_fill-color");
     this.fillColor.value = "#FFFFFF";
@@ -145,8 +156,6 @@ export class TextMenu {
 
   private handleTextInput = (evt: Event): void => {
     if (this.activeTextElement && this.textInput) {
-      evt.stopImmediatePropagation();
-      evt.stopPropagation();
       this.activeTextElement.content = this.textInput.value.split("\n");
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
@@ -155,6 +164,13 @@ export class TextMenu {
   private handleFontSizeChange = (): void => {
     if (this.activeTextElement && this.fontSize) {
       this.activeTextElement.fontSize = parseInt(this.fontSize.value, 10);
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    }
+  };
+
+  private handleLineHeightChange = (): void => {
+    if (this.activeTextElement && this.lineHeight) {
+      this.activeTextElement.lineHeight = parseFloat(this.lineHeight.value);
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   };
