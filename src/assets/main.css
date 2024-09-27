@@ -1,4 +1,5 @@
 @import './base.css';
+@import './utility.css';
 
 body {
   --primary_hue: 160;
@@ -71,7 +72,7 @@ body {
 
 .number-input {
   text-align: center;
-  width: 8ch;
+  width: 6ch;
 }
 
 .btn-common {
@@ -102,16 +103,19 @@ body {
   padding-inline: 0.3rem;
 }
 
-#sec_layers-menu {
-  align-items: center;
+.sec_menu-style {
   background-color: var(--primary_main);
   color: var(--text_main);
   display: flex;
   flex-direction: column;
   font-size: var(--font-small);
-  justify-content: center;
   padding-inline: 0.25rem;
   width: 100%;
+}
+
+#sec_layers-menu {
+  align-items: center;
+  justify-content: center;
 }
 
 #ul_layers-list {

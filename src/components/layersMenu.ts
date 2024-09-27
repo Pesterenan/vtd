@@ -182,6 +182,7 @@ export class LayersMenu {
   private createDOMElements(): void {
     this.layersSection = document.createElement("section");
     this.layersSection.id = "sec_layers-menu";
+    this.layersSection.className = "sec_menu-style";
     this.layersSection.innerHTML = `
       <p style="align-self: flex-start;">Camadas:</p>
       <div style="display: flex; flex-wrap: nowrap; width: 100%;">
