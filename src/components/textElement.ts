@@ -2,19 +2,6 @@ import { Element } from "./element";
 import { BoundingBox, ITextElementData, Position, Size } from "./types";
 
 export class TextElement extends Element {
-  public lineVerticalSpacing: number;
-  private corners: {
-    upperLeft: Position;
-    upperRight: Position;
-    lowerRight: Position;
-    lowerLeft: Position;
-  };
-  private needsBoundingBoxUpdate = true;
-  protected declare properties: Map<
-    keyof ITextElementData,
-    ITextElementData[keyof ITextElementData]
-  >;
-
   public get font(): string {
     return this.properties.get("font") as string;
   }
@@ -82,18 +69,30 @@ export class TextElement extends Element {
     this.needsBoundingBoxUpdate = true;
   }
 
+  public lineVerticalSpacing: number;
+  private corners: {
+    upperLeft: Position;
+    upperRight: Position;
+    lowerRight: Position;
+    lowerLeft: Position;
+  };
+  private needsBoundingBoxUpdate = true;
+  protected declare properties: Map<
+    keyof ITextElementData,
+    ITextElementData[keyof ITextElementData]
+  >;
+
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
-    this.properties.set("type", "text");
-    this.properties.set("content", "Sample Text");
-    this.properties.set("fillColor", "#bababa");
-    this.properties.set("font", "Impact");
-    this.properties.set("fontSize", 64);
-    this.properties.set("hasFill", true);
-    this.properties.set("hasStroke", false);
-    this.properties.set("lineHeight", 1.2);
-    this.properties.set("strokeColor", "#202020");
-    this.properties.set("strokeWidth", 5);
+    this.content = ["Sample Text"];
+    this.fillColor = "#bababa";
+    this.font = "Impact";
+    this.fontSize = 64;
+    this.hasFill = true;
+    this.hasStroke = false;
+    this.lineHeight = 1.2;
+    this.strokeColor = "#202020";
+    this.strokeWidth = 5;
 
     this.lineVerticalSpacing = this.fontSize * this.lineHeight;
     const halfWidth = this.size.width * 0.5 * this.scale.x;

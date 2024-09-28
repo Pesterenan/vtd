@@ -583,7 +583,7 @@ export class WorkArea {
     this.update();
   }
 
-  public addImageElement(filePath: string): void {
+  public addImageElement(encodedImage: string): void {
     const x = this.workArea.canvas.width * 0.5;
     const y = this.workArea.canvas.height * 0.5;
     const newElement = new ImageElement(
@@ -591,7 +591,7 @@ export class WorkArea {
       { width: 0, height: 0 },
       this.elements.length,
     );
-    newElement.loadImage(filePath);
+    newElement.loadImage(encodedImage);
     this.elements.push(newElement);
     window.dispatchEvent(
       new CustomEvent(EVENT.ADD_ELEMENT, {

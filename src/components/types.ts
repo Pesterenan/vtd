@@ -24,8 +24,11 @@ export interface ITextElementData extends IElementData {
 }
 
 export interface IImageElementData extends IElementData {
+  [key: string]: IImageElementData[keyof IImageElementData];
   type: "image";
-  image: string;
+  encodedImage: string;
+  backgroundColor: string;
+  backgroundOpacity: number;
 }
 
 export type TElementData = IImageElementData | ITextElementData;
