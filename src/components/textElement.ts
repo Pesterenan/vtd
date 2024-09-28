@@ -92,7 +92,7 @@ export class TextElement extends Element {
     this.hasStroke = false;
     this.lineHeight = 1.2;
     this.strokeColor = "#202020";
-    this.strokeWidth = 5;
+    this.strokeWidth = 10;
 
     this.lineVerticalSpacing = this.fontSize * this.lineHeight;
     const halfWidth = this.size.width * 0.5 * this.scale.x;
@@ -146,6 +146,7 @@ export class TextElement extends Element {
     if (!this.isVisible) return;
     context.save();
     context.strokeStyle = this.strokeColor;
+    context.lineJoin = "round";
     context.lineWidth = this.strokeWidth;
     context.fillStyle = this.fillColor;
     context.font = `${this.fontSize}pt ${this.font}`;

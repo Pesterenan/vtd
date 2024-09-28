@@ -38,9 +38,11 @@ Os elementos (imagens, textos) podem ser reorganizados de acordo com seu z-index
 A aplicação tem um sistema de gerenciar camadas - OK
 O usuário pode escolher qual parte do frame ele quer extrair para a aplicação - OK
 Os elementos tem visibilidade alternável e só podem ser selecionados se estiverem visiveis - OK
+A aplicação pode criar e editar elementos de texto - OK
+Implementar tamanho do contorno - OK
 
+Implementar opacidade total do elemento
 A aplicação pode salvar a imagem final do projeto como um JPG ou PNG - Criar um novo modal para mostrar
 a qualidade da imagem exportada, e incluir a escolha de formato.
 Retrabalhar a forma como as ferramentas funcionam em relação a posição do mouse, offset e ajustado para zoom.
 
-A aplicação pode criar e editar elementos de texto

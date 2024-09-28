@@ -6,18 +6,19 @@ import { WorkArea } from "./workArea";
 
 export class TextMenu {
   private static instance: TextMenu | null = null;
-  private textMenuSection: HTMLElement | null = null;
-  private textInput: HTMLTextAreaElement | null = null;
+  private acceptButton: HTMLButtonElement | null = null;
+  private activeTextElement: TextElement | null = null;
+  private declineButton: HTMLButtonElement | null = null;
+  private fillCheckbox: HTMLInputElement | null = null;
+  private fillColor: HTMLInputElement | null = null;
   private fontSize: HTMLInputElement | null = null;
   private lineHeight: HTMLInputElement | null = null;
-  private fillColor: HTMLInputElement | null = null;
-  private strokeColor: HTMLInputElement | null = null;
-  private fillCheckbox: HTMLInputElement | null = null;
-  private strokeCheckbox: HTMLInputElement | null = null;
-  private acceptButton: HTMLButtonElement | null = null;
-  private declineButton: HTMLButtonElement | null = null;
-  private activeTextElement: TextElement | null = null;
   private originalText = "";
+  private strokeCheckbox: HTMLInputElement | null = null;
+  private strokeColor: HTMLInputElement | null = null;
+  private strokeWidth: HTMLInputElement | null = null;
+  private textInput: HTMLTextAreaElement | null = null;
+  private textMenuSection: HTMLElement | null = null;
 
   private constructor() {
     this.createDOMElements();
@@ -88,7 +89,10 @@ export class TextMenu {
     <input id="chk_stroke" type="checkbox"/>
     <label for="inp_stroke-color">Contorno:</label>
   </div>
-  <input id="inp_stroke-color" type="color" value="#000000" style="width: 40px;"/>
+  <div class='container ai-c jc-sb g-05'>
+    <input id="inp_stroke-width" class="number-input" type="number" min="1" max="128" step="1" style="width: 40px;"/>
+    <input id="inp_stroke-color" type="color" value="#000000" style="width: 40px;"/>
+  </div>
 </div>
 `;
   }
@@ -121,6 +125,10 @@ export class TextMenu {
     this.strokeCheckbox = getElementById<HTMLInputElement>("chk_stroke");
     this.strokeCheckbox.checked = this.activeTextElement?.hasStroke || false;
     this.strokeCheckbox.addEventListener("change", this.handleStrokeChange);
+    this.strokeWidth = getElementById<HTMLInputElement>("inp_stroke-width");
+    this.strokeWidth.value =
+      this.activeTextElement?.strokeWidth.toString() || "1";
+    this.strokeWidth.addEventListener("input", this.handleStrokeWidthChange);
 
     this.acceptButton = getElementById<HTMLButtonElement>(
       "btn_accept-text-changes",
@@ -159,6 +167,9 @@ export class TextMenu {
     this.strokeCheckbox = getElementById<HTMLInputElement>("chk_stroke");
     this.strokeCheckbox.checked = false;
     this.strokeCheckbox.removeEventListener("change", this.handleStrokeChange);
+    this.strokeWidth = getElementById<HTMLInputElement>("inp_stroke-width");
+    this.strokeWidth.value = "";
+    this.strokeWidth.removeEventListener("input", this.handleStrokeWidthChange);
 
     this.acceptButton = getElementById<HTMLButtonElement>(
       "btn_accept-text-changes",
@@ -209,6 +220,13 @@ export class TextMenu {
     }
   };
 
+  private handleStrokeChange = (): void => {
+    if (this.activeTextElement && this.strokeCheckbox) {
+      this.activeTextElement.hasStroke = this.strokeCheckbox.checked;
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    }
+  };
+
   private handleStrokeColorChange = (): void => {
     if (this.activeTextElement && this.strokeColor) {
       this.activeTextElement.strokeColor = this.strokeColor.value;
@@ -216,9 +234,9 @@ export class TextMenu {
     }
   };
 
-  private handleStrokeChange = (): void => {
-    if (this.activeTextElement && this.strokeCheckbox) {
-      this.activeTextElement.hasStroke = this.strokeCheckbox.checked;
+  private handleStrokeWidthChange = (): void => {
+    if (this.activeTextElement && this.strokeWidth) {
+      this.activeTextElement.strokeWidth = parseFloat(this.strokeWidth.value);
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   };
