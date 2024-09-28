@@ -1,11 +1,5 @@
 import { Element } from "./element";
-import {
-  BoundingBox,
-  ITextElementData,
-  Position,
-  PropertyValue,
-  Size,
-} from "./types";
+import { BoundingBox, ITextElementData, Position, Size } from "./types";
 
 export class TextElement extends Element {
   public lineVerticalSpacing: number;
@@ -16,20 +10,10 @@ export class TextElement extends Element {
     lowerLeft: Position;
   };
   private needsBoundingBoxUpdate = true;
-  private properties: Map<string, PropertyValue> = new Map<
-    string,
-    PropertyValue
-  >([
-    ["content", "Sample Text"],
-    ["fillColor", "#bababa"],
-    ["font", "Impact"],
-    ["fontSize", 64],
-    ["hasFill", true],
-    ["hasStroke", false],
-    ["lineHeight", 1.2],
-    ["strokeColor", "#202020"],
-    ["strokeWidth", 5],
-  ]);
+  protected declare properties: Map<
+    keyof ITextElementData,
+    ITextElementData[keyof ITextElementData]
+  >;
 
   public get font(): string {
     return this.properties.get("font") as string;
@@ -89,11 +73,29 @@ export class TextElement extends Element {
       this.needsBoundingBoxUpdate = true;
     }
   }
+  public get content(): string[] {
+    const content = this.properties.get("content") as string;
+    return content.split("\n") as string[];
+  }
+  public set content(value: string[]) {
+    this.properties.set("content", value.join("\n"));
+    this.needsBoundingBoxUpdate = true;
+  }
 
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
-    this.lineVerticalSpacing = this.fontSize * this.lineHeight;
+    this.properties.set("type", "text");
+    this.properties.set("content", "Sample Text");
+    this.properties.set("fillColor", "#bababa");
+    this.properties.set("font", "Impact");
+    this.properties.set("fontSize", 64);
+    this.properties.set("hasFill", true);
+    this.properties.set("hasStroke", false);
+    this.properties.set("lineHeight", 1.2);
+    this.properties.set("strokeColor", "#202020");
+    this.properties.set("strokeWidth", 5);
 
+    this.lineVerticalSpacing = this.fontSize * this.lineHeight;
     const halfWidth = this.size.width * 0.5 * this.scale.x;
     const halfHeight = this.size.height * 0.5 * this.scale.y;
     this.corners = {
@@ -104,34 +106,12 @@ export class TextElement extends Element {
     };
   }
 
-  public get content(): string[] {
-    const content = this.properties.get("content") as string;
-    return content.split("\n") as string[];
-  }
-  public set content(value: string[]) {
-    this.properties.set("content", value.join("\n"));
-    this.needsBoundingBoxUpdate = true;
-  }
-
   public deserialize(data: ITextElementData): void {
     super.deserialize(data);
-    Object.keys(data).forEach((key) => {
-      if (this.properties.has(key)) {
-        this.properties.set(key, data[key]);
-      }
-    });
   }
 
   public serialize(): ITextElementData {
-    const serializedText = super.serialize() as ITextElementData;
-    serializedText.type = "text";
-
-    this.properties.forEach((value: PropertyValue, key: string) => {
-      if (key in serializedText) {
-        serializedText[key] = value;
-      }
-    });
-    return serializedText;
+    return super.serialize() as ITextElementData;
   }
 
   private updateBoundingBox(context: CanvasRenderingContext2D): void {

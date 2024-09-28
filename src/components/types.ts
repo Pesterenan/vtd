@@ -1,17 +1,26 @@
 export interface IElementData {
+  [key: string]: IElementData[keyof IElementData];
   position: Position;
-  rotation: number;
   scale: Scale;
   size: Size;
+  rotation: number;
   zDepth: number;
   isVisible: boolean;
   layerName: string;
 }
 
 export interface ITextElementData extends IElementData {
+  [key: string]: ITextElementData[keyof ITextElementData];
   type: "text";
-  content: string[];
-  [key: string]: PropertyValue;
+  content: string;
+  fillColor: string;
+  font: string;
+  fontSize: number;
+  hasFill: boolean;
+  hasStroke: boolean;
+  lineHeight: number;
+  strokeColor: string;
+  strokeWidth: number;
 }
 
 export interface IImageElementData extends IElementData {
@@ -36,7 +45,6 @@ export type BoundingBox = { x1: number; y1: number; x2: number; y2: number };
 export type Position = { x: number; y: number };
 export type Scale = { x: number; y: number };
 export type Size = { width: number; height: number };
-export type PropertyValue = string | number | boolean;
 
 /** Status do mouse durante os cliques
  * @param DOWN - Mouse clicado
