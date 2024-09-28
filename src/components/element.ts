@@ -3,12 +3,12 @@ import { BB } from "../utils/bb";
 
 export abstract class Element {
   public static elementIds = 0;
+  protected elementId = 0;
 
   protected properties: Map<
     keyof IElementData,
     IElementData[keyof IElementData]
   > = new Map<keyof IElementData, IElementData[keyof IElementData]>([
-    ["elementId", 0],
     ["position", { x: 1.0, y: 1.0 }],
     ["size", { width: 1.0, height: 1.0 }],
     ["zDepth", 0],
@@ -19,12 +19,6 @@ export abstract class Element {
     ["layerName", ""],
   ]);
 
-  public get elementId(): number {
-    return this.properties.get("elementId") as number;
-  }
-  public set elementId(value: number) {
-    this.properties.set("elementId", value);
-  }
   public get position(): Position {
     return this.properties.get("position") as Position;
   }
@@ -75,10 +69,10 @@ export abstract class Element {
   }
 
   protected constructor(position: Position, size: Size, z: number) {
+    this.elementId = Element.elementIds++;
     this.properties.set("position", position);
     this.properties.set("size", size);
     this.properties.set("zDepth", z);
-    this.properties.set("elementId", Element.elementIds++);
   }
 
   public deserialize(data: IElementData): void {
