@@ -33,6 +33,7 @@ export class ImageElement extends Element {
 
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
+    this.properties.set("type", "image");
     this.properties.set("encodedImage", "");
     this.backgroundColor = "#00FF00";
     this.backgroundOpacity = 0;

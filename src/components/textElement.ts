@@ -84,6 +84,7 @@ export class TextElement extends Element {
 
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
+    this.properties.set("type", "text");
     this.content = ["Sample Text"];
     this.fillColor = "#bababa";
     this.font = "Impact";
