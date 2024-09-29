@@ -1,6 +1,6 @@
 import EVENT from "../../utils/customEvents";
 import { Element } from "../element";
-import { MOUSE_BUTTONS, Position } from "../types";
+import { MOUSE_BUTTONS, Position, TElementData } from "../types";
 import { WorkArea } from "../workArea";
 import { Tool } from "./abstractTool";
 import centerHandleRotate from "../../components/transformBox/assets/centerHandleRotate.svg";
@@ -12,7 +12,7 @@ export class RotateTool extends Tool {
   private lastRotation = 0;
   private toolIcon: HTMLImageElement | null = null;
   private transformBox: TransformBox | null = null;
-  private selectedElements: Element[] | null = null;
+  private selectedElements: Element<TElementData>[] | null = null;
   private isRotating = false;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -126,7 +126,7 @@ export class RotateTool extends Tool {
   handleKeyUp(): void {}
 
   public static rotateSelectedElements(
-    elements: Element[] | null,
+    elements: Element<TElementData>[] | null,
     origin: Position | null,
     angle: number,
   ): void {

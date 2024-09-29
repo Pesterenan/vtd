@@ -1,6 +1,6 @@
 import EVENT from "../../utils/customEvents";
 import { Element } from "../element";
-import { Position, Scale } from "../types";
+import { Position, Scale, TElementData } from "../types";
 import { Tool } from "./abstractTool";
 import centerHandleScale from "../../components/transformBox/assets/centerHandleScale.svg";
 import { WorkArea } from "../workArea";
@@ -10,7 +10,7 @@ export class ScaleTool extends Tool {
   private startingPosition: Position | null = null;
   private centerPosition: Position | null = null;
   private toolIcon: HTMLImageElement | null = null;
-  private selectedElements: Element[] | null = null;
+  private selectedElements: Element<TElementData>[] | null = null;
   private transformBox: TransformBox | null = null;
   private isScaling = false;
 
@@ -113,7 +113,7 @@ export class ScaleTool extends Tool {
   handleKeyUp(): void {}
 
   public static scaleSelectedElements(
-    elements: Element[] | null,
+    elements: Element<TElementData>[] | null,
     origin: Position | null,
     delta: Scale | null,
   ): void {

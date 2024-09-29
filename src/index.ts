@@ -51,26 +51,28 @@ const createMainWindow = (): void => {
 };
 
 const createFrameExtractorWindow = (metadata: IVideoMetadata): void => {
-  frameExtractorWindow = new BrowserWindow({
-    width: 1024,
-    height: 768,
-    parent: mainWindow!,
-    modal: true,
-    show: false,
-    autoHideMenuBar: true,
-    webPreferences: {
-      preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
-      nodeIntegration: true,
-      contextIsolation: true,
-    },
-  });
+  if (mainWindow) {
+    frameExtractorWindow = new BrowserWindow({
+      width: 1024,
+      height: 768,
+      parent: mainWindow,
+      modal: true,
+      show: false,
+      autoHideMenuBar: true,
+      webPreferences: {
+        preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+        nodeIntegration: true,
+        contextIsolation: true,
+      },
+    });
 
-  frameExtractorWindow.loadURL(VIDEO_FRAME_EXTRACTOR_WEBPACK_ENTRY);
+    frameExtractorWindow.loadURL(VIDEO_FRAME_EXTRACTOR_WEBPACK_ENTRY);
 
-  frameExtractorWindow.once("ready-to-show", () => {
-    frameExtractorWindow?.show();
-    frameExtractorWindow?.webContents.send("video-metadata", metadata);
-  });
+    frameExtractorWindow.once("ready-to-show", () => {
+      frameExtractorWindow?.show();
+      frameExtractorWindow?.webContents.send("video-metadata", metadata);
+    });
+  }
 };
 
 // This method will be called when Electron has finished

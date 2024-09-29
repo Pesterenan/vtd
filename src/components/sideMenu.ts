@@ -56,7 +56,6 @@ export class SideMenu {
     importImageBtn.id = "btn_import-image";
     importImageBtn.innerText = "Importar Imagem";
     importImageBtn.className = "btn-common";
-    // @ts-ignore api defined in main.ts
     importImageBtn.addEventListener("click", () => window.api.loadImage());
     domElements.push(importImageBtn);
 
@@ -65,7 +64,6 @@ export class SideMenu {
     exportImageBtn.innerText = "Exportar Imagem";
     exportImageBtn.className = "btn-common";
     exportImageBtn.addEventListener("click", () =>
-      // @ts-ignore api defined in main.ts
       window.api.exportCanvas(WorkArea.getInstance().exportCanvas()),
     );
     domElements.push(exportImageBtn);
@@ -85,7 +83,6 @@ export class SideMenu {
     saveProjectBtn.className = "btn-common";
     saveProjectBtn.addEventListener("click", () => {
       const projectData = WorkArea.getInstance().saveProject();
-      // @ts-ignore api defined in main.ts
       window.api.saveProject(projectData);
     });
 
@@ -94,7 +91,6 @@ export class SideMenu {
     loadProjectBtn.innerText = "Carregar Projeto";
     loadProjectBtn.className = "btn-common";
     loadProjectBtn.addEventListener("click", () => {
-      // @ts-ignore api defined in main.ts
       window.api.loadProject();
     });
 
@@ -111,7 +107,6 @@ export class SideMenu {
     openVideoBtn.innerText = "Open Video";
     openVideoBtn.className = "btn-common";
     openVideoBtn.onclick = (): void => {
-      // @ts-ignore api defined in main.ts
       window.api.loadVideo();
     };
     domElements.push(openVideoBtn);

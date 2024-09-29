@@ -20,6 +20,7 @@ import getElementById from "../utils/getElementById";
 import { ImageElement } from "./imageElement";
 import { TextElement } from "./textElement";
 import { TextTool } from "./tools/textTool";
+import { GradientTool } from "./tools/gradientTool";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -39,7 +40,7 @@ export class WorkArea {
   private static instance: WorkArea | null = null;
   public mainCanvas?: HTMLCanvasElement;
   public mainContext: CanvasRenderingContext2D | null = null;
-  private elements: Element[] = [];
+  private elements: Element<TElementData>[] = [];
   private _transformBox: TransformBox | null = null;
   private _zoomLevel = 0.3;
   private workArea: IWorkAreaProperties | Record<string, never> = {};
@@ -57,6 +58,7 @@ export class WorkArea {
 
     this.tools = {
       [TOOL.SELECT]: new SelectTool(this.mainCanvas),
+      [TOOL.GRADIENT]: new GradientTool(this.mainCanvas),
       [TOOL.GRAB]: new GrabTool(this.mainCanvas),
       [TOOL.HAND]: new HandTool(this.mainCanvas),
       [TOOL.ZOOM]: new ZoomTool(this.mainCanvas),
@@ -253,6 +255,10 @@ export class WorkArea {
       this.currentTool = TOOL.TEXT;
       console.log("TEXT MODE, ACTIVATED!");
     }
+    if (event.code === "KeyH") {
+      this.currentTool = TOOL.GRADIENT;
+      console.log("GRADIENT MODE, ACTIVATED!");
+    }
     this.tools[this.currentTool].equipTool();
   }
 
@@ -328,20 +334,6 @@ export class WorkArea {
     };
   }
 
-  //private handleMouseDown(event: MouseEvent): void {
-  //  this.tools[this.currentTool].handleMouseDown(event);
-  //}
-  //
-  //private handleMouseMove(event: MouseEvent): void {
-  //  const { offsetX, offsetY } = event;
-  //  this.mouse = { position: { x: offsetX, y: offsetY } };
-  //  this.tools[this.currentTool].handleMouseMove(event);
-  //}
-  //
-  //private handleMouseUp(event: MouseEvent): void {
-  //  this.tools[this.currentTool].handleMouseUp(event);
-  //}
-
   public static getInstance(): WorkArea {
     if (this.instance === null) {
       this.instance = new WorkArea();
@@ -349,7 +341,9 @@ export class WorkArea {
     return this.instance;
   }
 
-  private createElementFromData(elData: TElementData): Element | null {
+  private createElementFromData(
+    elData: TElementData,
+  ): Element<TElementData> | null {
     let newElement = null;
     switch (elData.type) {
       case "image":
@@ -382,7 +376,7 @@ export class WorkArea {
         }),
       );
     }
-    return newElement as Element;
+    return newElement as Element<TElementData>;
   }
 
   public loadProject(data: string): void {
@@ -412,7 +406,7 @@ export class WorkArea {
     return this.workArea.canvas.toDataURL("image/png");
   }
 
-  public getSelectedElements(): Element[] | null {
+  public getSelectedElements(): Element<TElementData>[] | null {
     return this.elements.filter((el) => el.selected);
   }
 
@@ -428,7 +422,7 @@ export class WorkArea {
   }
 
   public selectElements(selection?: BoundingBox): void {
-    let selectedElements: Element[] = [];
+    let selectedElements: Element<TElementData>[] = [];
 
     if (selection) {
       const adjustedSelection = this.adjustForWorkAreaCanvas(selection);
@@ -457,7 +451,7 @@ export class WorkArea {
 
   public createTransformBox(): void {
     this.removeTransformBox();
-    const selectedElements: Element[] = this.elements.filter(
+    const selectedElements: Element<TElementData>[] = this.elements.filter(
       (el) => el.selected,
     );
     // If there's elements selected, create TransformBox
@@ -549,7 +543,7 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
-    this.elements.push(newElement);
+    this.elements.push(newElement as Element<TElementData>);
     window.dispatchEvent(
       new CustomEvent(EVENT.ADD_ELEMENT, {
         detail: {
@@ -571,7 +565,7 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
-    this.elements.push(newElement);
+    this.elements.push(newElement as Element<TElementData>);
     window.dispatchEvent(
       new CustomEvent(EVENT.ADD_ELEMENT, {
         detail: {
@@ -592,7 +586,7 @@ export class WorkArea {
       this.elements.length,
     );
     newElement.loadImage(encodedImage);
-    this.elements.push(newElement);
+    this.elements.push(newElement as Element<TElementData>);
     window.dispatchEvent(
       new CustomEvent(EVENT.ADD_ELEMENT, {
         detail: {

@@ -1,3 +1,4 @@
+import { IpcRendererEvent } from "electron";
 import "./assets/base.css";
 import "./assets/main.css";
 import { SideMenu } from "./components/sideMenu";
@@ -13,8 +14,7 @@ const initializeVTD = (): void => {
 };
 
 const createEventListeners = (workArea: WorkArea): void => {
-  // @ts-ignore defined in main.ts
-  window.api.onProcessVideoFrameResponse((_, response) => {
+  window.api.onProcessVideoFrameResponse((_: IpcRendererEvent, response) => {
     console.log(response, "response");
     if (response.success) {
       const uint8Array = new Uint8Array(response.data);
@@ -30,16 +30,15 @@ const createEventListeners = (workArea: WorkArea): void => {
       console.error(response.message);
     }
   });
-  // @ts-ignore defined in main.ts
+
   window.api.onLoadVideoResponse((_, response) => {
     if (response.success) {
-      // @ts-ignore defined in main.ts
       window.api.processVideoFrame(response.data.format.filename, 0.15);
     } else {
       console.error(response.message);
     }
   });
-  // @ts-ignore defined in main.ts
+
   window.api.onLoadImageResponse((_, response) => {
     console.log(response, "load-image-response");
     if (response.success) {
@@ -48,7 +47,7 @@ const createEventListeners = (workArea: WorkArea): void => {
       console.error(response.message);
     }
   });
-  // @ts-ignore defined in main.ts
+
   window.api.onSaveProjectResponse((_, response) => {
     if (response.success) {
       console.log(response.message);
@@ -56,7 +55,7 @@ const createEventListeners = (workArea: WorkArea): void => {
       console.error(response.message);
     }
   });
-  // @ts-ignore defined in main.ts
+
   window.api.onLoadProjectResponse((_, response) => {
     if (response.success) {
       WorkArea.getInstance().loadProject(response.data);

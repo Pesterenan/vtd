@@ -2,13 +2,13 @@ import EVENT from "../../utils/customEvents";
 import getElementById from "../../utils/getElementById";
 import { Element } from "../element";
 import { GrabTool } from "../tools/grabTool";
-import { BoundingBox, Position, Size } from "../types";
+import { BoundingBox, Position, Size, TElementData } from "../types";
 import { WorkArea } from "../workArea";
 
 export class TransformBox {
   private position: Position = { x: 0, y: 0 };
   private size: Size = { width: 0, height: 0 };
-  private selectedElements: Element[] = [];
+  private selectedElements: Element<TElementData>[] = [];
   public isHandleDragging = false;
   private context: CanvasRenderingContext2D | null;
   public centerHandle: HTMLImageElement | null = null;
@@ -31,7 +31,10 @@ export class TransformBox {
     listener: (event: Event) => void;
   };
 
-  public constructor(selectedElements: Element[], canvas: HTMLCanvasElement) {
+  public constructor(
+    selectedElements: Element<TElementData>[],
+    canvas: HTMLCanvasElement,
+  ) {
     this.context = canvas.getContext("2d");
     this.selectedElements = selectedElements;
     this.recalculateBoundingBox();
@@ -128,7 +131,7 @@ export class TransformBox {
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
-  public contains(element: Element): boolean {
+  public contains(element: Element<TElementData>): boolean {
     return !!this.selectedElements.find((el) => el.zDepth === element.zDepth);
   }
 
@@ -138,7 +141,7 @@ export class TransformBox {
     let maxX = -Infinity;
     let maxY = -Infinity;
 
-    this.selectedElements.forEach((element: Element) => {
+    this.selectedElements.forEach((element: Element<TElementData>) => {
       const boundingBox = element.getTransformedBoundingBox();
       if (boundingBox.x1 < minX) minX = boundingBox.x1;
       if (boundingBox.y1 < minY) minY = boundingBox.y1;

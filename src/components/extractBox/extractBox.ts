@@ -1,12 +1,12 @@
-import EVENT from '../../utils/customEvents';
-import { BoundingBox, Position, Size } from '../types';
+import EVENT from "../../utils/customEvents";
+import { BoundingBox, Position, Size } from "../types";
 
 const LINE_WIDTH = 4;
 const CENTER_RADIUS = 6;
 const FRAME_RATIO: Record<string, number> = {
   vertical_wide: 1.77,
   horizontal_wide: 0.5625,
-  letterbox: 1.33
+  letterbox: 1.33,
 };
 
 export class ExtractBox {
@@ -23,7 +23,12 @@ export class ExtractBox {
   }
 
   public getBoundingBox(): BoundingBox {
-    return { x1: this.position.x, y1: this.position.y, x2: this.size.width, y2: this.size.height };
+    return {
+      x1: this.position.x,
+      y1: this.position.y,
+      x2: this.size.width,
+      y2: this.size.height,
+    };
   }
 
   public onClick(evt: MouseEvent): void {
@@ -41,11 +46,11 @@ export class ExtractBox {
       const onMouseUp = (): void => {
         this.isDragging = false;
         this.lastMousePosition = null;
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
       };
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
     }
   }
 
@@ -64,12 +69,18 @@ export class ExtractBox {
     this.position.y += deltaY;
 
     // Garantir que a caixa não vá além dos limites do canvas
-    this.position.x = Math.max(0, Math.min(this.canvas.width - this.size.width, this.position.x));
-    this.position.y = Math.max(0, Math.min(this.canvas.height - this.size.height, this.position.y));
+    this.position.x = Math.max(
+      0,
+      Math.min(this.canvas.width - this.size.width, this.position.x),
+    );
+    this.position.y = Math.max(
+      0,
+      Math.min(this.canvas.height - this.size.height, this.position.y),
+    );
   }
 
   private setupInitialBox(): void {
-    const ratio = FRAME_RATIO['horizontal_wide'];
+    const ratio = FRAME_RATIO["horizontal_wide"];
     let width = this.canvas.width;
     let height = Math.ceil(this.canvas.width * ratio);
     if (height > this.canvas.height) {
@@ -78,7 +89,7 @@ export class ExtractBox {
     }
     this.position = {
       x: this.canvas.width * 0.5 - width * 0.5,
-      y: this.canvas.height * 0.5 - height * 0.5
+      y: this.canvas.height * 0.5 - height * 0.5,
     };
     this.size = { height, width };
   }
@@ -87,30 +98,36 @@ export class ExtractBox {
   public getCenter(): Position {
     return {
       x: this.position.x + this.size.width * 0.5,
-      y: this.position.y + this.size.height * 0.5
+      y: this.position.y + this.size.height * 0.5,
     };
   }
 
   public draw(): void {
-    const context = this.canvas.getContext('2d')!;
+    const context = this.canvas.getContext("2d");
     if (!context) return;
     const centerPosition = this.getCenter();
 
     // Draw extracting box
     context.save();
-    context.strokeStyle = 'green';
+    context.strokeStyle = "green";
     context.lineWidth = LINE_WIDTH;
     context.strokeRect(
       this.position.x + LINE_WIDTH * 0.5,
       this.position.y + LINE_WIDTH * 0.5,
       this.size.width - LINE_WIDTH,
-      this.size.height - LINE_WIDTH
+      this.size.height - LINE_WIDTH,
     );
 
     // Draw centerHandle
-    context.fillStyle = 'green';
+    context.fillStyle = "green";
     context.beginPath();
-    context.arc(centerPosition.x, centerPosition.y, CENTER_RADIUS, 0, Math.PI * 2);
+    context.arc(
+      centerPosition.x,
+      centerPosition.y,
+      CENTER_RADIUS,
+      0,
+      Math.PI * 2,
+    );
     context.fill();
     context.closePath();
     context.restore();

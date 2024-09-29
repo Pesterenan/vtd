@@ -1,7 +1,7 @@
 import { Element } from "./element";
 import { BoundingBox, ITextElementData, Position, Size } from "./types";
 
-export class TextElement extends Element {
+export class TextElement extends Element<ITextElementData> {
   public get font(): string {
     return this.properties.get("font") as string;
   }
@@ -77,10 +77,6 @@ export class TextElement extends Element {
     lowerLeft: Position;
   };
   private needsBoundingBoxUpdate = true;
-  protected declare properties: Map<
-    keyof ITextElementData,
-    ITextElementData[keyof ITextElementData]
-  >;
 
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
@@ -111,7 +107,7 @@ export class TextElement extends Element {
   }
 
   public serialize(): ITextElementData {
-    return super.serialize() as ITextElementData;
+    return super.serialize();
   }
 
   private updateBoundingBox(context: CanvasRenderingContext2D): void {

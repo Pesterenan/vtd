@@ -1,6 +1,6 @@
 import EVENT from "../../utils/customEvents";
 import { Element } from "../element";
-import { Position } from "../types";
+import { Position, TElementData } from "../types";
 import { WorkArea } from "../workArea";
 import { Tool } from "./abstractTool";
 import centerHandleMove from "../../components/transformBox/assets/centerHandleMove.svg";
@@ -10,7 +10,7 @@ import { TransformBox } from "../transformBox/transformBox";
 export class GrabTool extends Tool {
   private lastPosition: Position | null = null;
   private toolIcon: HTMLImageElement | null = null;
-  private selectedElements: Element[] | null = null;
+  private selectedElements: Element<TElementData>[] | null = null;
   private isDraggingCenter = false;
   private transformBox: TransformBox | null = null;
   private onHover: ((evt: MouseEvent) => void) | null = null;
@@ -132,7 +132,7 @@ export class GrabTool extends Tool {
   handleKeyUp(): void {}
 
   public static moveSelectedElements(
-    elements: Element[] | null,
+    elements: Element<TElementData>[] | null,
     delta: Position,
   ): void {
     if (elements) {

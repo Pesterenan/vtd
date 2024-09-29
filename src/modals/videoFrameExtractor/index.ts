@@ -37,9 +37,11 @@ export class VideoFrameExtractor {
     const extractContext = extractCanvas.getContext("2d");
     const offScreenContext = offScreenCanvas.getContext("2d");
 
-    this.preview = { canvas: previewCanvas, context: previewContext! };
-    this.extract = { canvas: extractCanvas, context: extractContext! };
-    this.offScreen = { canvas: offScreenCanvas, context: offScreenContext! };
+    if (previewContext && extractContext && offScreenContext) {
+      this.preview = { canvas: previewCanvas, context: previewContext };
+      this.extract = { canvas: extractCanvas, context: extractContext };
+      this.offScreen = { canvas: offScreenCanvas, context: offScreenContext };
+    }
 
     this.extractFrameBtn =
       getElementById<HTMLButtonElement>("btn_extract-frame");

@@ -1,5 +1,5 @@
 export interface IElementData {
-  [key: string]: IElementData[keyof IElementData];
+  type: ElementType;
   position: Position;
   scale: Scale;
   size: Size;
@@ -8,9 +8,9 @@ export interface IElementData {
   isVisible: boolean;
   layerName: string;
 }
+type ElementType = "text" | "image" | "gradient";
 
 export interface ITextElementData extends IElementData {
-  [key: string]: ITextElementData[keyof ITextElementData];
   type: "text";
   content: string;
   fillColor: string;
@@ -24,14 +24,27 @@ export interface ITextElementData extends IElementData {
 }
 
 export interface IImageElementData extends IElementData {
-  [key: string]: IImageElementData[keyof IImageElementData];
   type: "image";
   encodedImage: string;
   backgroundColor: string;
   backgroundOpacity: number;
 }
 
-export type TElementData = IImageElementData | ITextElementData;
+export interface IGradientElementData extends IElementData {
+  type: "gradient";
+  startPosition: Position;
+  endPosition: Position;
+  colorStops: {
+    /** Where the colorstop is located in the gradient, from 0 to 1 */
+    portion: number;
+    color: string;
+  }[];
+}
+
+export type TElementData =
+  | IImageElementData
+  | ITextElementData
+  | IGradientElementData;
 
 export interface IProjectData {
   elements: TElementData[];
@@ -79,6 +92,8 @@ export enum TOOL {
   SELECT,
   /** @prop GRAB - Mover elemento */
   GRAB,
+  /** @prop GRADIENT - Criar gradientes */
+  GRADIENT,
   /** @prop ROTATE - Rotacionar elemento */
   ROTATE,
   /** @prop SCALE - Escalonar elemento */

@@ -3,7 +3,7 @@ import EVENT from "../utils/customEvents";
 import { Element } from "./element";
 import { BoundingBox, IImageElementData, Position, Size } from "./types";
 
-export class ImageElement extends Element {
+export class ImageElement extends Element<IImageElementData> {
   public get backgroundColor(): string {
     return this.properties.get("backgroundColor") as string;
   }
@@ -26,10 +26,6 @@ export class ImageElement extends Element {
   };
   public image: HTMLImageElement | null = null;
   private isImageLoaded = false;
-  protected declare properties: Map<
-    keyof IImageElementData,
-    IImageElementData[keyof IImageElementData]
-  >;
 
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
@@ -56,7 +52,7 @@ export class ImageElement extends Element {
   }
 
   public serialize(): IImageElementData {
-    const serializedImage = super.serialize() as IImageElementData;
+    const serializedImage = super.serialize();
     if (this.isImageLoaded) {
       serializedImage.encodedImage = this.properties.get(
         "encodedImage",

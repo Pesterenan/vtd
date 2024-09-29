@@ -1,15 +1,48 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
+export {};
+
+declare global {
+  interface Window {
+    api: {
+      exportCanvas: (dataString: string) => void;
+      loadImage: () => void;
+      loadVideo: () => void;
+      loadProject: () => void;
+      processVideoFrame: (filePath: string, timeInSeconds: number) => void;
+      saveProject: (dataString: string) => void;
+      sendFrameToWorkArea: (imageUrl: string) => void;
+      onProcessVideoFrameResponse: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onLoadImageResponse: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onLoadVideoResponse: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onLoadProjectResponse: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onSaveProjectResponse: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onVideoMetadata: (
+        callback: (metadata: IVideoMetadata) => void,
+      ) => Electron.IpcRenderer;
+      ping: () => void;
+    };
+    electron: typeof electronAPI;
+  }
+}
 import { contextBridge, ipcRenderer } from "electron";
 import { electronAPI } from "@electron-toolkit/preload";
+import { IVideoMetadata } from "./types";
 
 // Custom APIs for renderer
 const api = {
   exportCanvas: (dataString: string): void =>
     ipcRenderer.send("export-canvas", { dataString }),
-  loadImage: (filePath: string): void =>
-    ipcRenderer.send("load-image", filePath),
-  loadVideo: (filePath: string): void =>
-    ipcRenderer.send("load-video", filePath),
+  loadImage: (): void => ipcRenderer.send("load-image"),
+  loadVideo: (): void => ipcRenderer.send("load-video"),
   loadProject: (): void => ipcRenderer.send("load-project"),
   processVideoFrame: (filePath: string, timeInSeconds: number): void =>
     ipcRenderer.send("process-video-frame", filePath, timeInSeconds),
@@ -18,22 +51,24 @@ const api = {
   sendFrameToWorkArea: (imageUrl: string): void =>
     ipcRenderer.send("send-frame-to-work-area", imageUrl),
   onProcessVideoFrameResponse: (
-    callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
+    callback: (event: Electron.IpcRendererEvent) => void,
   ): Electron.IpcRenderer =>
     ipcRenderer.on("process-video-frame-response", callback),
   onLoadImageResponse: (
-    callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
+    callback: (event: Electron.IpcRendererEvent) => void,
   ): Electron.IpcRenderer => ipcRenderer.on("load-image-response", callback),
   onLoadVideoResponse: (
-    callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
+    callback: (event: Electron.IpcRendererEvent) => void,
   ): Electron.IpcRenderer => ipcRenderer.on("load-video-response", callback),
   onLoadProjectResponse: (
-    callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
+    callback: (event: Electron.IpcRendererEvent) => void,
   ): Electron.IpcRenderer => ipcRenderer.on("load-project-response", callback),
   onSaveProjectResponse: (
-    callback: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
+    callback: (event: Electron.IpcRendererEvent) => void,
   ): Electron.IpcRenderer => ipcRenderer.on("save-project-response", callback),
-  onVideoMetadata: (callback: (arg0: any) => void): Electron.IpcRenderer =>
+  onVideoMetadata: (
+    callback: (arg0: IVideoMetadata) => void,
+  ): Electron.IpcRenderer =>
     ipcRenderer.on("video-metadata", (_, metadata) => callback(metadata)),
   ping: () => ipcRenderer.send("ping"),
 };
@@ -49,8 +84,6 @@ if (process.contextIsolated) {
     console.error(error);
   }
 } else {
-  // @ts-ignore (define in dts)
   window.electron = electronAPI;
-  // @ts-ignore (define in dts)
   window.api = api;
 }
