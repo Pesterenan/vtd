@@ -31,7 +31,7 @@ export class GrabTool extends Tool {
           y: evt.offsetY - offset.y,
         });
         const transformBoxCenter = this.transformBox.getCenter();
-        const centerBB = new BB(transformBoxCenter, 8);
+        const centerBB = new BB(transformBoxCenter, 40);
         if (centerBB.isPointWithinBB(mouseDownPosition)) {
           this.isHovering = true;
           window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
@@ -90,7 +90,7 @@ export class GrabTool extends Tool {
         y: evt.offsetY - offset.y,
       });
       const transformBoxCenter = this.transformBox.getCenter();
-      const centerBB = new BB(transformBoxCenter, 8);
+      const centerBB = new BB(transformBoxCenter, 40);
       if (centerBB.isPointWithinBB(mouseDownPosition)) {
         this.isDraggingCenter = true;
         this.lastPosition = { x: evt.offsetX, y: evt.offsetY };
@@ -137,8 +137,10 @@ export class GrabTool extends Tool {
   ): void {
     if (elements) {
       elements.forEach((element) => {
-        element.position.x += delta.x;
-        element.position.y += delta.y;
+        element.position = {
+          x: element.position.x + delta.x,
+          y: element.position.y + delta.y,
+        };
       });
     }
   }

@@ -139,8 +139,7 @@ export class RotateTool extends Tool {
           deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians);
         const newY =
           deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians);
-        element.position.x = origin.x + newX;
-        element.position.y = origin.y + newY;
+        element.position = { x: origin.x + newX, y: origin.y + newY };
         element.rotation += angleInRadians;
       });
     }

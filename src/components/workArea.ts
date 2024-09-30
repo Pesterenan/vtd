@@ -21,6 +21,7 @@ import { ImageElement } from "./imageElement";
 import { TextElement } from "./textElement";
 import { TextTool } from "./tools/textTool";
 import { GradientTool } from "./tools/gradientTool";
+import { GradientElement } from "./gradientElement";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -520,6 +521,26 @@ export class WorkArea {
       );
       this.mainContext.restore();
     }
+  }
+
+  public addGradientElement(): void {
+    const width = this.workArea.canvas.width;
+    const height = this.workArea.canvas.height;
+    const newElement = new GradientElement(
+      { x: width * 0.5, y: height * 0.5 },
+      { width, height },
+      this.elements.length,
+    );
+    this.elements.push(newElement as Element<TElementData>);
+    window.dispatchEvent(
+      new CustomEvent(EVENT.ADD_ELEMENT, {
+        detail: {
+          elementId: newElement.elementId,
+          layerName: newElement.layerName,
+        },
+      }),
+    );
+    this.update();
   }
 
   public addTextElement(position?: Position): void {
