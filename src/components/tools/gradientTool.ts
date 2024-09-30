@@ -1,7 +1,6 @@
 import EVENT from "../../utils/customEvents";
 import { Position } from "../types";
 import { Tool } from "./abstractTool";
-import centerHandleScale from "../../components/transformBox/assets/centerHandleScale.svg";
 import { WorkArea } from "../workArea";
 import { GradientElement } from "../gradientElement";
 import { BB } from "../../utils/bb";
@@ -9,7 +8,6 @@ import { BB } from "../../utils/bb";
 export class GradientTool extends Tool {
   private startPosition: Position | null = null;
   private endPosition: Position | null = null;
-  private toolIcon: HTMLImageElement | null = null;
   private onHover: ((evt: MouseEvent) => void) | null = null;
   private isDragging = false;
   private isHoveringStartPos = false;
@@ -17,8 +15,6 @@ export class GradientTool extends Tool {
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
-    this.toolIcon = new Image(12, 12);
-    this.toolIcon.src = centerHandleScale;
   }
 
   equipTool(): void {
@@ -40,6 +36,8 @@ export class GradientTool extends Tool {
 
   unequipTool(): void {
     super.unequipTool();
+    this.startPosition = null;
+    this.endPosition = null;
     if (this.onHover) {
       this.canvas.removeEventListener("mousemove", this.onHover);
     }
@@ -47,31 +45,70 @@ export class GradientTool extends Tool {
   }
 
   draw(): void {
-    if (
-      this.startPosition &&
-      this.endPosition &&
-      this.context &&
-      this.toolIcon
-    ) {
+    if (this.startPosition && this.endPosition && this.context) {
+      const startRadius = this.isHoveringStartPos ? 4 : 2;
+      const endRadius = this.isHoveringEndPos ? 4 : 2;
       this.context.save();
-      this.toolIcon.width = this.isHoveringStartPos ? 50 : 20;
-      this.toolIcon.height = this.isHoveringStartPos ? 50 : 20;
-      this.context.drawImage(
-        this.toolIcon,
-        this.startPosition.x - this.toolIcon.width * 0.5,
-        this.startPosition.y - this.toolIcon.height * 0.5,
-        this.toolIcon.width,
-        this.toolIcon.height,
+      this.context.fillStyle = "#FFFFFF";
+      this.context.beginPath();
+      this.context.arc(
+        this.startPosition.x,
+        this.startPosition.y,
+        8,
+        0,
+        Math.PI * 2,
       );
-      this.toolIcon.width = this.isHoveringEndPos ? 50 : 20;
-      this.toolIcon.height = this.isHoveringEndPos ? 50 : 20;
-      this.context.drawImage(
-        this.toolIcon,
-        this.endPosition.x - this.toolIcon.width * 0.5,
-        this.endPosition.y - this.toolIcon.height * 0.5,
-        this.toolIcon.width,
-        this.toolIcon.height,
+      this.context.fill();
+      this.context.beginPath();
+      this.context.arc(
+        this.endPosition.x,
+        this.endPosition.y,
+        8,
+        0,
+        Math.PI * 2,
       );
+      this.context.fill();
+      this.context.fillStyle = "#777777";
+      this.context.beginPath();
+      this.context.arc(
+        this.startPosition.x,
+        this.startPosition.y,
+        6,
+        0,
+        Math.PI * 2,
+      );
+      this.context.fill();
+      this.context.beginPath();
+      this.context.arc(
+        this.endPosition.x,
+        this.endPosition.y,
+        6,
+        0,
+        Math.PI * 2,
+      );
+      this.context.fill();
+
+      this.context.fillStyle = "#000000";
+      this.context.beginPath();
+      this.context.arc(
+        this.startPosition.x,
+        this.startPosition.y,
+        startRadius,
+        0,
+        Math.PI * 2,
+      );
+      this.context.fill();
+      this.context.beginPath();
+      this.context.fillStyle = "#FFFFFF";
+      this.context.arc(
+        this.endPosition.x,
+        this.endPosition.y,
+        endRadius,
+        0,
+        Math.PI * 2,
+      );
+      this.context.fill();
+
       this.context.restore();
     }
   }
