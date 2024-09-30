@@ -32,13 +32,8 @@ export class GrabTool extends Tool {
         });
         const transformBoxCenter = this.transformBox.getCenter();
         const centerBB = new BB(transformBoxCenter, 40);
-        if (centerBB.isPointWithinBB(mouseDownPosition)) {
-          this.isHovering = true;
-          window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-        } else {
-          this.isHovering = false;
-          window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-        }
+        this.isHovering = centerBB.isPointWithinBB(mouseDownPosition);
+        window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
       }
     };
     this.canvas.addEventListener("mousemove", this.onHover);
