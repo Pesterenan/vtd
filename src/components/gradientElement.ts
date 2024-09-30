@@ -37,13 +37,16 @@ export class GradientElement extends Element<IGradientElementData> {
   public set endPosition(value: Position) {
     this.properties.set("endPosition", value);
   }
-  public get colorStops(): { portion: number; color: string }[] {
+  public get colorStops(): { portion: number; color: string; alpha: number }[] {
     return this.properties.get("colorStops") as {
       portion: number;
       color: string;
+      alpha: number;
     }[];
   }
-  public set colorStops(value: { portion: number; color: string }[]) {
+  public set colorStops(
+    value: { portion: number; color: string; alpha: number }[],
+  ) {
     this.properties.set("colorStops", value);
   }
 
@@ -52,10 +55,9 @@ export class GradientElement extends Element<IGradientElementData> {
     this.properties.set("type", "gradient");
     this.startPosition = { x: -position.x, y: -position.y };
     this.endPosition = { x: position.x, y: position.y };
-    console.log(this.startPosition, this.endPosition);
     this.colorStops = [
-      { portion: 0.0, color: "black" },
-      { portion: 1.0, color: "rgba(255,100,0,0.0)" },
+      { portion: 0.0, color: "#000000", alpha: 0.25 },
+      { portion: 1.0, color: "#00FFFF", alpha: 0.0 },
     ];
   }
 
@@ -78,7 +80,7 @@ export class GradientElement extends Element<IGradientElementData> {
     );
 
     for (const cs of this.colorStops) {
-      gradient.addColorStop(cs.portion, cs.color);
+      gradient.addColorStop(cs.portion, this.hexToRgba(cs.color, cs.alpha));
     }
 
     context.fillStyle = gradient;
@@ -88,5 +90,12 @@ export class GradientElement extends Element<IGradientElementData> {
 
   public getTransformedBoundingBox(): BoundingBox {
     return { x1: 0, x2: this.size.width, y1: 0, y2: this.size.height };
+  }
+
+  private hexToRgba(hex: string, alpha: number): string {
+    const r = parseInt(hex[1] + hex[2], 16);
+    const g = parseInt(hex[3] + hex[4], 16);
+    const b = parseInt(hex[5] + hex[6], 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 }

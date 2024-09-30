@@ -38,6 +38,7 @@ export interface IGradientElementData extends IElementData {
     /** Where the colorstop is located in the gradient, from 0 to 1 */
     portion: number;
     color: string;
+    alpha: number;
   }[];
 }
 
