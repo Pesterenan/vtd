@@ -56,7 +56,7 @@ export class GradientElement extends Element<IGradientElementData> {
     this.startPosition = { x: -position.x, y: -position.y };
     this.endPosition = { x: position.x, y: position.y };
     this.colorStops = [
-      { portion: 0.0, color: "#000000", alpha: 0.25 },
+      { portion: 0.0, color: "#000000", alpha: 0.5 },
       { portion: 1.0, color: "#00FFFF", alpha: 0.0 },
     ];
   }

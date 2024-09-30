@@ -1,5 +1,6 @@
 import EVENT from "../utils/customEvents";
 import getElementById from "../utils/getElementById";
+import { GradientMenu } from "./gradientMenu";
 import { LayersMenu } from "./layersMenu";
 import { TextMenu } from "./textMenu";
 import { WorkArea } from "./workArea";
@@ -13,6 +14,7 @@ export class SideMenu {
   private widthSizeInput: HTMLInputElement;
   private heightSizeInput: HTMLInputElement;
   private layersMenu: HTMLElement | null = null;
+  private gradientMenu: HTMLElement | null = null;
   private textMenu: HTMLElement | null = null;
 
   constructor() {
@@ -175,10 +177,12 @@ export class SideMenu {
     domElements.push(this.createHR());
 
     this.textMenu = TextMenu.getInstance().getMenu();
-    console.log(this.textMenu);
     domElements.push(this.textMenu);
     domElements.push(this.createHR());
 
+    this.gradientMenu = GradientMenu.getInstance().getMenu();
+    domElements.push(this.gradientMenu);
+    domElements.push(this.createHR());
     // APPEND ELEMENTS TO SIDE MENU:
     this.sideMenu.append(...domElements);
 
