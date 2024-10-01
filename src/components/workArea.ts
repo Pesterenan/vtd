@@ -354,13 +354,6 @@ export class WorkArea {
     };
   }
 
-  public adjustForZoom(mousePosition: Position): Position {
-    return {
-      x: Number(mousePosition.x / this.zoomLevel),
-      y: Number(mousePosition.y / this.zoomLevel),
-    };
-  }
-
   public static getInstance(): WorkArea {
     if (this.instance === null) {
       this.instance = new WorkArea();
@@ -563,11 +556,7 @@ export class WorkArea {
     const height = 10;
     let adjustedPosition = null;
     if (position) {
-      const offsetPos = {
-        x: position.x - this.workArea.offset.x,
-        y: position.y - this.workArea.offset.y,
-      };
-      adjustedPosition = this.adjustForZoom(offsetPos);
+      adjustedPosition = this.adjustForCanvas(position);
     } else {
       adjustedPosition = {
         x: Math.floor(Math.random() * this.workArea.canvas.width) - width,

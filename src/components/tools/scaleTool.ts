@@ -60,12 +60,11 @@ export class ScaleTool extends Tool {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseDown(evt: MouseEvent): void {
     if (evt.altKey && this.transformBox) {
-      this.centerPosition = WorkArea.getInstance().adjustForZoom({
-        x: evt.offsetX - WorkArea.getInstance().offset.x,
-        y: evt.offsetY - WorkArea.getInstance().offset.y,
+      this.centerPosition = WorkArea.getInstance().adjustForCanvas({
+        x: evt.offsetX,
+        y: evt.offsetY,
       });
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
       return;
@@ -84,15 +83,15 @@ export class ScaleTool extends Tool {
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
-  handleMouseMove(event: MouseEvent): void {
+  handleMouseMove(evt: MouseEvent): void {
     if (
       this.transformBox &&
       this.selectedElements &&
       this.startingPosition &&
       this.isScaling
     ) {
-      const deltaX = event.offsetX - this.startingPosition.x;
-      const deltaY = event.offsetY - this.startingPosition.y;
+      const deltaX = evt.offsetX - this.startingPosition.x;
+      const deltaY = evt.offsetY - this.startingPosition.y;
       const delta = { x: 1 + deltaX / 100, y: 1 + deltaY / 100 };
       ScaleTool.scaleSelectedElements(
         this.selectedElements,
@@ -100,8 +99,8 @@ export class ScaleTool extends Tool {
         delta,
       );
       this.startingPosition = {
-        x: event.offsetX,
-        y: event.offsetY,
+        x: evt.offsetX,
+        y: evt.offsetY,
       };
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
