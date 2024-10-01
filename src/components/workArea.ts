@@ -328,6 +328,22 @@ export class WorkArea {
     }
   }
 
+  /** Adjust canvas object position to be shown on screen */
+  public adjustForScreen(workAreaPosition: Position): Position {
+    return {
+      x: Number(workAreaPosition.x * this.zoomLevel) + this.offset.x,
+      y: Number(workAreaPosition.y * this.zoomLevel) + this.offset.y,
+    };
+  }
+
+  /** Adjust mouse event position to be shown on canvas */
+  public adjustForCanvas(mousePosition: Position): Position {
+    return {
+      x: Number((mousePosition.x - this.offset.x) / this.zoomLevel),
+      y: Number((mousePosition.y - this.offset.y) / this.zoomLevel),
+    };
+  }
+
   public adjustForZoom(mousePosition: Position): Position {
     return {
       x: Number(mousePosition.x / this.zoomLevel),

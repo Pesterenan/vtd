@@ -25,14 +25,13 @@ export class GrabTool extends Tool {
   equipTool(): void {
     this.onHover = (evt: MouseEvent) => {
       if (this.transformBox) {
-        const offset = WorkArea.getInstance().offset;
-        const mouseDownPosition = WorkArea.getInstance().adjustForZoom({
-          x: evt.offsetX - offset.x,
-          y: evt.offsetY - offset.y,
+        const mouseHoverPosition = WorkArea.getInstance().adjustForCanvas({
+          x: evt.offsetX,
+          y: evt.offsetY,
         });
         const transformBoxCenter = this.transformBox.getCenter();
         const centerBB = new BB(transformBoxCenter, 40);
-        this.isHovering = centerBB.isPointWithinBB(mouseDownPosition);
+        this.isHovering = centerBB.isPointWithinBB(mouseHoverPosition);
         window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
       }
     };
@@ -52,6 +51,12 @@ export class GrabTool extends Tool {
     }
     this.transformBox = null;
     this.resetTool();
+  }
+
+  resetTool(): void {
+    this.lastPosition = null;
+    this.isDraggingCenter = false;
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   draw(): void {
@@ -79,16 +84,15 @@ export class GrabTool extends Tool {
   handleMouseDown(evt: MouseEvent): void {
     evt.stopPropagation();
     if (this.transformBox) {
-      const offset = WorkArea.getInstance().offset;
-      const mouseDownPosition = WorkArea.getInstance().adjustForZoom({
-        x: evt.offsetX - offset.x,
-        y: evt.offsetY - offset.y,
+      const mouseDownPosition = WorkArea.getInstance().adjustForCanvas({
+        x: evt.offsetX,
+        y: evt.offsetY,
       });
       const transformBoxCenter = this.transformBox.getCenter();
       const centerBB = new BB(transformBoxCenter, 40);
       if (centerBB.isPointWithinBB(mouseDownPosition)) {
         this.isDraggingCenter = true;
-        this.lastPosition = { x: evt.offsetX, y: evt.offsetY };
+        this.lastPosition = mouseDownPosition;
         super.handleMouseDown();
       }
     }
@@ -96,27 +100,23 @@ export class GrabTool extends Tool {
 
   handleMouseUp(): void {
     if (this.isDraggingCenter) {
-      console.log("Accept position");
       super.handleMouseUp();
       this.resetTool();
     }
   }
 
-  resetTool() {
-    this.lastPosition = null;
-    this.isDraggingCenter = false;
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-  }
-
   handleMouseMove(evt: MouseEvent): void {
     if (this.isDraggingCenter && this.lastPosition) {
-      const delta = {
-        x: evt.offsetX - this.lastPosition.x,
-        y: evt.offsetY - this.lastPosition.y,
+      const mouseMovePosition = WorkArea.getInstance().adjustForCanvas({
+        x: evt.offsetX,
+        y: evt.offsetY,
+      });
+      const deltaPosition = {
+        x: mouseMovePosition.x - this.lastPosition.x,
+        y: mouseMovePosition.y - this.lastPosition.y,
       };
-      const adjustedDelta = WorkArea.getInstance().adjustForZoom(delta);
-      GrabTool.moveSelectedElements(this.selectedElements, adjustedDelta);
-      this.lastPosition = { x: evt.offsetX, y: evt.offsetY };
+      GrabTool.moveSelectedElements(this.selectedElements, deltaPosition);
+      this.lastPosition = mouseMovePosition;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
