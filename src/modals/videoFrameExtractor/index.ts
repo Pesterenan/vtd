@@ -11,6 +11,7 @@ const PREVIEW_CANVAS_WIDTH = 768;
 export class VideoFrameExtractor {
   private static instance: VideoFrameExtractor | null = null;
   private extractFrameBtn: HTMLButtonElement;
+  private copyToClipBoardBtn: HTMLButtonElement;
   private preview: {
     canvas: HTMLCanvasElement;
     context: CanvasRenderingContext2D;
@@ -46,6 +47,10 @@ export class VideoFrameExtractor {
     this.extractFrameBtn =
       getElementById<HTMLButtonElement>("btn_extract-frame");
     this.extractFrameBtn.classList.add("btn-common");
+    this.copyToClipBoardBtn = getElementById<HTMLButtonElement>(
+      "btn_copy-to-clipboard",
+    );
+    this.copyToClipBoardBtn.classList.add("btn-common");
     this.slider = getElementById<HTMLInputElement>("slider");
 
     this.createEventListeners();
@@ -87,6 +92,13 @@ export class VideoFrameExtractor {
         this.extractFrameBtn.onclick = (): void => {
           if (this.extractBox) {
             this.extractFrame();
+          } else {
+            console.error("Extract Box not initialized");
+          }
+        };
+        this.copyToClipBoardBtn.onclick = (): void => {
+          if (this.extract?.canvas) {
+            this.extractFrame(true);
           } else {
             console.error("Extract Box not initialized");
           }
@@ -155,10 +167,10 @@ export class VideoFrameExtractor {
   }
 
   /** Copies the image from the `offScreen.canvas` within a selection to the `extract.canvas` so it
-   * can be sent to the WorkArea as a new element.
-   * @param selection - Area to extract from the frame.
-   * */
-  private extractFrame(): void {
+   * can be sent to the WorkArea as a new element or copied to clipboard.
+   * @param {boolean} toClipboard - if true, copies extracted area to clipboard instead.
+   */
+  private extractFrame(toClipboard = false): void {
     if (this.offScreen && this.preview && this.extractBox) {
       const { width: previewWidth, height: previewHeight } =
         this.preview.canvas;
@@ -185,12 +197,20 @@ export class VideoFrameExtractor {
       if (this.extract) {
         this.extract.canvas.width = scaledWidth;
         this.extract.canvas.height = scaledHeight;
-        console.log(this.extract.canvas);
         this.extract.context.putImageData(imageData, 0, 0);
 
-        const imageUrl = this.extract.canvas.toDataURL("image/png");
-        // @ts-ignore definida no main.ts
-        window.api.sendFrameToWorkArea(imageUrl);
+        if (toClipboard) {
+          this.extract.canvas.toBlob((blob) => {
+            if (blob) {
+              const item = new ClipboardItem({ "image/png": blob });
+              // TODO: Criar um sistema de alerts na aplicação para mostrar que foi copiado.
+              navigator.clipboard.write([item]);
+            }
+          }, "image/png");
+        } else {
+          const imageUrl = this.extract.canvas.toDataURL("image/png");
+          window.api.sendFrameToWorkArea(imageUrl);
+        }
       }
     }
   }
@@ -200,7 +220,6 @@ export class VideoFrameExtractor {
     if (this.videoMetadata) {
       const sliderValueInterpolated =
         (this.videoMetadata.duration * Number(this.slider.value)) / 100;
-      // @ts-ignore defined in main.ts
       window.api.processVideoFrame(
         this.videoMetadata.filePath,
         sliderValueInterpolated,

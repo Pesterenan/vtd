@@ -211,10 +211,50 @@ export class WorkArea {
           elementToRename.layerName = name;
         }
       });
+      this.mainCanvas.addEventListener("dragover", (evt) => {
+        evt.preventDefault();
+      });
+      this.mainCanvas.addEventListener("drop", this.handleDropItems.bind(this));
+      window.addEventListener("paste", this.handleDropItems.bind(this));
     }
   }
 
-  private changeTool(event: KeyboardEvent): void {
+  public copyCanvasToClipboard(): void {
+    if (!this.workArea.canvas) return;
+    this.workArea.canvas.toBlob((blob) => {
+      if (blob) {
+        const item = new ClipboardItem({ "image/png": blob });
+        // TODO: Criar um sistema de alerts na aplicação para mostrar que foi copiado.
+        navigator.clipboard.write([item]);
+      }
+    }, "image/png");
+  }
+
+  private handleDropItems(evt: DragEvent | ClipboardEvent): void {
+    evt.preventDefault();
+    let droppedItems = null;
+    if (evt instanceof DragEvent) {
+      droppedItems = evt.dataTransfer?.items;
+    } else {
+      droppedItems = evt.clipboardData?.items;
+    }
+    if (!droppedItems) return;
+    for (const item of droppedItems) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            const imageDataUrl = evt.target?.result as string;
+            this.addImageElement(imageDataUrl);
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    }
+  }
+
+  private changeTool(evt: KeyboardEvent): void {
     const activeElement = document.activeElement;
     const isTyping =
       activeElement?.tagName === "TEXTAREA" ||
@@ -224,7 +264,7 @@ export class WorkArea {
     this.tools[this.currentTool].unequipTool();
     if (this.currentTool === TOOL.SELECT) {
       if (this.transformBox) {
-        switch (event.code) {
+        switch (evt.code) {
           case "KeyG":
             this.currentTool = TOOL.GRAB;
             console.log("GRAB MODE, ACTIVATED!");
@@ -245,25 +285,25 @@ export class WorkArea {
         }
       }
     } else {
-      switch (event.code) {
+      switch (evt.code) {
         case "KeyV":
           this.currentTool = TOOL.SELECT;
           console.log("SELECTING");
           break;
       }
     }
-    if (event.code === "KeyT") {
+    if (evt.code === "KeyT") {
       this.currentTool = TOOL.TEXT;
       console.log("TEXT MODE, ACTIVATED!");
     }
-    if (event.code === "KeyH") {
+    if (evt.code === "KeyH") {
       this.currentTool = TOOL.GRADIENT;
       console.log("GRADIENT MODE, ACTIVATED!");
     }
     this.tools[this.currentTool].equipTool();
   }
 
-  private handleKeyUp(event: KeyboardEvent): void {
+  private handleKeyUp(evt: KeyboardEvent): void {
     const activeElement = document.activeElement;
     const isTyping =
       activeElement?.tagName === "TEXTAREA" ||
@@ -271,7 +311,7 @@ export class WorkArea {
     if (isTyping) return;
 
     if (this.currentTool === TOOL.ZOOM || this.currentTool === TOOL.HAND) {
-      switch (event.code) {
+      switch (evt.code) {
         case "KeyZ":
         case "Space":
           this.tools[this.currentTool].unequipTool();
@@ -283,16 +323,20 @@ export class WorkArea {
     }
   }
 
-  private handleKeyDown(event: KeyboardEvent): void {
+  private handleKeyDown(evt: KeyboardEvent): void {
     const activeElement = document.activeElement;
     const isTyping =
       activeElement?.tagName === "TEXTAREA" ||
       activeElement?.tagName === "INPUT";
     if (isTyping) return;
 
+    if (evt.ctrlKey && evt.code === "KeyC") {
+      this.copyCanvasToClipboard();
+    }
+
     if (this.currentTool === TOOL.SELECT) {
       this.tools[this.currentTool].unequipTool();
-      switch (event.code) {
+      switch (evt.code) {
         case "Space":
           this.currentTool = TOOL.HAND;
           console.log("moving");
