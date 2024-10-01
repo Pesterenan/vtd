@@ -12,6 +12,7 @@ export class GradientTool extends Tool {
   private isDragging = false;
   private isHoveringStartPos = false;
   private isHoveringEndPos = false;
+  private activeGradientElement: GradientElement | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -31,6 +32,18 @@ export class GradientTool extends Tool {
     };
     this.canvas.addEventListener("mousemove", this.onHover);
     super.equipTool();
+    const workArea = WorkArea.getInstance();
+    const elements = workArea.getSelectedElements();
+    if (elements && elements[0] instanceof GradientElement) {
+      console.log("elemento selecionado");
+      this.activeGradientElement = elements[0];
+      this.startPosition = workArea.adjustForScreen(
+        this.activeGradientElement.startPosition,
+      );
+      this.endPosition = workArea.adjustForScreen(
+        this.activeGradientElement.endPosition,
+      );
+    }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -38,6 +51,7 @@ export class GradientTool extends Tool {
     super.unequipTool();
     this.startPosition = null;
     this.endPosition = null;
+    this.activeGradientElement = null;
     if (this.onHover) {
       this.canvas.removeEventListener("mousemove", this.onHover);
     }
@@ -108,7 +122,6 @@ export class GradientTool extends Tool {
         Math.PI * 2,
       );
       this.context.fill();
-
       this.context.restore();
     }
   }
@@ -143,15 +156,12 @@ export class GradientTool extends Tool {
       const gradientElement =
         workArea.getSelectedElements()?.[0] as GradientElement;
       if (gradientElement) {
-        const offset = workArea.offset;
-        gradientElement.startPosition = workArea.adjustForZoom({
-          x: this.startPosition.x - offset.x,
-          y: this.startPosition.y - offset.y,
-        });
-        gradientElement.endPosition = workArea.adjustForZoom({
-          x: this.endPosition.x - offset.x,
-          y: this.endPosition.y - offset.y,
-        });
+        gradientElement.startPosition = workArea.adjustForCanvas(
+          this.startPosition,
+        );
+        gradientElement.endPosition = workArea.adjustForCanvas(
+          this.endPosition,
+        );
       }
     }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
@@ -188,15 +198,12 @@ export class GradientTool extends Tool {
         const gradientElement =
           workArea.getSelectedElements()?.[0] as GradientElement;
         if (gradientElement) {
-          const offset = workArea.offset;
-          gradientElement.startPosition = workArea.adjustForZoom({
-            x: this.startPosition.x - offset.x,
-            y: this.startPosition.y - offset.y,
-          });
-          gradientElement.endPosition = workArea.adjustForZoom({
-            x: this.endPosition.x - offset.x,
-            y: this.endPosition.y - offset.y,
-          });
+          gradientElement.startPosition = workArea.adjustForCanvas(
+            this.startPosition,
+          );
+          gradientElement.endPosition = workArea.adjustForCanvas(
+            this.endPosition,
+          );
         }
       }
     }
