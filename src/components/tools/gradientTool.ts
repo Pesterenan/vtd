@@ -6,19 +6,22 @@ import { GradientElement } from "../gradientElement";
 import { BB } from "../../utils/bb";
 
 export class GradientTool extends Tool {
+  private activeGradientElement: GradientElement | null = null;
+  private isCreating = false;
+  private isDragging = false;
+  private isHoveringEndPos = false;
+  private isHoveringStartPos = false;
   private startPosition: Position | null = null;
   private endPosition: Position | null = null;
   private onHover: ((evt: MouseEvent) => void) | null = null;
-  private isDragging = false;
-  private isHoveringStartPos = false;
-  private isHoveringEndPos = false;
-  private activeGradientElement: GradientElement | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
   }
 
   equipTool(): void {
+    super.equipTool();
+    this.resetTool();
     this.onHover = ({ offsetX, offsetY }: MouseEvent) => {
       if (this.startPosition && this.endPosition) {
         const mousePosition = { x: offsetX, y: offsetY };
@@ -31,30 +34,28 @@ export class GradientTool extends Tool {
       }
     };
     this.canvas.addEventListener("mousemove", this.onHover);
-    super.equipTool();
-    const workArea = WorkArea.getInstance();
-    const elements = workArea.getSelectedElements();
-    if (elements && elements[0] instanceof GradientElement) {
-      console.log("elemento selecionado");
-      this.activeGradientElement = elements[0];
-      this.startPosition = workArea.adjustForScreen(
-        this.activeGradientElement.startPosition,
-      );
-      this.endPosition = workArea.adjustForScreen(
-        this.activeGradientElement.endPosition,
-      );
-    }
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    this.selectActiveGradient();
+    window.addEventListener(EVENT.SELECT_ELEMENT, () => {
+      this.resetTool();
+      this.selectActiveGradient();
+    });
   }
 
   unequipTool(): void {
     super.unequipTool();
-    this.startPosition = null;
-    this.endPosition = null;
-    this.activeGradientElement = null;
+    this.resetTool();
     if (this.onHover) {
       this.canvas.removeEventListener("mousemove", this.onHover);
     }
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+  }
+
+  resetTool(): void {
+    this.startPosition = null;
+    this.endPosition = null;
+    this.activeGradientElement = null;
+    this.isCreating = false;
+    this.isDragging = false;
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -126,16 +127,33 @@ export class GradientTool extends Tool {
     }
   }
 
-  handleMouseDown(evt: MouseEvent): void {
+  handleMouseDown({ offsetX, offsetY }: MouseEvent): void {
+    if (this.activeGradientElement === null) {
+      this.isCreating = true;
+      WorkArea.getInstance().addGradientElement();
+      WorkArea.getInstance().selectElements({
+        x1: offsetX,
+        x2: offsetX,
+        y1: offsetY,
+        y2: offsetY,
+      });
+      this.selectActiveGradient();
+    }
     if (!this.isHoveringStartPos && !this.isHoveringEndPos) {
-      this.startPosition = { x: evt.offsetX, y: evt.offsetY };
-      this.endPosition = null;
+      this.startPosition = { x: offsetX, y: offsetY };
+      this.endPosition = { x: offsetX, y: offsetY };
     }
     this.isDragging = true;
     super.handleMouseDown();
   }
 
   handleMouseUp({ offsetX, offsetY }: MouseEvent): void {
+    if (this.isCreating) {
+      this.endPosition = { x: offsetX, y: offsetY };
+      this.isCreating = false;
+      this.isDragging = false;
+    }
+
     if (!this.isHoveringStartPos && !this.isHoveringEndPos) {
       this.endPosition = { x: offsetX, y: offsetY };
     }
@@ -144,30 +162,14 @@ export class GradientTool extends Tool {
 
     this.isDragging = false;
     super.handleMouseUp();
-    const workArea = WorkArea.getInstance();
-    const selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY };
-    workArea.selectElements(selection);
-    const elements = workArea.getSelectedElements();
-    if (!elements || !(elements[0] instanceof GradientElement)) {
-      workArea.addGradientElement();
-      workArea.selectElements(selection);
-    }
-    if (this.startPosition && this.endPosition) {
-      const gradientElement =
-        workArea.getSelectedElements()?.[0] as GradientElement;
-      if (gradientElement) {
-        gradientElement.startPosition = workArea.adjustForCanvas(
-          this.startPosition,
-        );
-        gradientElement.endPosition = workArea.adjustForCanvas(
-          this.endPosition,
-        );
-      }
-    }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   handleMouseMove({ offsetX, offsetY, shiftKey }: MouseEvent): void {
+    if (this.isCreating) {
+      this.endPosition = { x: offsetX, y: offsetY };
+      return;
+    }
     if (this.isDragging) {
       if (this.isHoveringStartPos) {
         if (shiftKey && this.endPosition) {
@@ -193,19 +195,39 @@ export class GradientTool extends Tool {
           this.endPosition = { x: offsetX, y: offsetY };
         }
       }
-      const workArea = WorkArea.getInstance();
-      if (this.startPosition && this.endPosition) {
-        const gradientElement =
-          workArea.getSelectedElements()?.[0] as GradientElement;
-        if (gradientElement) {
-          gradientElement.startPosition = workArea.adjustForCanvas(
-            this.startPosition,
-          );
-          gradientElement.endPosition = workArea.adjustForCanvas(
-            this.endPosition,
-          );
-        }
-      }
+      this.modifyGradientPoints();
+    }
+  }
+
+  private selectActiveGradient(): void {
+    const selectedElements = WorkArea.getInstance().getSelectedElements();
+    if (
+      selectedElements &&
+      selectedElements.length === 1 &&
+      selectedElements[0] instanceof GradientElement
+    ) {
+      this.activeGradientElement = selectedElements[0];
+      this.startPosition = WorkArea.getInstance().adjustForScreen(
+        this.activeGradientElement.startPosition,
+      );
+      this.endPosition = WorkArea.getInstance().adjustForScreen(
+        this.activeGradientElement.endPosition,
+      );
+      this.isCreating = false;
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    }
+  }
+
+  private modifyGradientPoints(): void {
+    if (this.activeGradientElement === null) return;
+    const workArea = WorkArea.getInstance();
+    if (this.startPosition && this.endPosition) {
+      this.activeGradientElement.startPosition = workArea.adjustForCanvas(
+        this.startPosition,
+      );
+      this.activeGradientElement.endPosition = workArea.adjustForCanvas(
+        this.endPosition,
+      );
     }
   }
 
