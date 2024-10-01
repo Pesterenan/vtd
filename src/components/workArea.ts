@@ -331,16 +331,26 @@ export class WorkArea {
   /** Adjust canvas object position to be shown on screen */
   public adjustForScreen(workAreaPosition: Position): Position {
     return {
-      x: Number(workAreaPosition.x * this.zoomLevel) + this.offset.x,
-      y: Number(workAreaPosition.y * this.zoomLevel) + this.offset.y,
+      x: Math.floor(workAreaPosition.x * this.zoomLevel) + this.offset.x,
+      y: Math.floor(workAreaPosition.y * this.zoomLevel) + this.offset.y,
     };
   }
 
   /** Adjust mouse event position to be shown on canvas */
   public adjustForCanvas(mousePosition: Position): Position {
     return {
-      x: Number((mousePosition.x - this.offset.x) / this.zoomLevel),
-      y: Number((mousePosition.y - this.offset.y) / this.zoomLevel),
+      x: Math.floor((mousePosition.x - this.offset.x) / this.zoomLevel),
+      y: Math.floor((mousePosition.y - this.offset.y) / this.zoomLevel),
+    };
+  }
+
+  /** Adjust selection boundingbox to be shown on canvas */
+  private adjustSelectionForCanvas(selection: BoundingBox): BoundingBox {
+    return {
+      x1: Math.floor((selection.x1 - this.workArea.offset.x) / this.zoomLevel),
+      y1: Math.floor((selection.y1 - this.workArea.offset.y) / this.zoomLevel),
+      x2: Math.floor((selection.x2 - this.workArea.offset.x) / this.zoomLevel),
+      y2: Math.floor((selection.y2 - this.workArea.offset.y) / this.zoomLevel),
     };
   }
 
@@ -427,22 +437,11 @@ export class WorkArea {
     return this.elements.filter((el) => el.selected);
   }
 
-  private adjustForWorkAreaCanvas(selection: BoundingBox): BoundingBox {
-    const offset = this.workArea.offset;
-    const zoomLevel = this.zoomLevel;
-    return {
-      x1: Math.floor((selection.x1 - offset.x) / zoomLevel),
-      y1: Math.floor((selection.y1 - offset.y) / zoomLevel),
-      x2: Math.floor((selection.x2 - offset.x) / zoomLevel),
-      y2: Math.floor((selection.y2 - offset.y) / zoomLevel),
-    };
-  }
-
   public selectElements(selection?: BoundingBox): void {
     let selectedElements: Element<TElementData>[] = [];
 
     if (selection) {
-      const adjustedSelection = this.adjustForWorkAreaCanvas(selection);
+      const adjustedSelection = this.adjustSelectionForCanvas(selection);
       if (selection.x1 === selection.x2 && selection.y1 === selection.y2) {
         const firstElement = this.elements.findLast(
           (el) => el.isVisible && el.isBelowSelection(adjustedSelection),
