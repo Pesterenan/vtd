@@ -426,8 +426,16 @@ export class WorkArea {
         );
         newElement.deserialize(elData);
         break;
+      case "gradient":
+        newElement = new GradientElement(
+          elData.position,
+          elData.size,
+          elData.zDepth,
+        );
+        newElement.deserialize(elData);
+        break;
       default:
-        console.warn(`Unknown element type from data: ${elData}`);
+        console.warn(`Unknown element type from data couldn't be parsed.`);
         break;
     }
     if (newElement) {
