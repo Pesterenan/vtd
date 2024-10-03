@@ -22,6 +22,7 @@ import { TextElement } from "./textElement";
 import { TextTool } from "./tools/textTool";
 import { GradientTool } from "./tools/gradientTool";
 import { GradientElement } from "./gradientElement";
+import { FiltersDialog } from "./dialogs/filtersDialog";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -76,6 +77,7 @@ export class WorkArea {
     this.mouse = { position: currentMousePosition };
 
     this.createEventListeners();
+    new FiltersDialog();
     this.update();
   }
 

@@ -1,5 +1,6 @@
 import { BoundingBox, IElementData, Position, Scale, Size } from "./types";
 import { BB } from "../utils/bb";
+import { Filter } from "./filter";
 
 export abstract class Element<T extends Partial<IElementData>> {
   public static elementIds = 0;
@@ -55,6 +56,12 @@ export abstract class Element<T extends Partial<IElementData>> {
   }
   public set layerName(value: string) {
     this.properties.set("layerName", value);
+  }
+  public get filters(): Filter[] {
+    return this.properties.get("filters") as Filter[];
+  }
+  public set filters(value: Filter[]) {
+    this.properties.set("filters", value);
   }
 
   protected constructor(position: Position, size: Size, z: number) {

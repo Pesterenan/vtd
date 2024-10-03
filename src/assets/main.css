@@ -2,22 +2,6 @@
 @import './utility.css';
 
 body {
-  --primary_hue: 160;
-  --primary_main: hsl(var(--primary_hue), 50%, 60%);
-  --primary_dark: hsl(var(--primary_hue), 50%, 30%);
-  --primary_light: hsl(var(--primary_hue), 50%, 75%);
-  --error_hue: 0;
-  --error_main: hsl(var(--error_hue), 50%, 60%);
-  --error_dark: hsl(var(--error_hue), 50%, 30%);
-  --error_light: hsl(var(--error_hue), 50%, 75%);
-  --text_hue: var(--primary_hue);
-  --text_main: hsl(var(--text_hue), 30%, 20%);
-  --text_dark: hsl(var(--text_hue), 20%, 10%);
-  --text_light: hsl(var(--text_hue), 50%, 50%);
-  --font-small: 0.75rem;
-  --font-medium: 1rem;
-  --font-large: 1.25rem;
-  --font-extra-large: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -128,12 +112,8 @@ body {
 }
 
 .li_layer-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   background-color: var(--primary_main);
-  padding: 0.15rem;
-  width: 100%;
+  border-bottom: 1px solid var(--primary_dark);
 
   &:hover {
     background-color: var(--primary_light);

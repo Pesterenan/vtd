@@ -1,11 +1,13 @@
 .container {
   display: flex;
   flex-direction: row;
+  flex: 1 1 100%;
 }
 
 .container-column {
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .ai-c {
@@ -27,4 +29,13 @@
 
 .g-1 {
   gap: 1rem;
+}
+
+.bd-r {
+  border-right: 1px solid var(--primary_dark);
+}
+
+.pad-i-05 {
+  padding-right: 0.5rem;
+  padding-left: 0.5rem;
 }

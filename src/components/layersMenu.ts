@@ -54,19 +54,43 @@ export class LayersMenu {
 
   private LayerListItem(elementId: number, layerName?: string): HTMLLIElement {
     const layerLI = document.createElement("li") as HTMLLIElement;
-    const visibilityInput = document.createElement("input") as HTMLInputElement;
-    const layerNameSpan = document.createElement("strong") as HTMLSpanElement;
-    const layerNameInput = document.createElement("input") as HTMLInputElement;
-    const deleteBtn = document.createElement("button") as HTMLButtonElement;
+    layerLI.id = `layer-${elementId}`;
+    layerLI.dataset.id = String(elementId);
+    layerLI.className = "container ai-jc-c li_layer-item";
+    layerLI.draggable = true;
+    layerLI.innerHTML = `
+<div class="container ai-c bd-r g-05 pad-i-05" style="flex-basis: auto;">
+  <input id="inp_visibility-${elementId}" type="checkbox" checked/>
+  <button id="btn_filters-${elementId}" type="button">F</button>
+</div>
+<div class="container ai-c jc-sb g-05">
+  <input id="inp_layer-${elementId}"
+    type="text"
+    class="li_layer-name-input"
+    style="display: none;"
+    value="${layerName ? layerName : `Layer ${elementId}`}" />
+  <span id="spn_layer-${elementId}" class="pad-i-05">
+    ${layerName ? layerName : `Layer ${elementId}`}
+  </span>
+  <button id="btn_delete-layer-${elementId}" type="button">X</button>
+</div>
+`;
+    const visibilityInput = layerLI.querySelector(
+      `#inp_visibility-${elementId}`,
+    ) as HTMLInputElement;
+    const filtersBtn = layerLI.querySelector(
+      `#btn_filters-${elementId}`,
+    ) as HTMLButtonElement;
+    const layerNameSpan = layerLI.querySelector(
+      `#spn_layer-${elementId}`,
+    ) as HTMLSpanElement;
+    const layerNameInput = layerLI.querySelector(
+      `#inp_layer-${elementId}`,
+    ) as HTMLInputElement;
+    const deleteBtn = layerLI.querySelector(
+      `#btn_delete-layer-${elementId}`,
+    ) as HTMLButtonElement;
 
-    layerNameSpan.innerText = layerName ? layerName : `Layer ${elementId}`;
-    layerNameInput.value = `Layer ${elementId}`;
-    layerNameInput.type = "text";
-    layerNameInput.className = "li_layer-name-input";
-    layerNameInput.setAttribute("style", "display: none;");
-
-    visibilityInput.type = "checkbox";
-    visibilityInput.checked = true;
     visibilityInput.onclick = (): void => {
       window.dispatchEvent(
         new CustomEvent(EVENT.TOGGLE_ELEMENT_VISIBILITY, {
@@ -74,20 +98,17 @@ export class LayersMenu {
         }),
       );
     };
+    filtersBtn.ondblclick = (): void => {
+      window.dispatchEvent(
+        new CustomEvent(EVENT.OPEN_FILTERS_DIALOG, { detail: { elementId } }),
+      );
+    };
 
-    deleteBtn.innerText = "X";
     deleteBtn.onclick = (): void => {
       window.dispatchEvent(
         new CustomEvent(EVENT.DELETE_ELEMENT, { detail: { elementId } }),
       );
     };
-    deleteBtn.className = "btn_delete-layer";
-
-    layerLI.id = `layer-${elementId}`;
-    layerLI.dataset.id = String(elementId);
-    layerLI.className = "li_layer-item";
-    layerLI.draggable = true;
-    layerLI.append(visibilityInput, layerNameSpan, layerNameInput, deleteBtn);
 
     layerNameSpan.addEventListener("dblclick", () => {
       layerNameSpan.setAttribute("style", "display: none;");

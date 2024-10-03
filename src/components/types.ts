@@ -1,3 +1,5 @@
+import { Filter } from "./filter";
+
 export interface IElementData {
   type: ElementType;
   position: Position;
@@ -7,6 +9,7 @@ export interface IElementData {
   zDepth: number;
   isVisible: boolean;
   layerName: string;
+  filters: Filter[];
 }
 type ElementType = "text" | "image" | "gradient";
 

@@ -77,6 +77,11 @@ export class ImageElement extends Element<IImageElementData> {
         this.size.height,
       );
     }
+    context.shadowColor = 'rgba(255,255,0, 1.0)';
+    context.shadowBlur = 15;
+    context.shadowOffsetX = 0;
+    context.shadowOffsetY = 0;
+    
     if (this.isImageLoaded && this.image) {
       context.globalAlpha = 1;
       context.drawImage(
