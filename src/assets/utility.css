@@ -10,12 +10,20 @@
   height: 100%;
 }
 
+.ai-fs {
+  align-items: flex-start;
+}
+
 .ai-c {
   align-items: center;
 }
 
 .jc-sb {
   justify-content: space-between;
+}
+
+.jc-fs {
+  justify-content: flex-start;
 }
 
 .ai-jc-c {
@@ -45,4 +53,8 @@
 
 .pad-05 {
   padding: 0.5rem;
+}
+
+.pad-1 {
+  padding: 1rem;
 }

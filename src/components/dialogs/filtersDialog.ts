@@ -21,8 +21,8 @@ export class FiltersDialog {
     this.filterDialog.innerHTML = `
       <form method="dialog">
         <h3>Filtros de Elemento</h3>
-        <div class="container g-05 ai-c">
-          <div id="filters-list"></div>
+        <div class="container g-05 ai-fs">
+          <div id="filters-list" class="container-column"></div>
           <div id="filter-controls"></div>
         </div>
         <menu>
@@ -85,10 +85,10 @@ export class FiltersDialog {
         !!this.activeElement?.filters?.find((f) => f.id === key) || false;
       const filterItem = document.createElement("li") as HTMLLIElement;
       filterItem.id = `filter-item-${filter.id}`;
-      filterItem.className = "container ai-jc-c li_layer-item pad-1";
+      filterItem.className = "container ai-jc-c g-05 li_layer-item pad-05";
       filterItem.innerHTML = `
 <input type="checkbox" id="chk_filter-${filter.id}" ${isChecked ? "checked" : ""} />
-<label for="chk_filter-${filter.id}">${filter.label}</label>
+<label>${filter.label}</label>
 `;
       filterItem.onclick = () => this.selectFilter(filter);
 
@@ -111,6 +111,7 @@ export class FiltersDialog {
 
   private toggleFilter(filter: Filter, isChecked: boolean): void {
     if (!this.activeElement || !this.defaultFilters) return;
+    this.clearFilterControls();
     if (isChecked) {
       const existingFilter = this.activeElement.filters?.find(
         (f) => f.id === filter.id,
@@ -131,6 +132,7 @@ export class FiltersDialog {
       this.activeElement.filters = this.activeElement.filters.filter(
         (f) => f.id !== filter.id,
       );
+      this.clearFilterControls();
     }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
