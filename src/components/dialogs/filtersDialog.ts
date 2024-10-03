@@ -20,8 +20,11 @@ export class FiltersDialog {
     this.filterDialog.id = "filters-dialog";
     this.filterDialog.innerHTML = `
       <form method="dialog">
-        <h3>Choose Filters</h3>
-        <div id="filters-list"></div>
+        <h3>Filtros de Elemento</h3>
+        <div class="container g-05 ai-c">
+          <div id="filters-list"></div>
+          <div id="filter-controls"></div>
+        </div>
         <menu>
           <button id="btn_close-dialog" class="btn-common">Close</button>
         </menu>
@@ -35,6 +38,7 @@ export class FiltersDialog {
     closeButton.addEventListener("click", () => {
       if (this.filterDialog) {
         this.activeElement = null;
+        this.clearFilterControls();
         this.filterDialog.close();
       }
     });
@@ -46,6 +50,7 @@ export class FiltersDialog {
     if (selectedElements && selectedElements.length === 1) {
       this.activeElement = selectedElements[0];
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      this.clearFilterControls();
       this.populateFilters();
     }
     if (this.filterDialog) {
@@ -76,14 +81,16 @@ export class FiltersDialog {
     }
 
     mergedFilters.forEach((filter, key) => {
-      const filterItem = document.createElement("div");
       const isChecked =
         !!this.activeElement?.filters?.find((f) => f.id === key) || false;
-
+      const filterItem = document.createElement("li") as HTMLLIElement;
+      filterItem.id = `filter-item-${filter.id}`;
+      filterItem.className = "container ai-jc-c li_layer-item pad-1";
       filterItem.innerHTML = `
 <input type="checkbox" id="chk_filter-${filter.id}" ${isChecked ? "checked" : ""} />
 <label for="chk_filter-${filter.id}">${filter.label}</label>
 `;
+      filterItem.onclick = () => this.selectFilter(filter);
 
       const checkbox = filterItem.querySelector(
         `#chk_filter-${filter.id}`,
@@ -91,18 +98,34 @@ export class FiltersDialog {
       checkbox.addEventListener("change", () =>
         this.toggleFilter(filter, checkbox.checked),
       );
-      filterItem.appendChild(filter.getHTML());
       filtersList.appendChild(filterItem);
     });
+  }
+
+  private selectFilter(filter: Filter): void {
+    const filterControls = this.filterDialog?.querySelector("#filter-controls");
+    if (filterControls) {
+      filterControls.appendChild(filter.getFilterControls() as HTMLDivElement);
+    }
   }
 
   private toggleFilter(filter: Filter, isChecked: boolean): void {
     if (!this.activeElement || !this.defaultFilters) return;
     if (isChecked) {
-      if (!this.activeElement.filters?.find((f) => f.id === filter.id)) {
-        this.activeElement.filters.push(
-          this.defaultFilters.find((f) => f.id === filter.id) as Filter,
-        );
+      const existingFilter = this.activeElement.filters?.find(
+        (f) => f.id === filter.id,
+      );
+
+      if (!existingFilter) {
+        const defaultFilter = this.defaultFilters.find(
+          (f) => f.id === filter.id,
+        ) as Filter;
+        if (defaultFilter) {
+          this.activeElement.filters.push(defaultFilter);
+          this.selectFilter(defaultFilter);
+        }
+      } else {
+        this.selectFilter(existingFilter);
       }
     } else {
       this.activeElement.filters = this.activeElement.filters.filter(
@@ -110,6 +133,13 @@ export class FiltersDialog {
       );
     }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+  }
+
+  private clearFilterControls(): void {
+    const filterControls = this.filterDialog?.querySelector("#filter-controls");
+    if (filterControls) {
+      filterControls.innerHTML = "";
+    }
   }
 
   private addEventListeners(): void {

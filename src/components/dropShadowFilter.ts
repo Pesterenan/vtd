@@ -8,15 +8,15 @@ import { TElementData } from "./types";
 export class DropShadowFilter extends Filter {
   public label = "Drop Shadow";
   public id = "drop-shadow";
-  private angle = 90;
-  private distance = 50;
+  private angle = 45;
+  private distance = 20;
   private blur = 10;
   private color = "#000000";
-  private optionsContainer: HTMLDivElement;
+  private filterControls: HTMLDivElement | null = null;
 
   constructor() {
     super("before");
-    this.optionsContainer = this.createDOMElements();
+    this.createDOMElements();
   }
 
   apply<T extends TElementData>(
@@ -72,76 +72,56 @@ export class DropShadowFilter extends Filter {
     if (prop.key === "color") {
       this.color = prop.value ? (prop.value as string) : "#000000";
     }
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
-  getHTML(): HTMLDivElement {
-    return this.optionsContainer;
+  getFilterControls(): HTMLDivElement | null {
+    return this.filterControls;
   }
 
-  createDOMElements(): HTMLDivElement {
-    const container = document.createElement("div");
-    container.classList.add("filter-container");
+  createDOMElements(): void {
+    this.filterControls = document.createElement("div");
+    this.filterControls.className = "sec_menu-style pad-05";
+    this.filterControls.id = `${this.id}-filter-controls`;
+    this.filterControls.innerHTML = `
+<label for="${this.id}-angle">Ângulo:</label>
+<input id="${this.id}-angle" type="range" min="0" max="360" step="1" value="${this.angle.toString()}" />
+<label for="${this.id}-distance">Distância:</label>
+<input id="${this.id}-distance" type="range" min="0" max="100" step="1" value="${this.distance.toString()}" />
+<label for="${this.id}-blur">Desfoque:</label>
+<input id="${this.id}-blur" type="range" min="0" max="100" step="1" value="${this.blur.toString()}" />
+<div class="container ai-jc-c g-05">
+  <label for="${this.id}-color">Cor da Sombra:</label>
+  <input id="${this.id}-color" type="color" value="${this.color.toString()}" />
+</div>
+    `;
 
-    // Cria o slider para o ângulo
-    const angleLabel = document.createElement("label");
-    angleLabel.innerText = "Angle:";
-    const angleInput = document.createElement("input");
-    angleInput.type = "range";
-    angleInput.min = "0";
-    angleInput.max = "360";
-    angleInput.value = this.angle.toString();
+    const angleInput = this.filterControls.querySelector(
+      `#${this.id}-angle`,
+    ) as HTMLInputElement;
     angleInput.addEventListener("input", () => {
       this.modify({ key: "angle", value: Number(angleInput.value) });
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     });
 
-    // Cria o slider para a distância
-    const distanceLabel = document.createElement("label");
-    distanceLabel.innerText = "Distance:";
-    const distanceInput = document.createElement("input");
-    distanceInput.type = "range";
-    distanceInput.min = "0";
-    distanceInput.max = "100";
-    distanceInput.value = this.distance.toString();
+    const distanceInput = this.filterControls.querySelector(
+      `#${this.id}-distance`,
+    ) as HTMLInputElement;
     distanceInput.addEventListener("input", () => {
       this.modify({ key: "distance", value: Number(distanceInput.value) });
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     });
 
-    // Cria o slider para o blur
-    const blurLabel = document.createElement("label");
-    blurLabel.innerText = "Blur:";
-    const blurInput = document.createElement("input");
-    blurInput.type = "range";
-    blurInput.min = "0";
-    blurInput.max = "100";
-    blurInput.value = this.blur.toString();
+    const blurInput = this.filterControls.querySelector(
+      `#${this.id}-blur`,
+    ) as HTMLInputElement;
     blurInput.addEventListener("input", () => {
       this.modify({ key: "blur", value: Number(blurInput.value) });
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     });
 
-    // Cria o input de cor
-    const colorLabel = document.createElement("label");
-    colorLabel.innerText = "Color:";
-    const colorInput = document.createElement("input");
-    colorInput.type = "color";
-    colorInput.value = this.color;
+    const colorInput = this.filterControls.querySelector(
+      `#${this.id}-color`,
+    ) as HTMLInputElement;
     colorInput.addEventListener("input", () => {
       this.modify({ key: "color", value: colorInput.value });
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     });
-
-    // Monta o HTML
-    container.appendChild(angleLabel);
-    container.appendChild(angleInput);
-    container.appendChild(distanceLabel);
-    container.appendChild(distanceInput);
-    container.appendChild(blurLabel);
-    container.appendChild(blurInput);
-    container.appendChild(colorLabel);
-    container.appendChild(colorInput);
-
-    return container;
   }
 }

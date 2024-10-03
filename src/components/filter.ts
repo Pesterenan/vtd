@@ -22,5 +22,5 @@ export abstract class Filter {
     element: Element<T>,
   ): void;
   abstract modify(prop: FilterProperty): void;
-  abstract getHTML(): HTMLDivElement;
+  abstract getFilterControls(): HTMLDivElement | null;
 }
