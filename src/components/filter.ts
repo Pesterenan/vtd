@@ -17,9 +17,9 @@ export abstract class Filter {
     this.applies = applies;
   }
 
-  abstract apply(
+  abstract apply<T extends TElementData>(
     context: CanvasRenderingContext2D,
-    element: Element<TElementData>,
+    element: Element<T>,
   ): void;
   abstract modify(prop: FilterProperty): void;
   abstract getHTML(): HTMLDivElement;

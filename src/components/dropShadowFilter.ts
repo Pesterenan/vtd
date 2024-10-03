@@ -1,6 +1,7 @@
 import EVENT from "../utils/customEvents";
 import { Element } from "./element";
 import { Filter, FilterProperty } from "./filter";
+import { ImageElement } from "./imageElement";
 import { TextElement } from "./textElement";
 import { TElementData } from "./types";
 
@@ -11,14 +12,16 @@ export class DropShadowFilter extends Filter {
   private distance = 50;
   private blur = 10;
   private color = "#000000";
+  private optionsContainer: HTMLDivElement;
 
   constructor() {
     super("before");
+    this.optionsContainer = this.createDOMElements();
   }
 
-  apply(
+  apply<T extends TElementData>(
     context: CanvasRenderingContext2D,
-    element: Element<TElementData>,
+    element: Element<T>,
   ): void {
     context.save();
     const radians = this.angle * (Math.PI / 180);
@@ -41,6 +44,18 @@ export class DropShadowFilter extends Filter {
         yOffset += element.lineVerticalSpacing;
       }
     }
+    if (element instanceof ImageElement) {
+      if (element.image) {
+        context.globalAlpha = 1;
+        context.drawImage(
+          element.image,
+          -element.size.width * 0.5,
+          -element.size.height * 0.5,
+          element.size.width,
+          element.size.height,
+        );
+      }
+    }
     context.restore();
   }
 
@@ -60,6 +75,10 @@ export class DropShadowFilter extends Filter {
   }
 
   getHTML(): HTMLDivElement {
+    return this.optionsContainer;
+  }
+
+  createDOMElements(): HTMLDivElement {
     const container = document.createElement("div");
     container.classList.add("filter-container");
 

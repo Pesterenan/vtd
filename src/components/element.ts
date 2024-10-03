@@ -73,6 +73,7 @@ export abstract class Element<T extends Partial<IElementData>> {
     this.isVisible = true;
     this.layerName = "";
     this._elementId = Element.elementIds++;
+    this.filters = [];
   }
 
   public deserialize(data: T): void {

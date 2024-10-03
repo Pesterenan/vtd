@@ -1,6 +1,6 @@
 import { DropShadowFilter } from "./dropShadowFilter";
 import { Element } from "./element";
-import { BoundingBox, ITextElementData, Position, Size, TElementData } from "./types";
+import { BoundingBox, ITextElementData, Position, Size } from "./types";
 
 export class TextElement extends Element<ITextElementData> {
   public get font(): string {
@@ -91,7 +91,6 @@ export class TextElement extends Element<ITextElementData> {
     this.lineHeight = 1.2;
     this.strokeColor = "#202020";
     this.strokeWidth = 10;
-    this.filters = [new DropShadowFilter()];
 
     this.lineVerticalSpacing = this.fontSize * this.lineHeight;
     const halfWidth = this.size.width * 0.5 * this.scale.x;
@@ -158,7 +157,7 @@ export class TextElement extends Element<ITextElementData> {
 
     for (const filter of this.filters) {
       if (filter.applies === "before") {
-        filter.apply(context, this as Element<TElementData>);
+        filter.apply(context, this as Element<ITextElementData>);
       }
     }
     // Desenha cada linha de texto com deslocamento vertical
@@ -174,7 +173,7 @@ export class TextElement extends Element<ITextElementData> {
     }
     for (const filter of this.filters) {
       if (filter.applies === "after") {
-        filter.apply(context, this as Element<TElementData>);
+        filter.apply(context, this as Element<ITextElementData>);
       }
     }
     context.restore();

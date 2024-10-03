@@ -1,7 +1,7 @@
 import { BB } from "../utils/bb";
 import EVENT from "../utils/customEvents";
 import { Element } from "./element";
-import { BoundingBox, IImageElementData, Position, Size } from "./types";
+import { BoundingBox, IImageElementData, Position, Size, TElementData } from "./types";
 
 export class ImageElement extends Element<IImageElementData> {
   public get backgroundColor(): string {
@@ -77,11 +77,11 @@ export class ImageElement extends Element<IImageElementData> {
         this.size.height,
       );
     }
-    context.shadowColor = 'rgba(255,255,0, 1.0)';
-    context.shadowBlur = 15;
-    context.shadowOffsetX = 0;
-    context.shadowOffsetY = 0;
-    
+    for (const filter of this.filters) {
+      if (filter.applies === "before") {
+        filter.apply(context, this as Element<TElementData>);
+      }
+    }
     if (this.isImageLoaded && this.image) {
       context.globalAlpha = 1;
       context.drawImage(
@@ -91,6 +91,11 @@ export class ImageElement extends Element<IImageElementData> {
         this.size.width,
         this.size.height,
       );
+    }
+    for (const filter of this.filters) {
+      if (filter.applies === "after") {
+        filter.apply(context, this as Element<IImageElementData>);
+      }
     }
     context.restore();
   }
