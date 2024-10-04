@@ -1,4 +1,3 @@
-import { DropShadowFilter } from "./dropShadowFilter";
 import { Element } from "./element";
 import { BoundingBox, ITextElementData, Position, Size } from "./types";
 

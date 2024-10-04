@@ -1,21 +1,47 @@
 import EVENT from "../utils/customEvents";
 import { Element } from "./element";
-import { Filter, FilterProperty } from "./filter";
+import { Filter } from "./filter";
 import { ImageElement } from "./imageElement";
 import { TextElement } from "./textElement";
 import { TElementData } from "./types";
 
 export class DropShadowFilter extends Filter {
-  public label = "Drop Shadow";
-  public id = "drop-shadow";
-  private angle = 45;
-  private distance = 20;
-  private blur = 10;
-  private color = "#000000";
+  public set angle(value: number) {
+    this.setPropertyLimited("angle", value, 0, 360);
+    this.radians = this.angle * (Math.PI / 180);
+  }
+  public get angle(): number {
+    return this.properties.get("angle") as number;
+  }
+  public set distance(value: number) {
+    this.setPropertyLimited("distance", value, 0, 100);
+  }
+  public get distance(): number {
+    return this.properties.get("distance") as number;
+  }
+  public set blur(value: number) {
+    this.setPropertyLimited("blur", value, 0, 100);
+  }
+  public get blur(): number {
+    return this.properties.get("blur") as number;
+  }
+  public set color(value: string) {
+    this.properties.set("color", value ? (value as string) : "#000000");
+  }
+  public get color(): string {
+    return this.properties.get("color") as string;
+  }
+
   private filterControls: HTMLDivElement | null = null;
+  private radians: number;
 
   constructor() {
-    super("before");
+    super("drop-shadow", "Sombra", "before");
+    this.angle = 45;
+    this.distance = 20;
+    this.blur = 10;
+    this.color = "#000000";
+    this.radians = this.angle * (Math.PI / 180);
     this.createDOMElements();
   }
 
@@ -24,16 +50,14 @@ export class DropShadowFilter extends Filter {
     element: Element<T>,
   ): void {
     context.save();
-    const radians = this.angle * (Math.PI / 180);
     context.globalAlpha = this.globalAlpha;
     context.shadowColor = this.color;
     context.shadowBlur = this.blur;
-    context.shadowOffsetX = this.distance * Math.sin(radians);
-    context.shadowOffsetY = this.distance * Math.cos(radians);
+    context.shadowOffsetX = this.distance * Math.sin(this.radians);
+    context.shadowOffsetY = this.distance * Math.cos(this.radians);
     if (element instanceof TextElement) {
-      // Desenha cada linha de texto com deslocamento vertical
       let yOffset =
-        -(element.content.length - 1) * element.lineVerticalSpacing * 0.5; // Centraliza verticalmente as linhas
+        -(element.content.length - 1) * element.lineVerticalSpacing * 0.5;
       for (const line of element.content) {
         if (element.hasStroke) {
           context.strokeText(line, 0, yOffset);
@@ -57,22 +81,6 @@ export class DropShadowFilter extends Filter {
       }
     }
     context.restore();
-  }
-
-  modify(prop: FilterProperty): void {
-    if (prop.key === "angle") {
-      this.angle = Math.max(0, Math.min(prop.value as number, 360));
-    }
-    if (prop.key === "distance") {
-      this.distance = Math.max(0, Math.min(prop.value as number, 100));
-    }
-    if (prop.key === "blur") {
-      this.blur = Math.max(0, Math.min(prop.value as number, 100));
-    }
-    if (prop.key === "color") {
-      this.color = prop.value ? (prop.value as string) : "#000000";
-    }
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   getFilterControls(): HTMLDivElement | null {
@@ -100,28 +108,32 @@ export class DropShadowFilter extends Filter {
       `#${this.id}-angle`,
     ) as HTMLInputElement;
     angleInput.addEventListener("input", () => {
-      this.modify({ key: "angle", value: Number(angleInput.value) });
+      this.angle = Number(angleInput.value);
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     });
 
     const distanceInput = this.filterControls.querySelector(
       `#${this.id}-distance`,
     ) as HTMLInputElement;
     distanceInput.addEventListener("input", () => {
-      this.modify({ key: "distance", value: Number(distanceInput.value) });
+      this.distance = Number(distanceInput.value);
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     });
 
     const blurInput = this.filterControls.querySelector(
       `#${this.id}-blur`,
     ) as HTMLInputElement;
     blurInput.addEventListener("input", () => {
-      this.modify({ key: "blur", value: Number(blurInput.value) });
+      this.blur = Number(blurInput.value);
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     });
 
     const colorInput = this.filterControls.querySelector(
       `#${this.id}-color`,
     ) as HTMLInputElement;
     colorInput.addEventListener("input", () => {
-      this.modify({ key: "color", value: colorInput.value });
+      this.color = colorInput.value;
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     });
   }
 }
