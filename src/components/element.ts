@@ -1,6 +1,7 @@
 import { BoundingBox, IElementData, Position, Scale, Size } from "./types";
 import { BB } from "../utils/bb";
 import { Filter } from "./filter";
+import { createFilter } from "../utils/filterFactory";
 
 export abstract class Element<T extends Partial<IElementData>> {
   public static elementIds = 0;
@@ -79,13 +80,32 @@ export abstract class Element<T extends Partial<IElementData>> {
   public deserialize(data: T): void {
     (Object.keys(data) as Array<keyof T>).forEach((key) => {
       if (this.properties.has(key)) {
+        if (key === "filters" && Array.isArray(data.filters)) {
+          const filters = data.filters.map((filterData) =>
+            createFilter(filterData),
+          );
+          this.properties.set(
+            key,
+            filters.filter((f) => f !== null),
+          );
+          return;
+        }
         this.properties.set(key, data[key]);
       }
     });
+    console.log("Element:", this.properties);
   }
 
   public serialize(): T {
-    return Object.fromEntries(this.properties) as T;
+    const serialized = Object.fromEntries(this.properties) as T;
+    if (this.properties.has("filters")) {
+      const filters = (this.properties.get("filters") as Filter[]).map(
+        (filter) => filter.serialize(),
+      );
+      serialized.filters = filters as Filter[];
+    }
+    console.log("Element:", serialized.type, serialized);
+    return serialized;
   }
 
   public abstract draw(context: CanvasRenderingContext2D): void;

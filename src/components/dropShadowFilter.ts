@@ -1,9 +1,5 @@
 import EVENT from "../utils/customEvents";
-import { Element } from "./element";
 import { Filter } from "./filter";
-import { ImageElement } from "./imageElement";
-import { TextElement } from "./textElement";
-import { TElementData } from "./types";
 
 export class DropShadowFilter extends Filter {
   public set angle(value: number) {
@@ -45,42 +41,19 @@ export class DropShadowFilter extends Filter {
     this.createDOMElements();
   }
 
-  apply<T extends TElementData>(
-    context: CanvasRenderingContext2D,
-    element: Element<T>,
-  ): void {
+  apply(context: CanvasRenderingContext2D): void {
     context.save();
     context.globalAlpha = this.globalAlpha;
     context.shadowColor = this.color;
     context.shadowBlur = this.blur;
     context.shadowOffsetX = this.distance * Math.sin(this.radians);
     context.shadowOffsetY = this.distance * Math.cos(this.radians);
-    if (element instanceof TextElement) {
-      let yOffset =
-        -(element.content.length - 1) * element.lineVerticalSpacing * 0.5;
-      for (const line of element.content) {
-        if (element.hasStroke) {
-          context.strokeText(line, 0, yOffset);
-        }
-        if (element.hasFill) {
-          context.fillText(line, 0, yOffset);
-        }
-        yOffset += element.lineVerticalSpacing;
-      }
-    }
-    if (element instanceof ImageElement) {
-      if (element.image) {
-        context.globalAlpha = 1;
-        context.drawImage(
-          element.image,
-          -element.size.width * 0.5,
-          -element.size.height * 0.5,
-          element.size.width,
-          element.size.height,
-        );
-      }
-    }
-    context.restore();
+  }
+
+  public deserialize(data: Partial<Filter>): void {
+    super.deserialize(data);
+    this.radians = this.angle * (Math.PI / 180);
+    this.createDOMElements();
   }
 
   getFilterControls(): HTMLDivElement | null {

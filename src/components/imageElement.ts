@@ -1,7 +1,7 @@
 import { BB } from "../utils/bb";
 import EVENT from "../utils/customEvents";
 import { Element } from "./element";
-import { BoundingBox, IImageElementData, Position, Size, TElementData } from "./types";
+import { BoundingBox, IImageElementData, Position, Size } from "./types";
 
 export class ImageElement extends Element<IImageElementData> {
   public get backgroundColor(): string {
@@ -52,13 +52,14 @@ export class ImageElement extends Element<IImageElementData> {
   }
 
   public serialize(): IImageElementData {
-    const serializedImage = super.serialize();
+    const serialized = super.serialize();
     if (this.isImageLoaded) {
-      serializedImage.encodedImage = this.properties.get(
+      serialized.encodedImage = this.properties.get(
         "encodedImage",
       ) as string;
     }
-    return serializedImage;
+    console.log('Image:', serialized);
+    return serialized;
   }
 
   public draw(context: CanvasRenderingContext2D): void {
@@ -67,6 +68,7 @@ export class ImageElement extends Element<IImageElementData> {
     context.translate(this.position.x, this.position.y);
     context.rotate(this.rotation);
     context.scale(this.scale.x, this.scale.y);
+    // Draw main background for image
     if (this.backgroundOpacity > 0) {
       context.globalAlpha = this.backgroundOpacity;
       context.fillStyle = this.backgroundColor;
@@ -77,11 +79,28 @@ export class ImageElement extends Element<IImageElementData> {
         this.size.height,
       );
     }
+    // Apply 'before' filters
     for (const filter of this.filters) {
       if (filter.applies === "before") {
-        filter.apply(context, this as Element<TElementData>);
+        filter.apply(context);
+        this.drawImage(context);
+        context.restore();
       }
     }
+    // Draw image
+    this.drawImage(context);
+    // Apply 'after' filters
+    for (const filter of this.filters) {
+      if (filter.applies === "after") {
+        filter.apply(context);
+        this.drawImage(context);
+        context.restore();
+      }
+    }
+    context.restore();
+  }
+
+  private drawImage(context: CanvasRenderingContext2D): void {
     if (this.isImageLoaded && this.image) {
       context.globalAlpha = 1;
       context.drawImage(
@@ -92,12 +111,6 @@ export class ImageElement extends Element<IImageElementData> {
         this.size.height,
       );
     }
-    for (const filter of this.filters) {
-      if (filter.applies === "after") {
-        filter.apply(context, this as Element<IImageElementData>);
-      }
-    }
-    context.restore();
   }
 
   public loadImage(encodedImage: string): void {

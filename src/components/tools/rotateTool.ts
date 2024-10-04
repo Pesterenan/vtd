@@ -1,6 +1,6 @@
 import EVENT from "../../utils/customEvents";
 import { Element } from "../element";
-import { MOUSE_BUTTONS, Position, TElementData } from "../types";
+import { Position, TElementData } from "../types";
 import { WorkArea } from "../workArea";
 import { Tool } from "./abstractTool";
 import centerHandleRotate from "../../components/transformBox/assets/centerHandleRotate.svg";

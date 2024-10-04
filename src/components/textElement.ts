@@ -154,13 +154,29 @@ export class TextElement extends Element<ITextElementData> {
     context.rotate(this.rotation);
     context.scale(this.scale.x, this.scale.y);
 
+    // Apply 'before' filters
     for (const filter of this.filters) {
       if (filter.applies === "before") {
-        filter.apply(context, this as Element<ITextElementData>);
+        filter.apply(context);
+        this.drawText(context);
+        context.restore();
       }
     }
-    // Desenha cada linha de texto com deslocamento vertical
-    let yOffset = -(this.content.length - 1) * this.lineVerticalSpacing * 0.5; // Centraliza verticalmente as linhas
+    // Draw text
+    this.drawText(context);
+    // Apply 'after' filters
+    for (const filter of this.filters) {
+      if (filter.applies === "after") {
+        filter.apply(context);
+        this.drawText(context);
+        context.restore();
+      }
+    }
+    context.restore();
+  }
+
+  private drawText(context: CanvasRenderingContext2D): void {
+    let yOffset = -(this.content.length - 1) * this.lineVerticalSpacing * 0.5;
     for (const line of this.content) {
       if (this.hasStroke) {
         context.strokeText(line, 0, yOffset);
@@ -170,12 +186,6 @@ export class TextElement extends Element<ITextElementData> {
       }
       yOffset += this.lineVerticalSpacing;
     }
-    for (const filter of this.filters) {
-      if (filter.applies === "after") {
-        filter.apply(context, this as Element<ITextElementData>);
-      }
-    }
-    context.restore();
   }
 
   public getTransformedBoundingBox(): BoundingBox {
