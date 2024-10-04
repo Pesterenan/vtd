@@ -165,10 +165,14 @@ ipcMain.on("load-video", async (event) => {
     if (videoMetadata instanceof Error) {
       event.reply("load-video-response", {
         success: false,
-        message: "Couldn't parse video metadata",
+        message: "Couldn't parse video metadata.",
       });
       return;
     }
+    event.reply("load-video-response", {
+      success: true,
+      message: "Video metadata parsed, opening VFE...",
+    });
     createFrameExtractorWindow(videoMetadata as IVideoMetadata);
   }
 });
@@ -211,16 +215,17 @@ ipcMain.on("process-video-frame", async (event, filePath, timeInSeconds) => {
 
   event.reply("process-video-frame-response", {
     success: true,
+    message: "Video frame processed.",
     data: videoFrame,
   });
 });
 
 // Send frame to WorkArea
 ipcMain.on("send-frame-to-work-area", async (_, imageUrl) => {
-  console.log("Received frame from video:", imageUrl.slice(0, 100));
   mainWindow?.webContents.send("load-image-response", {
     success: true,
     data: imageUrl,
+    message: "Sending frame to work area",
   });
 });
 
@@ -249,18 +254,26 @@ ipcMain.on("load-image", async (event) => {
         console.log(err);
         event.reply("load-image-response", {
           success: false,
-          message: "Failed to load file",
+          message: "Failed to load file.",
         });
         return;
       }
       const base64 = Buffer.from(data).toString("base64");
       if (extension === "svg") {
         const base64Data = `data:image/svg+xml;base64,${base64}`;
-        event.reply("load-image-response", { success: true, data: base64Data });
+        event.reply("load-image-response", {
+          success: true,
+          message: `Loading ${extension} image...`,
+          data: base64Data,
+        });
       } else {
         const mimeType = `image/${extension === "jpg" ? "jpeg" : extension}`;
         const base64Data = `data:${mimeType};base64,${base64}`;
-        event.reply("load-image-response", { success: true, data: base64Data });
+        event.reply("load-image-response", {
+          success: true,
+          message: `Loading ${extension} image...`,
+          data: base64Data,
+        });
       }
     });
   }
@@ -283,13 +296,13 @@ ipcMain.on(
         if (err) {
           event.reply("export-canvas-response", {
             success: false,
-            message: "Failed to save file",
+            message: "Failed to save file.",
           });
           return;
         }
         event.reply("export-canvas-response", {
           success: true,
-          message: "File saved successfully",
+          message: "File saved successfully.",
         });
       });
     }
@@ -310,13 +323,13 @@ ipcMain.on(
         if (err) {
           event.reply("save-project-response", {
             success: false,
-            message: "Failed to save file",
+            message: "Failed to save file.",
           });
           return;
         }
         event.reply("save-project-response", {
           success: true,
-          message: "File saved successfully",
+          message: "File saved successfully.",
         });
       });
     }
@@ -334,16 +347,20 @@ ipcMain.on("load-project", async (event) => {
       if (err) {
         event.reply("load-project-response", {
           success: false,
-          message: "Failed to load file",
+          message: "Failed to load file.",
         });
         return;
       }
-      event.reply("load-project-response", { success: true, data });
+      event.reply("load-project-response", {
+        success: true,
+        message: "File loaded successfully.",
+        data,
+      });
     });
   } else {
     event.reply("load-project-response", {
       success: false,
-      message: "No file selected",
+      message: "No file selected.",
     });
   }
 });

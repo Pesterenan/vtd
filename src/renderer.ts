@@ -1,4 +1,3 @@
-import { IpcRendererEvent } from "electron";
 import "./assets/base.css";
 import "./assets/main.css";
 import { SideMenu } from "./components/sideMenu";
@@ -14,8 +13,7 @@ const initializeVTD = (): void => {
 };
 
 const createEventListeners = (workArea: WorkArea): void => {
-  window.api.onProcessVideoFrameResponse((_: IpcRendererEvent, response) => {
-    console.log(response, "response");
+  window.api.onProcessVideoFrameResponse((_, response) => {
     if (response.success) {
       const uint8Array = new Uint8Array(response.data);
       const blob = new Blob([uint8Array], { type: "image/png" });
@@ -33,16 +31,16 @@ const createEventListeners = (workArea: WorkArea): void => {
 
   window.api.onLoadVideoResponse((_, response) => {
     if (response.success) {
-      window.api.processVideoFrame(response.data.format.filename, 0.15);
+      console.log(response.message);
     } else {
       console.error(response.message);
     }
   });
 
   window.api.onLoadImageResponse((_, response) => {
-    console.log(response, "load-image-response");
     if (response.success) {
       workArea.addImageElement(response.data);
+      console.log(response.message);
     } else {
       console.error(response.message);
     }

@@ -68,7 +68,6 @@ export class VideoFrameExtractor {
 
     window.addEventListener(EVENT.UPDATE_VFE, () => this.update());
 
-    // @ts-ignore defined in main.ts
     window.api.onVideoMetadata((metadata: IVideoMetadata) => {
       this.videoMetadata = metadata;
       const { width, height } = metadata;
@@ -109,11 +108,9 @@ export class VideoFrameExtractor {
         this.offScreen.canvas.width = width;
         this.offScreen.canvas.height = height;
       }
-      // @ts-ignore defined in main.ts
       window.api.processVideoFrame(this.videoMetadata.filePath, 0);
     });
 
-    // @ts-ignore defined in main.ts
     window.api.onProcessVideoFrameResponse((_, response) => {
       if (response.success) {
         if (this.offScreen && this.preview && this.videoMetadata) {
@@ -122,6 +119,7 @@ export class VideoFrameExtractor {
           const videoFrameData = new ImageData(videoFrame, width, height);
           this.offScreen.context.putImageData(videoFrameData, 0, 0);
           this.update();
+          console.log(response.message);
         }
       } else {
         console.error(response.message);

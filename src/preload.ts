@@ -1,5 +1,11 @@
 export {};
 
+interface EventResponse {
+  success: boolean;
+  data?: any;
+  message: string;
+}
+
 declare global {
   interface Window {
     api: {
@@ -11,19 +17,34 @@ declare global {
       saveProject: (dataString: string) => void;
       sendFrameToWorkArea: (imageUrl: string) => void;
       onProcessVideoFrameResponse: (
-        callback: (event: Electron.IpcRendererEvent) => void,
+        callback: (
+          event: Electron.IpcRendererEvent,
+          response: EventResponse,
+        ) => void,
       ) => Electron.IpcRenderer;
       onLoadImageResponse: (
-        callback: (event: Electron.IpcRendererEvent) => void,
+        callback: (
+          event: Electron.IpcRendererEvent,
+          response: EventResponse,
+        ) => void,
       ) => Electron.IpcRenderer;
       onLoadVideoResponse: (
-        callback: (event: Electron.IpcRendererEvent) => void,
+        callback: (
+          event: Electron.IpcRendererEvent,
+          response: EventResponse,
+        ) => void,
       ) => Electron.IpcRenderer;
       onLoadProjectResponse: (
-        callback: (event: Electron.IpcRendererEvent) => void,
+        callback: (
+          event: Electron.IpcRendererEvent,
+          response: EventResponse,
+        ) => void,
       ) => Electron.IpcRenderer;
       onSaveProjectResponse: (
-        callback: (event: Electron.IpcRendererEvent) => void,
+        callback: (
+          event: Electron.IpcRendererEvent,
+          response: EventResponse,
+        ) => void,
       ) => Electron.IpcRenderer;
       onVideoMetadata: (
         callback: (metadata: IVideoMetadata) => void,
@@ -51,20 +72,35 @@ const api = {
   sendFrameToWorkArea: (imageUrl: string): void =>
     ipcRenderer.send("send-frame-to-work-area", imageUrl),
   onProcessVideoFrameResponse: (
-    callback: (event: Electron.IpcRendererEvent) => void,
+    callback: (
+      event: Electron.IpcRendererEvent,
+      response: EventResponse,
+    ) => void,
   ): Electron.IpcRenderer =>
     ipcRenderer.on("process-video-frame-response", callback),
   onLoadImageResponse: (
-    callback: (event: Electron.IpcRendererEvent) => void,
+    callback: (
+      event: Electron.IpcRendererEvent,
+      response: EventResponse,
+    ) => void,
   ): Electron.IpcRenderer => ipcRenderer.on("load-image-response", callback),
   onLoadVideoResponse: (
-    callback: (event: Electron.IpcRendererEvent) => void,
+    callback: (
+      event: Electron.IpcRendererEvent,
+      response: EventResponse,
+    ) => void,
   ): Electron.IpcRenderer => ipcRenderer.on("load-video-response", callback),
   onLoadProjectResponse: (
-    callback: (event: Electron.IpcRendererEvent) => void,
+    callback: (
+      event: Electron.IpcRendererEvent,
+      response: EventResponse,
+    ) => void,
   ): Electron.IpcRenderer => ipcRenderer.on("load-project-response", callback),
   onSaveProjectResponse: (
-    callback: (event: Electron.IpcRendererEvent) => void,
+    callback: (
+      event: Electron.IpcRendererEvent,
+      response: EventResponse,
+    ) => void,
   ): Electron.IpcRenderer => ipcRenderer.on("save-project-response", callback),
   onVideoMetadata: (
     callback: (arg0: IVideoMetadata) => void,
