@@ -1,8 +1,8 @@
-import "./assets/base.css";
-import "./assets/main.css";
-import { SideMenu } from "./components/sideMenu";
-import { ToolMenu } from "./components/toolMenu";
-import { WorkArea } from "./components/workArea";
+import "src/assets/base.css";
+import "src/assets/main.css";
+import { SideMenu } from "src/components/sideMenu";
+import { ToolMenu } from "src/components/toolMenu";
+import { WorkArea } from "src/components/workArea";
 
 const initializeVTD = (): void => {
   window.addEventListener("DOMContentLoaded", () => {

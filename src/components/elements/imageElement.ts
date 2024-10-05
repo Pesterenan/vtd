@@ -1,7 +1,7 @@
-import { BB } from "../../utils/bb";
-import EVENT from "../../utils/customEvents";
-import { Element } from "./element";
-import { BoundingBox, IImageElementData, Position, Size } from "../types";
+import { BB } from "src/utils/bb";
+import EVENT from "src/utils/customEvents";
+import { Element } from "src/components/elements/element";
+import type { BoundingBox, IImageElementData, Position, Size } from "src/components/types";
 
 export class ImageElement extends Element<IImageElementData> {
   public get backgroundColor(): string {

@@ -1,11 +1,11 @@
-import EVENT from "../../utils/customEvents";
-import { Element } from "../elements/element";
-import { Position, TElementData } from "../types";
-import { WorkArea } from "../workArea";
-import { Tool } from "./abstractTool";
-import centerHandleMove from "../../assets/icons/centerHandleMove.svg";
-import { BB } from "../../utils/bb";
-import { TransformBox } from "../transformBox";
+import EVENT from "src/utils/customEvents";
+import type { Element } from "src/components/elements/element";
+import type { Position, TElementData } from "src/components/types";
+import { WorkArea } from "src/components/workArea";
+import { Tool } from "src/components/tools/abstractTool";
+import centerHandleMove from "src/assets/icons/centerHandleMove.svg";
+import { BB } from "src/utils/bb";
+import type { TransformBox } from "src/components/transformBox";
 
 export class GrabTool extends Tool {
   private lastPosition: Position | null = null;

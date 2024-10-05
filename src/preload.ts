@@ -56,7 +56,7 @@ declare global {
 }
 import { contextBridge, ipcRenderer } from "electron";
 import { electronAPI } from "@electron-toolkit/preload";
-import { IVideoMetadata } from "./types";
+import type { IVideoMetadata } from "src/types";
 
 // Custom APIs for renderer
 const api = {

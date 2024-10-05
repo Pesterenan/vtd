@@ -1,8 +1,8 @@
-import getElementById from "../utils/getElementById";
-import EVENT from "../utils/customEvents";
-import ErrorElement from "./elements/errorElement";
-import { GradientElement } from "./elements/gradientElement";
-import { WorkArea } from "./workArea";
+import getElementById from "src/utils/getElementById";
+import EVENT from "src/utils/customEvents";
+import errorElement from "src/components/elements/errorElement";
+import { GradientElement } from "src/components/elements/gradientElement";
+import { WorkArea } from "src/components/workArea";
 
 export class GradientMenu {
   private static instance: GradientMenu | null = null;
@@ -73,7 +73,7 @@ export class GradientMenu {
     if (this.gradientSection) {
       return this.gradientSection;
     }
-    return ErrorElement("Menu não instanciado");
+    return errorElement("Menu não instanciado");
   }
 
   private createDOMElements(): void {

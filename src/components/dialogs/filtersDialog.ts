@@ -1,9 +1,9 @@
-import EVENT from "../../utils/customEvents";
-import { DropShadowFilter } from "../../filters/dropShadowFilter";
-import { Element } from "../elements/element";
-import { Filter } from "../../filters/filter";
-import { TElementData } from "../types";
-import { WorkArea } from "../workArea";
+import EVENT from "src/utils/customEvents";
+import { DropShadowFilter } from "src/filters/dropShadowFilter";
+import type { Element } from "src/components/elements/element";
+import type { Filter } from "src/filters/filter";
+import type { TElementData } from "src/components/types";
+import { WorkArea } from "src/components/workArea";
 
 export class FiltersDialog {
   private filterDialog: HTMLDialogElement | null = null;

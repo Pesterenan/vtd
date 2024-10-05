@@ -1,4 +1,4 @@
-import { Filter } from "../filters/filter";
+import type { Filter } from "../filters/filter";
 
 export interface IElementData {
   type: ElementType;

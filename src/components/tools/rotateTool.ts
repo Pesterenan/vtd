@@ -1,10 +1,10 @@
-import EVENT from "../../utils/customEvents";
-import { Element } from "../elements/element";
-import { Position, TElementData } from "../types";
-import { WorkArea } from "../workArea";
-import { Tool } from "./abstractTool";
-import centerHandleRotate from "../../assets/icons/centerHandleRotate.svg";
-import { TransformBox } from "../transformBox";
+import EVENT from "src/utils/customEvents";
+import type { Element } from "src/components/elements/element";
+import type { Position, TElementData } from "src/components/types";
+import { WorkArea } from "src/components/workArea";
+import { Tool } from "src/components/tools/abstractTool";
+import centerHandleRotate from "src/assets/icons/centerHandleRotate.svg";
+import type { TransformBox } from "src/components/transformBox";
 
 export class RotateTool extends Tool {
   private startingPosition: Position | null = null;

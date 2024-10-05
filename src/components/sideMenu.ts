@@ -1,9 +1,9 @@
-import EVENT from "../utils/customEvents";
-import getElementById from "../utils/getElementById";
-import { GradientMenu } from "./gradientMenu";
-import { LayersMenu } from "./layersMenu";
-import { TextMenu } from "./textMenu";
-import { WorkArea } from "./workArea";
+import EVENT from "src/utils/customEvents";
+import getElementById from "src/utils/getElementById";
+import { GradientMenu } from "src/components/gradientMenu";
+import { LayersMenu } from "src/components/layersMenu";
+import { TextMenu } from "src/components/textMenu";
+import { WorkArea } from "src/components/workArea";
 
 export class SideMenu {
   private static instance: SideMenu | null = null;

@@ -1,27 +1,28 @@
-import { Element } from "./elements/element";
-import { SelectTool } from "./tools/selectTool";
-import { Tool } from "./tools/abstractTool";
-import { TransformBox } from "./transformBox";
-import {
+import type { Element } from "src/components/elements/element";
+import { SelectTool } from "src/components/tools/selectTool";
+import type { Tool } from "src/components/tools/abstractTool";
+import { TransformBox } from "src/components/transformBox";
+import type {
   BoundingBox,
   TElementData,
   IProjectData,
-  Position,
+  Position} from "src/components/types";
+import {
   TOOL,
-} from "./types";
-import { HandTool } from "./tools/handTool";
-import { ZoomTool } from "./tools/zoomTool";
-import { GrabTool } from "./tools/grabTool";
-import { RotateTool } from "./tools/rotateTool";
-import { ScaleTool } from "./tools/scaleTool";
-import EVENT from "../utils/customEvents";
-import getElementById from "../utils/getElementById";
-import { ImageElement } from "./elements/imageElement";
-import { TextElement } from "./elements/textElement";
-import { TextTool } from "./tools/textTool";
-import { GradientTool } from "./tools/gradientTool";
-import { GradientElement } from "./elements/gradientElement";
-import { FiltersDialog } from "./dialogs/filtersDialog";
+} from "src/components/types";
+import { HandTool } from "src/components/tools/handTool";
+import { ZoomTool } from "src/components/tools/zoomTool";
+import { GrabTool } from "src/components/tools/grabTool";
+import { RotateTool } from "src/components/tools/rotateTool";
+import { ScaleTool } from "src/components/tools/scaleTool";
+import EVENT from "src/utils/customEvents";
+import getElementById from "src/utils/getElementById";
+import { ImageElement } from "src/components/elements/imageElement";
+import { TextElement } from "src/components/elements/textElement";
+import { TextTool } from "src/components/tools/textTool";
+import { GradientTool } from "src/components/tools/gradientTool";
+import { GradientElement } from "src/components/elements/gradientElement";
+import { FiltersDialog } from "src/components/dialogs/filtersDialog";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;

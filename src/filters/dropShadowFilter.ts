@@ -1,5 +1,5 @@
-import EVENT from "../utils/customEvents";
-import { Filter } from "./filter";
+import EVENT from "src/utils/customEvents";
+import { Filter } from "src/filters/filter";
 
 export class DropShadowFilter extends Filter {
   public set angle(value: number) {

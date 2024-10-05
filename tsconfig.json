@@ -4,12 +4,14 @@
     "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
     "esModuleInterop": true,
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "noImplicitAny": true,
     "outDir": "dist",
     "paths": {
-    "*": ["node_modules/*"],
+      "*": ["node_modules/*"],
+      "src/*": ["src/*"],
+      "components/*": ["src/components/*"]
     },
     "resolveJsonModule": true,
     "skipLibCheck": true,

@@ -1,8 +1,8 @@
-import EVENT from "../../utils/customEvents";
-import { remap } from "../../utils/easing";
-import { Position } from "../types";
-import { WorkArea } from "../workArea";
-import { Tool } from "./abstractTool";
+import EVENT from "src/utils/customEvents";
+import { remap } from "src/utils/easing";
+import type { Position } from "src/components/types";
+import { WorkArea } from "src/components/workArea";
+import { Tool } from "src/components/tools/abstractTool";
 
 const MIN_ZOOM_LEVEL = 0.1;
 const MAX_ZOOM_LEVEL = 2.0;

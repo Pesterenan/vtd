@@ -1,7 +1,7 @@
-import EVENT from "../../utils/customEvents";
-import { BoundingBox } from "../types";
-import { WorkArea } from "../workArea";
-import { Tool } from "./abstractTool";
+import EVENT from "src/utils/customEvents";
+import type { BoundingBox } from "src/components/types";
+import { WorkArea } from "src/components/workArea";
+import { Tool } from "src/components/tools/abstractTool";
 
 const DRAGGING_DISTANCE = 5;
 

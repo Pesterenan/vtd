@@ -1,4 +1,4 @@
-import { BoundingBox, Position } from "../components/types";
+import type { BoundingBox, Position } from "../components/types";
 
 export class BB {
   private bb: BoundingBox;

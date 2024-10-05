@@ -1,7 +1,7 @@
-import EVENT from "../../utils/customEvents";
-import { Position } from "../types";
-import { WorkArea } from "../workArea";
-import { Tool } from "./abstractTool";
+import EVENT from "src/utils/customEvents";
+import type { Position } from "src/components/types";
+import { WorkArea } from "src/components/workArea";
+import { Tool } from "src/components/tools/abstractTool";
 
 export class HandTool extends Tool {
   private startingPosition: Position | null = null;

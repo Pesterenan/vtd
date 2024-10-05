@@ -1,9 +1,9 @@
-import EVENT from "../../utils/customEvents";
-import { Position } from "../types";
-import { Tool } from "./abstractTool";
-import { WorkArea } from "../workArea";
-import { GradientElement } from "../elements/gradientElement";
-import { BB } from "../../utils/bb";
+import EVENT from "src/utils/customEvents";
+import type { Position } from "src/components/types";
+import { Tool } from "src/components/tools/abstractTool";
+import { WorkArea } from "src/components/workArea";
+import { GradientElement } from "src/components/elements/gradientElement";
+import { BB } from "src/utils/bb";
 
 export class GradientTool extends Tool {
   private activeGradientElement: GradientElement | null = null;

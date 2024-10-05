@@ -1,8 +1,8 @@
-import EVENT from "../utils/customEvents";
-import getElementById from "../utils/getElementById";
-import ErrorElement from "./elements/errorElement";
-import { TextElement } from "./elements/textElement";
-import { WorkArea } from "./workArea";
+import EVENT from "src/utils/customEvents";
+import getElementById from "src/utils/getElementById";
+import errorElement from "src/components/elements/errorElement";
+import { TextElement } from "src/components/elements/textElement";
+import { WorkArea } from "src/components/workArea";
 
 export class TextMenu {
   private static instance: TextMenu | null = null;
@@ -51,7 +51,7 @@ export class TextMenu {
     if (this.textMenuSection) {
       return this.textMenuSection;
     }
-    return ErrorElement("Menu não instanciado");
+    return errorElement("Menu não instanciado");
   }
 
   private createDOMElements(): void {

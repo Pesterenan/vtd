@@ -1,6 +1,6 @@
 import "../../assets/main.css";
 import getElementById from "../../utils/getElementById";
-import { IVideoMetadata } from "../../types";
+import type { IVideoMetadata } from "../../types";
 import { ExtractBox } from "../../components/extractBox/extractBox";
 import EVENT from "../../utils/customEvents";
 

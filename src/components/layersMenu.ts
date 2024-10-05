@@ -1,6 +1,6 @@
-import EVENT from "../utils/customEvents";
-import getElementById from "../utils/getElementById";
-import ErrorElement from "./elements/errorElement";
+import EVENT from "src/utils/customEvents";
+import getElementById from "src/utils/getElementById";
+import errorElement from "src/components/elements/errorElement";
 
 export class LayersMenu {
   private static instance: LayersMenu | null = null;
@@ -197,7 +197,7 @@ export class LayersMenu {
     if (this.layersSection) {
       return this.layersSection;
     }
-    return ErrorElement("Menu não instanciado");
+    return errorElement("Menu não instanciado");
   }
 
   private createDOMElements(): void {

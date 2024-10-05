@@ -1,5 +1,5 @@
 import EVENT from "../../utils/customEvents";
-import { BoundingBox, Position, Size } from "../types";
+import type { BoundingBox, Position, Size } from "../types";
 
 const LINE_WIDTH = 4;
 const CENTER_RADIUS = 6;

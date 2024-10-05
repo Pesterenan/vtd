@@ -1,5 +1,5 @@
-import { Element } from "./element";
-import { BoundingBox, ITextElementData, Position, Size } from "../types";
+import { Element } from "src/components/elements/element";
+import type { BoundingBox, ITextElementData, Position, Size } from "src/components/types";
 
 export class TextElement extends Element<ITextElementData> {
   public get font(): string {

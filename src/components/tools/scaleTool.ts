@@ -1,10 +1,10 @@
-import EVENT from "../../utils/customEvents";
-import { Element } from "../elements/element";
-import { Position, Scale, TElementData } from "../types";
-import { Tool } from "./abstractTool";
-import centerHandleScale from "../../assets/icons/centerHandleScale.svg";
-import { WorkArea } from "../workArea";
-import { TransformBox } from "../transformBox";
+import EVENT from "src/utils/customEvents";
+import type { Element } from "src/components/elements/element";
+import type { Position, Scale, TElementData } from "src/components/types";
+import { Tool } from "src/components/tools/abstractTool";
+import centerHandleScale from "src/assets/icons/centerHandleScale.svg";
+import { WorkArea } from "src/components/workArea";
+import type { TransformBox } from "src/components/transformBox";
 
 export class ScaleTool extends Tool {
   private startingPosition: Position | null = null;

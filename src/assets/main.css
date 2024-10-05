@@ -21,7 +21,7 @@ body {
 }
 
 #main-canvas {
-  flex: 0 1 calc(70% - 50px);
+  flex: 0 1 calc(70% - 25px);
   background-color: #404040;
 }
 
@@ -30,7 +30,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 0 1 30%;
+  flex: 0 1 calc(30% - 25px);
   padding: 1rem;
 }
 
