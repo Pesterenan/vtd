@@ -1,4 +1,4 @@
-import { Filter } from "./filter";
+import { Filter } from "../filters/filter";
 
 export interface IElementData {
   type: ElementType;
@@ -65,17 +65,6 @@ export type BoundingBox = { x1: number; y1: number; x2: number; y2: number };
 export type Position = { x: number; y: number };
 export type Scale = { x: number; y: number };
 export type Size = { width: number; height: number };
-
-/** Status do mouse durante os cliques
- * @param DOWN - Mouse clicado
- * @param MOVE - Mouse arrastando
- * @param UP - Mouse soltou o clique
- * */
-export enum MouseStatus {
-  DOWN,
-  MOVE,
-  UP,
-}
 
 /** Botões do mouse */
 export enum MOUSE_BUTTONS {

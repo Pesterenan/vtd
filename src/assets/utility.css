@@ -1,13 +1,15 @@
 .container {
   display: flex;
   flex-direction: row;
-  flex: 1 1 100%;
 }
 
 .container-column {
   display: flex;
   flex-direction: column;
-  height: 100%;
+}
+
+.fb-100 {
+  flex-basis: 100%;
 }
 
 .ai-fs {

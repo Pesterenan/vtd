@@ -1,5 +1,5 @@
 import EVENT from "../../utils/customEvents";
-import { TextElement } from "../textElement";
+import { TextElement } from "../elements/textElement";
 import { Position } from "../types";
 import { WorkArea } from "../workArea";
 import { Tool } from "./abstractTool";

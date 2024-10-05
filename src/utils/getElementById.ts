@@ -1,4 +1,4 @@
-import ErrorElement from "../components/errorElement";
+import ErrorElement from "../components/elements/errorElement";
 
 function getElementById<T>(id: string): T {
   const element = document.getElementById(id) as unknown as T;

@@ -2,7 +2,7 @@ import EVENT from "../../utils/customEvents";
 import { Position } from "../types";
 import { Tool } from "./abstractTool";
 import { WorkArea } from "../workArea";
-import { GradientElement } from "../gradientElement";
+import { GradientElement } from "../elements/gradientElement";
 import { BB } from "../../utils/bb";
 
 export class GradientTool extends Tool {

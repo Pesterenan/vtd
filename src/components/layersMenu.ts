@@ -1,6 +1,6 @@
 import EVENT from "../utils/customEvents";
 import getElementById from "../utils/getElementById";
-import ErrorElement from "./errorElement";
+import ErrorElement from "./elements/errorElement";
 
 export class LayersMenu {
   private static instance: LayersMenu | null = null;
@@ -63,7 +63,7 @@ export class LayersMenu {
   <input id="inp_visibility-${elementId}" type="checkbox" checked/>
   <button id="btn_filters-${elementId}" type="button">F</button>
 </div>
-<div class="container ai-c jc-sb g-05">
+<div class="container ai-c jc-sb fb-100 g-05">
   <input id="inp_layer-${elementId}"
     type="text"
     class="li_layer-name-input"

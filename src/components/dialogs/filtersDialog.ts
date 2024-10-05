@@ -1,7 +1,7 @@
 import EVENT from "../../utils/customEvents";
-import { DropShadowFilter } from "../dropShadowFilter";
-import { Element } from "../element";
-import { Filter } from "../filter";
+import { DropShadowFilter } from "../../filters/dropShadowFilter";
+import { Element } from "../elements/element";
+import { Filter } from "../../filters/filter";
 import { TElementData } from "../types";
 import { WorkArea } from "../workArea";
 

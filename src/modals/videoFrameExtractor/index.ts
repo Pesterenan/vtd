@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import "../../assets/main.css";
 import getElementById from "../../utils/getElementById";
 import { IVideoMetadata } from "../../types";

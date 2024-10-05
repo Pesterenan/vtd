@@ -1,4 +1,4 @@
-import { Element } from "./element";
+import { Element } from "./elements/element";
 import { SelectTool } from "./tools/selectTool";
 import { Tool } from "./tools/abstractTool";
 import { TransformBox } from "./transformBox/transformBox";
@@ -6,7 +6,6 @@ import {
   BoundingBox,
   TElementData,
   IProjectData,
-  MouseStatus,
   Position,
   TOOL,
 } from "./types";
@@ -17,11 +16,11 @@ import { RotateTool } from "./tools/rotateTool";
 import { ScaleTool } from "./tools/scaleTool";
 import EVENT from "../utils/customEvents";
 import getElementById from "../utils/getElementById";
-import { ImageElement } from "./imageElement";
-import { TextElement } from "./textElement";
+import { ImageElement } from "./elements/imageElement";
+import { TextElement } from "./elements/textElement";
 import { TextTool } from "./tools/textTool";
 import { GradientTool } from "./tools/gradientTool";
-import { GradientElement } from "./gradientElement";
+import { GradientElement } from "./elements/gradientElement";
 import { FiltersDialog } from "./dialogs/filtersDialog";
 
 const WORK_AREA_WIDTH = 1920;
@@ -33,11 +32,6 @@ interface IWorkAreaProperties {
   offset: Position;
 }
 
-interface IMouseProperties {
-  position: Position;
-  status: MouseStatus;
-}
-
 export class WorkArea {
   private static instance: WorkArea | null = null;
   public mainCanvas?: HTMLCanvasElement;
@@ -46,12 +40,28 @@ export class WorkArea {
   private _transformBox: TransformBox | null = null;
   private _zoomLevel = 0.3;
   private workArea: IWorkAreaProperties | Record<string, never> = {};
-  private _mouse: IMouseProperties = {
-    position: { x: 0, y: 0 },
-    status: MouseStatus.UP,
-  };
   private tools: { [key in TOOL]: Tool };
   public currentTool: TOOL = TOOL.SELECT;
+
+  public get offset(): Position {
+    return this.workArea.offset;
+  }
+  public set offset(value: Position) {
+    this.workArea.offset = value;
+  }
+  public get transformBox(): TransformBox | null {
+    return this._transformBox;
+  }
+  public set transformBox(value) {
+    this._transformBox = value;
+  }
+  public get zoomLevel(): number {
+    return this._zoomLevel;
+  }
+  public set zoomLevel(zoomLevel: number) {
+    this._zoomLevel = zoomLevel;
+    this.update();
+  }
 
   private constructor() {
     this.createWorkAreaDOMElements();
@@ -69,12 +79,6 @@ export class WorkArea {
       [TOOL.TEXT]: new TextTool(this.mainCanvas),
     };
     this.tools[this.currentTool].equipTool();
-
-    const currentMousePosition = {
-      x: this.mainCanvas.width * 0.5,
-      y: this.mainCanvas.height * 0.5,
-    };
-    this.mouse = { position: currentMousePosition };
 
     this.createEventListeners();
     new FiltersDialog();
@@ -116,31 +120,6 @@ export class WorkArea {
     if (mainWindow) {
       mainWindow.appendChild(this.mainCanvas);
     }
-  }
-
-  public get transformBox(): TransformBox | null {
-    return this._transformBox;
-  }
-
-  public set transformBox(value) {
-    this._transformBox = value;
-  }
-
-  public get zoomLevel(): number {
-    return this._zoomLevel;
-  }
-
-  public set zoomLevel(zoomLevel: number) {
-    this._zoomLevel = zoomLevel;
-    this.update();
-  }
-
-  public get mouse(): IMouseProperties {
-    return this._mouse;
-  }
-
-  public set mouse(value: Partial<IMouseProperties>) {
-    this._mouse = { ...this.mouse, ...value };
   }
 
   private createEventListeners(): void {
@@ -283,7 +262,7 @@ export class WorkArea {
             this.currentTool = TOOL.SELECT;
             console.log("DELETED!");
             this.removeSelectedElements();
-            return;
+            break;
         }
       }
     } else {
@@ -552,13 +531,6 @@ export class WorkArea {
     canvas: HTMLCanvasElement,
   ): void {
     context.clearRect(0, 0, canvas.width, canvas.height);
-  }
-
-  public get offset(): Position {
-    return this.workArea.offset;
-  }
-  public set offset(value: Position) {
-    this.workArea.offset = value;
   }
 
   private drawWorkArea(): void {

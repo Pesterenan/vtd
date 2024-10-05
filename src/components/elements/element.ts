@@ -1,7 +1,7 @@
-import { BoundingBox, IElementData, Position, Scale, Size } from "./types";
-import { BB } from "../utils/bb";
-import { Filter } from "./filter";
-import { createFilter } from "../utils/filterFactory";
+import { BoundingBox, IElementData, Position, Scale, Size } from "../types";
+import { BB } from "../../utils/bb";
+import { Filter } from "../../filters/filter";
+import { createFilter } from "../../filters/filterFactory";
 
 export abstract class Element<T extends Partial<IElementData>> {
   public static elementIds = 0;

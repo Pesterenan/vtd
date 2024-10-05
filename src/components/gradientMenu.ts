@@ -1,7 +1,7 @@
 import getElementById from "../utils/getElementById";
 import EVENT from "../utils/customEvents";
-import ErrorElement from "./errorElement";
-import { GradientElement } from "./gradientElement";
+import ErrorElement from "./elements/errorElement";
+import { GradientElement } from "./elements/gradientElement";
 import { WorkArea } from "./workArea";
 
 export class GradientMenu {

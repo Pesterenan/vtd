@@ -1,5 +1,5 @@
 import { Element } from "./element";
-import { BoundingBox, IGradientElementData, Position, Size } from "./types";
+import { BoundingBox, IGradientElementData, Position, Size } from "../types";
 
 export class GradientElement extends Element<IGradientElementData> {
   public get position(): Position {

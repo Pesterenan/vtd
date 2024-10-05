@@ -1,5 +1,5 @@
 import EVENT from "../../utils/customEvents";
-import { Element } from "../element";
+import { Element } from "../elements/element";
 import { Position, Scale, TElementData } from "../types";
 import { Tool } from "./abstractTool";
 import centerHandleScale from "../../components/transformBox/assets/centerHandleScale.svg";

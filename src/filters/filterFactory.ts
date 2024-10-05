@@ -1,5 +1,5 @@
-import { Filter } from "../components/filter";
-import { DropShadowFilter } from "../components/dropShadowFilter";
+import { Filter } from "./filter";
+import { DropShadowFilter } from "./dropShadowFilter";
 
 export function createFilter(filterData: Partial<Filter>): Filter | null {
   let filter = null;

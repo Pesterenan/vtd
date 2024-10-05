@@ -1,6 +1,6 @@
 import EVENT from "../../utils/customEvents";
 import getElementById from "../../utils/getElementById";
-import { Element } from "../element";
+import { Element } from "../elements/element";
 import { GrabTool } from "../tools/grabTool";
 import { BoundingBox, Position, Size, TElementData } from "../types";
 import { WorkArea } from "../workArea";

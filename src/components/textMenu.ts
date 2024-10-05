@@ -1,7 +1,7 @@
 import EVENT from "../utils/customEvents";
 import getElementById from "../utils/getElementById";
-import ErrorElement from "./errorElement";
-import { TextElement } from "./textElement";
+import ErrorElement from "./elements/errorElement";
+import { TextElement } from "./elements/textElement";
 import { WorkArea } from "./workArea";
 
 export class TextMenu {
