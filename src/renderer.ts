@@ -1,10 +1,12 @@
 import "./assets/base.css";
 import "./assets/main.css";
 import { SideMenu } from "./components/sideMenu";
+import { ToolMenu } from "./components/toolMenu";
 import { WorkArea } from "./components/workArea";
 
 const initializeVTD = (): void => {
   window.addEventListener("DOMContentLoaded", () => {
+    ToolMenu.getInstance();
     const workArea = WorkArea.getInstance();
     SideMenu.getInstance();
     workArea.addTextElement();

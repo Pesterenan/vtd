@@ -148,3 +148,35 @@ body {
   background-color: #ffffff;
   border-radius: 5px;
 }
+
+#tool-menu {
+  background-color: var(--primary_main);
+  color: var(--text_main);
+  font-size: var(--font-small);
+  height: 100%;
+  min-width: 40px;
+  padding: 0px;
+  padding-block: 0.5rem;
+  width: 40px;
+}
+
+#tool-menu .tool {
+  width: 30px;
+  height: 30px;
+  background-color: #fff;
+  border-radius: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+#tool-menu .tool:hover {
+  background-color: #e0e0e0;
+}
+
+#tool-menu .tool.active {
+  background-color: #007bff;
+  color: #fff;
+}
