@@ -124,7 +124,8 @@ export class WorkArea {
 
   private createEventListeners(): void {
     if (this.mainCanvas) {
-      window.addEventListener("keypress", this.changeTool.bind(this));
+      window.addEventListener(EVENT.CHANGE_TOOL, this.changeTool.bind(this));
+      window.addEventListener("keypress", this.handleKeyPress.bind(this));
       window.addEventListener("keydown", this.handleKeyDown.bind(this));
       window.addEventListener("keyup", this.handleKeyUp.bind(this));
       window.addEventListener("resize", this.handleResize.bind(this));
@@ -235,7 +236,66 @@ export class WorkArea {
     }
   }
 
-  private changeTool(evt: KeyboardEvent): void {
+  private handleKeyPress(evt: KeyboardEvent): void {
+    const activeElement = document.activeElement;
+    const isTyping =
+      activeElement?.tagName === "TEXTAREA" ||
+      activeElement?.tagName === "INPUT";
+    if (isTyping) return;
+
+    let toolId = "";
+    if (this.currentTool === TOOL.SELECT) {
+      if (this.transformBox) {
+        switch (evt.code) {
+          case "KeyG":
+            toolId = "grab-tool";
+            console.log("GRAB MODE, ACTIVATED!");
+            break;
+          case "KeyR":
+            toolId = "rotate-tool";
+            console.log("ROTATE MODE, ACTIVATED!");
+            break;
+          case "KeyS":
+            toolId = "scale-tool";
+            console.log("SCALE MODE, ACTIVATED!");
+            break;
+          case "KeyX":
+            toolId = "select-tool";
+            console.log("DELETED!");
+            this.removeSelectedElements();
+            break;
+        }
+      }
+    } else {
+      switch (evt.code) {
+        case "KeyV":
+          toolId = "select-tool";
+          console.log("SELECTING");
+          break;
+      }
+    }
+    if (evt.code === "KeyT") {
+      toolId = "text-tool";
+      console.log("TEXT MODE, ACTIVATED!");
+    }
+    if (evt.code === "KeyH") {
+      toolId = "gradient-tool";
+      console.log("GRADIENT MODE, ACTIVATED!");
+    }
+    if (toolId) {
+      window.dispatchEvent(
+        new CustomEvent(EVENT.CHANGE_TOOL, {
+          detail: {
+            toolId,
+          },
+        }),
+      );
+    }
+  }
+  private changeTool(evt: Event): void {
+    const customEvent = evt as CustomEvent<{ toolId: string }>;
+    const { toolId } = customEvent.detail;
+
     const activeElement = document.activeElement;
     const isTyping =
       activeElement?.tagName === "TEXTAREA" ||
@@ -245,39 +305,34 @@ export class WorkArea {
     this.tools[this.currentTool].unequipTool();
     if (this.currentTool === TOOL.SELECT) {
       if (this.transformBox) {
-        switch (evt.code) {
-          case "KeyG":
+        switch (toolId) {
+          case "grab-tool":
             this.currentTool = TOOL.GRAB;
             console.log("GRAB MODE, ACTIVATED!");
             break;
-          case "KeyR":
+          case "rotate-tool":
             this.currentTool = TOOL.ROTATE;
             console.log("ROTATE MODE, ACTIVATED!");
             break;
-          case "KeyS":
+          case "scale-tool":
             this.currentTool = TOOL.SCALE;
             console.log("SCALE MODE, ACTIVATED!");
-            break;
-          case "KeyX":
-            this.currentTool = TOOL.SELECT;
-            console.log("DELETED!");
-            this.removeSelectedElements();
             break;
         }
       }
     } else {
-      switch (evt.code) {
-        case "KeyV":
+      switch (toolId) {
+        case "select-tool":
           this.currentTool = TOOL.SELECT;
           console.log("SELECTING");
           break;
       }
     }
-    if (evt.code === "KeyT") {
+    if (toolId === "text-tool") {
       this.currentTool = TOOL.TEXT;
       console.log("TEXT MODE, ACTIVATED!");
     }
-    if (evt.code === "KeyH") {
+    if (toolId === "gradient-tool") {
       this.currentTool = TOOL.GRADIENT;
       console.log("GRADIENT MODE, ACTIVATED!");
     }
@@ -504,7 +559,7 @@ export class WorkArea {
 
   private handleResize(): void {
     if (this.mainCanvas) {
-      this.mainCanvas.width = window.innerWidth * 0.7;
+      this.mainCanvas.width = window.innerWidth * 0.7 - 50;
       this.mainCanvas.height = window.innerHeight;
       this.update();
     }

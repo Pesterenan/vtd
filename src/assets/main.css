@@ -21,7 +21,7 @@ body {
 }
 
 #main-canvas {
-  flex: 0 1 70%;
+  flex: 0 1 calc(70% - 50px);
   background-color: #404040;
 }
 
@@ -173,10 +173,10 @@ body {
 }
 
 #tool-menu .tool:hover {
-  background-color: #e0e0e0;
+  background-color: var(--primary_main);
 }
 
 #tool-menu .tool.active {
-  background-color: #007bff;
-  color: #fff;
+  background-color: var(--primary_dark);
+  color: var(--primary_light);
 }
