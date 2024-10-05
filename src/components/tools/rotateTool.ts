@@ -3,8 +3,8 @@ import { Element } from "../elements/element";
 import { Position, TElementData } from "../types";
 import { WorkArea } from "../workArea";
 import { Tool } from "./abstractTool";
-import centerHandleRotate from "../../components/transformBox/assets/centerHandleRotate.svg";
-import { TransformBox } from "../transformBox/transformBox";
+import centerHandleRotate from "../../assets/icons/centerHandleRotate.svg";
+import { TransformBox } from "../transformBox";
 
 export class RotateTool extends Tool {
   private startingPosition: Position | null = null;

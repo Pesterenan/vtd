@@ -1,9 +1,9 @@
-import EVENT from "../../utils/customEvents";
-import getElementById from "../../utils/getElementById";
-import { Element } from "../elements/element";
-import { GrabTool } from "../tools/grabTool";
-import { BoundingBox, Position, Size, TElementData } from "../types";
-import { WorkArea } from "../workArea";
+import EVENT from "../utils/customEvents";
+import getElementById from "../utils/getElementById";
+import { Element } from "./elements/element";
+import { GrabTool } from "./tools/grabTool";
+import { BoundingBox, Position, Size, TElementData } from "./types";
+import { WorkArea } from "./workArea";
 
 export class TransformBox {
   private position: Position = { x: 0, y: 0 };

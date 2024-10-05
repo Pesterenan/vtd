@@ -1,7 +1,7 @@
 import { Element } from "./elements/element";
 import { SelectTool } from "./tools/selectTool";
 import { Tool } from "./tools/abstractTool";
-import { TransformBox } from "./transformBox/transformBox";
+import { TransformBox } from "./transformBox";
 import {
   BoundingBox,
   TElementData,

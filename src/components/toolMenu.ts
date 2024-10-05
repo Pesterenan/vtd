@@ -4,7 +4,7 @@ import getElementById from "../utils/getElementById";
 export class ToolMenu {
   private static instance: ToolMenu | null = null;
   private toolMenu?: HTMLMenuElement;
-  private activeToolId: string | null = null;
+  private activeToolId: string | null = 'select-tool';
 
   constructor() {
     this.createDOMElements();
@@ -12,7 +12,6 @@ export class ToolMenu {
   }
 
   private createDOMElements(): void {
-    const mainWindow = getElementById<HTMLDivElement>("main-window");
     this.toolMenu = document.createElement("menu");
     this.toolMenu.id = "tool-menu";
     this.toolMenu.className = "container-column ai-c jc-fs g-05";
@@ -22,15 +21,23 @@ export class ToolMenu {
     Ferr.
   </tooltip>
 </label>
-<button id='select-tool' class='tool' aria-label='Selecionar elemento'><tooltip />V</button>
-<button id='grab-tool' class='tool' aria-label='Mover elemento'>G</button>
-<button id='rotate-tool' class='tool' aria-label='Rotacionar elemento'>R</button>
-<button id='scale-tool' class='tool' aria-label='Escalonar elemento'>S</button>
-<button id='text-tool' class='tool' aria-label='Editar texto'>T</button>
-<button id='gradient-tool' class='tool' aria-label='Criar gradientes'>H</button>
-<button id='zoom-tool' class='tool' aria-label='Modificar zoom'>Z</button>
+<button id='select-tool' class='tool active' aria-label='(V) Selecionar elementos'>
+  <tooltip title='(V) Selecionar elementos'/>V</button>
+<button id='grab-tool' class='tool' aria-label='(G) Mover elementos'>
+  <tooltip title='(G) Mover elementos'/>G</button>
+<button id='rotate-tool' class='tool' aria-label='(R) Rotacionar elementos'>
+  <tooltip title='(R) Rotacionar elementos'/>R</button>
+<button id='scale-tool' class='tool' aria-label='(S) Escalonar elementos'>
+  <tooltip title='(S) Escalonar elementos'/>S</button>
+<button id='text-tool' class='tool' aria-label='(T) Criar textos'>
+  <tooltip title='(T) Criar textos'/>T</button>
+<button id='gradient-tool' class='tool' aria-label='(H) Criar gradientes'>
+  <tooltip title='(H) Criar gradientes'/>H</button>
+<button id='zoom-tool' class='tool' aria-label='(Z) Modificar nível de zoom'>
+  <tooltip title='(Z) Modificar nível de zoom'>Z</tooltip</button>
 `;
 
+    const mainWindow = getElementById<HTMLDivElement>("main-window");
     if (mainWindow) {
       mainWindow.appendChild(this.toolMenu);
     }

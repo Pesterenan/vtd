@@ -114,7 +114,7 @@ export class VideoFrameExtractor {
       if (response.success) {
         if (this.offScreen && this.preview && this.videoMetadata) {
           const { width, height } = this.offScreen.canvas;
-          const videoFrame = new Uint8ClampedArray(response.data);
+          const videoFrame = new Uint8ClampedArray(response.data as Uint8Array);
           const videoFrameData = new ImageData(videoFrame, width, height);
           this.offScreen.context.putImageData(videoFrameData, 0, 0);
           this.update();

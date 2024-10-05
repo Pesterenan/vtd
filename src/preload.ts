@@ -2,7 +2,7 @@ export {};
 
 interface EventResponse {
   success: boolean;
-  data?: any;
+  data?: unknown;
   message: string;
 }
 

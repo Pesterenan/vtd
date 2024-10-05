@@ -3,9 +3,9 @@ import { Element } from "../elements/element";
 import { Position, TElementData } from "../types";
 import { WorkArea } from "../workArea";
 import { Tool } from "./abstractTool";
-import centerHandleMove from "../../components/transformBox/assets/centerHandleMove.svg";
+import centerHandleMove from "../../assets/icons/centerHandleMove.svg";
 import { BB } from "../../utils/bb";
-import { TransformBox } from "../transformBox/transformBox";
+import { TransformBox } from "../transformBox";
 
 export class GrabTool extends Tool {
   private lastPosition: Position | null = null;

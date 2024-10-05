@@ -2,9 +2,9 @@ import EVENT from "../../utils/customEvents";
 import { Element } from "../elements/element";
 import { Position, Scale, TElementData } from "../types";
 import { Tool } from "./abstractTool";
-import centerHandleScale from "../../components/transformBox/assets/centerHandleScale.svg";
+import centerHandleScale from "../../assets/icons/centerHandleScale.svg";
 import { WorkArea } from "../workArea";
-import { TransformBox } from "../transformBox/transformBox";
+import { TransformBox } from "../transformBox";
 
 export class ScaleTool extends Tool {
   private startingPosition: Position | null = null;

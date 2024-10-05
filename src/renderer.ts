@@ -17,7 +17,7 @@ const initializeVTD = (): void => {
 const createEventListeners = (workArea: WorkArea): void => {
   window.api.onProcessVideoFrameResponse((_, response) => {
     if (response.success) {
-      const uint8Array = new Uint8Array(response.data);
+      const uint8Array = new Uint8Array(response.data as Uint8Array);
       const blob = new Blob([uint8Array], { type: "image/png" });
 
       const reader = new FileReader();
@@ -41,7 +41,7 @@ const createEventListeners = (workArea: WorkArea): void => {
 
   window.api.onLoadImageResponse((_, response) => {
     if (response.success) {
-      workArea.addImageElement(response.data);
+      workArea.addImageElement(response.data as string);
       console.log(response.message);
     } else {
       console.error(response.message);
@@ -58,7 +58,7 @@ const createEventListeners = (workArea: WorkArea): void => {
 
   window.api.onLoadProjectResponse((_, response) => {
     if (response.success) {
-      WorkArea.getInstance().loadProject(response.data);
+      WorkArea.getInstance().loadProject(response.data as string);
     } else {
       console.error(response.message);
     }
