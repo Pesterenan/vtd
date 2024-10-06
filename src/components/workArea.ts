@@ -22,6 +22,7 @@ import { TextTool } from "src/components/tools/textTool";
 import { GradientTool } from "src/components/tools/gradientTool";
 import { GradientElement } from "src/components/elements/gradientElement";
 import { FiltersDialog } from "src/components/dialogs/filtersDialog";
+import { SIDE_MENU_WIDTH, TOOL_MENU_WIDTH } from "src/constants";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -89,7 +90,7 @@ export class WorkArea {
     const mainWindow = getElementById<HTMLDivElement>("main-window");
     this.mainCanvas = document.createElement("canvas");
     this.mainCanvas.id = "main-canvas";
-    this.mainCanvas.width = ( window.innerWidth - 40 ) * 0.7;
+    this.mainCanvas.width = window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
     this.mainCanvas.height = window.innerHeight;
     this.mainContext = this.mainCanvas.getContext("2d");
 
@@ -559,7 +560,7 @@ export class WorkArea {
 
   private handleResize(): void {
     if (this.mainCanvas) {
-      this.mainCanvas.width = ( window.innerWidth - 40 ) * 0.7;
+      this.mainCanvas.width = window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
       this.mainCanvas.height = window.innerHeight;
       this.update();
     }

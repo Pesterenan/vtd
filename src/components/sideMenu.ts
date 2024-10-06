@@ -4,6 +4,7 @@ import { GradientMenu } from "src/components/gradientMenu";
 import { LayersMenu } from "src/components/layersMenu";
 import { TextMenu } from "src/components/textMenu";
 import { WorkArea } from "src/components/workArea";
+import { SIDE_MENU_WIDTH } from "src/constants";
 
 export class SideMenu {
   private static instance: SideMenu | null = null;
@@ -52,6 +53,7 @@ export class SideMenu {
     this.sideMenu = document.createElement("menu");
     this.sideMenu.id = "side-menu";
     this.sideMenu.className = "side-menu";
+    this.sideMenu.setAttribute("style", `width: ${SIDE_MENU_WIDTH}px;`);
     const domElements: HTMLElement[] = [];
 
     const importImageBtn = document.createElement("button");

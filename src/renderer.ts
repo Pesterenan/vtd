@@ -1,4 +1,3 @@
-import "src/assets/base.css";
 import "src/assets/main.css";
 import { SideMenu } from "src/components/sideMenu";
 import { ToolMenu } from "src/components/toolMenu";
