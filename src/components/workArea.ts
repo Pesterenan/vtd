@@ -6,10 +6,9 @@ import type {
   BoundingBox,
   TElementData,
   IProjectData,
-  Position} from "src/components/types";
-import {
-  TOOL,
+  Position,
 } from "src/components/types";
+import { TOOL } from "src/components/types";
 import { HandTool } from "src/components/tools/handTool";
 import { ZoomTool } from "src/components/tools/zoomTool";
 import { GrabTool } from "src/components/tools/grabTool";
@@ -90,7 +89,7 @@ export class WorkArea {
     const mainWindow = getElementById<HTMLDivElement>("main-window");
     this.mainCanvas = document.createElement("canvas");
     this.mainCanvas.id = "main-canvas";
-    this.mainCanvas.width = window.innerWidth * 0.7;
+    this.mainCanvas.width = ( window.innerWidth - 40 ) * 0.7;
     this.mainCanvas.height = window.innerHeight;
     this.mainContext = this.mainCanvas.getContext("2d");
 
@@ -560,7 +559,7 @@ export class WorkArea {
 
   private handleResize(): void {
     if (this.mainCanvas) {
-      this.mainCanvas.width = window.innerWidth * 0.7 - 50;
+      this.mainCanvas.width = ( window.innerWidth - 40 ) * 0.7;
       this.mainCanvas.height = window.innerHeight;
       this.update();
     }
@@ -594,6 +593,14 @@ export class WorkArea {
       this.mainContext.save();
       this.mainContext.translate(this.offset.x, this.offset.y);
       this.mainContext.scale(this.zoomLevel, this.zoomLevel);
+      this.mainContext.lineWidth = 8;
+      this.mainContext.strokeStyle = "black";
+      this.mainContext.strokeRect(
+        0,
+        0,
+        this.workArea.canvas.width,
+        this.workArea.canvas.height,
+      );
       this.mainContext.fillStyle = "white";
       this.mainContext.fillRect(
         0,
@@ -602,13 +609,6 @@ export class WorkArea {
         this.workArea.canvas.height,
       );
       this.mainContext.drawImage(this.workArea.canvas, 0, 0);
-      this.mainContext.strokeStyle = "black";
-      this.mainContext.strokeRect(
-        0,
-        0,
-        this.workArea.canvas.width,
-        this.workArea.canvas.height,
-      );
       this.mainContext.restore();
     }
   }

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" height="24px" width="24px">
+  <defs>
+    <linearGradient id="Gradient">
+      <stop class="stop1" stop-color="black" offset="0%" />
+      <stop class="stop2" stop-color="white" offset="100%" />
+    </linearGradient>
+  </defs>
+  <style>
+    #rect1 {
+      fill: url(#Gradient);
+      stroke: black;
+      stroke-width: 2;
+    }
+  </style>
+  <rect id="rect1" x="1" y="1" rx="2" ry="2" width="22" height="22" />
+</svg>

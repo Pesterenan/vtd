@@ -3,7 +3,7 @@ import type { Element } from "src/components/elements/element";
 import type { Position, TElementData } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
-import centerHandleMove from "src/assets/icons/centerHandleMove.svg";
+import centerHandleMove from "src/assets/icons/move-tool.svg";
 import { BB } from "src/utils/bb";
 import type { TransformBox } from "src/components/transformBox";
 

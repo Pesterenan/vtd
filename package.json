@@ -27,7 +27,7 @@
     "@types/fluent-ffmpeg": "2.1.26",
     "@typescript-eslint/eslint-plugin": "5.0.0",
     "@typescript-eslint/parser": "5.0.0",
-    "@vercel/webpack-asset-relocator-loader": "1.7.4",
+    "@vercel/webpack-asset-relocator-loader": "1.7.3",
     "css-loader": "6.0.0",
     "electron": "32.1.2",
     "eslint": "8.0.1",
@@ -38,7 +38,7 @@
     "node-loader": "2.0.0",
     "style-loader": "3.0.0",
     "ts-loader": "9.2.2",
-    "ts-node": "^10.9.2",
+    "ts-node": "10.9.2",
     "typescript": "5.6.2"
   },
   "keywords": [],

@@ -3,7 +3,7 @@ import type { Element } from "src/components/elements/element";
 import type { Position, TElementData } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
-import centerHandleRotate from "src/assets/icons/centerHandleRotate.svg";
+import centerHandleRotate from "src/assets/icons/rotate-tool.svg";
 import type { TransformBox } from "src/components/transformBox";
 
 export class RotateTool extends Tool {

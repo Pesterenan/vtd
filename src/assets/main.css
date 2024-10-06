@@ -1,6 +1,10 @@
 @import './base.css';
 @import './utility.css';
 
+:root {
+  --tool-menu-width: 40px;
+}
+
 body {
   display: flex;
   align-items: center;
@@ -21,7 +25,7 @@ body {
 }
 
 #main-canvas {
-  flex: 0 1 calc(70% - 25px);
+  flex: 0 1 calc(calc(100% - var(--tool-menu-width)) * 0.7);
   background-color: #404040;
 }
 
@@ -30,7 +34,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 0 1 calc(30% - 25px);
+  flex: 0 1 calc(calc(100% - var(--tool-menu-width)) * 0.3);
   padding: 1rem;
 }
 
@@ -170,6 +174,12 @@ body {
   align-items: center;
   cursor: pointer;
   transition: background-color 0.2s;
+}
+
+#tool-menu .tool img,
+#tool-menu .tool tooltip  {
+  height: 20px;
+  width: 20px;
 }
 
 #tool-menu .tool:hover {

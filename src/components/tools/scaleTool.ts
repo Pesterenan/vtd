@@ -2,7 +2,7 @@ import EVENT from "src/utils/customEvents";
 import type { Element } from "src/components/elements/element";
 import type { Position, Scale, TElementData } from "src/components/types";
 import { Tool } from "src/components/tools/abstractTool";
-import centerHandleScale from "src/assets/icons/centerHandleScale.svg";
+import centerHandleScale from "src/assets/icons/scale-tool.svg";
 import { WorkArea } from "src/components/workArea";
 import type { TransformBox } from "src/components/transformBox";
 
