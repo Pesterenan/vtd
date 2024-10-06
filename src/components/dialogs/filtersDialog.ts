@@ -4,6 +4,7 @@ import type { Element } from "src/components/elements/element";
 import type { Filter } from "src/filters/filter";
 import type { TElementData } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
+import { OuterGlowFilter } from "src/filters/outerGlowFilter";
 
 export class FiltersDialog {
   private filterDialog: HTMLDialogElement | null = null;
@@ -45,7 +46,7 @@ export class FiltersDialog {
   }
 
   private openDialog(): void {
-    this.defaultFilters = [new DropShadowFilter()];
+    this.defaultFilters = [new DropShadowFilter(), new OuterGlowFilter()];
     const selectedElements = WorkArea.getInstance().getSelectedElements();
     if (selectedElements && selectedElements.length === 1) {
       this.activeElement = selectedElements[0];
@@ -85,12 +86,15 @@ export class FiltersDialog {
         !!this.activeElement?.filters?.find((f) => f.id === key) || false;
       const filterItem = document.createElement("li") as HTMLLIElement;
       filterItem.id = `filter-item-${filter.id}`;
-      filterItem.className = "container ai-jc-c g-05 li_layer-item pad-05";
+      filterItem.className = "container ai-c jc-sb g-05 li_layer-item pad-05";
       filterItem.innerHTML = `
 <input type="checkbox" id="chk_filter-${filter.id}" ${isChecked ? "checked" : ""} />
 <label>${filter.label}</label>
 `;
-      filterItem.onclick = () => this.selectFilter(filter);
+      filterItem.onclick = () => {
+        this.clearFilterControls();
+        this.selectFilter(filter);
+      };
 
       const checkbox = filterItem.querySelector(
         `#chk_filter-${filter.id}`,
