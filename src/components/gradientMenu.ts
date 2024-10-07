@@ -3,14 +3,18 @@ import EVENT from "src/utils/customEvents";
 import errorElement from "src/components/elements/errorElement";
 import { GradientElement } from "src/components/elements/gradientElement";
 import { WorkArea } from "src/components/workArea";
+import type { ISliderControl } from "./helpers/createSliderControl";
+import { createSliderControl } from "./helpers/createSliderControl";
+import type { IColorControl } from "./helpers/createColorControl";
+import { createColorControl } from "./helpers/createColorControl";
 
 export class GradientMenu {
   private static instance: GradientMenu | null = null;
   private gradientSection: HTMLElement | null = null;
   private activeGradientElement: GradientElement | null = null;
   private gradientBar: HTMLDivElement | null = null;
-  private currentPortionColor: HTMLInputElement | null = null;
-  private currentPortionAlpha: HTMLInputElement | null = null;
+  private alphaControl: ISliderControl | null = null;
+  private colorControl: IColorControl | null = null;
   private currentColorStop: {
     color: string;
     portion: number;
@@ -37,26 +41,17 @@ export class GradientMenu {
     });
   }
 
-  private handlePortionAlphaChange = (): void => {
-    if (
-      this.activeGradientElement &&
-      this.currentColorStop &&
-      this.currentPortionAlpha
-    ) {
-      this.currentColorStop.alpha =
-        Number(this.currentPortionAlpha.value) || 0.0;
+  private handleAlphaControlChange = (newValue: number): void => {
+    if (this.activeGradientElement && this.currentColorStop) {
+      this.currentColorStop.alpha = Number(newValue);
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
       this.updateGradientBar();
     }
   };
 
-  private handlePortionColorChange = (): void => {
-    if (
-      this.activeGradientElement &&
-      this.currentColorStop &&
-      this.currentPortionColor
-    ) {
-      this.currentColorStop.color = this.currentPortionColor.value;
+  private handleColorControlChange = (newValue: string): void => {
+    if (this.activeGradientElement && this.currentColorStop) {
+      this.currentColorStop.color = newValue;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
       this.updateGradientBar();
     }
@@ -81,29 +76,30 @@ export class GradientMenu {
     this.gradientSection.id = "sec_gradient-menu";
     this.gradientSection.className = "sec_menu-style";
     this.gradientSection.innerHTML = `
-<p style="align-self: flex-start;">Gradiente:</p>
-<div class='container-column jc-sb g-05' style="padding-inline: 0.5rem;">
-  <div id="gradient-bar" style="width: 100%; height: 20px; background: #FFFFFF;"></div>
-  <div id="color-stops-indicators" style="position: relative; height: 10px;"></div>
-<div class='container ai-c jc-sb' style="padding-inline: 0.5rem;">
-  <div class='container ai-c jc-sb g-05'>
-    <label for="inp_portion-color">Cor:</label>
-    <input id="inp_portion-color" type="color" value="#000000" style="width: 40px;"/>
-  </div>
-  <div class='container ai-c jc-sb g-05'>
-    <label for="inp_portion-alpha">Alpha:</label>
-    <input
-      id="inp_portion-alpha"
-      class="number-input"
-      type="number"
-      min="0.0"
-      max="1.0"
-      step="0.05"
-      style="width: 50px;"
-      value="1.0"/>
-  </div>
-</div>
+      <p style="align-self: flex-start;">Gradiente:</p>
+      <div class='container-column jc-sb g-05' style="padding-inline: 0.5rem;">
+      <div id="gradient-bar" style="width: 100%; height: 20px; background: #FFFFFF;"></div>
+      <div id="color-stops-indicators" style="position: relative; height: 10px;"></div>
     `;
+    this.colorControl = createColorControl(
+      "inp_portion_color",
+      "Cor",
+      { value: this.currentColorStop?.color || "#FFFFFF" },
+      this.handleColorControlChange,
+    );
+    this.alphaControl = createSliderControl(
+      "inp_portion_alpha",
+      "Alpha",
+      {
+        min: 0.0,
+        max: 1.0,
+        step: 0.01,
+        value: this.currentColorStop?.alpha || 0,
+      },
+      this.handleAlphaControlChange,
+    );
+    this.gradientSection.append(this.colorControl.element);
+    this.gradientSection.append(this.alphaControl.element);
   }
 
   private updateGradientBar(): void {
@@ -120,10 +116,8 @@ export class GradientMenu {
         })
         .join(", ");
       this.gradientBar.style.backgroundImage = `linear-gradient(to right, ${colorStops})`;
-      // Limpar indicadores anteriores
       colorStopsIndicators.innerHTML = "";
 
-      // Adicionar novos indicadores
       this.activeGradientElement.colorStops.forEach((stop, index) => {
         const indicator = document.createElement("div");
         indicator.className = "color-stop-indicator";
@@ -136,7 +130,6 @@ export class GradientMenu {
         indicator.style.borderRadius = "50%";
         indicator.style.cursor = "pointer";
 
-        // Selecionar o colorStop ao clicar no indicador
         indicator.addEventListener("click", () => this.selectColorStop(index));
 
         colorStopsIndicators.appendChild(indicator);
@@ -147,9 +140,13 @@ export class GradientMenu {
   private selectColorStop(index: number): void {
     if (this.activeGradientElement) {
       this.currentColorStop = this.activeGradientElement.colorStops[index];
-      if (this.currentPortionColor && this.currentPortionAlpha) {
-        this.currentPortionColor.value = this.currentColorStop.color;
-        this.currentPortionAlpha.value = this.currentColorStop.alpha.toString();
+      if (this.alphaControl && this.colorControl) {
+        this.alphaControl.unlinkEvents();
+        this.alphaControl.updateValue(this.currentColorStop.alpha);
+        this.alphaControl.linkEvents();
+        this.colorControl.unlinkEvents();
+        this.colorControl.updateValue(this.currentColorStop.color);
+        this.colorControl.linkEvents();
       }
     }
   }
@@ -165,41 +162,15 @@ export class GradientMenu {
     this.updateGradientBar();
     if (this.activeGradientElement) {
       this.currentColorStop = this.activeGradientElement.colorStops[0];
-      this.currentPortionColor =
-        getElementById<HTMLInputElement>("inp_portion-color");
-      this.currentPortionColor.value = this.currentColorStop.color;
-      this.currentPortionColor.addEventListener(
-        "input",
-        this.handlePortionColorChange,
-      );
-
-      this.currentPortionAlpha =
-        getElementById<HTMLInputElement>("inp_portion-alpha");
-      this.currentPortionAlpha.value = this.currentColorStop.alpha.toString();
-      this.currentPortionAlpha.addEventListener(
-        "input",
-        this.handlePortionAlphaChange,
-      );
+      this.alphaControl?.linkEvents();
+      this.colorControl?.linkEvents();
     }
   }
 
   private unlinkDOMElements(): void {
     this.activeGradientElement = null;
     this.currentColorStop = null;
-    this.currentPortionColor =
-      getElementById<HTMLInputElement>("inp_portion-color");
-    this.currentPortionColor.value = "#FFFFFF";
-    this.currentPortionColor.removeEventListener(
-      "input",
-      this.handlePortionColorChange,
-    );
-
-    this.currentPortionAlpha =
-      getElementById<HTMLInputElement>("inp_portion-alpha");
-    this.currentPortionAlpha.value = "1.0";
-    this.currentPortionAlpha.removeEventListener(
-      "input",
-      this.handlePortionAlphaChange,
-    );
+    this.alphaControl?.unlinkEvents();
+    this.colorControl?.unlinkEvents();
   }
 }

@@ -274,7 +274,7 @@ export class WorkArea {
         tool = TOOL.TEXT;
         break;
       case "KeyH":
-        tool = TOOL.HAND;
+        tool = TOOL.GRADIENT;
         break;
       case "KeyX":
         tool = TOOL.SELECT;
