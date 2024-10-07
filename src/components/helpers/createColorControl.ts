@@ -15,8 +15,11 @@ export function createColorControl(
   container.className = "container ai-c jc-sb g-05";
   const labelEl = document.createElement("label");
   labelEl.id = `${id}-label`;
+  labelEl.htmlFor = `${id}-color-input`;
   labelEl.innerText = `${label}:`;
+  labelEl.style.userSelect = "none";
   const inputFieldEl = document.createElement("input");
+  inputFieldEl.id = `${id}-color-input`;
   inputFieldEl.type = "color";
   inputFieldEl.value = options.value;
 

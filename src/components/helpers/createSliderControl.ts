@@ -23,6 +23,7 @@ export function createSliderControl(
   labelEl.id = `${id}-label`;
   labelEl.innerText = `${label}:`;
   labelEl.style.cursor = "ew-resize";
+  labelEl.style.userSelect = "none";
   const sliderEl = document.createElement("input");
   sliderEl.id = `${id}-slider`;
   sliderEl.type = "range";

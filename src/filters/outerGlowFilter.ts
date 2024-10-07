@@ -1,6 +1,10 @@
 import EVENT from "src/utils/customEvents";
 import { Filter } from "src/filters/filter";
 import { clamp } from "src/utils/easing";
+import type {  IColorControl } from "src/components/helpers/createColorControl";
+import { createColorControl } from "src/components/helpers/createColorControl";
+import type { ISliderControl } from "src/components/helpers/createSliderControl";
+import { createSliderControl } from "src/components/helpers/createSliderControl";
 
 export class OuterGlowFilter extends Filter {
   public set blur(value: number) {
@@ -17,6 +21,8 @@ export class OuterGlowFilter extends Filter {
   }
 
   private filterControls: HTMLDivElement | null = null;
+  private blurControl: ISliderControl | null = null;
+  private colorControl: IColorControl | null = null;
 
   constructor() {
     super("outer-glow", "Luz Brilhante (Fora)", "before");
@@ -47,29 +53,40 @@ export class OuterGlowFilter extends Filter {
     this.filterControls = document.createElement("div");
     this.filterControls.className = "sec_menu-style pad-05";
     this.filterControls.id = `${this.id}-filter-controls`;
-    this.filterControls.innerHTML = `
-<label for="${this.id}-blur">Desfoque:</label>
-<input id="${this.id}-blur" type="range" min="0" max="100" step="1" value="${this.blur.toString()}" />
-<div class="container ai-jc-c g-05">
-  <label for="${this.id}-color">Cor da Luz:</label>
-  <input id="${this.id}-color" type="color" value="${this.color.toString()}" />
-</div>
-    `;
 
-    const blurInput = this.filterControls.querySelector(
-      `#${this.id}-blur`,
-    ) as HTMLInputElement;
-    blurInput.addEventListener("input", () => {
-      this.blur = Number(blurInput.value);
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-    });
+    this.blurControl = createSliderControl(
+      `${this.id}-blur`,
+      "Desfoque",
+      { min: 0, max: 100, step: 1, value: this.blur },
+      this.handleBlurControlChange,
+    );
 
-    const colorInput = this.filterControls.querySelector(
-      `#${this.id}-color`,
-    ) as HTMLInputElement;
-    colorInput.addEventListener("input", () => {
-      this.color = colorInput.value;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-    });
+    this.colorControl = createColorControl(
+      `${this.id}-color`,
+      "Cor",
+      { value: this.color },
+      this.handleColorControlChange,
+    );
+
+    this.blurControl.linkEvents();
+    this.colorControl.linkEvents();
+    this.filterControls.append(
+      this.blurControl.element,
+      this.colorControl.element,
+    );
   }
+
+  private handleBlurControlChange = (newValue: number): void => {
+    if (this.blurControl) {
+      this.blur = Number(newValue);
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    }
+  };
+
+  private handleColorControlChange = (newValue: string): void => {
+    if (this.colorControl) {
+      this.color = newValue;
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    }
+  };
 }
