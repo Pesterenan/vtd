@@ -1,5 +1,5 @@
 import EVENT from "src/utils/customEvents";
-import { linearInterpolation, remap } from "src/utils/easing";
+import { remap } from "src/utils/easing";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
@@ -52,7 +52,6 @@ export class ZoomTool extends Tool {
     super.unequipTool();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseDown(evt: MouseEvent): void {
     const currentZoomPosition = remap(
       MIN_ZOOM_LEVEL,
@@ -68,7 +67,7 @@ export class ZoomTool extends Tool {
     };
     super.handleMouseDown();
   }
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+
   handleMouseUp(): void {
     this.startingPosition = null;
     super.handleMouseUp();

@@ -43,6 +43,7 @@ export class WorkArea {
   private workArea: IWorkAreaProperties | Record<string, never> = {};
   private tools: { [key in TOOL]: Tool };
   public currentTool: TOOL = TOOL.SELECT;
+  public lastTool: TOOL | null = TOOL.SELECT;
   private isUsingTool = false;
 
   public get offset(): Position {
@@ -320,7 +321,7 @@ export class WorkArea {
           window.dispatchEvent(
             new CustomEvent(EVENT.CHANGE_TOOL, {
               detail: {
-                tool: TOOL.SELECT,
+                tool: this.lastTool ? this.lastTool : TOOL.SELECT,
               },
             }),
           );
@@ -329,33 +330,39 @@ export class WorkArea {
   }
 
   private handleKeyDown(evt: KeyboardEvent): void {
-    const activeElement = document.activeElement;
-    const isTyping =
-      activeElement?.tagName === "TEXTAREA" ||
-      activeElement?.tagName === "INPUT";
-    if (isTyping || this.isUsingTool) return;
+    if (!evt.repeat) {
+      const activeElement = document.activeElement;
+      const isTyping =
+        activeElement?.tagName === "TEXTAREA" ||
+        activeElement?.tagName === "INPUT";
+      if (isTyping || this.isUsingTool) return;
 
-    if (evt.ctrlKey && evt.code === "KeyC") {
-      this.copyCanvasToClipboard();
-    }
+      if (evt.ctrlKey && evt.code === "KeyC") {
+        this.copyCanvasToClipboard();
+      }
 
-    let tool = "";
-    switch (evt.code) {
-      case "Space":
-        tool = TOOL.HAND;
-        break;
-      case "KeyZ":
-        tool = TOOL.ZOOM;
-        break;
-    }
-    if (tool) {
-      window.dispatchEvent(
-        new CustomEvent(EVENT.CHANGE_TOOL, {
-          detail: {
-            tool,
-          },
-        }),
-      );
+      let tool = "";
+      this.lastTool =
+        this.currentTool !== TOOL.HAND && this.currentTool !== TOOL.ZOOM
+          ? this.currentTool
+          : null;
+      switch (evt.code) {
+        case "Space":
+          tool = TOOL.HAND;
+          break;
+        case "KeyZ":
+          tool = TOOL.ZOOM;
+          break;
+      }
+      if (tool) {
+        window.dispatchEvent(
+          new CustomEvent(EVENT.CHANGE_TOOL, {
+            detail: {
+              tool,
+            },
+          }),
+        );
+      }
     }
   }
 
