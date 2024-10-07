@@ -309,6 +309,10 @@ export class WorkArea {
 
     this.tools[this.currentTool].unequipTool();
     switch (toolId) {
+      case "select-tool":
+        this.currentTool = TOOL.SELECT;
+        console.log("SELECTING");
+        break;
       case "grab-tool":
         this.currentTool = TOOL.GRAB;
         console.log("GRAB MODE, ACTIVATED!");
@@ -321,10 +325,6 @@ export class WorkArea {
         this.currentTool = TOOL.SCALE;
         console.log("SCALE MODE, ACTIVATED!");
         break;
-      case "select-tool":
-        this.currentTool = TOOL.SELECT;
-        console.log("SELECTING");
-        break;
       case "text-tool":
         this.currentTool = TOOL.TEXT;
         console.log("TEXT MODE, ACTIVATED!");
@@ -332,6 +332,14 @@ export class WorkArea {
       case "gradient-tool":
         this.currentTool = TOOL.GRADIENT;
         console.log("GRADIENT MODE, ACTIVATED!");
+        break;
+      case "hand-tool":
+        this.currentTool = TOOL.HAND;
+        console.log("MOVING CANVAS MODE, ACTIVATED!");
+        break;
+      case "zoom-tool":
+        this.currentTool = TOOL.ZOOM;
+        console.log("ZOOMING MODE, ACTIVATED!");
         break;
     }
     this.tools[this.currentTool].equipTool();
@@ -346,13 +354,15 @@ export class WorkArea {
 
     if (this.currentTool === TOOL.ZOOM || this.currentTool === TOOL.HAND) {
       switch (evt.code) {
-        case "KeyZ":
         case "Space":
-          this.tools[this.currentTool].unequipTool();
-          this.currentTool = TOOL.SELECT;
-          console.log("selecting");
-          this.tools[this.currentTool].equipTool();
-          return;
+        case "KeyZ":
+          window.dispatchEvent(
+            new CustomEvent(EVENT.CHANGE_TOOL, {
+              detail: {
+                toolId: "select-tool",
+              },
+            }),
+          );
       }
     }
   }
@@ -368,19 +378,25 @@ export class WorkArea {
       this.copyCanvasToClipboard();
     }
 
-    if (this.currentTool === TOOL.SELECT) {
-      this.tools[this.currentTool].unequipTool();
-      switch (evt.code) {
-        case "Space":
-          this.currentTool = TOOL.HAND;
-          console.log("moving");
-          break;
-        case "KeyZ":
-          this.currentTool = TOOL.ZOOM;
-          console.log("zooming");
-          break;
-      }
-      this.tools[this.currentTool].equipTool();
+    let toolId = "";
+    switch (evt.code) {
+      case "Space":
+        toolId = 'hand-tool';
+        console.log("moving");
+        break;
+      case "KeyZ":
+        toolId = 'zoom-tool';
+        console.log("zooming");
+        break;
+    }
+    if (toolId) {
+      window.dispatchEvent(
+        new CustomEvent(EVENT.CHANGE_TOOL, {
+          detail: {
+            toolId,
+          },
+        }),
+      );
     }
   }
 
