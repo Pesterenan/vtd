@@ -116,29 +116,6 @@ export class SideMenu {
     domElements.push(openVideoBtn);
     domElements.push(this.createHR());
 
-    const zoomSliderDiv = document.createElement("div");
-    zoomSliderDiv.className = "sec_menu-style";
-    const zoomSliderLabel = document.createElement("label") as HTMLLabelElement;
-    zoomSliderLabel.htmlFor = "sld_zoom";
-    zoomSliderLabel.innerText = "Zoom";
-    const zoomSlider = document.createElement("input") as HTMLInputElement;
-    zoomSlider.id = "sld_zoom";
-    zoomSlider.type = "range";
-    zoomSlider.className = "btn-common";
-    zoomSlider.min = "0.1";
-    zoomSlider.max = "2";
-    zoomSlider.step = "0.05";
-    zoomSlider.value = "0.3";
-    zoomSlider.addEventListener("input", (evt: Event) => {
-      const zoomLevel = parseFloat((evt.target as HTMLInputElement).value);
-      const workArea = WorkArea.getInstance();
-      workArea.zoomLevel = zoomLevel;
-    });
-    zoomSliderDiv.appendChild(zoomSliderLabel);
-    zoomSliderDiv.appendChild(zoomSlider);
-    domElements.push(zoomSliderDiv);
-
-    domElements.push(this.createHR());
     this.transformBox = document.createElement("section");
     this.transformBox.id = "sec_transform-box-properties";
     this.transformBox.className = "sec_menu-style element-properties-menu";

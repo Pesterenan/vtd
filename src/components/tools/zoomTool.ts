@@ -1,15 +1,14 @@
 import EVENT from "src/utils/customEvents";
-import { remap } from "src/utils/easing";
+import { linearInterpolation, remap } from "src/utils/easing";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
 
 const MIN_ZOOM_LEVEL = 0.1;
-const MAX_ZOOM_LEVEL = 2.0;
+const MAX_ZOOM_LEVEL = 1.5;
 
 export class ZoomTool extends Tool {
   private startingPosition: Position | null = null;
-  private isZooming = false;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -55,7 +54,6 @@ export class ZoomTool extends Tool {
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseDown(evt: MouseEvent): void {
-    this.isZooming = true;
     const currentZoomPosition = remap(
       MIN_ZOOM_LEVEL,
       MAX_ZOOM_LEVEL,
@@ -73,13 +71,16 @@ export class ZoomTool extends Tool {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseUp(): void {
     this.startingPosition = null;
-    this.isZooming = false;
     super.handleMouseUp();
   }
 
-  handleMouseMove({ offsetX }: MouseEvent): void {
-    if (this.startingPosition && this.isZooming) {
-      const deltaX = offsetX - this.startingPosition.x;
+  handleMouseMove({ offsetX, offsetY }: MouseEvent): void {
+    if (this.startingPosition) {
+      const workarea = WorkArea.getInstance();
+      const mousePos = { x: offsetX, y: offsetY };
+      const offsetPos = { x: workarea.offset.x, y: workarea.offset.y };
+
+      const deltaX = mousePos.x - this.startingPosition.x;
       const newZoomLevel = remap(
         0,
         this.canvas.width,
@@ -89,7 +90,14 @@ export class ZoomTool extends Tool {
         true,
       );
 
-      WorkArea.getInstance().zoomLevel = newZoomLevel;
+      const zoomRatio = newZoomLevel / workarea.zoomLevel;
+      const newOffset = {
+        x: offsetPos.x - (mousePos.x - offsetPos.x) * (zoomRatio - 1),
+        y: offsetPos.y - (mousePos.y - offsetPos.y) * (zoomRatio - 1),
+      };
+      workarea.zoomLevel = newZoomLevel;
+      workarea.offset = newOffset;
+
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }

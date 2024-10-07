@@ -259,31 +259,24 @@ export class WorkArea {
     switch (evt.code) {
       case "KeyV":
         toolId = "select-tool";
-        console.log("SELECTING");
         break;
       case "KeyG":
         toolId = "grab-tool";
-        console.log("GRAB MODE, ACTIVATED!");
         break;
       case "KeyR":
         toolId = "rotate-tool";
-        console.log("ROTATE MODE, ACTIVATED!");
         break;
       case "KeyS":
         toolId = "scale-tool";
-        console.log("SCALE MODE, ACTIVATED!");
         break;
       case "KeyT":
         toolId = "text-tool";
-        console.log("CREATING TEXT, ACTIVATED!");
         break;
       case "KeyH":
         toolId = "gradient-tool";
-        console.log("CREATING GRADIENT, ACTIVATED!");
         break;
       case "KeyX":
         toolId = "select-tool";
-        console.log("DELETED!");
         this.removeSelectedElements();
         break;
     }
@@ -382,11 +375,9 @@ export class WorkArea {
     switch (evt.code) {
       case "Space":
         toolId = 'hand-tool';
-        console.log("moving");
         break;
       case "KeyZ":
         toolId = 'zoom-tool';
-        console.log("zooming");
         break;
     }
     if (toolId) {
