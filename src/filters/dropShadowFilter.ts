@@ -1,22 +1,23 @@
 import EVENT from "src/utils/customEvents";
 import { Filter } from "src/filters/filter";
+import { clamp } from "src/utils/easing";
 
 export class DropShadowFilter extends Filter {
   public set angle(value: number) {
-    this.setPropertyLimited("angle", value, 0, 360);
+    this.properties.set("angle", clamp(value, 0, 360));
     this.radians = this.angle * (Math.PI / 180);
   }
   public get angle(): number {
     return this.properties.get("angle") as number;
   }
   public set distance(value: number) {
-    this.setPropertyLimited("distance", value, 0, 100);
+    this.properties.set("distance", clamp(value, 0, 100));
   }
   public get distance(): number {
     return this.properties.get("distance") as number;
   }
   public set blur(value: number) {
-    this.setPropertyLimited("blur", value, 0, 100);
+    this.properties.set("blur", clamp(value, 0, 100));
   }
   public get blur(): number {
     return this.properties.get("blur") as number;

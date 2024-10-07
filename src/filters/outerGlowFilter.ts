@@ -1,9 +1,10 @@
 import EVENT from "src/utils/customEvents";
 import { Filter } from "src/filters/filter";
+import { clamp } from "src/utils/easing";
 
 export class OuterGlowFilter extends Filter {
   public set blur(value: number) {
-    this.setPropertyLimited("blur", value, 0, 100);
+    this.properties.set("blur", clamp(value, 0, 100));
   }
   public get blur(): number {
     return this.properties.get("blur") as number;
