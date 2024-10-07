@@ -9,6 +9,7 @@ import TextIcon from "src/assets/icons/text-tool.svg";
 import HandIcon from "src/assets/icons/hand-tool.svg";
 import GradientIcon from "src/assets/icons/gradient-tool.svg";
 import ZoomIcon from "src/assets/icons/zoom-tool.svg";
+import { TOOL } from "./types";
 
 export class ToolMenu {
   private static instance: ToolMenu | null = null;
@@ -30,35 +31,35 @@ export class ToolMenu {
         <tooltip title="Ferramentas" />
           Ferr.
       </label>
-      <button id='select-tool' class='tool active' aria-label='(V) Selecionar elementos'>
+      <button data-tool="${TOOL.SELECT}" class='tool active' aria-label='(V) Selecionar elementos'>
         <tooltip title='(V) Selecionar elementos'/>
         <img src="${SelectIcon}" alt="Selecionar" />
       </button>
-      <button id='grab-tool' class='tool' aria-label='(G) Mover elementos'>
+      <button data-tool="${TOOL.GRAB}" class='tool' aria-label='(G) Mover elementos'>
         <tooltip title='(G) Mover elementos'/>
         <img src="${GrabIcon}" alt="Mover" />
       </button>
-      <button id='rotate-tool' class='tool' aria-label='(R) Rotacionar elementos'>
+      <button data-tool="${TOOL.ROTATE}" class='tool' aria-label='(R) Rotacionar elementos'>
         <tooltip title='(R) Rotacionar elementos'/>
         <img src="${RotateIcon}" alt="Mover" />
       </button>
-      <button id='scale-tool' class='tool' aria-label='(S) Escalonar elementos'>
+      <button data-tool="${TOOL.SCALE}" class='tool' aria-label='(S) Escalonar elementos'>
         <tooltip title='(S) Escalonar elementos'/>
         <img src="${ScaleIcon}" alt="Mover" />
       </button>
-      <button id='text-tool' class='tool' aria-label='(T) Criar textos'>
+      <button data-tool="${TOOL.TEXT}" class='tool' aria-label='(T) Criar textos'>
         <tooltip title='(T) Criar textos'/>
         <img = src="${TextIcon}"alt="Texto" />
       </button>
-      <button id='gradient-tool' class='tool' aria-label='(H) Criar gradientes'>
+      <button data-tool="${TOOL.GRADIENT}" class='tool' aria-label='(H) Criar gradientes'>
         <tooltip title='(H) Criar gradientes'/>
         <img = src="${GradientIcon}"alt="Gradiente" />
       </button>
-      <button id='hand-tool' class='tool' aria-label='(Espaço) Mover Área de Trabalho'>
+      <button data-tool="${TOOL.HAND}" class='tool' aria-label='(Espaço) Mover Área de Trabalho'>
         <tooltip title='(Espaço) Mover Área de Trabalho'/>
         <img src="${HandIcon}"alt="Mão" />
       </button>
-      <button id='zoom-tool' class='tool' aria-label='(Z) Modificar nível de zoom'>
+      <button data-tool="${TOOL.ZOOM}" class='tool' aria-label='(Z) Modificar nível de zoom'>
         <tooltip title='(Z) Modificar nível de zoom'>
         <img src="${ZoomIcon}"alt="Zoom" />
         </tooltip>
@@ -85,7 +86,7 @@ export class ToolMenu {
           window.dispatchEvent(
             new CustomEvent(EVENT.CHANGE_TOOL, {
               detail: {
-                toolId: button.id,
+                tool: button.getAttribute('data-tool') as TOOL,
               },
             }),
           );
@@ -105,19 +106,19 @@ export class ToolMenu {
   }
 
   private setActiveTool(evt: Event): void {
-    const customEvent = evt as CustomEvent<{ toolId: string }>;
-    const { toolId } = customEvent.detail;
+    const customEvent = evt as CustomEvent<{ tool: string }>;
+    const { tool } = customEvent.detail;
     if (!this.isUsingTool) {
       if (this.activeToolId) {
         const previousTool = this.toolMenu?.querySelector(
-          `#${this.activeToolId}`,
+          `[data-tool="${this.activeToolId}"]`,
         );
         previousTool?.classList.remove("active");
       }
 
-      const newTool = this.toolMenu?.querySelector(`#${toolId}`);
+      const newTool = this.toolMenu?.querySelector(`[data-tool="${tool}"]`);
       newTool?.classList.add("active");
-      this.activeToolId = toolId;
+      this.activeToolId = tool;
     }
   }
 }

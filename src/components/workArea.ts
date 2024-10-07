@@ -255,44 +255,44 @@ export class WorkArea {
       activeElement?.tagName === "INPUT";
     if (isTyping || this.isUsingTool) return;
 
-    let toolId = "";
+    let tool = "";
     switch (evt.code) {
       case "KeyV":
-        toolId = "select-tool";
+        tool = TOOL.SELECT;
         break;
       case "KeyG":
-        toolId = "grab-tool";
+        tool = TOOL.GRAB;
         break;
       case "KeyR":
-        toolId = "rotate-tool";
+        tool = TOOL.ROTATE;
         break;
       case "KeyS":
-        toolId = "scale-tool";
+        tool = TOOL.SCALE;
         break;
       case "KeyT":
-        toolId = "text-tool";
+        tool = TOOL.TEXT;
         break;
       case "KeyH":
-        toolId = "gradient-tool";
+        tool = TOOL.HAND;
         break;
       case "KeyX":
-        toolId = "select-tool";
+        tool = TOOL.SELECT;
         this.removeSelectedElements();
         break;
     }
-    if (toolId) {
+    if (tool) {
       window.dispatchEvent(
         new CustomEvent(EVENT.CHANGE_TOOL, {
           detail: {
-            toolId,
+            tool,
           },
         }),
       );
     }
   }
   private changeTool(evt: Event): void {
-    const customEvent = evt as CustomEvent<{ toolId: string }>;
-    const { toolId } = customEvent.detail;
+    const customEvent = evt as CustomEvent<{ tool: string }>;
+    const { tool } = customEvent.detail;
 
     const activeElement = document.activeElement;
     const isTyping =
@@ -301,40 +301,8 @@ export class WorkArea {
     if (isTyping || this.isUsingTool) return;
 
     this.tools[this.currentTool].unequipTool();
-    switch (toolId) {
-      case "select-tool":
-        this.currentTool = TOOL.SELECT;
-        console.log("SELECTING");
-        break;
-      case "grab-tool":
-        this.currentTool = TOOL.GRAB;
-        console.log("GRAB MODE, ACTIVATED!");
-        break;
-      case "rotate-tool":
-        this.currentTool = TOOL.ROTATE;
-        console.log("ROTATE MODE, ACTIVATED!");
-        break;
-      case "scale-tool":
-        this.currentTool = TOOL.SCALE;
-        console.log("SCALE MODE, ACTIVATED!");
-        break;
-      case "text-tool":
-        this.currentTool = TOOL.TEXT;
-        console.log("TEXT MODE, ACTIVATED!");
-        break;
-      case "gradient-tool":
-        this.currentTool = TOOL.GRADIENT;
-        console.log("GRADIENT MODE, ACTIVATED!");
-        break;
-      case "hand-tool":
-        this.currentTool = TOOL.HAND;
-        console.log("MOVING CANVAS MODE, ACTIVATED!");
-        break;
-      case "zoom-tool":
-        this.currentTool = TOOL.ZOOM;
-        console.log("ZOOMING MODE, ACTIVATED!");
-        break;
-    }
+    this.currentTool = tool as TOOL;
+    console.log(`Current Tool: ${this.currentTool}`);
     this.tools[this.currentTool].equipTool();
   }
 
@@ -352,7 +320,7 @@ export class WorkArea {
           window.dispatchEvent(
             new CustomEvent(EVENT.CHANGE_TOOL, {
               detail: {
-                toolId: "select-tool",
+                tool: TOOL.SELECT,
               },
             }),
           );
@@ -371,20 +339,20 @@ export class WorkArea {
       this.copyCanvasToClipboard();
     }
 
-    let toolId = "";
+    let tool = "";
     switch (evt.code) {
       case "Space":
-        toolId = 'hand-tool';
+        tool = TOOL.HAND;
         break;
       case "KeyZ":
-        toolId = 'zoom-tool';
+        tool = TOOL.ZOOM;
         break;
     }
-    if (toolId) {
+    if (tool) {
       window.dispatchEvent(
         new CustomEvent(EVENT.CHANGE_TOOL, {
           detail: {
-            toolId,
+            tool,
           },
         }),
       );

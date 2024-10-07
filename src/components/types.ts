@@ -82,19 +82,19 @@ export enum MOUSE_BUTTONS {
  * */
 export enum TOOL {
   /** @prop SELECT - Selecionar elemento */
-  SELECT,
+  SELECT = 'select-tool',
   /** @prop GRAB - Mover elemento */
-  GRAB,
-  /** @prop GRADIENT - Criar gradientes */
-  GRADIENT,
+  GRAB = 'grab-tool',
   /** @prop ROTATE - Rotacionar elemento */
-  ROTATE,
+  ROTATE = 'rotate-tool',
   /** @prop SCALE - Escalonar elemento */
-  SCALE,
-  /** @prop HAND - Mover área de trabalho */
-  HAND,
-  /** @prop ZOOM - Modificar zoom */
-  ZOOM,
+  SCALE = 'scale-tool',
   /** @prop TEXT - Selecionar e editar texto */
-  TEXT,
+  TEXT = 'text-tool',
+  /** @prop GRADIENT - Criar gradientes */
+  GRADIENT = 'gradient-tool',
+  /** @prop HAND - Mover área de trabalho */
+  HAND = 'hand-tool',
+  /** @prop ZOOM - Modificar zoom */
+  ZOOM = 'zoom-tool',
 }
