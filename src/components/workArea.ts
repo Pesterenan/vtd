@@ -43,6 +43,7 @@ export class WorkArea {
   private workArea: IWorkAreaProperties | Record<string, never> = {};
   private tools: { [key in TOOL]: Tool };
   public currentTool: TOOL = TOOL.SELECT;
+  private isUsingTool = false;
 
   public get offset(): Position {
     return this.workArea.offset;
@@ -90,7 +91,8 @@ export class WorkArea {
     const mainWindow = getElementById<HTMLDivElement>("main-window");
     this.mainCanvas = document.createElement("canvas");
     this.mainCanvas.id = "main-canvas";
-    this.mainCanvas.width = window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
+    this.mainCanvas.width =
+      window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
     this.mainCanvas.height = window.innerHeight;
     this.mainContext = this.mainCanvas.getContext("2d");
 
@@ -199,6 +201,15 @@ export class WorkArea {
       });
       this.mainCanvas.addEventListener("drop", this.handleDropItems.bind(this));
       window.addEventListener("paste", this.handleDropItems.bind(this));
+      window.addEventListener(
+        EVENT.USING_TOOL,
+        (evt: Event) =>
+          (this.isUsingTool = (
+            evt as CustomEvent<{
+              isUsingTool: boolean;
+            }>
+          ).detail.isUsingTool),
+      );
     }
   }
 
@@ -242,46 +253,39 @@ export class WorkArea {
     const isTyping =
       activeElement?.tagName === "TEXTAREA" ||
       activeElement?.tagName === "INPUT";
-    if (isTyping) return;
+    if (isTyping || this.isUsingTool) return;
 
     let toolId = "";
-    if (this.currentTool === TOOL.SELECT) {
-      if (this.transformBox) {
-        switch (evt.code) {
-          case "KeyG":
-            toolId = "grab-tool";
-            console.log("GRAB MODE, ACTIVATED!");
-            break;
-          case "KeyR":
-            toolId = "rotate-tool";
-            console.log("ROTATE MODE, ACTIVATED!");
-            break;
-          case "KeyS":
-            toolId = "scale-tool";
-            console.log("SCALE MODE, ACTIVATED!");
-            break;
-          case "KeyX":
-            toolId = "select-tool";
-            console.log("DELETED!");
-            this.removeSelectedElements();
-            break;
-        }
-      }
-    } else {
-      switch (evt.code) {
-        case "KeyV":
-          toolId = "select-tool";
-          console.log("SELECTING");
-          break;
-      }
-    }
-    if (evt.code === "KeyT") {
-      toolId = "text-tool";
-      console.log("TEXT MODE, ACTIVATED!");
-    }
-    if (evt.code === "KeyH") {
-      toolId = "gradient-tool";
-      console.log("GRADIENT MODE, ACTIVATED!");
+    switch (evt.code) {
+      case "KeyV":
+        toolId = "select-tool";
+        console.log("SELECTING");
+        break;
+      case "KeyG":
+        toolId = "grab-tool";
+        console.log("GRAB MODE, ACTIVATED!");
+        break;
+      case "KeyR":
+        toolId = "rotate-tool";
+        console.log("ROTATE MODE, ACTIVATED!");
+        break;
+      case "KeyS":
+        toolId = "scale-tool";
+        console.log("SCALE MODE, ACTIVATED!");
+        break;
+      case "KeyT":
+        toolId = "text-tool";
+        console.log("CREATING TEXT, ACTIVATED!");
+        break;
+      case "KeyH":
+        toolId = "gradient-tool";
+        console.log("CREATING GRADIENT, ACTIVATED!");
+        break;
+      case "KeyX":
+        toolId = "select-tool";
+        console.log("DELETED!");
+        this.removeSelectedElements();
+        break;
     }
     if (toolId) {
       window.dispatchEvent(
@@ -301,41 +305,34 @@ export class WorkArea {
     const isTyping =
       activeElement?.tagName === "TEXTAREA" ||
       activeElement?.tagName === "INPUT";
-    if (isTyping) return;
+    if (isTyping || this.isUsingTool) return;
 
     this.tools[this.currentTool].unequipTool();
-    if (this.currentTool === TOOL.SELECT) {
-      if (this.transformBox) {
-        switch (toolId) {
-          case "grab-tool":
-            this.currentTool = TOOL.GRAB;
-            console.log("GRAB MODE, ACTIVATED!");
-            break;
-          case "rotate-tool":
-            this.currentTool = TOOL.ROTATE;
-            console.log("ROTATE MODE, ACTIVATED!");
-            break;
-          case "scale-tool":
-            this.currentTool = TOOL.SCALE;
-            console.log("SCALE MODE, ACTIVATED!");
-            break;
-        }
-      }
-    } else {
-      switch (toolId) {
-        case "select-tool":
-          this.currentTool = TOOL.SELECT;
-          console.log("SELECTING");
-          break;
-      }
-    }
-    if (toolId === "text-tool") {
-      this.currentTool = TOOL.TEXT;
-      console.log("TEXT MODE, ACTIVATED!");
-    }
-    if (toolId === "gradient-tool") {
-      this.currentTool = TOOL.GRADIENT;
-      console.log("GRADIENT MODE, ACTIVATED!");
+    switch (toolId) {
+      case "grab-tool":
+        this.currentTool = TOOL.GRAB;
+        console.log("GRAB MODE, ACTIVATED!");
+        break;
+      case "rotate-tool":
+        this.currentTool = TOOL.ROTATE;
+        console.log("ROTATE MODE, ACTIVATED!");
+        break;
+      case "scale-tool":
+        this.currentTool = TOOL.SCALE;
+        console.log("SCALE MODE, ACTIVATED!");
+        break;
+      case "select-tool":
+        this.currentTool = TOOL.SELECT;
+        console.log("SELECTING");
+        break;
+      case "text-tool":
+        this.currentTool = TOOL.TEXT;
+        console.log("TEXT MODE, ACTIVATED!");
+        break;
+      case "gradient-tool":
+        this.currentTool = TOOL.GRADIENT;
+        console.log("GRADIENT MODE, ACTIVATED!");
+        break;
     }
     this.tools[this.currentTool].equipTool();
   }
@@ -345,7 +342,7 @@ export class WorkArea {
     const isTyping =
       activeElement?.tagName === "TEXTAREA" ||
       activeElement?.tagName === "INPUT";
-    if (isTyping) return;
+    if (isTyping || this.isUsingTool) return;
 
     if (this.currentTool === TOOL.ZOOM || this.currentTool === TOOL.HAND) {
       switch (evt.code) {
@@ -365,7 +362,7 @@ export class WorkArea {
     const isTyping =
       activeElement?.tagName === "TEXTAREA" ||
       activeElement?.tagName === "INPUT";
-    if (isTyping) return;
+    if (isTyping || this.isUsingTool) return;
 
     if (evt.ctrlKey && evt.code === "KeyC") {
       this.copyCanvasToClipboard();
@@ -560,7 +557,8 @@ export class WorkArea {
 
   private handleResize(): void {
     if (this.mainCanvas) {
-      this.mainCanvas.width = window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
+      this.mainCanvas.width =
+        window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
       this.mainCanvas.height = window.innerHeight;
       this.update();
     }

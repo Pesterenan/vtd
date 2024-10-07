@@ -13,7 +13,8 @@ import ZoomIcon from "src/assets/icons/zoom-tool.svg";
 export class ToolMenu {
   private static instance: ToolMenu | null = null;
   private toolMenu?: HTMLMenuElement;
-  private activeToolId: string | null = 'select-tool';
+  private activeToolId: string | null = "select-tool";
+  private isUsingTool = false;
 
   constructor() {
     this.createDOMElements();
@@ -92,20 +93,31 @@ export class ToolMenu {
       });
     });
     window.addEventListener(EVENT.CHANGE_TOOL, this.setActiveTool.bind(this));
+    window.addEventListener(
+      EVENT.USING_TOOL,
+      (evt: Event) =>
+        (this.isUsingTool = (
+          evt as CustomEvent<{
+            isUsingTool: boolean;
+          }>
+        ).detail.isUsingTool),
+    );
   }
 
   private setActiveTool(evt: Event): void {
     const customEvent = evt as CustomEvent<{ toolId: string }>;
     const { toolId } = customEvent.detail;
-    if (this.activeToolId) {
-      const previousTool = this.toolMenu?.querySelector(
-        `#${this.activeToolId}`,
-      );
-      previousTool?.classList.remove("active");
-    }
+    if (!this.isUsingTool) {
+      if (this.activeToolId) {
+        const previousTool = this.toolMenu?.querySelector(
+          `#${this.activeToolId}`,
+        );
+        previousTool?.classList.remove("active");
+      }
 
-    const newTool = this.toolMenu?.querySelector(`#${toolId}`);
-    newTool?.classList.add("active");
-    this.activeToolId = toolId;
+      const newTool = this.toolMenu?.querySelector(`#${toolId}`);
+      newTool?.classList.add("active");
+      this.activeToolId = toolId;
+    }
   }
 }

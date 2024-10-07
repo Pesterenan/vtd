@@ -1,3 +1,5 @@
+import EVENT from "src/utils/customEvents";
+
 export abstract class Tool {
   protected canvas: HTMLCanvasElement;
   protected context: CanvasRenderingContext2D | null;
@@ -29,11 +31,13 @@ export abstract class Tool {
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   handleMouseDown(_evt?: MouseEvent): void {
+    window.dispatchEvent(new CustomEvent(EVENT.USING_TOOL, { detail: { isUsingTool: true } }));
     this.canvas.addEventListener("mousemove", this.onMouseMove);
     this.canvas.addEventListener("mouseup", this.onMouseUp);
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   handleMouseUp(_evt?: MouseEvent): void {
+    window.dispatchEvent(new CustomEvent(EVENT.USING_TOOL, { detail: { isUsingTool: false } }));
     this.canvas.removeEventListener("mousemove", this.onMouseMove);
     this.canvas.removeEventListener("mouseup", this.onMouseUp);
   }

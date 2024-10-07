@@ -3,6 +3,7 @@ const EVENT: Record<string, string> = {
   CLEAR_WORKAREA: "evt_clear-workarea",
   CHANGE_LAYER_NAME: "evt_change_layer_name",
   CHANGE_TOOL: "evt_change_tool",
+  USING_TOOL: "evt_using_tool",
   DELETE_ELEMENT: "evt_delete-element",
   OPEN_FILTERS_DIALOG: "evt_open-filters-dialog",
   REORGANIZE_LAYERS: "evt_layers-reorganized",
