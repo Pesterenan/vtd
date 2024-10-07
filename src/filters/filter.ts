@@ -1,3 +1,5 @@
+import { clamp } from "src/utils/easing";
+
 export type FilterProperty = string | number | undefined;
 
 export abstract class Filter {
@@ -12,7 +14,7 @@ export abstract class Filter {
     return this.properties.get("applies") as "before" | "after";
   }
   public set globalAlpha(value: number) {
-    this.setPropertyLimited("globalAlpha", value, 0, 1.0);
+    this.properties.set("globalAlpha", clamp(value, 0, 1.0));
   }
   public get globalAlpha(): number {
     return this.properties.get("globalAlpha") as number;
@@ -35,15 +37,6 @@ export abstract class Filter {
 
   public serialize(): Partial<Filter> {
     return Object.fromEntries(this.properties);
-  }
-
-  protected setPropertyLimited<T>(
-    key: string,
-    value: T,
-    min: number,
-    max: number,
-  ): void {
-    this.properties.set(key, Math.max(min, Math.min(value as number, max)));
   }
 
   abstract apply(context: CanvasRenderingContext2D): void;

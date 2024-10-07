@@ -1,3 +1,4 @@
+import { clamp } from "src/utils/easing";
 import EVENT from "../../utils/customEvents";
 import type { BoundingBox, Position, Size } from "../types";
 
@@ -69,13 +70,15 @@ export class ExtractBox {
     this.position.y += deltaY;
 
     // Garantir que a caixa não vá além dos limites do canvas
-    this.position.x = Math.max(
+    this.position.x = clamp(
+      this.position.x,
       0,
-      Math.min(this.canvas.width - this.size.width, this.position.x),
+      this.canvas.width - this.size.width,
     );
-    this.position.y = Math.max(
+    this.position.y = clamp(
+      this.position.y,
       0,
-      Math.min(this.canvas.height - this.size.height, this.position.y),
+      this.canvas.height - this.size.height,
     );
   }
 

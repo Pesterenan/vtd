@@ -1,19 +1,30 @@
+/** Interpolates the `value` between `start` and `end`
+ * @param {boolean} clampOutput [false] - if true, clamps the output to the min and max values
+ * @returns the value between `start` and `end` */
 export const linearInterpolation = (
   start: number,
   end: number,
   value: number,
+  clampOutput = false,
 ): number => {
-  return (1.0 - value) * start + value * end;
+  const lerpValue = (1.0 - value) * start + value * end;
+  return clampOutput ? clamp(lerpValue, start, end) : lerpValue;
 };
 
+/** Inverse interpolates the `value` between `start` and `end`
+ * @param {boolean} clampOutput [false] - if true, clamps the output to the min and max values
+ * @returns the value between `start` and `end` */
 export const inverseLinearInterpolation = (
   start: number,
   end: number,
   value: number,
+  clampOutput = false,
 ): number => {
-  return (value - start) / (end - start);
+  const inlerpValue = (value - start) / (end - start);
+  return clampOutput ? clamp(inlerpValue, start, end) : inlerpValue;
 };
 
+/** Clamps a `value` between the `minimum` and `maximum` values */
 export const clamp = (
   value: number,
   minimum: number,
@@ -28,7 +39,7 @@ export const clamp = (
  * @param {number} outputMin - min going to
  * @param {number} outputMax - max going to
  * @param {number} value - the value to be mapped
- * @param {boolean} clampOutput - if true, clamps the output to the  min and max values
+ * @param {boolean} clampOutput [false] - if true, clamps the output to the min and max values
  */
 export const remap = (
   inputMin: number,

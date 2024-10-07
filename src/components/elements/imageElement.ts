@@ -2,6 +2,7 @@ import { BB } from "src/utils/bb";
 import EVENT from "src/utils/customEvents";
 import { Element } from "src/components/elements/element";
 import type { BoundingBox, IImageElementData, Position, Size } from "src/components/types";
+import { clamp } from "src/utils/easing";
 
 export class ImageElement extends Element<IImageElementData> {
   public get backgroundColor(): string {
@@ -14,8 +15,7 @@ export class ImageElement extends Element<IImageElementData> {
     return this.properties.get("backgroundOpacity") as number;
   }
   public set backgroundOpacity(value: number) {
-    const limited = Math.max(0, Math.min(value, 1));
-    this.properties.set("backgroundOpacity", limited);
+    this.properties.set("backgroundOpacity", clamp(value, 0 ,1));
   }
 
   private corners: {
