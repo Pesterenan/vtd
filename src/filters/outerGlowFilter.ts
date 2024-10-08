@@ -1,7 +1,7 @@
 import EVENT from "src/utils/customEvents";
 import { Filter } from "src/filters/filter";
 import { clamp } from "src/utils/easing";
-import type {  IColorControl } from "src/components/helpers/createColorControl";
+import type { IColorControl } from "src/components/helpers/createColorControl";
 import { createColorControl } from "src/components/helpers/createColorControl";
 import type { ISliderControl } from "src/components/helpers/createSliderControl";
 import { createSliderControl } from "src/components/helpers/createSliderControl";

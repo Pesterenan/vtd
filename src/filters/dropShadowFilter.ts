@@ -1,6 +1,10 @@
 import EVENT from "src/utils/customEvents";
 import { Filter } from "src/filters/filter";
 import { clamp } from "src/utils/easing";
+import type { IColorControl } from "src/components/helpers/createColorControl";
+import { createColorControl } from "src/components/helpers/createColorControl";
+import type { ISliderControl } from "src/components/helpers/createSliderControl";
+import { createSliderControl } from "src/components/helpers/createSliderControl";
 
 export class DropShadowFilter extends Filter {
   public set angle(value: number) {
@@ -30,6 +34,10 @@ export class DropShadowFilter extends Filter {
   }
 
   private filterControls: HTMLDivElement | null = null;
+  private angleControl: ISliderControl | null = null;
+  private distanceControl: ISliderControl | null = null;
+  private blurControl: ISliderControl | null = null;
+  private colorControl: IColorControl | null = null;
   private radians: number;
 
   constructor() {
@@ -65,49 +73,72 @@ export class DropShadowFilter extends Filter {
     this.filterControls = document.createElement("div");
     this.filterControls.className = "sec_menu-style pad-05";
     this.filterControls.id = `${this.id}-filter-controls`;
-    this.filterControls.innerHTML = `
-<label for="${this.id}-angle">Ângulo:</label>
-<input id="${this.id}-angle" type="range" min="0" max="360" step="1" value="${this.angle.toString()}" />
-<label for="${this.id}-distance">Distância:</label>
-<input id="${this.id}-distance" type="range" min="0" max="100" step="1" value="${this.distance.toString()}" />
-<label for="${this.id}-blur">Desfoque:</label>
-<input id="${this.id}-blur" type="range" min="0" max="100" step="1" value="${this.blur.toString()}" />
-<div class="container ai-jc-c g-05">
-  <label for="${this.id}-color">Cor da Sombra:</label>
-  <input id="${this.id}-color" type="color" value="${this.color.toString()}" />
-</div>
-    `;
 
-    const angleInput = this.filterControls.querySelector(
-      `#${this.id}-angle`,
-    ) as HTMLInputElement;
-    angleInput.addEventListener("input", () => {
-      this.angle = Number(angleInput.value);
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-    });
+    this.angleControl = createSliderControl(
+      `${this.id}-angle`,
+      "Ângulo",
+      { min: 0, max: 360, step: 1, value: this.angle },
+      this.handleAngleControlChange,
+    );
 
-    const distanceInput = this.filterControls.querySelector(
-      `#${this.id}-distance`,
-    ) as HTMLInputElement;
-    distanceInput.addEventListener("input", () => {
-      this.distance = Number(distanceInput.value);
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-    });
+    this.distanceControl = createSliderControl(
+      `${this.id}-distance`,
+      "Distância",
+      { min: 0, max: 100, step: 1, value: this.distance },
+      this.handleDistanceControlChange,
+    );
 
-    const blurInput = this.filterControls.querySelector(
-      `#${this.id}-blur`,
-    ) as HTMLInputElement;
-    blurInput.addEventListener("input", () => {
-      this.blur = Number(blurInput.value);
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-    });
+    this.blurControl = createSliderControl(
+      `${this.id}-blur`,
+      "Desfoque",
+      { min: 0, max: 100, step: 1, value: this.blur },
+      this.handleBlurControlChange,
+    );
 
-    const colorInput = this.filterControls.querySelector(
-      `#${this.id}-color`,
-    ) as HTMLInputElement;
-    colorInput.addEventListener("input", () => {
-      this.color = colorInput.value;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-    });
+    this.colorControl = createColorControl(
+      `${this.id}-color`,
+      "Cor da Sombra",
+      { value: this.color },
+      this.handleColorControlChange,
+    );
+
+    this.angleControl.linkEvents();
+    this.distanceControl.linkEvents();
+    this.blurControl.linkEvents();
+    this.colorControl.linkEvents();
+    this.filterControls.append(
+      this.angleControl.element,
+      this.distanceControl.element,
+      this.blurControl.element,
+      this.colorControl.element,
+    );
   }
+
+  private handleAngleControlChange = (newValue: number): void => {
+    if (this.angleControl) {
+      this.angle = Number(newValue);
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    }
+  };
+
+  private handleDistanceControlChange = (newValue: number): void => {
+    if (this.distanceControl) {
+      this.distance = Number(newValue);
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    }
+  };
+
+  private handleBlurControlChange = (newValue: number): void => {
+    if (this.blurControl) {
+      this.blur = Number(newValue);
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    }
+  };
+
+  private handleColorControlChange = (newValue: string): void => {
+    if (this.colorControl) {
+      this.color = newValue;
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    }
+  };
 }
