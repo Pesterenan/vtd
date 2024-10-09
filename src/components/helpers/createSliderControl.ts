@@ -12,6 +12,7 @@ export function createSliderControl(
   label: string,
   options: { min: number; max: number; step: number; value: number },
   onChange: (newValue: number) => void,
+  includeSlider = true,
 ): ISliderControl {
   const decimalPlaces = options.step.toString().split(".")[1]?.length || 0;
   const clampedValue = clamp(options.value, options.min, options.max).toFixed(
@@ -38,7 +39,7 @@ export function createSliderControl(
   inputFieldEl.max = options.max.toString();
   inputFieldEl.step = options.step.toString();
   inputFieldEl.value = clampedValue;
-  inputFieldEl.style.width = '4rem';
+  inputFieldEl.style.width = "4rem";
 
   const updateValues = (newValue: string) => {
     const clamped = clamp(Number(newValue), options.min, options.max).toFixed(
@@ -99,7 +100,9 @@ export function createSliderControl(
     labelEl.removeEventListener("mousedown", handleMouseDown);
   };
 
-  container.append(labelEl, sliderEl, inputFieldEl);
+  container.append(labelEl);
+  includeSlider && container.append(sliderEl);
+  container.append(inputFieldEl);
 
   return {
     element: container,

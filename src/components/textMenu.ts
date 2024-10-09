@@ -3,6 +3,10 @@ import getElementById from "src/utils/getElementById";
 import errorElement from "src/components/elements/errorElement";
 import { TextElement } from "src/components/elements/textElement";
 import { WorkArea } from "src/components/workArea";
+import type { ISliderControl } from "./helpers/createSliderControl";
+import { createSliderControl } from "./helpers/createSliderControl";
+import type { IColorControl } from "./helpers/createColorControl";
+import { createColorControl } from "./helpers/createColorControl";
 
 export class TextMenu {
   private static instance: TextMenu | null = null;
@@ -10,15 +14,15 @@ export class TextMenu {
   private activeTextElement: TextElement | null = null;
   private declineButton: HTMLButtonElement | null = null;
   private fillCheckbox: HTMLInputElement | null = null;
-  private fillColor: HTMLInputElement | null = null;
-  private fontSize: HTMLInputElement | null = null;
-  private lineHeight: HTMLInputElement | null = null;
   private originalText = "";
   private strokeCheckbox: HTMLInputElement | null = null;
-  private strokeColor: HTMLInputElement | null = null;
-  private strokeWidth: HTMLInputElement | null = null;
   private textInput: HTMLTextAreaElement | null = null;
   private textMenuSection: HTMLElement | null = null;
+  private sizeControl: ISliderControl | null = null;
+  private lineHeightControl: ISliderControl | null = null;
+  private fillColorControl: IColorControl | null = null;
+  private strokeColorControl: IColorControl | null = null;
+  private strokeWidthControl: ISliderControl | null = null;
 
   private constructor() {
     this.createDOMElements();
@@ -69,32 +73,81 @@ export class TextMenu {
     <button id="btn_decline-text-changes" type="button">X</button>
   </div>
 </div>
-<div class='container jc-sb' style="padding-inline: 0.5rem;">
-  <label for="inp_font-size">Tamanho:</label>
-  <input id="inp_font-size" class="number-input" type="number" style="width: 40px;"/>
-  <label for="inp_font-spacing">Espaçamento:</label>
-  <input id="inp_line-height" class="number-input" type="number" min="0.1" max="10" step="0.1" style="width: 40px;"/>
-</div>
+<div id="div_font-size-line-height" class='container jc-sb' style="padding-inline: 0.5rem;"></div>
 <div class='container ai-c jc-sb' style="padding-inline: 0.5rem;">
-  <div class='container ai-c jc-sb g-05'>
+  <div id="div_fill-color" class='container ai-c jc-sb g-05'>
     <input id="chk_fill" type="checkbox"/>
-    <label for="inp_fill-color" style="display: inline-block; overflow: hidden; text-overflow: ellipsis;">
-      Preenchimento:
-    </label>
   </div>
-  <input id="inp_fill-color" type="color"  value="#FFFFFF"style="width: 40px;"/>
 </div>
 <div class='container jc-sb' style="padding-inline: 0.5rem;">
-  <div class='container ai-c jc-sb g-05'>
+  <div id="div_stroke-color" class='container ai-c jc-sb g-05'>
     <input id="chk_stroke" type="checkbox"/>
-    <label for="inp_stroke-color">Contorno:</label>
-  </div>
-  <div class='container ai-c jc-sb g-05'>
-    <input id="inp_stroke-width" class="number-input" type="number" min="1" max="128" step="1" style="width: 40px;"/>
-    <input id="inp_stroke-color" type="color" value="#000000" style="width: 40px;"/>
   </div>
 </div>
 `;
+    this.fillColorControl = createColorControl(
+      "fill-color-control",
+      "Preenchimento",
+      { value: this.activeTextElement?.fillColor || "#FFFFFF" },
+      this.handleFillColorChange,
+    );
+    this.strokeColorControl = createColorControl(
+      "stroke-color-control",
+      "Contorno",
+      { value: this.activeTextElement?.strokeColor || "#000000" },
+      this.handleStrokeColorChange,
+    );
+    this.strokeWidthControl = createSliderControl(
+      "stroke-width-control",
+      "Espessura",
+      {
+        min: 1,
+        max: 128,
+        step: 1,
+        value: this.activeTextElement?.strokeWidth || 3,
+      },
+      this.handleStrokeWidthChange,
+      false,
+    );
+    this.sizeControl = createSliderControl(
+      "font-size-control",
+      "Tamanho",
+      {
+        min: 8,
+        max: 250,
+        step: 1,
+        value: this.activeTextElement?.fontSize || 48,
+      },
+      this.handleFontSizeChange,
+      false,
+    );
+    this.lineHeightControl = createSliderControl(
+      "line-height-control",
+      "Espaçamento",
+      {
+        min: 0.1,
+        max: 10,
+        step: 0.1,
+        value: this.activeTextElement?.lineHeight || 1.2,
+      },
+      this.handleLineHeightChange,
+      false,
+    );
+    this.textMenuSection
+      .querySelector("#div_font-size-line-height")
+      ?.append(this.sizeControl.element);
+    this.textMenuSection
+      .querySelector("#div_font-size-line-height")
+      ?.append(this.lineHeightControl.element);
+    this.textMenuSection
+      .querySelector("#div_fill-color")
+      ?.append(this.fillColorControl.element);
+    this.textMenuSection
+      .querySelector("#div_stroke-color")
+      ?.append(this.strokeColorControl.element);
+    this.textMenuSection
+      .querySelector("#div_stroke-color")
+      ?.append(this.strokeWidthControl.element);
   }
 
   private linkDOMElements(): void {
@@ -102,34 +155,6 @@ export class TextMenu {
     this.textInput = getElementById<HTMLTextAreaElement>("inp_text-input");
     this.textInput.value = this.originalText;
     this.textInput.addEventListener("input", this.handleTextInput);
-
-    this.fontSize = getElementById<HTMLInputElement>("inp_font-size");
-    this.fontSize.value = this.activeTextElement?.fontSize.toString() || "16";
-    this.fontSize.addEventListener("input", this.handleFontSizeChange);
-
-    this.lineHeight = getElementById<HTMLInputElement>("inp_line-height");
-    this.lineHeight.value =
-      this.activeTextElement?.lineHeight.toString() || "1.2";
-    this.lineHeight.addEventListener("input", this.handleLineHeightChange);
-
-    this.fillColor = getElementById<HTMLInputElement>("inp_fill-color");
-    this.fillColor.value = this.activeTextElement?.fillColor || "#000000";
-    this.fillColor.addEventListener("input", this.handleFillColorChange);
-    this.fillCheckbox = getElementById<HTMLInputElement>("chk_fill");
-    this.fillCheckbox.checked = this.activeTextElement?.hasFill || false;
-    this.fillCheckbox.addEventListener("change", this.handleFillChange);
-
-    this.strokeColor = getElementById<HTMLInputElement>("inp_stroke-color");
-    this.strokeColor.value = this.activeTextElement?.strokeColor || "#000000";
-    this.strokeColor.addEventListener("input", this.handleStrokeColorChange);
-    this.strokeCheckbox = getElementById<HTMLInputElement>("chk_stroke");
-    this.strokeCheckbox.checked = this.activeTextElement?.hasStroke || false;
-    this.strokeCheckbox.addEventListener("change", this.handleStrokeChange);
-    this.strokeWidth = getElementById<HTMLInputElement>("inp_stroke-width");
-    this.strokeWidth.value =
-      this.activeTextElement?.strokeWidth.toString() || "1";
-    this.strokeWidth.addEventListener("input", this.handleStrokeWidthChange);
-
     this.acceptButton = getElementById<HTMLButtonElement>(
       "btn_accept-text-changes",
     );
@@ -139,6 +164,42 @@ export class TextMenu {
       "btn_decline-text-changes",
     );
     this.declineButton.addEventListener("click", this.handleDeclineTextChange);
+
+    this.fillCheckbox = getElementById<HTMLInputElement>("chk_fill");
+    this.fillCheckbox.checked = this.activeTextElement?.hasFill || false;
+    this.fillCheckbox.addEventListener("change", this.handleFillChange);
+
+    this.strokeCheckbox = getElementById<HTMLInputElement>("chk_stroke");
+    this.strokeCheckbox.checked = this.activeTextElement?.hasStroke || false;
+    this.strokeCheckbox.addEventListener("change", this.handleStrokeChange);
+
+    if (this.activeTextElement) {
+      if (this.sizeControl) {
+        this.sizeControl.unlinkEvents();
+        this.sizeControl.updateValue(this.activeTextElement.fontSize);
+        this.sizeControl.linkEvents();
+      }
+      if (this.lineHeightControl) {
+        this.lineHeightControl.unlinkEvents();
+        this.lineHeightControl.updateValue(this.activeTextElement.lineHeight);
+        this.lineHeightControl.linkEvents();
+      }
+      if (this.fillColorControl) {
+        this.fillColorControl.unlinkEvents();
+        this.fillColorControl.updateValue(this.activeTextElement.fillColor);
+        this.fillColorControl.linkEvents();
+      }
+      if (this.strokeColorControl) {
+        this.strokeColorControl.unlinkEvents();
+        this.strokeColorControl.updateValue(this.activeTextElement.strokeColor);
+        this.strokeColorControl.linkEvents();
+      }
+      if (this.strokeWidthControl) {
+        this.strokeWidthControl.unlinkEvents();
+        this.strokeWidthControl.updateValue(this.activeTextElement.strokeWidth);
+        this.strokeWidthControl.linkEvents();
+      }
+    }
   }
 
   private unlinkDOMElements(): void {
@@ -146,30 +207,13 @@ export class TextMenu {
     this.textInput.value = "";
     this.textInput.removeEventListener("input", this.handleTextInput);
 
-    this.fontSize = getElementById<HTMLInputElement>("inp_font-size");
-    this.fontSize.value = "";
-    this.fontSize.removeEventListener("input", this.handleFontSizeChange);
-
-    this.lineHeight = getElementById<HTMLInputElement>("inp_line-height");
-    this.lineHeight.value = "";
-    this.lineHeight.removeEventListener("input", this.handleLineHeightChange);
-
-    this.fillColor = getElementById<HTMLInputElement>("inp_fill-color");
-    this.fillColor.value = "#FFFFFF";
-    this.fillColor.removeEventListener("input", this.handleFillColorChange);
     this.fillCheckbox = getElementById<HTMLInputElement>("chk_fill");
     this.fillCheckbox.checked = false;
     this.fillCheckbox.removeEventListener("change", this.handleFillChange);
 
-    this.strokeColor = getElementById<HTMLInputElement>("inp_stroke-color");
-    this.strokeColor.value = "#000000";
-    this.strokeColor.removeEventListener("input", this.handleStrokeColorChange);
     this.strokeCheckbox = getElementById<HTMLInputElement>("chk_stroke");
     this.strokeCheckbox.checked = false;
     this.strokeCheckbox.removeEventListener("change", this.handleStrokeChange);
-    this.strokeWidth = getElementById<HTMLInputElement>("inp_stroke-width");
-    this.strokeWidth.value = "";
-    this.strokeWidth.removeEventListener("input", this.handleStrokeWidthChange);
 
     this.acceptButton = getElementById<HTMLButtonElement>(
       "btn_accept-text-changes",
@@ -183,6 +227,11 @@ export class TextMenu {
       "click",
       this.handleDeclineTextChange,
     );
+    this.sizeControl?.unlinkEvents();
+    this.lineHeightControl?.unlinkEvents();
+    this.fillColorControl?.unlinkEvents();
+    this.strokeColorControl?.unlinkEvents();
+    this.strokeWidthControl?.unlinkEvents();
   }
 
   private handleTextInput = (): void => {
@@ -192,16 +241,16 @@ export class TextMenu {
     }
   };
 
-  private handleFontSizeChange = (): void => {
-    if (this.activeTextElement && this.fontSize) {
-      this.activeTextElement.fontSize = parseInt(this.fontSize.value, 10);
+  private handleFontSizeChange = (newValue: number): void => {
+    if (this.activeTextElement) {
+      this.activeTextElement.fontSize = parseInt(String(newValue), 10);
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   };
 
-  private handleLineHeightChange = (): void => {
-    if (this.activeTextElement && this.lineHeight) {
-      this.activeTextElement.lineHeight = parseFloat(this.lineHeight.value);
+  private handleLineHeightChange = (newValue: number): void => {
+    if (this.activeTextElement) {
+      this.activeTextElement.lineHeight = parseFloat(String(newValue));
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   };
@@ -213,9 +262,9 @@ export class TextMenu {
     }
   };
 
-  private handleFillColorChange = (): void => {
-    if (this.activeTextElement && this.fillColor) {
-      this.activeTextElement.fillColor = this.fillColor.value;
+  private handleFillColorChange = (newValue: string): void => {
+    if (this.activeTextElement) {
+      this.activeTextElement.fillColor = newValue;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   };
@@ -227,16 +276,16 @@ export class TextMenu {
     }
   };
 
-  private handleStrokeColorChange = (): void => {
-    if (this.activeTextElement && this.strokeColor) {
-      this.activeTextElement.strokeColor = this.strokeColor.value;
+  private handleStrokeColorChange = (newValue: string): void => {
+    if (this.activeTextElement) {
+      this.activeTextElement.strokeColor = newValue;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   };
 
-  private handleStrokeWidthChange = (): void => {
-    if (this.activeTextElement && this.strokeWidth) {
-      this.activeTextElement.strokeWidth = parseFloat(this.strokeWidth.value);
+  private handleStrokeWidthChange = (newValue: number): void => {
+    if (this.activeTextElement) {
+      this.activeTextElement.strokeWidth = parseFloat(String(newValue));
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   };
