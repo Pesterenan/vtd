@@ -13,7 +13,6 @@ export class LayersMenu {
     window.addEventListener(EVENT.ADD_ELEMENT, this.createLayer.bind(this));
     window.addEventListener(EVENT.DELETE_ELEMENT, this.deleteLayer.bind(this));
     window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
-      console.log("clearing layer list");
       const layerList = getElementById<HTMLUListElement>("ul_layers-list");
       if (layerList) {
         layerList.innerHTML = "";
@@ -38,7 +37,6 @@ export class LayersMenu {
   private createLayer(evt: Event): void {
     const customEvent = evt as CustomEvent;
     const { elementId, layerName } = customEvent.detail;
-    console.log("creating layer", elementId);
     const layerList = getElementById<HTMLUListElement>("ul_layers-list");
     layerList?.append(this.LayerListItem(elementId, layerName));
   }
@@ -46,7 +44,6 @@ export class LayersMenu {
   private deleteLayer(evt: Event): void {
     const customEvent = evt as CustomEvent;
     const elementId = customEvent.detail.elementId;
-    console.log("deleting:", elementId);
     const layerList = getElementById<HTMLUListElement>("ul_layers-list");
     const layerToDelete = getElementById<HTMLLIElement>(`layer-${elementId}`);
     layerList?.removeChild(layerToDelete);

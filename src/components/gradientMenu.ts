@@ -23,9 +23,6 @@ export class GradientMenu {
 
   private constructor() {
     this.createDOMElements();
-    window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
-      console.log("closing gradient menu");
-    });
     window.addEventListener(EVENT.SELECT_ELEMENT, (evt: Event) => {
       const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
       const { elementsId } = customEvent.detail;

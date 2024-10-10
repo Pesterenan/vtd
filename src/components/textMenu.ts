@@ -26,9 +26,6 @@ export class TextMenu {
 
   private constructor() {
     this.createDOMElements();
-    window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
-      console.log("closing text menu");
-    });
     window.addEventListener(EVENT.SELECT_ELEMENT, (evt: Event) => {
       const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
       const { elementsId } = customEvent.detail;
@@ -298,7 +295,6 @@ export class TextMenu {
 
   private handleDeclineTextChange = (): void => {
     if (this.activeTextElement) {
-      console.log(this.originalText);
       this.activeTextElement.content = this.originalText.split("\n");
       this.activeTextElement = null;
     }

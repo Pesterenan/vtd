@@ -303,7 +303,6 @@ export class WorkArea {
 
     this.tools[this.currentTool].unequipTool();
     this.currentTool = tool as TOOL;
-    console.log(`Current Tool: ${this.currentTool}`);
     this.tools[this.currentTool].equipTool();
   }
 
@@ -485,12 +484,10 @@ export class WorkArea {
   }
 
   public exportCanvas(): string {
-    console.log("exporting canvas");
     if (!this.workArea.canvas) {
       console.error("Canvas not found");
       return "";
     }
-    console.log(this.workArea.canvas.toDataURL("image/png"));
     return this.workArea.canvas.toDataURL("image/png");
   }
 

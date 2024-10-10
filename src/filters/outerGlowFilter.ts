@@ -31,13 +31,18 @@ export class OuterGlowFilter extends Filter {
     this.createDOMElements();
   }
 
-  apply(context: CanvasRenderingContext2D): void {
+  apply(
+    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    canvas: OffscreenCanvas | HTMLImageElement,
+  ): void {
     context.save();
     context.globalAlpha = this.globalAlpha;
     context.shadowColor = this.color;
     context.shadowBlur = this.blur;
     context.shadowOffsetX = 0;
     context.shadowOffsetY = 0;
+    context.drawImage(canvas, -canvas.width * 0.5, -canvas.height * 0.5);
+    context.restore();
   }
 
   public deserialize(data: Partial<Filter>): void {

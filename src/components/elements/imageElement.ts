@@ -58,7 +58,6 @@ export class ImageElement extends Element<IImageElementData> {
         "encodedImage",
       ) as string;
     }
-    console.log('Image:', serialized);
     return serialized;
   }
 
@@ -81,20 +80,16 @@ export class ImageElement extends Element<IImageElementData> {
     }
     // Apply 'before' filters
     for (const filter of this.filters) {
-      if (filter.applies === "before") {
-        filter.apply(context);
-        this.drawImage(context);
-        context.restore();
+      if (filter.applies === "before" && this.image) {
+        filter.apply(context, this.image);
       }
     }
     // Draw image
     this.drawImage(context);
     // Apply 'after' filters
     for (const filter of this.filters) {
-      if (filter.applies === "after") {
-        filter.apply(context);
-        this.drawImage(context);
-        context.restore();
+      if (filter.applies === "after" && this.image) {
+        filter.apply(context, this.image);
       }
     }
     context.restore();

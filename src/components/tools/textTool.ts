@@ -45,7 +45,6 @@ export class TextTool extends Tool {
     workArea.selectElements(selection);
     const elements = workArea.getSelectedElements();
     if (!elements || !(elements[0] instanceof TextElement)) {
-      console.log("creating text");
       workArea.addTextElement({ x: evt.offsetX, y: evt.offsetY });
       workArea.selectElements(selection);
     }

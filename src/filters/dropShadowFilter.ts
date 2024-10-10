@@ -50,13 +50,18 @@ export class DropShadowFilter extends Filter {
     this.createDOMElements();
   }
 
-  apply(context: CanvasRenderingContext2D): void {
+  apply(
+    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    canvas: OffscreenCanvas | HTMLImageElement,
+  ): void {
     context.save();
     context.globalAlpha = this.globalAlpha;
     context.shadowColor = this.color;
     context.shadowBlur = this.blur;
     context.shadowOffsetX = this.distance * Math.sin(this.radians);
     context.shadowOffsetY = this.distance * Math.cos(this.radians);
+    context.drawImage(canvas, -canvas.width * 0.5, -canvas.height * 0.5);
+    context.restore();
   }
 
   public deserialize(data: Partial<Filter>): void {

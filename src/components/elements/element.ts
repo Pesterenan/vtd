@@ -93,7 +93,6 @@ export abstract class Element<T extends Partial<IElementData>> {
         this.properties.set(key, data[key]);
       }
     });
-    console.log("Element:", this.properties);
   }
 
   public serialize(): T {
@@ -104,7 +103,6 @@ export abstract class Element<T extends Partial<IElementData>> {
       );
       serialized.filters = filters as Filter[];
     }
-    console.log("Element:", serialized.type, serialized);
     return serialized;
   }
 

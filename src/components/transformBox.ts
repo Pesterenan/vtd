@@ -109,25 +109,6 @@ export class TransformBox {
   private updateTransformBoxSize(): void {
     this.size.width = parseFloat(this.widthSizeInput.element.value);
     this.size.height = parseFloat(this.heightSizeInput.element.value);
-    // TODO: Work on correctly scaling objects via the properties panel
-    //const delta = {
-    //  x: parseFloat(this.widthSizeInput.element.value) - this.size.width,
-    //  y: parseFloat(this.heightSizeInput.element.value) - this.size.height
-    //};
-    //console.log(delta, 'delta scale');
-    //ScaleTool.scaleSelectedElements(
-    //  WorkArea.getInstance().getSelectedElements(),
-    //  this.position,
-    //  delta
-    //);
-    //const deltaY = event.offsetY - this.lastPosition.y;
-    //const deltaX = event.offsetX - this.lastPosition.x;
-    //const delta = { x: 1 + deltaX / 100, y: 1 + deltaY / 100 };
-    //ScaleTool.scaleSelectedElements(this.selectedElements, this.centerPosition, delta);
-    //this.lastPosition = {
-    //  x: event.offsetX,
-    //  y: event.offsetY
-    //};
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 

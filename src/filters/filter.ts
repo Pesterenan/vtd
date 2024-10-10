@@ -39,6 +39,9 @@ export abstract class Filter {
     return Object.fromEntries(this.properties);
   }
 
-  abstract apply(context: CanvasRenderingContext2D): void;
+  abstract apply(
+    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    canvas: CanvasImageSource,
+  ): void;
   abstract getFilterControls(): HTMLDivElement | null;
 }

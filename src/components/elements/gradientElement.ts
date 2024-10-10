@@ -22,7 +22,6 @@ export class GradientElement extends Element<IGradientElementData> {
     return this.properties.get("rotation") as number;
   }
   public set rotation(value: number) {
-    console.log(value, "rot");
     this.properties.set("rotation", value);
   }
   public get startPosition(): Position {
