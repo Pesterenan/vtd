@@ -173,12 +173,12 @@ export class TextMenu {
     if (this.activeTextElement) {
       if (this.sizeControl) {
         this.sizeControl.unlinkEvents();
-        this.sizeControl.updateValue(this.activeTextElement.fontSize);
+        this.sizeControl.updateValues(this.activeTextElement.fontSize);
         this.sizeControl.linkEvents();
       }
       if (this.lineHeightControl) {
         this.lineHeightControl.unlinkEvents();
-        this.lineHeightControl.updateValue(this.activeTextElement.lineHeight);
+        this.lineHeightControl.updateValues(this.activeTextElement.lineHeight);
         this.lineHeightControl.linkEvents();
       }
       if (this.fillColorControl) {
@@ -193,7 +193,7 @@ export class TextMenu {
       }
       if (this.strokeWidthControl) {
         this.strokeWidthControl.unlinkEvents();
-        this.strokeWidthControl.updateValue(this.activeTextElement.strokeWidth);
+        this.strokeWidthControl.updateValues(this.activeTextElement.strokeWidth);
         this.strokeWidthControl.linkEvents();
       }
     }

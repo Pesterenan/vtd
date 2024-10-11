@@ -115,7 +115,8 @@ export class GrabTool extends Tool {
         x: mouseMovePosition.x - this.lastPosition.x,
         y: mouseMovePosition.y - this.lastPosition.y,
       };
-      GrabTool.moveSelectedElements(this.selectedElements, deltaPosition);
+      this.transformBox?.updatePosition(mouseMovePosition);
+      //GrabTool.moveSelectedElements(this.selectedElements, deltaPosition);
       this.lastPosition = mouseMovePosition;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }

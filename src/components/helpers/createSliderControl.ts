@@ -2,7 +2,7 @@ import { clamp } from "src/utils/easing";
 
 export interface ISliderControl {
   element: HTMLDivElement;
-  updateValue: (newValue: number) => void;
+  updateValues: (newValue: string | number) => void;
   linkEvents: () => void;
   unlinkEvents: () => void;
 }
@@ -15,9 +15,8 @@ export function createSliderControl(
   includeSlider = true,
 ): ISliderControl {
   const decimalPlaces = options.step.toString().split(".")[1]?.length || 0;
-  const clampedValue = clamp(options.value, options.min, options.max).toFixed(
-    decimalPlaces,
-  );
+  const clamped = (value: number | string): string =>
+    clamp(Number(value), options.min, options.max).toFixed(decimalPlaces);
   const container = document.createElement("div");
   container.className = "container ai-c jc-sb g-05";
   const labelEl = document.createElement("label");
@@ -31,27 +30,29 @@ export function createSliderControl(
   sliderEl.min = options.min.toString();
   sliderEl.max = options.max.toString();
   sliderEl.step = options.step.toString();
-  sliderEl.value = clampedValue;
+  sliderEl.value = clamped(options.value);
 
   const inputFieldEl = document.createElement("input");
   inputFieldEl.type = "number";
   inputFieldEl.min = options.min.toString();
   inputFieldEl.max = options.max.toString();
   inputFieldEl.step = options.step.toString();
-  inputFieldEl.value = clampedValue;
+  inputFieldEl.value = clamped(options.value);
   inputFieldEl.style.width = "4rem";
 
-  const updateValues = (newValue: string) => {
-    const clamped = clamp(Number(newValue), options.min, options.max).toFixed(
-      decimalPlaces,
-    );
-    sliderEl.value = clamped;
-    inputFieldEl.value = clamped;
-    onChange(Number(clamped));
+  const updateValues = (newValue: string | number) => {
+    sliderEl.value = clamped(newValue);
+    inputFieldEl.value = clamped(newValue);
   };
 
-  const handleSliderChange = () => updateValues(sliderEl.value);
-  const handleInputChange = () => updateValues(inputFieldEl.value);
+  const handleSliderChange = () => {
+    updateValues(sliderEl.value);
+    onChange(Number(clamped(sliderEl.value)));
+  };
+  const handleInputChange = () => {
+    updateValues(inputFieldEl.value);
+    onChange(Number(clamped(inputFieldEl.value)));
+  };
 
   let isDragging = false;
   let startX = 0;
@@ -68,12 +69,9 @@ export function createSliderControl(
   const handleMouseMove = (evt: MouseEvent) => {
     if (isDragging) {
       const deltaX = evt.clientX - startX;
-      const newValue = clamp(
-        startValue + deltaX * options.step,
-        options.min,
-        options.max,
-      );
-      updateValues(newValue.toString());
+      const newValue = (startValue + deltaX * options.step).toString();
+      updateValues(newValue);
+      onChange(Number(clamped(newValue)));
     }
   };
 
@@ -106,7 +104,7 @@ export function createSliderControl(
 
   return {
     element: container,
-    updateValue: (newValue: number) => updateValues(newValue.toString()),
+    updateValues,
     linkEvents,
     unlinkEvents,
   };

@@ -106,11 +106,12 @@ export class RotateTool extends Tool {
       if (angle < 0) {
         angle += 360;
       }
-      RotateTool.rotateSelectedElements(
-        this.selectedElements,
-        this.centerPosition,
-        angle - this.lastRotation,
-      );
+      //RotateTool.rotateSelectedElements(
+      //  this.selectedElements,
+      //  this.centerPosition,
+      //  angle - this.lastRotation,
+      //);
+      this.transformBox.updateRotation(angle, this.centerPosition!);
       this.lastRotation = angle;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }

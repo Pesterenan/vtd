@@ -13,6 +13,7 @@ export class TransformMenu {
   private yPosControl: ISliderControl | null = null;
   private widthControl: ISliderControl | null = null;
   private heightControl: ISliderControl | null = null;
+  private rotationControl: ISliderControl | null = null;
 
   private constructor() {
     this.createDOMElements();
@@ -24,15 +25,23 @@ export class TransformMenu {
         this.unlinkDOMElements();
       }
     });
-    //window.addEventListener(EVENT.RECALCULATE_TRANSFORM_BOX, (evt: Event) => {
-    //  const customEvent = evt as CustomEvent;
-    //  const { position, size } = customEvent.detail;
-    //  if (
-    //    this.xPosControl
-    //  ) {
-    //    this.xPosControl.updateValue(position.x);
-    //  }
-    //});
+    window.addEventListener(EVENT.RECALCULATE_TRANSFORM_BOX, (evt: Event) => {
+      const customEvent = evt as CustomEvent;
+      const { position, size, rotation } = customEvent.detail;
+      if (
+        this.xPosControl &&
+        this.yPosControl &&
+        this.widthControl &&
+        this.heightControl &&
+        this.rotationControl
+      ) {
+        this.xPosControl.updateValues(position.x);
+        this.yPosControl.updateValues(position.y);
+        this.widthControl.updateValues(size.width);
+        this.heightControl.updateValues(size.height);
+        this.rotationControl.updateValues(rotation);
+      }
+    });
   }
 
   public static getInstance(): TransformMenu {
@@ -112,53 +121,66 @@ export class TransformMenu {
       this.handleHeightChange,
       false,
     );
-    this.transformSection.querySelector('#inp_group-position')?.append(
-      this.xPosControl.element,
-      this.yPosControl.element,
+    this.rotationControl = createSliderControl(
+      "inp_rotation",
+      "Ângulo",
+      {
+        min: -180,
+        max: 180,
+        step: 1,
+        value: this.transformBox?.rotation || 0,
+      },
+      this.handleRotationChange,
+      false,
     );
-    this.transformSection.querySelector('#inp_group-size')?.append(
-    this.widthControl.element,
-      this.heightControl.element,
-    );
+    this.transformSection
+      .querySelector("#inp_group-position")
+      ?.append(this.xPosControl.element, this.yPosControl.element);
+    this.transformSection
+      .querySelector("#inp_group-size")
+      ?.append(this.widthControl.element, this.heightControl.element);
+    this.transformSection.append(this.rotationControl.element);
   }
 
   private handleXPosChange = (newValue: number): void => {
     if (this.transformBox) {
-      this.transformBox.updateTransformBoxPosition({
+      this.transformBox.updatePosition({
         x: newValue,
-        y: this.transformBox.getCenter().y,
+        y: this.transformBox.position.y,
       });
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   };
 
   private handleYPosChange = (newValue: number): void => {
     if (this.transformBox) {
-      this.transformBox.updateTransformBoxPosition({
-        x: this.transformBox.getCenter().x,
+      this.transformBox.updatePosition({
+        x: this.transformBox.position.x,
         y: newValue,
       });
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   };
 
   private handleWidthChange = (newValue: number): void => {
     if (this.transformBox) {
-      this.transformBox.updateTransformBoxSize({
+      this.transformBox.updateScale({
         width: newValue,
         height: this.transformBox.size.height,
       });
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   };
 
   private handleHeightChange = (newValue: number): void => {
     if (this.transformBox) {
-      this.transformBox.updateTransformBoxSize({
+      this.transformBox.updateScale({
         width: this.transformBox.size.width,
         height: newValue,
       });
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    }
+  };
+
+  private handleRotationChange = (newValue: number): void => {
+    if (this.transformBox) {
+      this.transformBox.updateRotation(newValue);
     }
   };
 
@@ -168,10 +190,11 @@ export class TransformMenu {
       this.yPosControl?.linkEvents();
       this.widthControl?.linkEvents();
       this.heightControl?.linkEvents();
-      this.xPosControl?.updateValue(this.transformBox.getCenter().x);
-      this.yPosControl?.updateValue(this.transformBox.getCenter().y);
-      this.widthControl?.updateValue(this.transformBox.size.width);
-      this.heightControl?.updateValue(this.transformBox.size.height);
+      this.rotationControl?.linkEvents();
+      this.xPosControl?.updateValues(this.transformBox.getCenter().x);
+      this.yPosControl?.updateValues(this.transformBox.getCenter().y);
+      this.widthControl?.updateValues(this.transformBox.size.width);
+      this.heightControl?.updateValues(this.transformBox.size.height);
     }
   }
 
@@ -181,5 +204,6 @@ export class TransformMenu {
     this.yPosControl?.unlinkEvents();
     this.widthControl?.unlinkEvents();
     this.heightControl?.unlinkEvents();
+    this.rotationControl?.unlinkEvents();
   }
 }
