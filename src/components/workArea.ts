@@ -619,8 +619,8 @@ export class WorkArea {
       adjustedPosition = this.adjustForCanvas(position);
     } else {
       adjustedPosition = {
-        x: Math.floor(Math.random() * this.workArea.canvas.width) - width,
-        y: Math.floor(Math.random() * this.workArea.canvas.height) - height,
+        x: Math.floor(0.5 * this.workArea.canvas.width) - width,
+        y: Math.floor(0.5 * this.workArea.canvas.height) - height,
       };
     }
     const newElement = new TextElement(
