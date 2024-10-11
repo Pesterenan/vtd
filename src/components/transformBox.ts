@@ -1,35 +1,24 @@
 import EVENT from "src/utils/customEvents";
-import getElementById from "src/utils/getElementById";
 import type { Element } from "src/components/elements/element";
 import { GrabTool } from "src/components/tools/grabTool";
-import type { BoundingBox, Position, Size, TElementData } from "src/components/types";
+import type {
+  BoundingBox,
+  Position,
+  Size,
+  TElementData,
+} from "src/components/types";
 import { WorkArea } from "src/components/workArea";
+import { ScaleTool } from "./tools/scaleTool";
 
 export class TransformBox {
-  private position: Position = { x: 0, y: 0 };
-  private size: Size = { width: 0, height: 0 };
+  public position: Position = { x: 0, y: 0 };
+  public size: Size = { width: 0, height: 0 };
   private selectedElements: Element<TElementData>[] = [];
   public isHandleDragging = false;
   private context: CanvasRenderingContext2D | null;
   public centerHandle: HTMLImageElement | null = null;
   public boundingBox: BoundingBox | null = null;
-
-  private xPosInput: {
-    element: HTMLInputElement;
-    listener: (event: Event) => void;
-  };
-  private yPosInput: {
-    element: HTMLInputElement;
-    listener: (event: Event) => void;
-  };
-  private widthSizeInput: {
-    element: HTMLInputElement;
-    listener: (event: Event) => void;
-  };
-  private heightSizeInput: {
-    element: HTMLInputElement;
-    listener: (event: Event) => void;
-  };
+  private rotation = 0;
 
   public constructor(
     selectedElements: Element<TElementData>[],
@@ -38,67 +27,13 @@ export class TransformBox {
     this.context = canvas.getContext("2d");
     this.selectedElements = selectedElements;
     this.recalculateBoundingBox();
-
-    this.xPosInput = {
-      element: getElementById<HTMLInputElement>("x-pos-input"),
-      listener: this.updateTransformBoxPosition.bind(this),
-    };
-    this.yPosInput = {
-      element: getElementById<HTMLInputElement>("y-pos-input"),
-      listener: this.updateTransformBoxPosition.bind(this),
-    };
-    this.widthSizeInput = {
-      element: getElementById<HTMLInputElement>("width-size-input"),
-      listener: this.updateTransformBoxSize.bind(this),
-    };
-    this.heightSizeInput = {
-      element: getElementById<HTMLInputElement>("height-size-input"),
-      listener: this.updateTransformBoxSize.bind(this),
-    };
-
-    this.createEventListeners();
   }
 
-  private createEventListeners(): void {
-    this.xPosInput.element.addEventListener("input", this.xPosInput.listener);
-    this.yPosInput.element.addEventListener("input", this.yPosInput.listener);
-    this.widthSizeInput.element.addEventListener(
-      "input",
-      this.widthSizeInput.listener,
-    );
-    this.heightSizeInput.element.addEventListener(
-      "input",
-      this.heightSizeInput.listener,
-    );
-  }
-
-  private removeEventListeners(): void {
-    this.xPosInput.element.removeEventListener(
-      "input",
-      this.xPosInput.listener,
-    );
-    this.yPosInput.element.removeEventListener(
-      "input",
-      this.yPosInput.listener,
-    );
-    this.widthSizeInput.element.removeEventListener(
-      "input",
-      this.widthSizeInput.listener,
-    );
-    this.heightSizeInput.element.removeEventListener(
-      "input",
-      this.heightSizeInput.listener,
-    );
-  }
-
-  private updateTransformBoxPosition(): void {
+  public updateTransformBoxPosition({ x, y }: Position): void {
     const center = this.getCenter();
-    const delta = {
-      x: parseFloat(this.xPosInput.element.value) - center.x,
-      y: parseFloat(this.yPosInput.element.value) - center.y,
-    };
-    this.position.x += delta.x;
-    this.position.y += delta.y;
+    const delta = { x: x - center.x, y: y - center.y };
+    this.position.x = x;
+    this.position.y = y;
     GrabTool.moveSelectedElements(
       WorkArea.getInstance().getSelectedElements(),
       delta,
@@ -106,9 +41,16 @@ export class TransformBox {
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
-  private updateTransformBoxSize(): void {
-    this.size.width = parseFloat(this.widthSizeInput.element.value);
-    this.size.height = parseFloat(this.heightSizeInput.element.value);
+  public updateTransformBoxSize({ width, height }: Size): void {
+    //this.size.width = width;
+    //this.size.height = height;
+    this.recalculateBoundingBox();
+    ScaleTool.scaleSelectedElements(
+      WorkArea.getInstance().getSelectedElements(),
+      this.getCenter(),
+      { x: 1, y: 1 },
+    );
+
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -164,9 +106,9 @@ export class TransformBox {
     this.context.translate(workAreaOffset.x, workAreaOffset.y);
     this.context.scale(workAreaZoom, workAreaZoom);
     //
-    // this.context.translate(centerPos.x, centerPos.y)
-    // this.context.rotate(this.rotation * (Math.PI / 180))
-    // this.context.translate(-centerPos.x, -centerPos.y)
+    this.context.translate(this.getCenter().x, this.getCenter().y);
+    this.context.rotate(this.rotation * (Math.PI / 180));
+    this.context.translate(-this.getCenter().x, -this.getCenter().y);
 
     this.context.strokeStyle = "red";
     this.context.setLineDash([3 / workAreaZoom, 3 / workAreaZoom]);
@@ -180,8 +122,5 @@ export class TransformBox {
 
     this.context.restore();
   }
-
-  public remove(): void {
-    this.removeEventListeners();
-  }
+  public remove(): void {}
 }
