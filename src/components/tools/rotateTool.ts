@@ -7,12 +7,9 @@ import centerHandleRotate from "src/assets/icons/rotate-tool.svg";
 import type { TransformBox } from "src/components/transformBox";
 
 export class RotateTool extends Tool {
-  private startingPosition: Position | null = null;
-  private centerPosition: Position | null = null;
-  private lastRotation = 0;
   private toolIcon: HTMLImageElement | null = null;
+  private startPosition: Position | null = null;
   private transformBox: TransformBox | null = null;
-  private selectedElements: Element<TElementData>[] | null = null;
   private isRotating = false;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -22,25 +19,25 @@ export class RotateTool extends Tool {
   }
 
   equipTool(): void {
-    this.transformBox = WorkArea.getInstance().transformBox;
-    this.selectedElements = WorkArea.getInstance().getSelectedElements();
-    if (this.transformBox) {
-      this.centerPosition = this.transformBox.getCenter();
-      this.lastRotation = 0;
-    }
     super.equipTool();
+    this.transformBox = WorkArea.getInstance().transformBox;
+    if (this.transformBox) {
+      this.transformBox.anchorPoint = null;
+    }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   unequipTool(): void {
     super.unequipTool();
+    if (this.transformBox) {
+      this.transformBox.anchorPoint = null;
+      this.transformBox = null;
+    }
     this.resetTool();
   }
 
   resetTool() {
-    this.transformBox = null;
-    this.startingPosition = null;
-    this.centerPosition = null;
+    this.startPosition = null;
     this.isRotating = false;
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
@@ -49,7 +46,7 @@ export class RotateTool extends Tool {
     if (
       this.toolIcon &&
       this.transformBox &&
-      this.centerPosition &&
+      this.transformBox.anchorPoint &&
       this.context
     ) {
       const workAreaZoom = WorkArea.getInstance().zoomLevel;
@@ -60,8 +57,8 @@ export class RotateTool extends Tool {
       this.context.scale(workAreaZoom, workAreaZoom);
       this.context.drawImage(
         this.toolIcon,
-        this.centerPosition.x - (this.toolIcon.width * 0.5) / workAreaZoom,
-        this.centerPosition.y - (this.toolIcon.height * 0.5) / workAreaZoom,
+        this.transformBox.anchorPoint.x - (this.toolIcon.width * 0.5) / workAreaZoom,
+        this.transformBox.anchorPoint.y - (this.toolIcon.height * 0.5) / workAreaZoom,
         this.toolIcon.width / workAreaZoom,
         this.toolIcon.height / workAreaZoom,
       );
@@ -71,7 +68,7 @@ export class RotateTool extends Tool {
 
   handleMouseDown(evt: MouseEvent): void {
     if (evt.altKey && this.transformBox) {
-      this.centerPosition = WorkArea.getInstance().adjustForCanvas({
+      this.transformBox.anchorPoint = WorkArea.getInstance().adjustForCanvas({
         x: evt.offsetX,
         y: evt.offsetY,
       });
@@ -80,16 +77,18 @@ export class RotateTool extends Tool {
     }
     if (!this.isRotating) {
       this.isRotating = true;
-      this.startingPosition = { x: evt.offsetX, y: evt.offsetY };
+      const mousePos = WorkArea.getInstance().adjustForCanvas({
+        x: evt.offsetX,
+        y: evt.offsetY,
+      });
+      this.startPosition = mousePos;
       super.handleMouseDown();
     }
   }
 
   handleMouseUp(): void {
-    this.isRotating = false;
-    this.startingPosition = null;
-    this.lastRotation = 0;
     super.handleMouseUp();
+    this.resetTool();
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -97,22 +96,25 @@ export class RotateTool extends Tool {
     if (
       this.isRotating &&
       this.transformBox &&
-      this.selectedElements &&
-      this.startingPosition
+      this.transformBox.anchorPoint &&
+      this.startPosition
     ) {
-      const deltaX = evt.offsetX - this.startingPosition.x;
-
-      let angle = deltaX % 360;
-      if (angle < 0) {
-        angle += 360;
-      }
-      //RotateTool.rotateSelectedElements(
-      //  this.selectedElements,
-      //  this.centerPosition,
-      //  angle - this.lastRotation,
-      //);
-      this.transformBox.updateRotation(angle, this.centerPosition!);
-      this.lastRotation = angle;
+      const mousePos = WorkArea.getInstance().adjustForCanvas({
+        x: evt.offsetX,
+        y: evt.offsetY,
+      });
+      const startingAngle = Math.atan2(
+        this.startPosition.y - this.transformBox.anchorPoint.y,
+        this.startPosition.x - this.transformBox.anchorPoint.x,
+      );
+      const currentAngle = Math.atan2(
+        mousePos.y - this.transformBox.anchorPoint.y,
+        mousePos.x - this.transformBox.anchorPoint.x,
+      );
+      const angle = ((currentAngle - startingAngle) * 180) / Math.PI;
+      const normalizedAngle = (this.transformBox.rotation + angle) % 360;
+      this.transformBox.updateRotation(normalizedAngle, this.transformBox.anchorPoint);
+      this.startPosition = mousePos;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }

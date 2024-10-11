@@ -9,10 +9,10 @@ import type { TransformBox } from "src/components/transformBox";
 
 export class GrabTool extends Tool {
   private toolIcon: HTMLImageElement | null = null;
-  private lastPosition: Position | null = null;
-  private isDragging = false;
+  private startPosition: Position | null = null;
   private transformBox: TransformBox | null = null;
   private onHover: ((evt: MouseEvent) => void) | null = null;
+  private isDragging = false;
   private isHovering = false;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -49,7 +49,7 @@ export class GrabTool extends Tool {
   }
 
   resetTool(): void {
-    this.lastPosition = null;
+    this.startPosition = null;
     this.isDragging = false;
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
@@ -85,7 +85,7 @@ export class GrabTool extends Tool {
       });
       const transformBoxBB = new BB(this.transformBox.boundingBox);
       this.isDragging = transformBoxBB.isPointWithinBB(mousePos);
-      this.lastPosition = {
+      this.startPosition = {
         x: mousePos.x - this.transformBox.position.x,
         y: mousePos.y - this.transformBox.position.y,
       };
@@ -101,14 +101,14 @@ export class GrabTool extends Tool {
   }
 
   handleMouseMove(evt: MouseEvent): void {
-    if (this.transformBox && this.isDragging && this.lastPosition) {
+    if (this.transformBox && this.isDragging && this.startPosition) {
       const mousePos = WorkArea.getInstance().adjustForCanvas({
         x: evt.offsetX,
         y: evt.offsetY,
       });
       this.transformBox.updatePosition({
-        x: mousePos.x - this.lastPosition.x,
-        y: mousePos.y - this.lastPosition.y,
+        x: mousePos.x - this.startPosition.x,
+        y: mousePos.y - this.startPosition.y,
       });
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
