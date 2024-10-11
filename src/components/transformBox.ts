@@ -15,6 +15,7 @@ export class TransformBox {
   public position: Position = { x: 0, y: 0 };
   public scale: Scale = { x: 1.0, y: 1.0 };
   public size: Size = { width: 0, height: 0 };
+  public anchorPoint: Position | null = null;
   public rotation = 0;
 
   private selectedElements: Element<TElementData>[] = [];
@@ -73,6 +74,7 @@ export class TransformBox {
     const width = maxX - minX;
     const height = maxY - minY;
     this.position = { x: minX + width / 2, y: minY + height / 2 };
+    this.anchorPoint ??= {...this.position};
     this.size = { width, height };
     this.boundingBox = {
       x1: this.position.x - width / 2,
@@ -123,5 +125,4 @@ export class TransformBox {
 
     this.context.restore();
   }
-  public remove(): void {}
 }

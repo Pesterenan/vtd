@@ -367,7 +367,6 @@ export class WorkArea {
 
   public removeTransformBox(): void {
     if (this.transformBox) {
-      this.transformBox.remove();
       this.transformBox = null;
     }
   }
