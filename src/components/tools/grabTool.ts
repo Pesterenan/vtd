@@ -56,7 +56,7 @@ export class GrabTool extends Tool {
 
   draw(): void {
     if (this.toolIcon && this.transformBox && this.context) {
-      const centerPosition = this.transformBox.getCenter();
+      const centerPosition = this.transformBox.position;
       const workAreaZoom = WorkArea.getInstance().zoomLevel;
       const workAreaOffset = WorkArea.getInstance().offset;
       this.context.save();

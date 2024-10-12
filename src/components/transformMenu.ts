@@ -191,8 +191,8 @@ export class TransformMenu {
       this.widthControl?.linkEvents();
       this.heightControl?.linkEvents();
       this.rotationControl?.linkEvents();
-      this.xPosControl?.updateValues(this.transformBox.getCenter().x);
-      this.yPosControl?.updateValues(this.transformBox.getCenter().y);
+      this.xPosControl?.updateValues(this.transformBox.position.x);
+      this.yPosControl?.updateValues(this.transformBox.position.y);
       this.widthControl?.updateValues(this.transformBox.size.width);
       this.heightControl?.updateValues(this.transformBox.size.height);
     }
