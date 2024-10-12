@@ -93,11 +93,6 @@ export class TransformBox {
     );
   }
 
-  /** Returns the center of the transform box */
-  public getCenter(): Position {
-    return this.position;
-  }
-
   public draw(): void {
     if (!this.context) return;
     this.recalculateBoundingBox();
