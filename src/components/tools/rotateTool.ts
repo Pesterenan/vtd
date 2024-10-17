@@ -21,9 +21,6 @@ export class RotateTool extends Tool {
   equipTool(): void {
     super.equipTool();
     this.transformBox = WorkArea.getInstance().transformBox;
-    if (this.transformBox) {
-      this.transformBox.anchorPoint = null;
-    }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
