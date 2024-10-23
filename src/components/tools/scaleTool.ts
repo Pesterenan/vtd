@@ -54,8 +54,6 @@ export class ScaleTool extends Tool {
     if (this.onHover) {
       this.canvas.removeEventListener("mousemove", this.onHover);
     }
-    this.transformBox = null;
-    //this.anchorPosition = null;
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -239,6 +237,7 @@ export class ScaleTool extends Tool {
           anchor.x + (element.position.x - anchor.x) * scaleX;
         element.position.y =
           anchor.y + (element.position.y - anchor.y) * scaleY;
+        element.scale = { x: scaleX, y: scaleY };
       });
     }
   }

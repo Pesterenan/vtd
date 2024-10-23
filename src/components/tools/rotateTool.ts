@@ -21,15 +21,14 @@ export class RotateTool extends Tool {
   equipTool(): void {
     super.equipTool();
     this.transformBox = WorkArea.getInstance().transformBox;
+if (this.transformBox)  {
+      this.transformBox.anchorPoint = this.transformBox.position;
+    }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
   unequipTool(): void {
     super.unequipTool();
-    if (this.transformBox) {
-      this.transformBox.anchorPoint = null;
-      this.transformBox = null;
-    }
     this.resetTool();
   }
 
@@ -136,7 +135,7 @@ export class RotateTool extends Tool {
         const newY =
           deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians);
         element.position = { x: origin.x + newX, y: origin.y + newY };
-        element.rotation += angleInRadians;
+        element.rotation += angle;
       });
     }
   }

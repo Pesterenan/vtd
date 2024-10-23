@@ -26,6 +26,12 @@ describe("TransformBox", () => {
     expect(transformBox.size).toEqual({ width: 50, height: 50 });
   });
 
+  it("should not create the transformBox if no selected elements are present", () => {
+    const transformBox = new TransformBox([], canvas);
+    expect(transformBox.boundingBox).toEqual(null);
+    expect(transformBox.handles).toEqual(null);
+  });
+
   it("should update the position when calling updatePosition", () => {
     const transformBox = new TransformBox(elements, canvas);
     const newPosition = { x: 150, y: 150 };
@@ -33,10 +39,12 @@ describe("TransformBox", () => {
 
     expect(transformBox.position).toEqual(newPosition);
     expect(transformBox.boundingBox).toEqual({
-      x1: newPosition.x - 25,
-      y1: newPosition.y - 25,
-      x2: newPosition.x + 25,
-      y2: newPosition.y + 25,
+      center: { x: 200, y: 200 },
+      bottomLeft: { x: newPosition.x - 25, y: newPosition.y + 25 },
+      bottomRight: { x: newPosition.y + 25, y: newPosition.y + 25 },
+      rotation: 0,
+      topLeft: { x: newPosition.x - 25, y: newPosition.y - 25 },
+      topRight: { x: newPosition.y + 25, y: newPosition.y - 25 },
     });
   });
 
@@ -48,7 +56,14 @@ describe("TransformBox", () => {
     transformBox.updateScale(newSize, origin);
 
     expect(transformBox.size).toEqual(newSize);
-    expect(transformBox.boundingBox).toEqual({ x1: 150, y1: 150, x2: 250, y2: 250 });
+    expect(transformBox.boundingBox).toEqual({
+      center: { x: 200, y: 200 },
+      bottomLeft: { x: 100 - 25, y: 100 + 25 },
+      bottomRight: { x: 100 + 25, y: 100 + 25 },
+      rotation: 0,
+      topLeft: { x: 100 - 25, y: 100 - 25 },
+      topRight: { x: 100 + 25, y: 100 - 25 },
+    });
   });
 
   it("should update the rotation when calling updateRotation", () => {

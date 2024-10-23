@@ -3,7 +3,7 @@ import { SelectTool } from "src/components/tools/selectTool";
 import type { Tool } from "src/components/tools/abstractTool";
 import { TransformBox } from "src/components/transformBox";
 import type {
-  BoundingBox,
+  TBoundingBox,
   TElementData,
   IProjectData,
   Position,
@@ -403,7 +403,7 @@ export class WorkArea {
   }
 
   /** Adjust selection boundingbox to be shown on canvas */
-  private adjustSelectionForCanvas(selection: BoundingBox): BoundingBox {
+  private adjustSelectionForCanvas(selection: TBoundingBox): TBoundingBox {
     return {
       x1: Math.floor((selection.x1 - this.workArea.offset.x) / this.zoomLevel),
       y1: Math.floor((selection.y1 - this.workArea.offset.y) / this.zoomLevel),
@@ -494,7 +494,7 @@ export class WorkArea {
     return this.elements.filter((el) => el.selected);
   }
 
-  public selectElements(selection?: BoundingBox): void {
+  public selectElements(selection?: TBoundingBox): void {
     let selectedElements: Element<TElementData>[] = [];
 
     if (selection) {

@@ -1,8 +1,9 @@
 import { BB } from "src/utils/bb";
 import EVENT from "src/utils/customEvents";
 import { Element } from "src/components/elements/element";
-import type { BoundingBox, IImageElementData, Position, Size } from "src/components/types";
+import type { TBoundingBox, IImageElementData, Position, Size } from "src/components/types";
 import { clamp } from "src/utils/easing";
+import { BoundingBox } from "src/utils/boundingBox";
 
 export class ImageElement extends Element<IImageElementData> {
   public get backgroundColor(): string {
@@ -18,6 +19,7 @@ export class ImageElement extends Element<IImageElementData> {
     this.properties.set("backgroundOpacity", clamp(value, 0 ,1));
   }
 
+  private boundingBox: BoundingBox;
   private corners: {
     upperLeft: Position;
     upperRight: Position;
@@ -33,6 +35,7 @@ export class ImageElement extends Element<IImageElementData> {
     this.properties.set("encodedImage", "");
     this.backgroundColor = "#00FF00";
     this.backgroundOpacity = 0;
+    this.boundingBox = new BoundingBox(position, size, this.rotation);
 
     const halfWidth = this.size.width * 0.5 * this.scale.x;
     const halfHeight = this.size.height * 0.5 * this.scale.y;
@@ -63,9 +66,10 @@ export class ImageElement extends Element<IImageElementData> {
 
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return;
+    const angleInRadians = (this.rotation * Math.PI) / 180;
     context.save();
     context.translate(this.position.x, this.position.y);
-    context.rotate(this.rotation);
+    context.rotate(angleInRadians);
     context.scale(this.scale.x, this.scale.y);
     // Draw main background for image
     if (this.backgroundOpacity > 0) {
@@ -118,6 +122,7 @@ export class ImageElement extends Element<IImageElementData> {
         this.size = { width: this.image.width, height: this.image.height };
         const halfWidth = this.size.width * 0.5;
         const halfHeight = this.size.height * 0.5;
+        this.boundingBox.update(this.position,this.size,this.rotation);
         this.corners = {
           upperLeft: { x: -halfWidth, y: -halfHeight },
           upperRight: { x: halfWidth, y: -halfHeight },
@@ -129,7 +134,12 @@ export class ImageElement extends Element<IImageElementData> {
     };
   }
 
-  public getTransformedBoundingBox(): BoundingBox {
+  public getBoundingBox(): BoundingBox {
+    this.boundingBox.update(this.position,this.size, this.rotation);
+    return this.boundingBox;
+  }
+
+  public getTransformedBoundingBox(): TBoundingBox {
     const transformedCorners = Object.values(this.corners).map(({ x, y }) => {
       const transformedX =
         this.position.x +
@@ -153,15 +163,15 @@ export class ImageElement extends Element<IImageElementData> {
     };
   }
 
-  public isBelowSelection(selection: BoundingBox | null): boolean {
+  public isBelowSelection(selection: TBoundingBox | null): boolean {
     if (!selection) return false;
-    const elementBoundingBox: BoundingBox = this.getTransformedBoundingBox();
+    const elementBoundingBox: TBoundingBox = this.getTransformedBoundingBox();
     return new BB(selection).isBBWithin(elementBoundingBox);
   }
 
-  public isWithinBounds(selection: BoundingBox | null): boolean {
+  public isWithinBounds(selection: TBoundingBox | null): boolean {
     if (!selection) return false;
-    const elementBoundingBox: BoundingBox = this.getTransformedBoundingBox();
+    const elementBoundingBox: TBoundingBox = this.getTransformedBoundingBox();
     return new BB(elementBoundingBox).isBBWithin(selection);
   }
 }

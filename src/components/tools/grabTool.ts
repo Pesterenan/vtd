@@ -4,7 +4,6 @@ import type { Position, TElementData } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
 import centerHandleMove from "src/assets/icons/move-tool.svg";
-import { BB } from "src/utils/bb";
 import type { TransformBox } from "src/components/transformBox";
 
 export class GrabTool extends Tool {
@@ -30,8 +29,7 @@ export class GrabTool extends Tool {
           x: evt.offsetX,
           y: evt.offsetY,
         });
-        const transformBoxBB = new BB(this.transformBox.boundingBox);
-        this.isHovering = transformBoxBB.isPointWithinBB(mousePos);
+        this.isHovering = this.transformBox.boundingBox.isPointInside(mousePos);
         window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
       }
     };
@@ -44,7 +42,6 @@ export class GrabTool extends Tool {
     if (this.onHover) {
       this.canvas.removeEventListener("mousemove", this.onHover);
     }
-    this.transformBox = null;
     this.resetTool();
   }
 
@@ -76,15 +73,13 @@ export class GrabTool extends Tool {
   }
 
   handleMouseDown(evt: MouseEvent): void {
-    evt.stopPropagation();
     super.handleMouseDown();
     if (this.transformBox && this.transformBox.boundingBox) {
       const mousePos = WorkArea.getInstance().adjustForCanvas({
         x: evt.offsetX,
         y: evt.offsetY,
       });
-      const transformBoxBB = new BB(this.transformBox.boundingBox);
-      this.isDragging = transformBoxBB.isPointWithinBB(mousePos);
+      this.isDragging = this.transformBox.boundingBox.isPointInside(mousePos);
       this.startPosition = {
         x: mousePos.x - this.transformBox.position.x,
         y: mousePos.y - this.transformBox.position.y,

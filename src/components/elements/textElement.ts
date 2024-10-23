@@ -1,10 +1,11 @@
 import { Element } from "src/components/elements/element";
 import type {
-  BoundingBox,
+  TBoundingBox,
   ITextElementData,
   Position,
   Size,
 } from "src/components/types";
+import { BoundingBox } from "src/utils/boundingBox";
 
 export class TextElement extends Element<ITextElementData> {
   public get font(): string {
@@ -84,6 +85,7 @@ export class TextElement extends Element<ITextElementData> {
   }
 
   public lineVerticalSpacing: number;
+  private boundingBox: BoundingBox;
   private corners: {
     upperLeft: Position;
     upperRight: Position;
@@ -111,6 +113,7 @@ export class TextElement extends Element<ITextElementData> {
     this.lineVerticalSpacing = this.fontSize * this.lineHeight;
     const halfWidth = this.size.width * 0.5 * this.scale.x;
     const halfHeight = this.size.height * 0.5 * this.scale.y;
+    this.boundingBox = new BoundingBox(position, size, this.rotation);
     this.corners = {
       upperLeft: { x: -halfWidth, y: -halfHeight },
       upperRight: { x: halfWidth, y: -halfHeight },
@@ -189,9 +192,10 @@ export class TextElement extends Element<ITextElementData> {
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return;
     if (this.needsCacheUpdate) this.updateCache();
+    const angleInRadians = (this.rotation * Math.PI) / 180;
     context.save();
     context.translate(this.position.x, this.position.y);
-    context.rotate(this.rotation);
+    context.rotate(angleInRadians);
     context.scale(this.scale.x, this.scale.y);
     // Apply 'before' filters
     for (const filter of this.filters) {
@@ -244,7 +248,12 @@ export class TextElement extends Element<ITextElementData> {
     }
   }
 
-  public getTransformedBoundingBox(): BoundingBox {
+  public getBoundingBox(): BoundingBox {
+    this.boundingBox.update(this.position,this.size,this.rotation);
+    return this.boundingBox;
+  }
+
+  public getTransformedBoundingBox(): TBoundingBox {
     const transformedCorners = Object.values(this.corners).map(({ x, y }) => {
       const transformedX =
         this.position.x +

@@ -1,12 +1,12 @@
 import EVENT from "src/utils/customEvents";
-import type { BoundingBox } from "src/components/types";
+import type { TBoundingBox } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
 
 const DRAGGING_DISTANCE = 5;
 
 export class SelectTool extends Tool {
-  private selection: BoundingBox | null = null;
+  private selection: TBoundingBox | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);

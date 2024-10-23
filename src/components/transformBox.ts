@@ -1,16 +1,11 @@
 import EVENT from "src/utils/customEvents";
 import type { Element } from "src/components/elements/element";
-import type {
-  BoundingBox,
-  Position,
-  Scale,
-  Size,
-  TElementData,
-} from "src/components/types";
+import type { Position, Scale, Size, TElementData } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { RotateTool } from "./tools/rotateTool";
 import { GrabTool } from "./tools/grabTool";
 import { ScaleTool } from "./tools/scaleTool";
+import { BoundingBox } from "src/utils/boundingBox";
 
 export class TransformBox {
   public position: Position = { x: 0, y: 0 };
@@ -30,37 +25,64 @@ export class TransformBox {
   ) {
     this.context = canvas.getContext("2d");
     this.selectedElements = selectedElements;
-    this.calculateBoundingBox();
+    if (this.selectedElements.length > 0) {
+      this.calculateBoundingBox();
+    }
   }
 
   private calculateBoundingBox(): void {
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
+    if (this.selectedElements.length === 1) {
+      const element = this.selectedElements[0];
+      this.position = {...element.position};
+      this.rotation = element.rotation;
+      this.size = {...element.size};
+      this.anchorPoint = { ...this.position };
+      this.boundingBox = element.getBoundingBox();
+    } else {
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
 
-    this.selectedElements.forEach((element: Element<TElementData>) => {
-      const boundingBox = element.getTransformedBoundingBox();
-      if (boundingBox.x1 < minX) minX = boundingBox.x1;
-      if (boundingBox.y1 < minY) minY = boundingBox.y1;
-      if (boundingBox.x2 > maxX) maxX = boundingBox.x2;
-      if (boundingBox.y2 > maxY) maxY = boundingBox.y2;
-    });
+      this.selectedElements.forEach((element: Element<TElementData>) => {
+        const boundingBox = element.getBoundingBox();
 
-    // Calcula a posição como o centro
-    const width = maxX - minX;
-    const height = maxY - minY;
-    this.position = { x: minX + width / 2, y: minY + height / 2 };
-    this.anchorPoint = { ...this.position };
-    this.size = { width, height };
-    this.boundingBox = {
-      x1: minX,
-      y1: minY,
-      x2: maxX,
-      y2: maxY,
-    };
+        // Considerando os quatro pontos da BoundingBox
+        const corners = [
+          boundingBox.topLeft,
+          boundingBox.topRight,
+          boundingBox.bottomLeft,
+          boundingBox.bottomRight,
+        ];
 
+        // Atualizando os limites da bounding box que vai circundar todos os elementos
+        corners.forEach((corner) => {
+          if (corner.x < minX) minX = corner.x;
+          if (corner.y < minY) minY = corner.y;
+          if (corner.x > maxX) maxX = corner.x;
+          if (corner.y > maxY) maxY = corner.y;
+        });
+      });
+
+      // Calcula a posição e tamanho da TransformBox em torno de todos os elementos
+      const width = maxX - minX;
+      const height = maxY - minY;
+
+      this.position = { x: minX + width / 2, y: minY + height / 2 };
+      this.size = { width, height };
+      this.anchorPoint = { ...this.position };
+
+      // Atualiza o boundingBox da TransformBox
+      this.boundingBox = new BoundingBox(
+        this.position,
+        this.size,
+        this.rotation,
+      );
+    }
+    // Recalcula os handles
     this.generateHandles();
+
+    // Notifica a aplicação sobre a atualização da TransformBox
     window.dispatchEvent(
       new CustomEvent(EVENT.RECALCULATE_TRANSFORM_BOX, {
         detail: {
@@ -74,20 +96,11 @@ export class TransformBox {
 
   private generateHandles(): void {
     if (this.boundingBox) {
-      const { x1, y1, x2, y2 } = this.boundingBox;
-      this.handles = [
-        { x: x1, y: y1 },
-        { x: (x1 + x2) / 2, y: y1 }, // Top middle
-        { x: x2, y: y1 },
-        { x: x2, y: (y1 + y2) / 2 }, // Right middle
-        { x: x2, y: y2 },
-        { x: (x1 + x2) / 2, y: y2 }, // Bottom middle
-        { x: x1, y: y2 },
-        { x: x1, y: y1 + (y2 - y1) / 2 },
-      ];
+      const { topLeft, topRight, bottomLeft, bottomRight } = this.boundingBox;
+      this.handles = [topLeft, topRight, bottomLeft, bottomRight];
     }
   }
-  // Função para rotacionar um ponto em torno de um centro
+
   private rotatePoint(
     point: Position,
     center: Position,
@@ -111,70 +124,64 @@ export class TransformBox {
     this.position = { x, y };
     this.anchorPoint = { ...this.position };
 
-    if (this.boundingBox) {
-      this.boundingBox = {
-        x1: this.boundingBox.x1 + delta.x,
-        y1: this.boundingBox.y1 + delta.y,
-        x2: this.boundingBox.x2 + delta.x,
-        y2: this.boundingBox.y2 + delta.y,
-      };
-    }
-    this.handles =
-      this.handles?.map((point) => ({
+    if (this.boundingBox && this.handles) {
+      this.boundingBox.update(this.position, this.size, this.rotation);
+      this.handles = this.handles.map((point) => ({
         x: point.x + delta.x,
         y: point.y + delta.y,
-      })) || null;
+      }));
+    }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
-  public updateScale(newSize: Size, origin: Position = this.position): void {
+  public updateRotation(angle: number, origin: Position = this.position): void {
+    this.anchorPoint = origin;
+    const delta = angle - this.rotation;
+    RotateTool.rotateSelectedElements(
+      this.selectedElements,
+      this.anchorPoint,
+      delta,
+    );
+    this.rotation = angle;
+    if (this.boundingBox && this.handles) {
+      this.boundingBox.update(this.position, this.size, this.rotation);
+      this.handles = this.handles.map((point) =>
+        this.rotatePoint(point, this.anchorPoint || this.position, delta),
+      );
+    }
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+  }
+
+  public updateScale(size: Size, origin: Position = this.position): void {
     // Calcula o fator de escala baseado no novo tamanho
-    const scaleX = newSize.width / this.size.width;
-    const scaleY = newSize.height / this.size.height;
+    const scaleX = size.width / this.size.width;
+    const scaleY = size.height / this.size.height;
 
     // Atualizar o tamanho da caixa de transformação
-    this.size.width = newSize.width;
-    this.size.height = newSize.height;
+    this.size.width = size.width;
+    this.size.height = size.height;
 
     // Recalcular a posição baseada no ponto de origem e no fator de escala
     this.position.x = origin.x + (this.position.x - origin.x) * scaleX;
     this.position.y = origin.y + (this.position.y - origin.y) * scaleY;
 
     // Recalcular o bounding box
-    this.boundingBox = {
-      x1: this.position.x - this.size.width / 2,
-      y1: this.position.y - this.size.height / 2,
-      x2: this.position.x + this.size.width / 2,
-      y2: this.position.y + this.size.height / 2,
-    };
 
     this.anchorPoint = origin;
 
-    this.handles = this.handles?.map((point) => ({
-      x: origin.x + (point.x - origin.x) * scaleX,
-      y: origin.y + (point.y - origin.y) * scaleY,
-    })) || null;
+    if (this.boundingBox && this.handles) {
+      this.boundingBox.update(this.position, this.size, this.rotation);
+      this.handles =
+        this.handles?.map((point) => ({
+          x: origin.x + (point.x - origin.x) * scaleX,
+          y: origin.y + (point.y - origin.y) * scaleY,
+        })) || null;
+    }
 
     ScaleTool.scaleSelectedElements(this.selectedElements, this.anchorPoint, {
       width: scaleX,
       height: scaleY,
     });
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-  }
-
-  public updateRotation(newValue: number, origin?: Position): void {
-    this.anchorPoint = origin ? origin : this.position;
-    const delta = newValue - this.rotation;
-    RotateTool.rotateSelectedElements(
-      this.selectedElements,
-      this.anchorPoint,
-      delta,
-    );
-    this.rotation = newValue;
-    this.handles =
-      this.handles?.map((point) =>
-        this.rotatePoint(point, this.anchorPoint || this.position, delta),
-      ) || null;
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -191,31 +198,16 @@ export class TransformBox {
     this.context.save();
     this.context.translate(workAreaOffset.x, workAreaOffset.y);
     this.context.scale(workAreaZoom, workAreaZoom);
-    const { x1, y1, x2, y2 } = this.boundingBox;
+    const { topLeft, topRight, bottomLeft, bottomRight } = this.boundingBox;
 
-    const points = [
-      { x: x1, y: y1 }, // Top-left
-      { x: x2, y: y1 }, // Top-right
-      { x: x2, y: y2 }, // Bottom-right
-      { x: x1, y: y2 }, // Bottom-left
-    ];
-
-    // Rotacione os pontos ao redor do ponto de ancoragem
-    const rotatedPoints = points.map((point) =>
-      this.rotatePoint(point, this.anchorPoint || this.position, this.rotation),
-    );
     this.context.strokeStyle = "red";
     this.context.setLineDash([3 / workAreaZoom, 3 / workAreaZoom]);
     this.context.lineWidth = 2 / workAreaZoom;
     this.context.beginPath();
-    this.context.moveTo(rotatedPoints[0].x, rotatedPoints[0].y);
-    rotatedPoints.forEach((point, index) => {
-      if (index > 0) {
-        if (this.context) {
-          this.context.lineTo(point.x, point.y);
-        }
-      }
-    });
+    this.context.moveTo(topLeft.x, topLeft.y);
+    this.context.lineTo(topRight.x, topRight.y);
+    this.context.lineTo(bottomRight.x, bottomRight.y);
+    this.context.lineTo(bottomLeft.x, bottomLeft.y);
     this.context.closePath();
     this.context.stroke();
     // Desenhar os handles

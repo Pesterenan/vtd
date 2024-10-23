@@ -1,5 +1,6 @@
 import { Element } from "src/components/elements/element";
-import type { BoundingBox, IGradientElementData, Position, Size } from "src/components/types";
+import type { TBoundingBox, IGradientElementData, Position, Size } from "src/components/types";
+import type { BoundingBox } from "src/utils/boundingBox";
 
 export class GradientElement extends Element<IGradientElementData> {
   public get position(): Position {
@@ -87,7 +88,11 @@ export class GradientElement extends Element<IGradientElementData> {
     context.restore();
   }
 
-  public getTransformedBoundingBox(): BoundingBox {
+  public getBoundingBox(): BoundingBox {
+      throw new Error("Method not implemented.");
+  }
+
+  public getTransformedBoundingBox(): TBoundingBox {
     return { x1: 0, x2: this.size.width, y1: 0, y2: this.size.height };
   }
 
