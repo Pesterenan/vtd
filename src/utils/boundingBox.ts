@@ -74,20 +74,14 @@ export class BoundingBox {
   }
 
   public isPointInside(point: Position): boolean {
-    // "Desrotacionar" o ponto com relação ao centro da bounding box
     const unrotatedPoint = this.rotatePoint(point, this.center, -this.rotation);
-
-    // Agora podemos verificar se o ponto ajustado está dentro da bounding box não rotacionada
-    const xStartInner = Math.min(this.topLeft.x, this.bottomRight.x);
-    const yStartInner = Math.min(this.topLeft.y, this.bottomRight.y);
-    const xEndInner = Math.max(this.topLeft.x, this.bottomRight.x);
-    const yEndInner = Math.max(this.topLeft.y, this.bottomRight.y);
-
+    const unrotatedTopLeft =this.rotatePoint(this.topLeft, this.center, -this.rotation);
+    const unrotatedBottomRight =this.rotatePoint(this.bottomRight, this.center, -this.rotation);
     return (
-      unrotatedPoint.x >= xStartInner &&
-      unrotatedPoint.x <= xEndInner &&
-      unrotatedPoint.y >= yStartInner &&
-      unrotatedPoint.y <= yEndInner
+      unrotatedPoint.x >= unrotatedTopLeft.x &&
+      unrotatedPoint.x <= unrotatedBottomRight.x &&
+      unrotatedPoint.y >= unrotatedTopLeft.y &&
+      unrotatedPoint.y <= unrotatedBottomRight.y
     );
   }
 }
