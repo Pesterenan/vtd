@@ -21,7 +21,7 @@ export class RotateTool extends Tool {
   equipTool(): void {
     super.equipTool();
     this.transformBox = WorkArea.getInstance().transformBox;
-if (this.transformBox)  {
+    if (this.transformBox) {
       this.transformBox.anchorPoint = this.transformBox.position;
     }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
@@ -53,8 +53,10 @@ if (this.transformBox)  {
       this.context.scale(workAreaZoom, workAreaZoom);
       this.context.drawImage(
         this.toolIcon,
-        this.transformBox.anchorPoint.x - (this.toolIcon.width * 0.5) / workAreaZoom,
-        this.transformBox.anchorPoint.y - (this.toolIcon.height * 0.5) / workAreaZoom,
+        this.transformBox.anchorPoint.x -
+          (this.toolIcon.width * 0.5) / workAreaZoom,
+        this.transformBox.anchorPoint.y -
+          (this.toolIcon.height * 0.5) / workAreaZoom,
         this.toolIcon.width / workAreaZoom,
         this.toolIcon.height / workAreaZoom,
       );
@@ -63,20 +65,18 @@ if (this.transformBox)  {
   }
 
   handleMouseDown(evt: MouseEvent): void {
+    const mousePos = WorkArea.getInstance().adjustForCanvas({
+      x: evt.offsetX,
+      y: evt.offsetY,
+    });
     if (evt.altKey && this.transformBox) {
-      this.transformBox.anchorPoint = WorkArea.getInstance().adjustForCanvas({
-        x: evt.offsetX,
-        y: evt.offsetY,
-      });
+      this.transformBox.anchorPoint = mousePos;
+      this.resetTool();
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
       return;
     }
     if (!this.isRotating) {
       this.isRotating = true;
-      const mousePos = WorkArea.getInstance().adjustForCanvas({
-        x: evt.offsetX,
-        y: evt.offsetY,
-      });
       this.startPosition = mousePos;
       super.handleMouseDown();
     }
@@ -109,7 +109,10 @@ if (this.transformBox)  {
       );
       const angle = ((currentAngle - startingAngle) * 180) / Math.PI;
       const normalizedAngle = (this.transformBox.rotation + angle) % 360;
-      this.transformBox.updateRotation(normalizedAngle, this.transformBox.anchorPoint);
+      this.transformBox.updateRotation(
+        normalizedAngle,
+        this.transformBox.anchorPoint,
+      );
       this.startPosition = mousePos;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }

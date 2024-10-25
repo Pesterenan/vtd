@@ -1,7 +1,6 @@
-import { BB } from "src/utils/bb";
 import EVENT from "src/utils/customEvents";
 import { Element } from "src/components/elements/element";
-import type { TBoundingBox, IImageElementData, Position, Size } from "src/components/types";
+import type { IImageElementData, Position, Size } from "src/components/types";
 import { clamp } from "src/utils/easing";
 import { BoundingBox } from "src/utils/boundingBox";
 
@@ -20,12 +19,6 @@ export class ImageElement extends Element<IImageElementData> {
   }
 
   private boundingBox: BoundingBox;
-  private corners: {
-    upperLeft: Position;
-    upperRight: Position;
-    lowerRight: Position;
-    lowerLeft: Position;
-  };
   public image: HTMLImageElement | null = null;
   private isImageLoaded = false;
 
@@ -36,15 +29,6 @@ export class ImageElement extends Element<IImageElementData> {
     this.backgroundColor = "#00FF00";
     this.backgroundOpacity = 0;
     this.boundingBox = new BoundingBox(position, size, this.rotation);
-
-    const halfWidth = this.size.width * 0.5 * this.scale.x;
-    const halfHeight = this.size.height * 0.5 * this.scale.y;
-    this.corners = {
-      upperLeft: { x: -halfWidth, y: -halfHeight },
-      upperRight: { x: halfWidth, y: -halfHeight },
-      lowerLeft: { x: halfWidth, y: halfHeight },
-      lowerRight: { x: -halfWidth, y: halfHeight },
-    };
   }
 
   public deserialize(data: IImageElementData): void {
@@ -120,15 +104,7 @@ export class ImageElement extends Element<IImageElementData> {
       if (this.image) {
         this.isImageLoaded = true;
         this.size = { width: this.image.width, height: this.image.height };
-        const halfWidth = this.size.width * 0.5;
-        const halfHeight = this.size.height * 0.5;
         this.boundingBox.update(this.position,this.size,this.rotation);
-        this.corners = {
-          upperLeft: { x: -halfWidth, y: -halfHeight },
-          upperRight: { x: halfWidth, y: -halfHeight },
-          lowerLeft: { x: halfWidth, y: halfHeight },
-          lowerRight: { x: -halfWidth, y: halfHeight },
-        };
       }
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     };
@@ -137,41 +113,5 @@ export class ImageElement extends Element<IImageElementData> {
   public getBoundingBox(): BoundingBox {
     this.boundingBox.update(this.position,this.size, this.rotation);
     return this.boundingBox;
-  }
-
-  public getTransformedBoundingBox(): TBoundingBox {
-    const transformedCorners = Object.values(this.corners).map(({ x, y }) => {
-      const transformedX =
-        this.position.x +
-        x * this.scale.x * Math.cos(this.rotation) -
-        y * this.scale.y * Math.sin(this.rotation);
-      const transformedY =
-        this.position.y +
-        x * this.scale.x * Math.sin(this.rotation) +
-        y * this.scale.y * Math.cos(this.rotation);
-      return { x: transformedX, y: transformedY };
-    });
-
-    const xCoordinates = transformedCorners.map((corner) => corner.x);
-    const yCoordinates = transformedCorners.map((corner) => corner.y);
-
-    return {
-      x1: Math.min(...xCoordinates),
-      y1: Math.min(...yCoordinates),
-      x2: Math.max(...xCoordinates),
-      y2: Math.max(...yCoordinates),
-    };
-  }
-
-  public isBelowSelection(selection: TBoundingBox | null): boolean {
-    if (!selection) return false;
-    const elementBoundingBox: TBoundingBox = this.getTransformedBoundingBox();
-    return new BB(selection).isBBWithin(elementBoundingBox);
-  }
-
-  public isWithinBounds(selection: TBoundingBox | null): boolean {
-    if (!selection) return false;
-    const elementBoundingBox: TBoundingBox = this.getTransformedBoundingBox();
-    return new BB(elementBoundingBox).isBBWithin(selection);
   }
 }

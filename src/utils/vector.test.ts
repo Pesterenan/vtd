@@ -56,4 +56,10 @@ describe('Vector', () => {
     expect(vectorSize.mul(scalar)).toEqual({ x: 100, y: 100});
   });
 
+  it('should create a Vector  that is the middle of two vectors', () => {
+    const pointA = new Vector({ x: 0, y: 50} as Position);
+    const pointB = new Vector({ x: 10, y: 80} as Position);
+    expect(pointA.mid(pointB)).toEqual({ x: 5, y: 65});
+  });
+
 });

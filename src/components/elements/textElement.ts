@@ -1,6 +1,5 @@
 import { Element } from "src/components/elements/element";
 import type {
-  TBoundingBox,
   ITextElementData,
   Position,
   Size,
@@ -86,12 +85,6 @@ export class TextElement extends Element<ITextElementData> {
 
   public lineVerticalSpacing: number;
   private boundingBox: BoundingBox;
-  private corners: {
-    upperLeft: Position;
-    upperRight: Position;
-    lowerRight: Position;
-    lowerLeft: Position;
-  };
   private needsBoundingBoxUpdate = true;
   private needsCacheUpdate = true;
   private cacheCanvas: OffscreenCanvas | null = null;
@@ -111,15 +104,7 @@ export class TextElement extends Element<ITextElementData> {
     this.strokeWidth = 10;
 
     this.lineVerticalSpacing = this.fontSize * this.lineHeight;
-    const halfWidth = this.size.width * 0.5 * this.scale.x;
-    const halfHeight = this.size.height * 0.5 * this.scale.y;
     this.boundingBox = new BoundingBox(position, size, this.rotation);
-    this.corners = {
-      upperLeft: { x: -halfWidth, y: -halfHeight },
-      upperRight: { x: halfWidth, y: -halfHeight },
-      lowerLeft: { x: halfWidth, y: halfHeight },
-      lowerRight: { x: -halfWidth, y: halfHeight },
-    };
     this.initializeCache();
   }
 
@@ -176,15 +161,8 @@ export class TextElement extends Element<ITextElementData> {
       { width: 0, height: 0 },
     );
     this.size = { ...totalSize };
+    this.boundingBox.update(this.position,this.size,this.rotation);
     this.needsBoundingBoxUpdate = false;
-    const halfWidth = this.size.width * 0.5 * this.scale.x;
-    const halfHeight = this.size.height * 0.5 * this.scale.y;
-    this.corners = {
-      upperLeft: { x: -halfWidth, y: -halfHeight },
-      upperRight: { x: halfWidth, y: -halfHeight },
-      lowerLeft: { x: halfWidth, y: halfHeight },
-      lowerRight: { x: -halfWidth, y: halfHeight },
-    };
     this.needsCacheUpdate = true;
     context.restore();
   }
@@ -251,29 +229,5 @@ export class TextElement extends Element<ITextElementData> {
   public getBoundingBox(): BoundingBox {
     this.boundingBox.update(this.position,this.size,this.rotation);
     return this.boundingBox;
-  }
-
-  public getTransformedBoundingBox(): TBoundingBox {
-    const transformedCorners = Object.values(this.corners).map(({ x, y }) => {
-      const transformedX =
-        this.position.x +
-        x * Math.cos(this.rotation) -
-        y * Math.sin(this.rotation);
-      const transformedY =
-        this.position.y +
-        x * Math.sin(this.rotation) +
-        y * Math.cos(this.rotation);
-      return { x: transformedX, y: transformedY };
-    });
-
-    const xCoordinates = transformedCorners.map((corner) => corner.x);
-    const yCoordinates = transformedCorners.map((corner) => corner.y);
-
-    return {
-      x1: Math.min(...xCoordinates),
-      y1: Math.min(...yCoordinates),
-      x2: Math.max(...xCoordinates),
-      y2: Math.max(...yCoordinates),
-    };
   }
 }

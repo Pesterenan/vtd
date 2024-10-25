@@ -39,7 +39,7 @@ describe("TransformBox", () => {
 
     expect(transformBox.position).toEqual(newPosition);
     expect(transformBox.boundingBox).toEqual({
-      center: { x: 200, y: 200 },
+      center: { x: 150, y: 150 },
       bottomLeft: { x: newPosition.x - 25, y: newPosition.y + 25 },
       bottomRight: { x: newPosition.y + 25, y: newPosition.y + 25 },
       rotation: 0,

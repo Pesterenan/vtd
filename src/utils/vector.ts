@@ -30,11 +30,15 @@ export class Vector {
     if (scalar !== 0) {
       return { x: this.x / scalar, y: this.y / scalar };
     }
-    return {x: 0, y: 0};
+    return { x: 0, y: 0 };
   }
 
   mul(scalar: number) {
     return { x: this.x * scalar, y: this.y * scalar };
   }
 
+  mid(that: Vectorizable) {
+    const thatVector = new Vector(that);
+    return new Vector(new Vector(thatVector.sub(this)).div(2)).add(this);
+  }
 }

@@ -6,6 +6,7 @@ import { RotateTool } from "./tools/rotateTool";
 import { GrabTool } from "./tools/grabTool";
 import { ScaleTool } from "./tools/scaleTool";
 import { BoundingBox } from "src/utils/boundingBox";
+import { Vector } from "src/utils/vector";
 
 export class TransformBox {
   public position: Position = { x: 0, y: 0 };
@@ -33,9 +34,9 @@ export class TransformBox {
   private calculateBoundingBox(): void {
     if (this.selectedElements.length === 1) {
       const element = this.selectedElements[0];
-      this.position = {...element.position};
+      this.position = { ...element.position };
       this.rotation = element.rotation;
-      this.size = {...element.size};
+      this.size = { ...element.size };
       this.anchorPoint = { ...this.position };
       this.boundingBox = element.getBoundingBox();
     } else {
@@ -97,7 +98,16 @@ export class TransformBox {
   private generateHandles(): void {
     if (this.boundingBox) {
       const { topLeft, topRight, bottomLeft, bottomRight } = this.boundingBox;
-      this.handles = [topLeft, topRight, bottomLeft, bottomRight];
+      this.handles = [
+        topLeft,
+        new Vector(topLeft).mid(topRight),
+        topRight,
+        new Vector(topRight).mid(bottomRight),
+        bottomRight,
+        new Vector(bottomLeft).mid(bottomRight),
+        bottomLeft,
+        new Vector(bottomLeft).mid(topLeft),
+      ];
     }
   }
 
@@ -137,17 +147,22 @@ export class TransformBox {
   public updateRotation(angle: number, origin: Position = this.position): void {
     this.anchorPoint = origin;
     const delta = angle - this.rotation;
+    const deltaPos = this.rotatePoint(this.position, this.anchorPoint, delta);
     RotateTool.rotateSelectedElements(
       this.selectedElements,
       this.anchorPoint,
       delta,
     );
+    this.position = deltaPos;
     this.rotation = angle;
     if (this.boundingBox && this.handles) {
       this.boundingBox.update(this.position, this.size, this.rotation);
-      this.handles = this.handles.map((point) =>
-        this.rotatePoint(point, this.anchorPoint || this.position, delta),
-      );
+      this.handles = this.handles.map((point) => {
+        if (this.anchorPoint) {
+          return this.rotatePoint(point, this.anchorPoint, delta);
+        }
+        return point;
+      });
     }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }

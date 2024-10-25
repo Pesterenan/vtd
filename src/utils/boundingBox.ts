@@ -1,5 +1,6 @@
 import type { Position, Size } from "src/components/types";
 import { Vector } from "./vector";
+import { WorkArea } from "src/components/workArea";
 
 export class BoundingBox {
   public topLeft: Position = { x: 0, y: 0 };
@@ -75,13 +76,55 @@ export class BoundingBox {
 
   public isPointInside(point: Position): boolean {
     const unrotatedPoint = this.rotatePoint(point, this.center, -this.rotation);
-    const unrotatedTopLeft =this.rotatePoint(this.topLeft, this.center, -this.rotation);
-    const unrotatedBottomRight =this.rotatePoint(this.bottomRight, this.center, -this.rotation);
+    const unrotatedTopLeft = this.rotatePoint(
+      this.topLeft,
+      this.center,
+      -this.rotation,
+    );
+    const unrotatedBottomRight = this.rotatePoint(
+      this.bottomRight,
+      this.center,
+      -this.rotation,
+    );
     return (
       unrotatedPoint.x >= unrotatedTopLeft.x &&
       unrotatedPoint.x <= unrotatedBottomRight.x &&
       unrotatedPoint.y >= unrotatedTopLeft.y &&
       unrotatedPoint.y <= unrotatedBottomRight.y
+    );
+  }
+
+  public isWithinBounds(firstPoint: Position, secondPoint: Position): boolean {
+    const minBound = {
+      x: Math.min(firstPoint.x, secondPoint.x),
+      y: Math.min(firstPoint.y, secondPoint.y),
+    };
+    const maxBound = {
+      x: Math.max(firstPoint.x, secondPoint.x),
+      y: Math.max(firstPoint.y, secondPoint.y),
+    };
+    WorkArea.getInstance().drawbox(minBound,maxBound);
+    
+    const unrotatedTopLeft = this.rotatePoint(
+      this.topLeft,
+      this.center,
+      -this.rotation,
+    );
+    const unrotatedBottomRight = this.rotatePoint(
+      this.bottomRight,
+      this.center,
+      -this.rotation,
+    );
+    WorkArea.getInstance().drawbox(unrotatedTopLeft, unrotatedBottomRight);
+    return (
+      unrotatedTopLeft.x >= minBound.x &&
+      unrotatedTopLeft.x <= maxBound.x &&
+      unrotatedTopLeft.y >= minBound.y &&
+      unrotatedTopLeft.y <= maxBound.y &&
+      unrotatedBottomRight.x >= minBound.x &&
+      unrotatedBottomRight.x <= maxBound.x &&
+      unrotatedBottomRight.y >= minBound.y &&
+      unrotatedBottomRight.y <= maxBound.y
     );
   }
 }

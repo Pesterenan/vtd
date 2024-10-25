@@ -1,8 +1,12 @@
-import type { TBoundingBox, IElementData, Position, Scale, Size } from "components/types";
-import { BB } from "src/utils/bb";
+import type {
+  IElementData,
+  Position,
+  Scale,
+  Size,
+} from "components/types";
 import type { Filter } from "src/filters/filter";
 import { createFilter } from "src/filters/filterFactory";
-import { BoundingBox } from "src/utils/boundingBox";
+import type { BoundingBox } from "src/utils/boundingBox";
 
 export abstract class Element<T extends Partial<IElementData>> {
   public static elementIds = 0;
@@ -108,18 +112,5 @@ export abstract class Element<T extends Partial<IElementData>> {
   }
 
   public abstract draw(context: CanvasRenderingContext2D): void;
-  public abstract getTransformedBoundingBox(): TBoundingBox;
   public abstract getBoundingBox(): BoundingBox;
-
-  public isBelowSelection(selection: TBoundingBox | null): boolean {
-    if (!selection) return false;
-    const elementBoundingBox: TBoundingBox = this.getTransformedBoundingBox();
-    return new BB(selection).isBBWithin(elementBoundingBox);
-  }
-
-  public isWithinBounds(selection: TBoundingBox | null): boolean {
-    if (!selection) return false;
-    const elementBoundingBox: TBoundingBox = this.getTransformedBoundingBox();
-    return new BB(elementBoundingBox).isBBWithin(selection);
-  }
 }
