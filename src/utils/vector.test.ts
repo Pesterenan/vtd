@@ -18,42 +18,42 @@ describe('Vector', () => {
     const vectorPosition = new Vector({ x: 100, y: 100} as Position);
     const vectorSize = new Vector({ width: 50, height: 50} as Size);
     expect(vectorPosition.add(vectorPosition)).toEqual({ x: 200, y: 200});
-    expect(vectorPosition.add(vectorSize)).toEqual({ x: 150, y: 150});
+    expect(vectorSize.add(vectorSize)).toEqual({ x: 100, y: 100});
   });
 
   it('should subtract Vectors', () => {
     const vectorPosition = new Vector({ x: 100, y: 100} as Position);
     const vectorSize = new Vector({ width: 50, height: 50} as Size);
     expect(vectorPosition.sub(vectorPosition)).toEqual({ x: 0, y: 0});
-    expect(vectorPosition.sub(vectorSize)).toEqual({ x: 50, y: 50});
+    expect(vectorSize.sub(vectorSize)).toEqual({ x: 0, y: 0});
   });
 
   it('should divide Vectors values by a scalar', () => {
     const vectorPosition = new Vector({ x: 100, y: 80} as Position);
     const vectorSize = new Vector({ width: 50, height: 50} as Size);
-    let scalar = 0;
-    expect(vectorPosition.div(scalar)).toEqual({ x: 0, y: 0});
-    expect(vectorSize.div(scalar)).toEqual({ x: 0, y: 0});
-    scalar = 1;
+    let scalar = 1;
     expect(vectorPosition.div(scalar)).toEqual({ x: 100, y: 80});
     expect(vectorSize.div(scalar)).toEqual({ x: 50, y: 50});
     scalar = 2;
     expect(vectorPosition.div(scalar)).toEqual({ x: 50, y: 40});
     expect(vectorSize.div(scalar)).toEqual({ x: 25, y: 25});
+    scalar = 0;
+    expect(vectorPosition.div(scalar)).toEqual({ x: 0, y: 0});
+    expect(vectorSize.div(scalar)).toEqual({ x: 0, y: 0});
   });
 
   it('should multiply Vectors values by a scalar', () => {
     const vectorPosition = new Vector({ x: 100, y: 100} as Position);
     const vectorSize = new Vector({ width: 50, height: 50} as Size);
-    let scalar = 0;
-    expect(vectorPosition.mul(scalar)).toEqual({ x: 0, y: 0});
-    expect(vectorSize.mul(scalar)).toEqual({ x: 0, y: 0});
-    scalar = 1;
+    let scalar = 1;
     expect(vectorPosition.mul(scalar)).toEqual({ x: 100, y: 100});
     expect(vectorSize.mul(scalar)).toEqual({ x: 50, y: 50});
     scalar = 2;
     expect(vectorPosition.mul(scalar)).toEqual({ x: 200, y: 200});
     expect(vectorSize.mul(scalar)).toEqual({ x: 100, y: 100});
+    scalar = 0;
+    expect(vectorPosition.mul(scalar)).toEqual({ x: 0, y: 0});
+    expect(vectorSize.mul(scalar)).toEqual({ x: 0, y: 0});
   });
 
   it('should create a Vector  that is the middle of two vectors', () => {

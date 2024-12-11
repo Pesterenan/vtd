@@ -18,7 +18,17 @@ export class TransformBox {
   private selectedElements: Element<TElementData>[] = [];
   private context: CanvasRenderingContext2D | null;
   public boundingBox: BoundingBox | null = null;
-  public handles: Position[] | null = null;
+  public handles: {
+    BOTTOM: Position;
+    BOTTOM_LEFT: Position;
+    BOTTOM_RIGHT: Position;
+    CENTER: Position;
+    LEFT: Position;
+    RIGHT: Position;
+    TOP: Position;
+    TOP_LEFT: Position;
+    TOP_RIGHT: Position;
+  } | null = null;
 
   public constructor(
     selectedElements: Element<TElementData>[],
@@ -97,17 +107,19 @@ export class TransformBox {
 
   private generateHandles(): void {
     if (this.boundingBox) {
-      const { topLeft, topRight, bottomLeft, bottomRight } = this.boundingBox;
-      this.handles = [
-        topLeft,
-        new Vector(topLeft).mid(topRight),
-        topRight,
-        new Vector(topRight).mid(bottomRight),
-        bottomRight,
-        new Vector(bottomLeft).mid(bottomRight),
-        bottomLeft,
-        new Vector(bottomLeft).mid(topLeft),
-      ];
+      const { center, topLeft, topRight, bottomLeft, bottomRight } =
+        this.boundingBox;
+      this.handles = {
+        TOP_LEFT: new Vector(topLeft),
+        TOP: new Vector(topLeft).mid(topRight) as Position,
+        TOP_RIGHT: new Vector(topRight),
+        RIGHT: new Vector(topRight).mid(bottomRight) as Position,
+        BOTTOM_RIGHT: new Vector(bottomRight),
+        BOTTOM: new Vector(bottomLeft).mid(bottomRight) as Position,
+        BOTTOM_LEFT: new Vector(bottomLeft),
+        LEFT: new Vector(bottomLeft).mid(topLeft) as Position,
+        CENTER: new Vector(center),
+      };
     }
   }
 
@@ -136,10 +148,14 @@ export class TransformBox {
 
     if (this.boundingBox && this.handles) {
       this.boundingBox.update(this.position, this.size, this.rotation);
-      this.handles = this.handles.map((point) => ({
-        x: point.x + delta.x,
-        y: point.y + delta.y,
-      }));
+      this.generateHandles();
+      //Object.keys(this.handles).forEach((handle) => {
+      //  if (this.handles) {
+      //    const point = this.handles[handle as keyof typeof this.handles];
+      //    point.x += delta.x;
+      //    point.y += delta.y;
+      //  }
+      //});
     }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
@@ -157,12 +173,14 @@ export class TransformBox {
     this.rotation = angle;
     if (this.boundingBox && this.handles) {
       this.boundingBox.update(this.position, this.size, this.rotation);
-      this.handles = this.handles.map((point) => {
-        if (this.anchorPoint) {
-          return this.rotatePoint(point, this.anchorPoint, delta);
-        }
-        return point;
-      });
+      this.generateHandles();
+      //Object.keys(this.handles).forEach((handle) => {
+      //  if (this.handles && this.anchorPoint) {
+      //    const point = this.handles[handle as keyof typeof this.handles];
+      //    return this.rotatePoint(point, this.anchorPoint, delta);
+      //  }
+      //  return handle;
+      //});
     }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
@@ -186,11 +204,14 @@ export class TransformBox {
 
     if (this.boundingBox && this.handles) {
       this.boundingBox.update(this.position, this.size, this.rotation);
-      this.handles =
-        this.handles?.map((point) => ({
-          x: origin.x + (point.x - origin.x) * scaleX,
-          y: origin.y + (point.y - origin.y) * scaleY,
-        })) || null;
+      this.generateHandles();
+      //Object.keys(this.handles).forEach((handle) => {
+      //  if (this.handles) {
+      //    const point = this.handles[handle as keyof typeof this.handles];
+      //    point.x = origin.x + (point.x - origin.x) * scaleX;
+      //    point.y = origin.y + (point.y - origin.y) * scaleY;
+      //  }
+      //});
     }
 
     ScaleTool.scaleSelectedElements(this.selectedElements, this.anchorPoint, {
@@ -227,19 +248,22 @@ export class TransformBox {
     this.context.stroke();
     // Desenhar os handles
     if (this.handles) {
-      this.handles.forEach((handle) => {
-        if (this.context) {
-          this.context.fillStyle = "blue";
-          this.context.beginPath();
-          this.context.arc(
-            handle.x,
-            handle.y,
-            5 / workAreaZoom,
-            0,
-            Math.PI * 2,
-          );
-          this.context.closePath();
-          this.context.fill();
+      Object.keys(this.handles).forEach((handle) => {
+        if (this.handles) {
+          const point = this.handles[handle as keyof typeof this.handles];
+          if (this.context) {
+            this.context.fillStyle = "blue";
+            this.context.beginPath();
+            this.context.arc(
+              point.x,
+              point.y,
+              5 / workAreaZoom,
+              0,
+              Math.PI * 2,
+            );
+            this.context.closePath();
+            this.context.fill();
+          }
         }
       });
     }

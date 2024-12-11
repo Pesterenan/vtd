@@ -16,29 +16,39 @@ export class Vector {
     }
   }
 
-  add(that: Vectorizable) {
-    const thatVector = new Vector(that);
-    return { x: this.x + thatVector.x, y: this.y + thatVector.y };
+  add(other: Vectorizable) {
+    const that = new Vector(other);
+    this.x += that.x;
+    this.y += that.y;
+    return this;
   }
 
-  sub(that: Vectorizable) {
-    const thatVector = new Vector(that);
-    return { x: this.x - thatVector.x, y: this.y - thatVector.y };
+  sub(other: Vectorizable) {
+    const that = new Vector(other);
+    this.x -= that.x;
+    this.y -= that.y;
+    return this;
   }
 
   div(scalar: number) {
     if (scalar !== 0) {
-      return { x: this.x / scalar, y: this.y / scalar };
+      this.x /= scalar;
+      this.y /= scalar;
+      return this;
     }
-    return { x: 0, y: 0 };
+    this.x = 0;
+    this.y = 0;
+    return this;
   }
 
   mul(scalar: number) {
-    return { x: this.x * scalar, y: this.y * scalar };
+    this.x *= scalar;
+    this.y *= scalar;
+    return this;
   }
 
-  mid(that: Vectorizable) {
-    const thatVector = new Vector(that);
-    return new Vector(new Vector(thatVector.sub(this)).div(2)).add(this);
+  mid(other: Vectorizable) {
+    const that = new Vector(other);
+    return that.sub(this).div(2).add(this);
   }
 }

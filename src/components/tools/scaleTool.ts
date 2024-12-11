@@ -15,7 +15,7 @@ export class ScaleTool extends Tool {
   private onHover: ((evt: MouseEvent) => void) | null = null;
   private isScaling = false;
   private selectedHandle: number | null = null;
-  private hoveredHandle: number | null = null;
+  private hoveredHandle: string | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -35,12 +35,24 @@ export class ScaleTool extends Tool {
           x: evt.offsetX,
           y: evt.offsetY,
         });
-        const handleIndex = this.transformBox.handles?.findIndex(
-          (handle) =>
-            Math.hypot(mousePos.x - handle.x, mousePos.y - handle.y) < 30,
-        );
-        if (handleIndex !== -1 && !this.isScaling) {
-          this.hoveredHandle = handleIndex || -1;
+        if (this.transformBox.handles) {
+          const handleIndex = Object.keys(this.transformBox.handles).find(
+            (handle) => {
+              if (this.transformBox?.handles) {
+                const point =
+                  this.transformBox?.handles[
+                    handle as keyof typeof this.transformBox.handles
+                  ];
+                return (
+                  Math.hypot(mousePos.x - point.x, mousePos.y - point.y) < 30
+                );
+              }
+              return false;
+            },
+          );
+          if (handleIndex !== undefined && !this.isScaling) {
+            this.hoveredHandle = handleIndex;
+          }
         }
         window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
       }
@@ -81,45 +93,65 @@ export class ScaleTool extends Tool {
       this.context.translate(this.centerPosition.x, this.centerPosition.y);
       this.context.rotate((this.transformBox.rotation * Math.PI) / 180);
       this.context.translate(-this.centerPosition.x, -this.centerPosition.y);
-      this.transformBox.handles.forEach((handle: Position, index: number) => {
-        if (this.context) {
-          this.context.save();
-          this.context.fillStyle =
-            this.hoveredHandle == index ? "green" : "red";
-          this.context.beginPath();
-          this.context.arc(handle.x, handle.y, 10, 0, Math.PI * 2);
-          this.context.closePath();
-          this.context.fill();
-          this.context.restore();
-        }
-      });
+      if (this.transformBox.handles) {
+        Object.keys(this.transformBox.handles).forEach((handle) => {
+          if (this.transformBox?.handles) {
+            const point =
+              this.transformBox.handles[
+                handle as keyof typeof this.transformBox.handles
+              ];
+            if (this.context) {
+              this.context.save();
+              this.context.fillStyle =
+                this.hoveredHandle == handle ? "green" : "red";
+              this.context.beginPath();
+              this.context.arc(point.x, point.y, 10, 0, Math.PI * 2);
+              this.context.closePath();
+              this.context.fill();
+              this.context.restore();
+            }
+          }
+        });
+      }
       this.context.restore();
     }
   }
 
   handleMouseDown(evt: MouseEvent): void {
-    //if (evt.altKey && this.transformBox) {
-    //  this.anchorPosition = WorkArea.getInstance().adjustForCanvas({
-    //    x: evt.offsetX,
-    //    y: evt.offsetY,
-    //  });
-    //  window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-    //  return;
-    //}
     if (!this.isScaling && this.transformBox) {
       const mousePos = WorkArea.getInstance().adjustForCanvas({
         x: evt.offsetX,
         y: evt.offsetY,
       });
       this.startingPosition = mousePos;
-      const handleIndex = this.transformBox?.handles?.findIndex(
-        (handle) =>
-          Math.hypot(mousePos.x - handle.x, mousePos.y - handle.y) < 30,
-      ) || null;
-      if (handleIndex !== -1) {
-        this.selectedHandle = handleIndex;
-        this.isScaling = true;
-        super.handleMouseDown();
+
+      if (this.transformBox.handles) {
+        const handleIndex = Object.keys(this.transformBox.handles).find(
+          (handle) => {
+            if (this.transformBox?.handles) {
+              const point =
+                this.transformBox?.handles[
+                  handle as keyof typeof this.transformBox.handles
+                ];
+              return (
+                Math.hypot(mousePos.x - point.x, mousePos.y - point.y) < 30
+              );
+            }
+            return false;
+          },
+        );
+        if (handleIndex !== undefined && !this.isScaling) {
+          this.selectedHandle = Object.keys(this.transformBox.handles).indexOf(
+            handleIndex as keyof typeof this.transformBox.handles,
+          );
+          console.log(
+            "down",
+            handleIndex,
+            this.selectedHandle,
+          );
+          this.isScaling = true;
+          super.handleMouseDown();
+        }
       }
     }
   }
@@ -133,80 +165,89 @@ export class ScaleTool extends Tool {
   }
 
   handleMouseMove(evt: MouseEvent): void {
-    //if (this.transformBox && this.startingPosition && this.isScaling) {
-    //  const mousePos = WorkArea.getInstance().adjustForCanvas({
-    //    x: evt.offsetX,
-    //    y: evt.offsetY,
-    //  });
-    //  const deltaX = mousePos.x - this.startingPosition.x;
-    //  const deltaY = mousePos.y - this.startingPosition.y;
-    //  //const delta = { x: 1 + deltaX / 100, y: 1 + deltaY / 100 };
-    //  //ScaleTool.scaleSelectedElements(
-    //  //  this.selectedElements,
-    //  //  this.centerPosition,
-    //  //  delta,
-    //  //);
-    //  const delta: Size = { width: deltaX, height: deltaY };
-    //  if (evt.shiftKey && this.centerPosition) {
-    //    this.transformBox.updateScale(delta, this.centerPosition);
-    //  }
-    //  this.startingPosition = mousePos;
-    //  window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
-    //}
     if (
       this.isScaling &&
       this.transformBox &&
       this.startingPosition &&
       this.selectedHandle !== null
     ) {
-  const mousePos = WorkArea.getInstance().adjustForCanvas({
-      x: evt.offsetX,
-      y: evt.offsetY,
-    });
+      const mousePos = WorkArea.getInstance().adjustForCanvas({
+        x: evt.offsetX,
+        y: evt.offsetY,
+      });
 
-    const deltaX = mousePos.x - this.startingPosition.x;
-    const deltaY = mousePos.y - this.startingPosition.y;
-    let delta: Size = { width: deltaX, height: deltaY };
+      // Desrotacionar o ponto atual do mouse em relação à rotação da TransformBox
+      const angleRad = (this.transformBox.rotation * Math.PI) / 180;
+      const cos = Math.cos(-angleRad);
+      const sin = Math.sin(-angleRad);
 
-    // Ajustar a escala conforme o handle selecionado
-    switch (this.selectedHandle) {
-      case 0: // Top Left
-        delta = { width: -deltaX, height: -deltaY };
-        break;
-      case 2: // Top Right
-        delta = { width: deltaX, height: -deltaY };
-        break;
-      case 4: // Bottom Right
-        delta = { width: deltaX, height: deltaY };
-        break;
-      case 6: // Bottom Left
-        delta = { width: -deltaX, height: deltaY };
-        break;
-      case 1: // Top Center (apenas altura)
-        delta = { width: 0, height: -deltaY };
-        break;
-      case 3: // Right Center (apenas largura)
-        delta = { width: deltaX, height: 0 };
-        break;
-      case 5: // Bottom Center (apenas altura)
-        delta = { width: 0, height: deltaY };
-        break;
-      case 7: // Left Center (apenas largura)
-        delta = { width: -deltaX, height: 0 };
-        break;
-    }
+      const desrotacionarPonto = (pos: Position) => {
+        const translatedX = pos.x - this.transformBox!.position.x;
+        const translatedY = pos.y - this.transformBox!.position.y;
+        return {
+          x:
+            translatedX * cos -
+            translatedY * sin +
+            this.transformBox!.position.x,
+          y:
+            translatedX * sin +
+            translatedY * cos +
+            this.transformBox!.position.y,
+        };
+      };
 
-    // Atualizar o TransformBox com o novo tamanho baseado no delta
-    this.transformBox.updateScale(
-      {
-        width: this.transformBox.size.width + delta.width,
-        height: this.transformBox.size.height + delta.height,
-      },
-      this.transformBox.position,
-    );
+      const mousePosDesrotacionado = desrotacionarPonto(mousePos);
+      const startingPosDesrotacionado = desrotacionarPonto(
+        this.startingPosition,
+      );
 
-    this.startingPosition = mousePos;
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      const deltaX = mousePosDesrotacionado.x - startingPosDesrotacionado.x;
+      const deltaY = mousePosDesrotacionado.y - startingPosDesrotacionado.y;
+      let delta: Size = { width: deltaX, height: deltaY };
+
+      // Ajustar a escala conforme o handle selecionado
+      switch (this.selectedHandle) {
+        case 0: // Top Left
+          delta = { width: -deltaX, height: -deltaY };
+          break;
+        case 2: // Top Right
+          delta = { width: deltaX, height: -deltaY };
+          break;
+        case 4: // Bottom Right
+          delta = { width: deltaX, height: deltaY };
+          break;
+        case 6: // Bottom Left
+          delta = { width: -deltaX, height: deltaY };
+          break;
+        case 1: // Top Center (apenas altura)
+          delta = { width: 0, height: -deltaY };
+          break;
+        case 3: // Right Center (apenas largura)
+          delta = { width: deltaX, height: 0 };
+          break;
+        case 5: // Bottom Center (apenas altura)
+          delta = { width: 0, height: deltaY };
+          break;
+        case 7: // Left Center (apenas largura)
+          delta = { width: -deltaX, height: 0 };
+          break;
+        case 8: // Center
+          console.log('centro');
+          delta = { width: 0, height: 0 };
+          break;
+      }
+
+      // Atualizar o TransformBox com o novo tamanho baseado no delta
+      this.transformBox.updateScale(
+        {
+          width: this.transformBox.size.width + delta.width,
+          height: this.transformBox.size.height + delta.height,
+        },
+        this.transformBox.handles?.CENTER,
+      );
+
+      this.startingPosition = mousePos;
+      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
 
@@ -224,20 +265,16 @@ export class ScaleTool extends Tool {
       elements.forEach((element) => {
         const oldWidth = element.size.width;
         const oldHeight = element.size.height;
-        // Atualiza o tamanho do elemento
-        element.size.width *= delta.width;
-        element.size.height *= delta.height;
-
-        // Calcula os fatores de escala com base no tamanho antigo e novo
         const scaleX = element.size.width / oldWidth;
         const scaleY = element.size.height / oldHeight;
-
         // Ajusta a posição com base no ponto de ancoragem e nos fatores de escala
         element.position.x =
           anchor.x + (element.position.x - anchor.x) * scaleX;
         element.position.y =
           anchor.y + (element.position.y - anchor.y) * scaleY;
-        element.scale = { x: scaleX, y: scaleY };
+        // Atualiza o tamanho do elemento baseado no delta
+        element.size.width = oldWidth * delta.width;
+        element.size.height = oldHeight * delta.height;
       });
     }
   }
