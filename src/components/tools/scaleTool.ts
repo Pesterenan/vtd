@@ -1,14 +1,17 @@
 import EVENT from "src/utils/customEvents";
 import type { Element } from "src/components/elements/element";
-import type { Position, TElementData } from "src/components/types";
+import type { Position, Scale, TElementData } from "src/components/types";
 import { Tool } from "src/components/tools/abstractTool";
 import centerHandleScale from "src/assets/icons/scale-tool.svg";
 import { WorkArea } from "src/components/workArea";
 import type { TransformBox } from "src/components/transformBox";
 import type { Size } from "electron";
+import { Vector } from "src/utils/vector";
 
 export class ScaleTool extends Tool {
   private startingPosition: Position | null = null;
+  private scaleChange: Scale | null = null;
+  private startingSize: Size | null = null;
   private centerPosition: Position | null = null;
   private toolIcon: HTMLImageElement | null = null;
   private transformBox: TransformBox | null = null;
@@ -27,6 +30,8 @@ export class ScaleTool extends Tool {
     this.transformBox = WorkArea.getInstance().transformBox;
     if (this.transformBox && this.transformBox.boundingBox) {
       this.centerPosition = this.transformBox.position;
+      this.scaleChange = this.transformBox.scale;
+      this.startingSize = this.transformBox.size;
     }
     super.equipTool();
     this.onHover = (evt: MouseEvent) => {
@@ -66,6 +71,7 @@ export class ScaleTool extends Tool {
     if (this.onHover) {
       this.canvas.removeEventListener("mousemove", this.onHover);
     }
+    this.scaleChange = null;
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -144,11 +150,6 @@ export class ScaleTool extends Tool {
           this.selectedHandle = Object.keys(this.transformBox.handles).indexOf(
             handleIndex as keyof typeof this.transformBox.handles,
           );
-          console.log(
-            "down",
-            handleIndex,
-            this.selectedHandle,
-          );
           this.isScaling = true;
           super.handleMouseDown();
         }
@@ -203,48 +204,58 @@ export class ScaleTool extends Tool {
 
       const deltaX = mousePosDesrotacionado.x - startingPosDesrotacionado.x;
       const deltaY = mousePosDesrotacionado.y - startingPosDesrotacionado.y;
-      let delta: Size = { width: deltaX, height: deltaY };
+      let delta: Position = { x: deltaX, y: deltaY };
+      let origin: Position = this.transformBox.handles.CENTER;
 
       // Ajustar a escala conforme o handle selecionado
       switch (this.selectedHandle) {
         case 0: // Top Left
-          delta = { width: -deltaX, height: -deltaY };
+          delta = { x: -deltaX, y: -deltaY };
+          origin = this.transformBox.handles.BOTTOM_RIGHT;
           break;
         case 2: // Top Right
-          delta = { width: deltaX, height: -deltaY };
+          delta = { x: deltaX, y: -deltaY };
+          origin = this.transformBox.handles.BOTTOM_LEFT;
           break;
         case 4: // Bottom Right
-          delta = { width: deltaX, height: deltaY };
+          delta = { x: deltaX, y: deltaY };
+          origin = this.transformBox.handles.TOP_LEFT;
           break;
         case 6: // Bottom Left
-          delta = { width: -deltaX, height: deltaY };
+          delta = { x: -deltaX, y: deltaY };
+          origin = this.transformBox.handles.TOP_RIGHT;
           break;
         case 1: // Top Center (apenas altura)
-          delta = { width: 0, height: -deltaY };
+          delta = { x: 0, y: -deltaY };
+          origin = this.transformBox.handles.BOTTOM;
           break;
         case 3: // Right Center (apenas largura)
-          delta = { width: deltaX, height: 0 };
+          delta = { x: deltaX, y: 0 };
+          origin = this.transformBox.handles.LEFT;
           break;
         case 5: // Bottom Center (apenas altura)
-          delta = { width: 0, height: deltaY };
+          delta = { x: 0, y: deltaY };
+          origin = this.transformBox.handles.TOP;
           break;
         case 7: // Left Center (apenas largura)
-          delta = { width: -deltaX, height: 0 };
+          delta = { x: -deltaX, y: 0 };
+          origin = this.transformBox.handles.RIGHT;
           break;
         case 8: // Center
-          console.log('centro');
-          delta = { width: 0, height: 0 };
+          delta = { x: 0, y: 0 };
+          origin = this.transformBox.handles.CENTER;
           break;
       }
 
+      const scaleChange = {
+        x: 1 + delta.x / this.transformBox.size.width,
+        y: 1 + delta.y / this.transformBox.size.height,
+      };
+
+      this.scaleChange = scaleChange;
+      console.log(desrotacionarPonto(origin));
       // Atualizar o TransformBox com o novo tamanho baseado no delta
-      this.transformBox.updateScale(
-        {
-          width: this.transformBox.size.width + delta.width,
-          height: this.transformBox.size.height + delta.height,
-        },
-        this.transformBox.handles?.CENTER,
-      );
+      this.transformBox.updateScale(this.scaleChange, desrotacionarPonto(origin));
 
       this.startingPosition = mousePos;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
@@ -259,22 +270,24 @@ export class ScaleTool extends Tool {
   public static scaleSelectedElements(
     elements: Element<TElementData>[] | null,
     anchor: Position,
-    delta: Size,
+    delta: Scale,
   ): void {
     if (elements) {
       elements.forEach((element) => {
         const oldWidth = element.size.width;
         const oldHeight = element.size.height;
-        const scaleX = element.size.width / oldWidth;
-        const scaleY = element.size.height / oldHeight;
+        const newWidth = delta.x !== 1 ? oldWidth * delta.x : oldWidth;
+        const newHeight = delta.y !== 1 ? oldHeight * delta.y : oldHeight;
         // Ajusta a posição com base no ponto de ancoragem e nos fatores de escala
         element.position.x =
-          anchor.x + (element.position.x - anchor.x) * scaleX;
+          anchor.x +
+          (element.position.x - anchor.x) * (delta.x !== 1 ? delta.x : 1);
         element.position.y =
-          anchor.y + (element.position.y - anchor.y) * scaleY;
+          anchor.y +
+          (element.position.y - anchor.y) * (delta.y !== 1 ? delta.y : 1);
         // Atualiza o tamanho do elemento baseado no delta
-        element.size.width = oldWidth * delta.width;
-        element.size.height = oldHeight * delta.height;
+        element.size.width = newWidth;
+        element.size.height = newHeight;
       });
     }
   }

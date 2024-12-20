@@ -18,17 +18,18 @@ export class TransformBox {
   private selectedElements: Element<TElementData>[] = [];
   private context: CanvasRenderingContext2D | null;
   public boundingBox: BoundingBox | null = null;
-  public handles: {
-    BOTTOM: Position;
-    BOTTOM_LEFT: Position;
-    BOTTOM_RIGHT: Position;
-    CENTER: Position;
-    LEFT: Position;
-    RIGHT: Position;
-    TOP: Position;
-    TOP_LEFT: Position;
-    TOP_RIGHT: Position;
-  } | null = null;
+  public handles: Record<
+    | "BOTTOM"
+    | "BOTTOM_LEFT"
+    | "BOTTOM_RIGHT"
+    | "CENTER"
+    | "LEFT"
+    | "RIGHT"
+    | "TOP"
+    | "TOP_LEFT"
+    | "TOP_RIGHT",
+    Position
+  > | null = null;
 
   public constructor(
     selectedElements: Element<TElementData>[],
@@ -149,13 +150,6 @@ export class TransformBox {
     if (this.boundingBox && this.handles) {
       this.boundingBox.update(this.position, this.size, this.rotation);
       this.generateHandles();
-      //Object.keys(this.handles).forEach((handle) => {
-      //  if (this.handles) {
-      //    const point = this.handles[handle as keyof typeof this.handles];
-      //    point.x += delta.x;
-      //    point.y += delta.y;
-      //  }
-      //});
     }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
@@ -174,50 +168,33 @@ export class TransformBox {
     if (this.boundingBox && this.handles) {
       this.boundingBox.update(this.position, this.size, this.rotation);
       this.generateHandles();
-      //Object.keys(this.handles).forEach((handle) => {
-      //  if (this.handles && this.anchorPoint) {
-      //    const point = this.handles[handle as keyof typeof this.handles];
-      //    return this.rotatePoint(point, this.anchorPoint, delta);
-      //  }
-      //  return handle;
-      //});
     }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
-  public updateScale(size: Size, origin: Position = this.position): void {
+  public updateScale(delta: Scale, anchor: Position = this.position): void {
     // Calcula o fator de escala baseado no novo tamanho
-    const scaleX = size.width / this.size.width;
-    const scaleY = size.height / this.size.height;
-
-    // Atualizar o tamanho da caixa de transformação
-    this.size.width = size.width;
-    this.size.height = size.height;
+    console.log(anchor, 'anchor');
+    this.anchorPoint = anchor;
+    const newSize = {
+      width: Math.round(this.size.width * (delta.x || 1)),
+      height: Math.round(this.size.height * (delta.y || 1)),
+    };
+    this.size = newSize;
 
     // Recalcular a posição baseada no ponto de origem e no fator de escala
-    this.position.x = origin.x + (this.position.x - origin.x) * scaleX;
-    this.position.y = origin.y + (this.position.y - origin.y) * scaleY;
+    this.position = {
+      x: Math.round(anchor.x + (this.position.x - anchor.x) * (delta.x || 1)),
+      y: Math.round(anchor.y + (this.position.y - anchor.y) * (delta.y || 1)),
+    };
 
     // Recalcular o bounding box
-
-    this.anchorPoint = origin;
-
     if (this.boundingBox && this.handles) {
       this.boundingBox.update(this.position, this.size, this.rotation);
       this.generateHandles();
-      //Object.keys(this.handles).forEach((handle) => {
-      //  if (this.handles) {
-      //    const point = this.handles[handle as keyof typeof this.handles];
-      //    point.x = origin.x + (point.x - origin.x) * scaleX;
-      //    point.y = origin.y + (point.y - origin.y) * scaleY;
-      //  }
-      //});
     }
 
-    ScaleTool.scaleSelectedElements(this.selectedElements, this.anchorPoint, {
-      width: scaleX,
-      height: scaleY,
-    });
+    ScaleTool.scaleSelectedElements(this.selectedElements, this.anchorPoint, delta);
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
