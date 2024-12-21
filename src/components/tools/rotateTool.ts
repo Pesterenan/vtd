@@ -5,6 +5,7 @@ import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
 import centerHandleRotate from "src/assets/icons/rotate-tool.svg";
 import type { TransformBox } from "src/components/transformBox";
+import { toDegrees, toRadians } from "src/utils/transforms";
 
 export class RotateTool extends Tool {
   private toolIcon: HTMLImageElement | null = null;
@@ -107,7 +108,7 @@ export class RotateTool extends Tool {
         mousePos.y - this.transformBox.anchorPoint.y,
         mousePos.x - this.transformBox.anchorPoint.x,
       );
-      const angle = ((currentAngle - startingAngle) * 180) / Math.PI;
+      const angle = toDegrees(currentAngle - startingAngle);
       const normalizedAngle = (this.transformBox.rotation + angle) % 360;
       this.transformBox.updateRotation(
         normalizedAngle,
@@ -129,7 +130,7 @@ export class RotateTool extends Tool {
     angle: number,
   ): void {
     if (elements && origin) {
-      const angleInRadians = (angle * Math.PI) / 180;
+      const angleInRadians = toRadians(angle);
       elements.forEach((element) => {
         const deltaX = element.position.x - origin.x;
         const deltaY = element.position.y - origin.y;

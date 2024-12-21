@@ -5,11 +5,12 @@ import type { IColorControl } from "src/components/helpers/createColorControl";
 import { createColorControl } from "src/components/helpers/createColorControl";
 import type { ISliderControl } from "src/components/helpers/createSliderControl";
 import { createSliderControl } from "src/components/helpers/createSliderControl";
+import { toRadians } from "src/utils/transforms";
 
 export class DropShadowFilter extends Filter {
   public set angle(value: number) {
     this.properties.set("angle", clamp(value, 0, 360));
-    this.radians = this.angle * (Math.PI / 180);
+    this.radians = toRadians(this.angle);
   }
   public get angle(): number {
     return this.properties.get("angle") as number;
@@ -46,7 +47,7 @@ export class DropShadowFilter extends Filter {
     this.distance = 20;
     this.blur = 10;
     this.color = "#000000";
-    this.radians = this.angle * (Math.PI / 180);
+    this.radians = toRadians(this.angle);
     this.createDOMElements();
   }
 

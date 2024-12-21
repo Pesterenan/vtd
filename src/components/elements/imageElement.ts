@@ -3,6 +3,7 @@ import { Element } from "src/components/elements/element";
 import type { IImageElementData, Position, Size } from "src/components/types";
 import { clamp } from "src/utils/easing";
 import { BoundingBox } from "src/utils/boundingBox";
+import { toRadians } from "src/utils/transforms";
 
 export class ImageElement extends Element<IImageElementData> {
   public get backgroundColor(): string {
@@ -50,7 +51,7 @@ export class ImageElement extends Element<IImageElementData> {
 
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return;
-    const angleInRadians = (this.rotation * Math.PI) / 180;
+    const angleInRadians = toRadians(this.rotation);
     context.save();
     context.translate(this.position.x, this.position.y);
     context.rotate(angleInRadians);

@@ -5,13 +5,11 @@ import { Tool } from "src/components/tools/abstractTool";
 import centerHandleScale from "src/assets/icons/scale-tool.svg";
 import { WorkArea } from "src/components/workArea";
 import type { TransformBox } from "src/components/transformBox";
-import type { Size } from "electron";
-import { Vector } from "src/utils/vector";
+import { toRadians } from "src/utils/transforms";
 
 export class ScaleTool extends Tool {
   private startingPosition: Position | null = null;
   private scaleChange: Scale | null = null;
-  private startingSize: Size | null = null;
   private centerPosition: Position | null = null;
   private toolIcon: HTMLImageElement | null = null;
   private transformBox: TransformBox | null = null;
@@ -31,7 +29,6 @@ export class ScaleTool extends Tool {
     if (this.transformBox && this.transformBox.boundingBox) {
       this.centerPosition = this.transformBox.position;
       this.scaleChange = this.transformBox.scale;
-      this.startingSize = this.transformBox.size;
     }
     super.equipTool();
     this.onHover = (evt: MouseEvent) => {
@@ -97,7 +94,7 @@ export class ScaleTool extends Tool {
         this.toolIcon.height / workAreaZoom,
       );
       this.context.translate(this.centerPosition.x, this.centerPosition.y);
-      this.context.rotate((this.transformBox.rotation * Math.PI) / 180);
+      this.context.rotate(toRadians(this.transformBox.rotation));
       this.context.translate(-this.centerPosition.x, -this.centerPosition.y);
       if (this.transformBox.handles) {
         Object.keys(this.transformBox.handles).forEach((handle) => {
@@ -177,29 +174,32 @@ export class ScaleTool extends Tool {
         y: evt.offsetY,
       });
 
-      // Desrotacionar o ponto atual do mouse em relação à rotação da TransformBox
-      const angleRad = (this.transformBox.rotation * Math.PI) / 180;
-      const cos = Math.cos(-angleRad);
-      const sin = Math.sin(-angleRad);
+      const rotatePoint = (
+        point: Position,
+        center: Position,
+        angle: number,
+      ) => {
+        const radians = toRadians(angle);
+        const cos = Math.cos(radians);
+        const sin = Math.sin(radians);
+        const dx = point.x - center.x;
+        const dy = point.y - center.y;
 
-      const desrotacionarPonto = (pos: Position) => {
-        const translatedX = pos.x - this.transformBox!.position.x;
-        const translatedY = pos.y - this.transformBox!.position.y;
         return {
-          x:
-            translatedX * cos -
-            translatedY * sin +
-            this.transformBox!.position.x,
-          y:
-            translatedX * sin +
-            translatedY * cos +
-            this.transformBox!.position.y,
+          x: cos * dx - sin * dy + center.x,
+          y: sin * dx + cos * dy + center.y,
         };
       };
 
-      const mousePosDesrotacionado = desrotacionarPonto(mousePos);
-      const startingPosDesrotacionado = desrotacionarPonto(
+      const mousePosDesrotacionado = rotatePoint(
+        mousePos,
+        this.transformBox.boundingBox.center,
+        -this.transformBox.rotation,
+      );
+      const startingPosDesrotacionado = rotatePoint(
         this.startingPosition,
+        this.transformBox.boundingBox.center,
+        -this.transformBox.rotation,
       );
 
       const deltaX = mousePosDesrotacionado.x - startingPosDesrotacionado.x;
@@ -252,10 +252,13 @@ export class ScaleTool extends Tool {
         y: 1 + delta.y / this.transformBox.size.height,
       };
 
+      this.centerPosition = origin;
       this.scaleChange = scaleChange;
-      console.log(desrotacionarPonto(origin));
       // Atualizar o TransformBox com o novo tamanho baseado no delta
-      this.transformBox.updateScale(this.scaleChange, desrotacionarPonto(origin));
+      this.transformBox.updateScale(
+        this.scaleChange,
+        rotatePoint(origin, this.centerPosition, this.transformBox.rotation),
+      );
 
       this.startingPosition = mousePos;
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));

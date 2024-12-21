@@ -7,6 +7,7 @@ import { GrabTool } from "./tools/grabTool";
 import { ScaleTool } from "./tools/scaleTool";
 import { BoundingBox } from "src/utils/boundingBox";
 import { Vector } from "src/utils/vector";
+import { toRadians } from "src/utils/transforms";
 
 export class TransformBox {
   public position: Position = { x: 0, y: 0 };
@@ -129,7 +130,7 @@ export class TransformBox {
     center: Position,
     angle: number,
   ): Position {
-    const radians = (angle * Math.PI) / 180;
+    const radians = toRadians(angle);
     const cos = Math.cos(radians);
     const sin = Math.sin(radians);
     const dx = point.x - center.x;
@@ -141,61 +142,61 @@ export class TransformBox {
     };
   }
 
+  private updateHandles(): void {
+    if (this.boundingBox && this.handles) {
+      this.boundingBox.update(this.position, this.size, this.rotation);
+      this.generateHandles();
+    }
+    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+  }
+
   public updatePosition({ x, y }: Position): void {
     const delta = { x: x - this.position.x, y: y - this.position.y };
     GrabTool.moveSelectedElements(this.selectedElements, delta);
     this.position = { x, y };
     this.anchorPoint = { ...this.position };
 
-    if (this.boundingBox && this.handles) {
-      this.boundingBox.update(this.position, this.size, this.rotation);
-      this.generateHandles();
-    }
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    this.updateHandles();
   }
 
-  public updateRotation(angle: number, origin: Position = this.position): void {
-    this.anchorPoint = origin;
-    const delta = angle - this.rotation;
-    const deltaPos = this.rotatePoint(this.position, this.anchorPoint, delta);
+  public updateRotation(angle: number, anchor: Position = this.position): void {
+    this.anchorPoint = anchor;
+    const deltaAngle = angle - this.rotation;
+    const deltaPos = this.rotatePoint(
+      this.position,
+      this.anchorPoint,
+      deltaAngle,
+    );
     RotateTool.rotateSelectedElements(
       this.selectedElements,
       this.anchorPoint,
-      delta,
+      deltaAngle,
     );
     this.position = deltaPos;
     this.rotation = angle;
-    if (this.boundingBox && this.handles) {
-      this.boundingBox.update(this.position, this.size, this.rotation);
-      this.generateHandles();
-    }
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+
+    this.updateHandles();
   }
 
   public updateScale(delta: Scale, anchor: Position = this.position): void {
-    // Calcula o fator de escala baseado no novo tamanho
-    console.log(anchor, 'anchor');
-    this.anchorPoint = anchor;
+    ScaleTool.scaleSelectedElements(
+      this.selectedElements,
+      anchor,
+      delta,
+    );
     const newSize = {
-      width: Math.round(this.size.width * (delta.x || 1)),
-      height: Math.round(this.size.height * (delta.y || 1)),
+      width: this.size.width * delta.x,
+      height: this.size.height * delta.y,
     };
     this.size = newSize;
 
-    // Recalcular a posição baseada no ponto de origem e no fator de escala
     this.position = {
-      x: Math.round(anchor.x + (this.position.x - anchor.x) * (delta.x || 1)),
-      y: Math.round(anchor.y + (this.position.y - anchor.y) * (delta.y || 1)),
+      x: anchor.x + (this.position.x - anchor.x) * delta.x,
+      y: anchor.y + (this.position.y - anchor.y) * delta.y,
     };
+    this.anchorPoint = { ...this.position };
 
-    // Recalcular o bounding box
-    if (this.boundingBox && this.handles) {
-      this.boundingBox.update(this.position, this.size, this.rotation);
-      this.generateHandles();
-    }
-
-    ScaleTool.scaleSelectedElements(this.selectedElements, this.anchorPoint, delta);
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    this.updateHandles();
   }
 
   public contains(element: Element<TElementData>): boolean {

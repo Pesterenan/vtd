@@ -1,6 +1,7 @@
 import type { Position, Size } from "src/components/types";
 import { Vector } from "./vector";
 import { WorkArea } from "src/components/workArea";
+import { toRadians } from "./transforms";
 
 export class BoundingBox {
   public topLeft: Position = { x: 0, y: 0 };
@@ -54,7 +55,7 @@ export class BoundingBox {
     center: Position,
     angle: number,
   ): Position {
-    const radians = (Math.PI / 180) * angle;
+    const radians = toRadians(angle);
     const cos = Math.cos(radians);
     const sin = Math.sin(radians);
 

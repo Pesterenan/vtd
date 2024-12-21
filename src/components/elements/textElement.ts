@@ -1,10 +1,7 @@
 import { Element } from "src/components/elements/element";
-import type {
-  ITextElementData,
-  Position,
-  Size,
-} from "src/components/types";
+import type { ITextElementData, Position, Size } from "src/components/types";
 import { BoundingBox } from "src/utils/boundingBox";
+import { toRadians } from "src/utils/transforms";
 
 export class TextElement extends Element<ITextElementData> {
   public get font(): string {
@@ -155,13 +152,13 @@ export class TextElement extends Element<ITextElementData> {
         if (acc.width < linewidth) {
           acc.width = linewidth + this.strokeWidth;
         }
-        acc.height += lineheight * (this.lineHeight) + this.strokeWidth;
+        acc.height += lineheight * this.lineHeight + this.strokeWidth;
         return acc;
       },
       { width: 0, height: 0 },
     );
     this.size = { ...totalSize };
-    this.boundingBox.update(this.position,this.size,this.rotation);
+    this.boundingBox.update(this.position, this.size, this.rotation);
     this.needsBoundingBoxUpdate = false;
     this.needsCacheUpdate = true;
     context.restore();
@@ -170,7 +167,7 @@ export class TextElement extends Element<ITextElementData> {
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return;
     if (this.needsCacheUpdate) this.updateCache();
-    const angleInRadians = (this.rotation * Math.PI) / 180;
+    const angleInRadians = toRadians(this.rotation);
     context.save();
     context.translate(this.position.x, this.position.y);
     context.rotate(angleInRadians);
@@ -227,7 +224,7 @@ export class TextElement extends Element<ITextElementData> {
   }
 
   public getBoundingBox(): BoundingBox {
-    this.boundingBox.update(this.position,this.size,this.rotation);
+    this.boundingBox.update(this.position, this.size, this.rotation);
     return this.boundingBox;
   }
 }

@@ -101,10 +101,11 @@ export class GrabTool extends Tool {
         x: evt.offsetX,
         y: evt.offsetY,
       });
-      this.transformBox.updatePosition({
+      const delta = {
         x: mousePos.x - this.startPosition.x,
         y: mousePos.y - this.startPosition.y,
-      });
+      };
+      this.transformBox.updatePosition(delta);
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
