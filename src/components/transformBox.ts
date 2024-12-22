@@ -152,7 +152,12 @@ export class TransformBox {
 
   public updatePosition({ x, y }: Position): void {
     const delta = { x: x - this.position.x, y: y - this.position.y };
-    GrabTool.moveSelectedElements(this.selectedElements, delta);
+    this.selectedElements.forEach((element) => {
+      element.position = {
+        x: element.position.x + delta.x,
+        y: element.position.y + delta.y,
+      };
+    });
     this.position = { x, y };
     this.anchorPoint = { ...this.position };
 
@@ -167,11 +172,19 @@ export class TransformBox {
       this.anchorPoint,
       deltaAngle,
     );
-    RotateTool.rotateSelectedElements(
-      this.selectedElements,
-      this.anchorPoint,
-      deltaAngle,
-    );
+    if (this.selectedElements && this.anchorPoint) {
+      const angleInRadians = toRadians(deltaAngle);
+      this.selectedElements.forEach((element) => {
+        const deltaX = element.position.x - this.anchorPoint!.x;
+        const deltaY = element.position.y - this.anchorPoint!.y;
+        const newX =
+          deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians);
+        const newY =
+          deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians);
+        element.position = { x: this.anchorPoint!.x + newX, y: this.anchorPoint!.y + newY };
+        element.rotation += deltaAngle;
+      });
+    }
     this.position = deltaPos;
     this.rotation = angle;
 
@@ -179,11 +192,25 @@ export class TransformBox {
   }
 
   public updateScale(delta: Scale, anchor: Position = this.position): void {
-    ScaleTool.scaleSelectedElements(
-      this.selectedElements,
-      anchor,
-      delta,
-    );
+    if (this.selectedElements) {
+      this.selectedElements.forEach((element) => {
+
+        const oldWidth = element.size.width;
+        const oldHeight = element.size.height;
+        const newWidth = delta.x !== 1 ? oldWidth * delta.x : oldWidth;
+        const newHeight = delta.y !== 1 ? oldHeight * delta.y : oldHeight;
+        // Ajusta a posição com base no ponto de ancoragem e nos fatores de escala
+        element.position.x =
+          anchor.x +
+          (element.position.x - anchor.x) * (delta.x !== 1 ? delta.x : 1);
+        element.position.y =
+          anchor.y +
+          (element.position.y - anchor.y) * (delta.y !== 1 ? delta.y : 1);
+        // Atualiza o tamanho do elemento baseado no delta
+        element.size.width = newWidth;
+        element.size.height = newHeight;
+      });
+    }
     const newSize = {
       width: this.size.width * delta.x,
       height: this.size.height * delta.y,

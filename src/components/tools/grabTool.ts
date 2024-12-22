@@ -1,6 +1,5 @@
 import EVENT from "src/utils/customEvents";
-import type { Element } from "src/components/elements/element";
-import type { Position, TElementData } from "src/components/types";
+import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
 import centerHandleMove from "src/assets/icons/move-tool.svg";
@@ -106,7 +105,6 @@ export class GrabTool extends Tool {
         y: mousePos.y - this.startPosition.y,
       };
       this.transformBox.updatePosition(delta);
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
 
@@ -114,18 +112,4 @@ export class GrabTool extends Tool {
   handleKeyDown(): void {}
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleKeyUp(): void {}
-
-  public static moveSelectedElements(
-    elements: Element<TElementData>[] | null,
-    delta: Position,
-  ): void {
-    if (elements) {
-      elements.forEach((element) => {
-        element.position = {
-          x: element.position.x + delta.x,
-          y: element.position.y + delta.y,
-        };
-      });
-    }
-  }
 }

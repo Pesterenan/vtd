@@ -1,11 +1,10 @@
 import EVENT from "src/utils/customEvents";
-import type { Element } from "src/components/elements/element";
-import type { Position, TElementData } from "src/components/types";
+import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
 import centerHandleRotate from "src/assets/icons/rotate-tool.svg";
 import type { TransformBox } from "src/components/transformBox";
-import { toDegrees, toRadians } from "src/utils/transforms";
+import { toDegrees } from "src/utils/transforms";
 
 export class RotateTool extends Tool {
   private toolIcon: HTMLImageElement | null = null;
@@ -110,12 +109,8 @@ export class RotateTool extends Tool {
       );
       const angle = toDegrees(currentAngle - startingAngle);
       const normalizedAngle = (this.transformBox.rotation + angle) % 360;
-      this.transformBox.updateRotation(
-        normalizedAngle,
-        this.transformBox.anchorPoint,
-      );
+      this.transformBox.updateRotation(normalizedAngle, this.transformBox.anchorPoint);
       this.startPosition = mousePos;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     }
   }
 
@@ -123,24 +118,4 @@ export class RotateTool extends Tool {
   handleKeyDown(): void {}
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleKeyUp(): void {}
-
-  public static rotateSelectedElements(
-    elements: Element<TElementData>[] | null,
-    origin: Position | null,
-    angle: number,
-  ): void {
-    if (elements && origin) {
-      const angleInRadians = toRadians(angle);
-      elements.forEach((element) => {
-        const deltaX = element.position.x - origin.x;
-        const deltaY = element.position.y - origin.y;
-        const newX =
-          deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians);
-        const newY =
-          deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians);
-        element.position = { x: origin.x + newX, y: origin.y + newY };
-        element.rotation += angle;
-      });
-    }
-  }
 }
