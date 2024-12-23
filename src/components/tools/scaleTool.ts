@@ -1,5 +1,5 @@
 import EVENT from "src/utils/customEvents";
-import type { Position, Scale } from "src/components/types";
+import type { Position } from "src/components/types";
 import { Tool } from "src/components/tools/abstractTool";
 import centerHandleScale from "src/assets/icons/scale-tool.svg";
 import { WorkArea } from "src/components/workArea";
@@ -8,7 +8,6 @@ import { toRadians } from "src/utils/transforms";
 
 export class ScaleTool extends Tool {
   private startingPosition: Position | null = null;
-  private scaleChange: Scale | null = null;
   private centerPosition: Position | null = null;
   private toolIcon: HTMLImageElement | null = null;
   private transformBox: TransformBox | null = null;
@@ -27,7 +26,6 @@ export class ScaleTool extends Tool {
     this.transformBox = WorkArea.getInstance().transformBox;
     if (this.transformBox && this.transformBox.boundingBox) {
       this.centerPosition = this.transformBox.position;
-      this.scaleChange = this.transformBox.scale;
     }
     super.equipTool();
     this.onHover = (evt: MouseEvent) => {
@@ -67,7 +65,6 @@ export class ScaleTool extends Tool {
     if (this.onHover) {
       this.canvas.removeEventListener("mousemove", this.onHover);
     }
-    this.scaleChange = null;
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -161,7 +158,11 @@ export class ScaleTool extends Tool {
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
-  private rotatePoint(point: Position, center: Position, angle: number): Position {
+  private rotatePoint(
+    point: Position,
+    center: Position,
+    angle: number,
+  ): Position {
     const radians = toRadians(angle);
     const cos = Math.cos(radians);
     const sin = Math.sin(radians);
@@ -175,47 +176,50 @@ export class ScaleTool extends Tool {
   }
 
   private getDeltaAndAnchor(deltaX: number, deltaY: number) {
-      let delta: Position = { x: deltaX, y: deltaY };
-      let anchor: Position = this.transformBox?.handles.CENTER ?? { x: 0, y: 0 };
+    let delta: Position = { x: deltaX, y: deltaY };
+    let anchor: Position = this.transformBox?.handles?.CENTER ?? { x: 0, y: 0 };
 
-      switch (this.selectedHandle) {
-        case 0: // Top Left
-          delta = { x: -deltaX, y: -deltaY };
-          anchor = this.transformBox.handles.BOTTOM_RIGHT;
-          break;
-        case 2: // Top Right
-          delta = { x: deltaX, y: -deltaY };
-          anchor = this.transformBox.handles.BOTTOM_LEFT;
-          break;
-        case 4: // Bottom Right
-          delta = { x: deltaX, y: deltaY };
-          anchor = this.transformBox.handles.TOP_LEFT;
-          break;
-        case 6: // Bottom Left
-          delta = { x: -deltaX, y: deltaY };
-          anchor = this.transformBox.handles.TOP_RIGHT;
-          break;
-        case 1: // Top Center (apenas altura)
-          delta = { x: 0, y: -deltaY };
-          anchor = this.transformBox.handles.BOTTOM;
-          break;
-        case 3: // Right Center (apenas largura)
-          delta = { x: deltaX, y: 0 };
-          anchor = this.transformBox.handles.LEFT;
-          break;
-        case 5: // Bottom Center (apenas altura)
-          delta = { x: 0, y: deltaY };
-          anchor = this.transformBox.handles.TOP;
-          break;
-        case 7: // Left Center (apenas largura)
-          delta = { x: -deltaX, y: 0 };
-          anchor = this.transformBox.handles.RIGHT;
-          break;
-        case 8: // Center
-          delta = { x: 0, y: 0 };
-          anchor = this.transformBox.handles.CENTER;
-          break;
-      }
+    if (this.transformBox === null || this.transformBox?.handles === null)
+      return { delta, anchor };
+
+    switch (this.selectedHandle) {
+      case 0: // Top Left
+        delta = { x: -deltaX, y: -deltaY };
+        anchor = this.transformBox.handles.BOTTOM_RIGHT;
+        break;
+      case 2: // Top Right
+        delta = { x: deltaX, y: -deltaY };
+        anchor = this.transformBox.handles.BOTTOM_LEFT;
+        break;
+      case 4: // Bottom Right
+        delta = { x: deltaX, y: deltaY };
+        anchor = this.transformBox.handles.TOP_LEFT;
+        break;
+      case 6: // Bottom Left
+        delta = { x: -deltaX, y: deltaY };
+        anchor = this.transformBox.handles.TOP_RIGHT;
+        break;
+      case 1: // Top Center (apenas altura)
+        delta = { x: 0, y: -deltaY };
+        anchor = this.transformBox.handles.BOTTOM;
+        break;
+      case 3: // Right Center (apenas largura)
+        delta = { x: deltaX, y: 0 };
+        anchor = this.transformBox.handles.LEFT;
+        break;
+      case 5: // Bottom Center (apenas altura)
+        delta = { x: 0, y: deltaY };
+        anchor = this.transformBox.handles.TOP;
+        break;
+      case 7: // Left Center (apenas largura)
+        delta = { x: -deltaX, y: 0 };
+        anchor = this.transformBox.handles.RIGHT;
+        break;
+      case 8: // Center
+        delta = { x: 0, y: 0 };
+        anchor = this.transformBox.handles.CENTER;
+        break;
+    }
     return { delta, anchor };
   }
 
@@ -226,6 +230,8 @@ export class ScaleTool extends Tool {
       this.startingPosition &&
       this.selectedHandle !== null
     ) {
+    if (this.transformBox === null || this.transformBox?.boundingBox === null)
+      return;
       const mousePos = WorkArea.getInstance().adjustForCanvas({
         x: evt.offsetX,
         y: evt.offsetY,
@@ -253,10 +259,7 @@ export class ScaleTool extends Tool {
       };
 
       // Atualizar o TransformBox com o novo tamanho baseado no delta
-      this.transformBox.updateScale(
-        scaleChange,
-        anchor,
-      );
+      this.transformBox.updateScale(scaleChange, anchor);
 
       this.startingPosition = mousePos;
     }

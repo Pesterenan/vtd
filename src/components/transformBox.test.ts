@@ -50,7 +50,7 @@ describe("TransformBox", () => {
 
   it("should update the scale when calling updateScale", () => {
     const transformBox = new TransformBox(elements, canvas);
-    const newSize = { width: 100, height: 100 };
+    const newSize = { x: 100, y: 100 };
     const origin = transformBox.position;
 
     transformBox.updateScale(newSize, origin);

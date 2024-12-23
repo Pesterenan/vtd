@@ -161,19 +161,21 @@ export class TransformMenu {
   };
 
   private handleWidthChange = (newValue: number): void => {
-    if (this.transformBox) {
+    if (this.transformBox && newValue > 0) {
+      const newWidth = newValue / this.transformBox.size.width;
       this.transformBox.updateScale({
-        width: newValue,
-        height: this.transformBox.size.height,
+        x: newWidth,
+        y: 1.0,
       });
     }
   };
 
   private handleHeightChange = (newValue: number): void => {
-    if (this.transformBox) {
+    if (this.transformBox && newValue > 0) {
+      const newHeight = newValue / this.transformBox.size.height;
       this.transformBox.updateScale({
-        width: this.transformBox.size.width,
-        height: newValue,
+        x: 1.0,
+        y: newHeight,
       });
     }
   };
