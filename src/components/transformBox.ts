@@ -144,6 +144,15 @@ export class TransformBox {
       this.boundingBox.update(this.position, this.size, this.rotation);
       this.generateHandles();
     }
+    window.dispatchEvent(
+      new CustomEvent(EVENT.RECALCULATE_TRANSFORM_BOX, {
+        detail: {
+          position: this.position,
+          size: this.size,
+          rotation: this.rotation,
+        },
+      }),
+    );
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -178,7 +187,10 @@ export class TransformBox {
           deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians);
         const newY =
           deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians);
-        element.position = { x: this.anchorPoint!.x + newX, y: this.anchorPoint!.y + newY };
+        element.position = {
+          x: this.anchorPoint!.x + newX,
+          y: this.anchorPoint!.y + newY,
+        };
         element.rotation += deltaAngle;
       });
     }
@@ -191,7 +203,6 @@ export class TransformBox {
   public updateScale(delta: Scale, anchor: Position = this.position): void {
     if (this.selectedElements) {
       this.selectedElements.forEach((element) => {
-
         const oldWidth = element.size.width;
         const oldHeight = element.size.height;
         const newWidth = delta.x !== 1 ? oldWidth * delta.x : oldWidth;
