@@ -47,6 +47,7 @@ export class GrabTool extends Tool {
   resetTool(): void {
     this.startPosition = null;
     this.isDragging = false;
+    this.isHovering = false;
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -88,10 +89,8 @@ export class GrabTool extends Tool {
   }
 
   handleMouseUp(): void {
-    if (this.isDragging) {
-      super.handleMouseUp();
-      this.resetTool();
-    }
+    super.handleMouseUp();
+    this.resetTool();
   }
 
   handleMouseMove(evt: MouseEvent): void {
