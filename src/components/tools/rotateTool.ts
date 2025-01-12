@@ -72,7 +72,6 @@ export class RotateTool extends Tool {
     if (evt.altKey && this.transformBox) {
       this.transformBox.anchorPoint = mousePos;
       this.resetTool();
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
       return;
     }
     if (!this.isRotating) {

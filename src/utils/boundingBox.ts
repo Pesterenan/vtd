@@ -69,7 +69,11 @@ export class BoundingBox {
     return new Vector(rotated).add(center);
   }
 
-  public update(position: Position, size: Size, rotation: number): void {
+  public update(
+    position: Position,
+    size: Size,
+    rotation: number,
+  ): void {
     this.center = position;
     this.rotation = rotation;
     this.updateCorners(position, size);
@@ -104,8 +108,8 @@ export class BoundingBox {
       x: Math.max(firstPoint.x, secondPoint.x),
       y: Math.max(firstPoint.y, secondPoint.y),
     };
-    WorkArea.getInstance().drawbox(minBound,maxBound);
-    
+    WorkArea.getInstance().drawbox(minBound, maxBound);
+
     const unrotatedTopLeft = this.rotatePoint(
       this.topLeft,
       this.center,

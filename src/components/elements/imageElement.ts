@@ -16,7 +16,7 @@ export class ImageElement extends Element<IImageElementData> {
     return this.properties.get("backgroundOpacity") as number;
   }
   public set backgroundOpacity(value: number) {
-    this.properties.set("backgroundOpacity", clamp(value, 0 ,1));
+    this.properties.set("backgroundOpacity", clamp(value, 0, 1));
   }
 
   private boundingBox: BoundingBox;
@@ -42,9 +42,7 @@ export class ImageElement extends Element<IImageElementData> {
   public serialize(): IImageElementData {
     const serialized = super.serialize();
     if (this.isImageLoaded) {
-      serialized.encodedImage = this.properties.get(
-        "encodedImage",
-      ) as string;
+      serialized.encodedImage = this.properties.get("encodedImage") as string;
     }
     return serialized;
   }
@@ -105,14 +103,18 @@ export class ImageElement extends Element<IImageElementData> {
       if (this.image) {
         this.isImageLoaded = true;
         this.size = { width: this.image.width, height: this.image.height };
-        this.boundingBox.update(this.position,this.size,this.rotation);
+        this.boundingBox.update(this.position, this.size, this.rotation);
       }
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     };
   }
 
   public getBoundingBox(): BoundingBox {
-    this.boundingBox.update(this.position,this.size, this.rotation);
+    const scaledSize = {
+      width: this.size.width * this.scale.x,
+      height: this.size.height * this.scale.y,
+    };
+    this.boundingBox.update(this.position, scaledSize, this.rotation);
     return this.boundingBox;
   }
 }

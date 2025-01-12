@@ -8,7 +8,6 @@ import { toRadians } from "src/utils/transforms";
 
 export class ScaleTool extends Tool {
   private startingPosition: Position | null = null;
-  private centerPosition: Position | null = null;
   private toolIcon: HTMLImageElement | null = null;
   private transformBox: TransformBox | null = null;
   private onHover: ((evt: MouseEvent) => void) | null = null;
@@ -24,9 +23,6 @@ export class ScaleTool extends Tool {
 
   equipTool(): void {
     this.transformBox = WorkArea.getInstance().transformBox;
-    if (this.transformBox && this.transformBox.boundingBox) {
-      this.centerPosition = this.transformBox.position;
-    }
     super.equipTool();
     this.onHover = (evt: MouseEvent) => {
       if (this.transformBox && this.transformBox.boundingBox) {
@@ -72,7 +68,7 @@ export class ScaleTool extends Tool {
     if (
       this.toolIcon &&
       this.transformBox &&
-      this.centerPosition &&
+      this.transformBox.anchorPoint &&
       this.transformBox.handles &&
       this.context
     ) {
@@ -84,14 +80,13 @@ export class ScaleTool extends Tool {
       this.context.scale(workAreaZoom, workAreaZoom);
       this.context.drawImage(
         this.toolIcon,
-        this.centerPosition.x - (this.toolIcon.width * 0.5) / workAreaZoom,
-        this.centerPosition.y - (this.toolIcon.height * 0.5) / workAreaZoom,
+        this.transformBox.anchorPoint.x -
+          (this.toolIcon.width * 0.5) / workAreaZoom,
+        this.transformBox.anchorPoint.y -
+          (this.toolIcon.height * 0.5) / workAreaZoom,
         this.toolIcon.width / workAreaZoom,
         this.toolIcon.height / workAreaZoom,
       );
-      this.context.translate(this.centerPosition.x, this.centerPosition.y);
-      this.context.rotate(toRadians(this.transformBox.rotation));
-      this.context.translate(-this.centerPosition.x, -this.centerPosition.y);
       if (this.transformBox.handles) {
         Object.keys(this.transformBox.handles).forEach((handle) => {
           if (this.transformBox?.handles) {
@@ -122,6 +117,11 @@ export class ScaleTool extends Tool {
         x: evt.offsetX,
         y: evt.offsetY,
       });
+      if (evt.altKey && this.transformBox) {
+        this.transformBox.anchorPoint = mousePos;
+        //this.resetTool();
+        return;
+      }
       this.startingPosition = mousePos;
 
       if (this.transformBox.handles) {
@@ -230,8 +230,8 @@ export class ScaleTool extends Tool {
       this.startingPosition &&
       this.selectedHandle !== null
     ) {
-    if (this.transformBox === null || this.transformBox?.boundingBox === null)
-      return;
+      if (this.transformBox === null || this.transformBox?.boundingBox === null)
+        return;
       const mousePos = WorkArea.getInstance().adjustForCanvas({
         x: evt.offsetX,
         y: evt.offsetY,
@@ -258,7 +258,6 @@ export class ScaleTool extends Tool {
         y: 1 + delta.y / this.transformBox.size.height,
       };
 
-      // Atualizar o TransformBox com o novo tamanho baseado no delta
       this.transformBox.updateScale(scaleChange, anchor);
 
       this.startingPosition = mousePos;

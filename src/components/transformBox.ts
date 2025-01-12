@@ -45,7 +45,11 @@ export class TransformBox {
       const element = this.selectedElements[0];
       this.position = { ...element.position };
       this.rotation = element.rotation;
-      this.size = { ...element.size };
+      const scaledSize = {
+        width: element.size.width * element.scale.x,
+        height: element.size.height * element.scale.y,
+      };
+      this.size = scaledSize;
       this.anchorPoint = { ...this.position };
       this.boundingBox = element.getBoundingBox();
     } else {
@@ -201,36 +205,34 @@ export class TransformBox {
   }
 
   public updateScale(delta: Scale, anchor: Position = this.position): void {
+    this.anchorPoint = anchor;
     if (this.selectedElements) {
-      this.selectedElements.forEach((element) => {
-        const oldWidth = element.size.width;
-        const oldHeight = element.size.height;
-        const newWidth = delta.x !== 1 ? oldWidth * delta.x : oldWidth;
-        const newHeight = delta.y !== 1 ? oldHeight * delta.y : oldHeight;
-        // Ajusta a posição com base no ponto de ancoragem e nos fatores de escala
-        element.position.x =
-          anchor.x +
-          (element.position.x - anchor.x) * (delta.x !== 1 ? delta.x : 1);
-        element.position.y =
-          anchor.y +
-          (element.position.y - anchor.y) * (delta.y !== 1 ? delta.y : 1);
-        // Atualiza o tamanho do elemento baseado no delta
-        element.size.width = newWidth;
-        element.size.height = newHeight;
-      });
-    }
-    const newSize = {
+       this.selectedElements.forEach((element) => {
+         element.scale = {
+           x: element.scale.x * delta.x,
+           y: element.scale.y * delta.y,
+         };
+         // Ajusta a posição com base no ponto de ancoragem e nos fatores de escala
+         element.position = {
+           x: anchor.x + (element.position.x - anchor.x) * delta.x,
+           y: anchor.y + (element.position.y - anchor.y) * delta.y,
+         };
+       });
+     }
+    this.size = {
       width: this.size.width * delta.x,
       height: this.size.height * delta.y,
     };
-    this.size = newSize;
-
-    this.position = {
-      x: anchor.x + (this.position.x - anchor.x) * delta.x,
-      y: anchor.y + (this.position.y - anchor.y) * delta.y,
+    this.scale = {
+      x: this.scale.x * delta.x,
+      y: this.scale.y * delta.y,
     };
-    this.anchorPoint = { ...this.position };
-
+    const offsetX = this.position.x - anchor.x;
+    const offsetY = this.position.y - anchor.y;
+    this.position = {
+      x: anchor.x + offsetX * delta.x,
+      y: anchor.y + offsetY * delta.y,
+    };
     this.updateHandles();
   }
 
