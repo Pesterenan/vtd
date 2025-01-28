@@ -107,6 +107,10 @@ export class VideoFrameExtractor {
         this.offScreen.canvas.width = width;
         this.offScreen.canvas.height = height;
       }
+      if (this.videoMetadata?.totalFrames) {
+        this.slider.max = this.videoMetadata.totalFrames.toString();
+        this.slider.step = "1";
+      }
       window.api.processVideoFrame(this.videoMetadata.filePath, 0);
     });
 
@@ -215,8 +219,13 @@ export class VideoFrameExtractor {
   /** Queries the video file with the slider value to process the resulting frame */
   private requestProcessFrame(): void {
     if (this.videoMetadata) {
-      const sliderValueInterpolated =
-        (this.videoMetadata.duration * Number(this.slider.value)) / 100;
+      const sliderValue = Number(this.slider.value);
+      let sliderValueInterpolated =
+        (this.videoMetadata.duration * sliderValue) / 100;
+      if (this.videoMetadata.totalFrames) {
+        const frameRate = Number(this.videoMetadata.frameRate.split("/")[0]);
+        sliderValueInterpolated = sliderValue / frameRate;
+      }
       window.api.processVideoFrame(
         this.videoMetadata.filePath,
         sliderValueInterpolated,
