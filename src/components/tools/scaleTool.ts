@@ -247,16 +247,33 @@ export class ScaleTool extends Tool {
         this.transformBox.boundingBox.center,
         -this.transformBox.rotation,
       );
-
       const deltaX = rotatedMousePos.x - rotatedStartingPos.x;
       const deltaY = rotatedMousePos.y - rotatedStartingPos.y;
 
       const { delta, anchor } = this.getDeltaAndAnchor(deltaX, deltaY);
 
-      const scaleChange = {
-        x: 1 + delta.x / this.transformBox.size.width,
-        y: 1 + delta.y / this.transformBox.size.height,
-      };
+      let scaleChange;
+      if (evt.shiftKey) {
+        // Se Shift estiver pressionado, calcula um fator de escala uniforme
+        const startDistance = Math.hypot(
+          rotatedStartingPos.x - anchor.x,
+          rotatedStartingPos.y - anchor.y,
+        );
+        const currentDistance = Math.hypot(
+          rotatedMousePos.x - anchor.x,
+          rotatedMousePos.y - anchor.y,
+        );
+        // Evita divisão por zero
+        const uniformFactor =
+          startDistance === 0 ? 1 : currentDistance / startDistance;
+        scaleChange = { x: uniformFactor, y: uniformFactor };
+      } else {
+        // Escalonamento não uniforme (padrão)
+        scaleChange = {
+          x: 1 + delta.x / this.transformBox.size.width,
+          y: 1 + delta.y / this.transformBox.size.height,
+        };
+      }
 
       this.transformBox.updateScale(scaleChange, anchor);
 
