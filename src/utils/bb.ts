@@ -1,12 +1,12 @@
-import type { BoundingBox, Position } from "../components/types";
+import type { TBoundingBox, Position } from "../components/types";
 
 export class BB {
-  private bb: BoundingBox;
+  private bb: TBoundingBox;
 
   constructor(center: Position, radius: number);
-  constructor(bb: BoundingBox);
+  constructor(bb: TBoundingBox);
 
-  constructor(bbOrCenter: BoundingBox | Position, radius?: number) {
+  constructor(bbOrCenter: TBoundingBox | Position, radius?: number) {
     if (typeof radius === "number" && "x" in bbOrCenter && "y" in bbOrCenter) {
       const center = bbOrCenter as Position;
       this.bb = {
@@ -16,7 +16,7 @@ export class BB {
         y2: center.y + radius,
       };
     } else {
-      this.bb = bbOrCenter as BoundingBox;
+      this.bb = bbOrCenter as TBoundingBox;
     }
   }
 
@@ -34,7 +34,7 @@ export class BB {
     );
   }
 
-  public isBBWithin(outerBB: BoundingBox): boolean {
+  public isBBWithin(outerBB: TBoundingBox): boolean {
     const xStartInner = Math.min(this.bb.x1, this.bb.x2);
     const yStartInner = Math.min(this.bb.y1, this.bb.y2);
     const xEndInner = Math.max(this.bb.x1, this.bb.x2);

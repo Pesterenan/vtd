@@ -41,7 +41,7 @@ export class TextTool extends Tool {
   handleMouseDown(evt: MouseEvent): void {
     const workArea = WorkArea.getInstance();
     const { offsetX, offsetY } = evt;
-    const selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY };
+    const selection = { x: offsetX, y: offsetY };
     workArea.selectElements(selection);
     const elements = workArea.getSelectedElements();
     if (!elements || !(elements[0] instanceof TextElement)) {

@@ -139,7 +139,7 @@ export class GradientMenu {
       this.currentColorStop = this.activeGradientElement.colorStops[index];
       if (this.alphaControl && this.colorControl) {
         this.alphaControl.unlinkEvents();
-        this.alphaControl.updateValue(this.currentColorStop.alpha);
+        this.alphaControl.updateValues(this.currentColorStop.alpha);
         this.alphaControl.linkEvents();
         this.colorControl.unlinkEvents();
         this.colorControl.updateValue(this.currentColorStop.color);

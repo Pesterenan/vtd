@@ -1,18 +1,15 @@
 import EVENT from "src/utils/customEvents";
-import type { Element } from "src/components/elements/element";
-import type { Position, TElementData } from "src/components/types";
+import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
 import centerHandleRotate from "src/assets/icons/rotate-tool.svg";
 import type { TransformBox } from "src/components/transformBox";
+import { toDegrees } from "src/utils/transforms";
 
 export class RotateTool extends Tool {
-  private startingPosition: Position | null = null;
-  private centerPosition: Position | null = null;
-  private lastRotation = 0;
   private toolIcon: HTMLImageElement | null = null;
+  private startPosition: Position | null = null;
   private transformBox: TransformBox | null = null;
-  private selectedElements: Element<TElementData>[] | null = null;
   private isRotating = false;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -22,13 +19,11 @@ export class RotateTool extends Tool {
   }
 
   equipTool(): void {
-    this.transformBox = WorkArea.getInstance().transformBox;
-    this.selectedElements = WorkArea.getInstance().getSelectedElements();
-    if (this.transformBox) {
-      this.centerPosition = this.transformBox.getCenter();
-      this.lastRotation = 0;
-    }
     super.equipTool();
+    this.transformBox = WorkArea.getInstance().transformBox;
+    if (this.transformBox) {
+      this.transformBox.anchorPoint = this.transformBox.position;
+    }
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -38,9 +33,7 @@ export class RotateTool extends Tool {
   }
 
   resetTool() {
-    this.transformBox = null;
-    this.startingPosition = null;
-    this.centerPosition = null;
+    this.startPosition = null;
     this.isRotating = false;
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
@@ -49,7 +42,7 @@ export class RotateTool extends Tool {
     if (
       this.toolIcon &&
       this.transformBox &&
-      this.centerPosition &&
+      this.transformBox.anchorPoint &&
       this.context
     ) {
       const workAreaZoom = WorkArea.getInstance().zoomLevel;
@@ -60,8 +53,10 @@ export class RotateTool extends Tool {
       this.context.scale(workAreaZoom, workAreaZoom);
       this.context.drawImage(
         this.toolIcon,
-        this.centerPosition.x - (this.toolIcon.width * 0.5) / workAreaZoom,
-        this.centerPosition.y - (this.toolIcon.height * 0.5) / workAreaZoom,
+        this.transformBox.anchorPoint.x -
+          (this.toolIcon.width * 0.5) / workAreaZoom,
+        this.transformBox.anchorPoint.y -
+          (this.toolIcon.height * 0.5) / workAreaZoom,
         this.toolIcon.width / workAreaZoom,
         this.toolIcon.height / workAreaZoom,
       );
@@ -70,26 +65,25 @@ export class RotateTool extends Tool {
   }
 
   handleMouseDown(evt: MouseEvent): void {
+    const mousePos = WorkArea.getInstance().adjustForCanvas({
+      x: evt.offsetX,
+      y: evt.offsetY,
+    });
     if (evt.altKey && this.transformBox) {
-      this.centerPosition = WorkArea.getInstance().adjustForCanvas({
-        x: evt.offsetX,
-        y: evt.offsetY,
-      });
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      this.transformBox.anchorPoint = mousePos;
+      this.resetTool();
       return;
     }
     if (!this.isRotating) {
       this.isRotating = true;
-      this.startingPosition = { x: evt.offsetX, y: evt.offsetY };
+      this.startPosition = mousePos;
       super.handleMouseDown();
     }
   }
 
   handleMouseUp(): void {
-    this.isRotating = false;
-    this.startingPosition = null;
-    this.lastRotation = 0;
     super.handleMouseUp();
+    this.resetTool();
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
@@ -97,22 +91,25 @@ export class RotateTool extends Tool {
     if (
       this.isRotating &&
       this.transformBox &&
-      this.selectedElements &&
-      this.startingPosition
+      this.transformBox.anchorPoint &&
+      this.startPosition
     ) {
-      const deltaX = evt.offsetX - this.startingPosition.x;
-
-      let angle = deltaX % 360;
-      if (angle < 0) {
-        angle += 360;
-      }
-      RotateTool.rotateSelectedElements(
-        this.selectedElements,
-        this.centerPosition,
-        angle - this.lastRotation,
+      const mousePos = WorkArea.getInstance().adjustForCanvas({
+        x: evt.offsetX,
+        y: evt.offsetY,
+      });
+      const startingAngle = Math.atan2(
+        this.startPosition.y - this.transformBox.anchorPoint.y,
+        this.startPosition.x - this.transformBox.anchorPoint.x,
       );
-      this.lastRotation = angle;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      const currentAngle = Math.atan2(
+        mousePos.y - this.transformBox.anchorPoint.y,
+        mousePos.x - this.transformBox.anchorPoint.x,
+      );
+      const angle = toDegrees(currentAngle - startingAngle);
+      const normalizedAngle = (this.transformBox.rotation + angle) % 360;
+      this.transformBox.updateRotation(normalizedAngle, this.transformBox.anchorPoint);
+      this.startPosition = mousePos;
     }
   }
 
@@ -120,24 +117,4 @@ export class RotateTool extends Tool {
   handleKeyDown(): void {}
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleKeyUp(): void {}
-
-  public static rotateSelectedElements(
-    elements: Element<TElementData>[] | null,
-    origin: Position | null,
-    angle: number,
-  ): void {
-    if (elements && origin) {
-      const angleInRadians = (angle * Math.PI) / 180;
-      elements.forEach((element) => {
-        const deltaX = element.position.x - origin.x;
-        const deltaY = element.position.y - origin.y;
-        const newX =
-          deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians);
-        const newY =
-          deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians);
-        element.position = { x: origin.x + newX, y: origin.y + newY };
-        element.rotation += angleInRadians;
-      });
-    }
-  }
 }

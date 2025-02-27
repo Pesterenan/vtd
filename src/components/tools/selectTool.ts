@@ -1,12 +1,13 @@
 import EVENT from "src/utils/customEvents";
-import type { BoundingBox } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
+import type { Position } from "../types";
 
 const DRAGGING_DISTANCE = 5;
 
 export class SelectTool extends Tool {
-  private selection: BoundingBox | null = null;
+  private firstPoint: Position | null = null;
+  private secondPoint: Position | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -21,40 +22,45 @@ export class SelectTool extends Tool {
   }
 
   public draw(): void {
-    if (this.selection && this.context) {
-      const { x1, y1, x2, y2 } = this.selection;
+    if (this.firstPoint && this.secondPoint && this.context) {
       this.context.save();
       this.context.strokeStyle = "black";
       this.context.setLineDash([3, 3]);
-      this.context.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      this.context.lineWidth = 2;
+      this.context.strokeRect(
+        this.firstPoint.x,
+        this.firstPoint.y,
+        this.secondPoint.x - this.firstPoint.x,
+        this.secondPoint.y - this.firstPoint.y,
+      );
       this.context.restore();
     }
   }
 
   handleMouseDown(evt: MouseEvent): void {
     const { offsetX, offsetY } = evt;
-    this.selection = { x1: offsetX, y1: offsetY, x2: offsetX, y2: offsetY };
+    this.firstPoint = { x: offsetX, y: offsetY };
     super.handleMouseDown();
   }
 
   handleMouseMove(evt: MouseEvent): void {
     const { offsetX, offsetY } = evt;
-    if (this.selection) {
-      const { x1, y1 } = this.selection;
-      const distance = Math.hypot(offsetX - x1, offsetY - y1);
+    if (this.firstPoint) {
+      const distance = Math.hypot(
+        offsetX - this.firstPoint.x,
+        offsetY - this.firstPoint.y,
+      );
       if (distance > DRAGGING_DISTANCE) {
-        this.selection.x2 = offsetX;
-        this.selection.y2 = offsetY;
+        this.secondPoint = { x: offsetX, y: offsetY };
         window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
       }
     }
   }
 
   handleMouseUp(): void {
-    if (this.selection) {
-      WorkArea.getInstance().selectElements(this.selection);
-      this.selection = null;
-    }
+    WorkArea.getInstance().selectElements(this.firstPoint, this.secondPoint);
+    this.firstPoint = null;
+    this.secondPoint = null;
     super.handleMouseUp();
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }

@@ -3,7 +3,6 @@ import { SelectTool } from "src/components/tools/selectTool";
 import type { Tool } from "src/components/tools/abstractTool";
 import { TransformBox } from "src/components/transformBox";
 import type {
-  BoundingBox,
   TElementData,
   IProjectData,
   Position,
@@ -45,6 +44,7 @@ export class WorkArea {
   public currentTool: TOOL = TOOL.SELECT;
   public lastTool: TOOL | null = TOOL.SELECT;
   private isUsingTool = false;
+  private devCanvas: HTMLCanvasElement | null = null;
 
   public get offset(): Position {
     return this.workArea.offset;
@@ -96,6 +96,12 @@ export class WorkArea {
       window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
     this.mainCanvas.height = window.innerHeight;
     this.mainContext = this.mainCanvas.getContext("2d");
+
+    const devCanvas = document.createElement("canvas");
+    devCanvas.width = WORK_AREA_WIDTH;
+    devCanvas.height = WORK_AREA_HEIGHT;
+    devCanvas.style.backgroundColor = "white";
+    this.devCanvas = devCanvas;
 
     const workAreaCanvas = document.createElement("canvas");
     workAreaCanvas.width = WORK_AREA_WIDTH;
@@ -367,7 +373,6 @@ export class WorkArea {
 
   public removeTransformBox(): void {
     if (this.transformBox) {
-      this.transformBox.remove();
       this.transformBox = null;
     }
   }
@@ -400,16 +405,6 @@ export class WorkArea {
     return {
       x: Math.floor((mousePosition.x - this.offset.x) / this.zoomLevel),
       y: Math.floor((mousePosition.y - this.offset.y) / this.zoomLevel),
-    };
-  }
-
-  /** Adjust selection boundingbox to be shown on canvas */
-  private adjustSelectionForCanvas(selection: BoundingBox): BoundingBox {
-    return {
-      x1: Math.floor((selection.x1 - this.workArea.offset.x) / this.zoomLevel),
-      y1: Math.floor((selection.y1 - this.workArea.offset.y) / this.zoomLevel),
-      x2: Math.floor((selection.x2 - this.workArea.offset.x) / this.zoomLevel),
-      y2: Math.floor((selection.y2 - this.workArea.offset.y) / this.zoomLevel),
     };
   }
 
@@ -495,25 +490,31 @@ export class WorkArea {
     return this.elements.filter((el) => el.selected);
   }
 
-  public selectElements(selection?: BoundingBox): void {
+  public selectElements(
+    firstPoint?: Position | null,
+    secondPoint?: Position | null,
+  ): void {
     let selectedElements: Element<TElementData>[] = [];
-
-    if (selection) {
-      const adjustedSelection = this.adjustSelectionForCanvas(selection);
-      if (selection.x1 === selection.x2 && selection.y1 === selection.y2) {
-        const firstElement = this.elements.findLast(
-          (el) => el.isVisible && el.isBelowSelection(adjustedSelection),
-        );
-        if (firstElement) {
-          selectedElements = [firstElement];
-        }
-      } else {
+    if (firstPoint) {
+      const adjustedFirstPoint = this.adjustForCanvas(firstPoint);
+      const firstElement = this.elements.findLast(
+        (el) =>
+          el.isVisible && el.getBoundingBox().isPointInside(adjustedFirstPoint),
+      );
+      if (firstElement) {
+        selectedElements = [firstElement];
+      }
+      if (secondPoint) {
+        const adjustedSecondPoint = this.adjustForCanvas(secondPoint);
         selectedElements = this.elements.filter(
-          (el) => el.isVisible && el.isWithinBounds(adjustedSelection),
+          (el) =>
+            el.isVisible &&
+            el
+              .getBoundingBox()
+              .isWithinBounds(adjustedFirstPoint, adjustedSecondPoint),
         );
       }
     }
-
     window.dispatchEvent(
       new CustomEvent(EVENT.SELECT_ELEMENT, {
         detail: {
@@ -521,6 +522,20 @@ export class WorkArea {
         },
       }),
     );
+  }
+
+  public drawbox(a: Position, b: Position): void {
+    if (this.devCanvas) {
+      const context = this.devCanvas.getContext("2d");
+      if (context) {
+        context.globalAlpha = 0.2;
+        context.save();
+        context.lineWidth = 4;
+        context.strokeStyle = "green";
+        context.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
+        context.restore();
+      }
+    }
   }
 
   public createTransformBox(): void {
@@ -587,6 +602,9 @@ export class WorkArea {
         this.workArea.canvas.height,
       );
       this.mainContext.drawImage(this.workArea.canvas, 0, 0);
+      if (this.devCanvas) {
+        this.mainContext.drawImage(this.devCanvas, 0, 0);
+      }
       this.mainContext.restore();
     }
   }
@@ -619,8 +637,8 @@ export class WorkArea {
       adjustedPosition = this.adjustForCanvas(position);
     } else {
       adjustedPosition = {
-        x: Math.floor(Math.random() * this.workArea.canvas.width) - width,
-        y: Math.floor(Math.random() * this.workArea.canvas.height) - height,
+        x: Math.floor(0.5 * this.workArea.canvas.width) - width,
+        y: Math.floor(0.5 * this.workArea.canvas.height) - height,
       };
     }
     const newElement = new TextElement(

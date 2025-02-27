@@ -1,10 +1,7 @@
 import { Element } from "src/components/elements/element";
-import type {
-  BoundingBox,
-  ITextElementData,
-  Position,
-  Size,
-} from "src/components/types";
+import type { ITextElementData, Position, Size } from "src/components/types";
+import { BoundingBox } from "src/utils/boundingBox";
+import { toRadians } from "src/utils/transforms";
 
 export class TextElement extends Element<ITextElementData> {
   public get font(): string {
@@ -84,12 +81,7 @@ export class TextElement extends Element<ITextElementData> {
   }
 
   public lineVerticalSpacing: number;
-  private corners: {
-    upperLeft: Position;
-    upperRight: Position;
-    lowerRight: Position;
-    lowerLeft: Position;
-  };
+  private boundingBox: BoundingBox;
   private needsBoundingBoxUpdate = true;
   private needsCacheUpdate = true;
   private cacheCanvas: OffscreenCanvas | null = null;
@@ -109,14 +101,7 @@ export class TextElement extends Element<ITextElementData> {
     this.strokeWidth = 10;
 
     this.lineVerticalSpacing = this.fontSize * this.lineHeight;
-    const halfWidth = this.size.width * 0.5 * this.scale.x;
-    const halfHeight = this.size.height * 0.5 * this.scale.y;
-    this.corners = {
-      upperLeft: { x: -halfWidth, y: -halfHeight },
-      upperRight: { x: halfWidth, y: -halfHeight },
-      lowerLeft: { x: halfWidth, y: halfHeight },
-      lowerRight: { x: -halfWidth, y: halfHeight },
-    };
+    this.boundingBox = new BoundingBox(position, size, this.rotation);
     this.initializeCache();
   }
 
@@ -167,21 +152,14 @@ export class TextElement extends Element<ITextElementData> {
         if (acc.width < linewidth) {
           acc.width = linewidth + this.strokeWidth;
         }
-        acc.height += lineheight * (this.lineHeight) + this.strokeWidth;
+        acc.height += lineheight * this.lineHeight + this.strokeWidth;
         return acc;
       },
       { width: 0, height: 0 },
     );
     this.size = { ...totalSize };
+    this.boundingBox.update(this.position, this.size, this.rotation);
     this.needsBoundingBoxUpdate = false;
-    const halfWidth = this.size.width * 0.5 * this.scale.x;
-    const halfHeight = this.size.height * 0.5 * this.scale.y;
-    this.corners = {
-      upperLeft: { x: -halfWidth, y: -halfHeight },
-      upperRight: { x: halfWidth, y: -halfHeight },
-      lowerLeft: { x: halfWidth, y: halfHeight },
-      lowerRight: { x: -halfWidth, y: halfHeight },
-    };
     this.needsCacheUpdate = true;
     context.restore();
   }
@@ -189,9 +167,10 @@ export class TextElement extends Element<ITextElementData> {
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return;
     if (this.needsCacheUpdate) this.updateCache();
+    const angleInRadians = toRadians(this.rotation);
     context.save();
     context.translate(this.position.x, this.position.y);
-    context.rotate(this.rotation);
+    context.rotate(angleInRadians);
     context.scale(this.scale.x, this.scale.y);
     // Apply 'before' filters
     for (const filter of this.filters) {
@@ -244,27 +223,8 @@ export class TextElement extends Element<ITextElementData> {
     }
   }
 
-  public getTransformedBoundingBox(): BoundingBox {
-    const transformedCorners = Object.values(this.corners).map(({ x, y }) => {
-      const transformedX =
-        this.position.x +
-        x * Math.cos(this.rotation) -
-        y * Math.sin(this.rotation);
-      const transformedY =
-        this.position.y +
-        x * Math.sin(this.rotation) +
-        y * Math.cos(this.rotation);
-      return { x: transformedX, y: transformedY };
-    });
-
-    const xCoordinates = transformedCorners.map((corner) => corner.x);
-    const yCoordinates = transformedCorners.map((corner) => corner.y);
-
-    return {
-      x1: Math.min(...xCoordinates),
-      y1: Math.min(...yCoordinates),
-      x2: Math.max(...xCoordinates),
-      y2: Math.max(...yCoordinates),
-    };
+  public getBoundingBox(): BoundingBox {
+    this.boundingBox.update(this.position, this.size, this.rotation);
+    return this.boundingBox;
   }
 }

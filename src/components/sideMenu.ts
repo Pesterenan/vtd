@@ -1,45 +1,21 @@
-import EVENT from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 import { GradientMenu } from "src/components/gradientMenu";
 import { LayersMenu } from "src/components/layersMenu";
 import { TextMenu } from "src/components/textMenu";
 import { WorkArea } from "src/components/workArea";
 import { SIDE_MENU_WIDTH } from "src/constants";
+import { TransformMenu } from "./transformMenu";
 
 export class SideMenu {
   private static instance: SideMenu | null = null;
   private sideMenu?: HTMLMenuElement;
-  private transformBox?: HTMLElement;
-  private xPosInput: HTMLInputElement;
-  private yPosInput: HTMLInputElement;
-  private widthSizeInput: HTMLInputElement;
-  private heightSizeInput: HTMLInputElement;
   private layersMenu: HTMLElement | null = null;
   private gradientMenu: HTMLElement | null = null;
   private textMenu: HTMLElement | null = null;
+  private transformMenu: HTMLElement | null = null;
 
   constructor() {
     this.createDOMElements();
-    this.xPosInput = getElementById<HTMLInputElement>("x-pos-input");
-    this.yPosInput = getElementById<HTMLInputElement>("y-pos-input");
-    this.widthSizeInput = getElementById<HTMLInputElement>("width-size-input");
-    this.heightSizeInput =
-      getElementById<HTMLInputElement>("height-size-input");
-    window.addEventListener(EVENT.RECALCULATE_TRANSFORM_BOX, (evt: Event) => {
-      const customEvent = evt as CustomEvent;
-      const { position, size } = customEvent.detail;
-      if (
-        this.xPosInput &&
-        this.yPosInput &&
-        this.widthSizeInput &&
-        this.heightSizeInput
-      ) {
-        this.xPosInput.value = position.x.toFixed(0).toString();
-        this.yPosInput.value = position.y.toFixed(0).toString();
-        this.widthSizeInput.value = size.width.toFixed(0).toString();
-        this.heightSizeInput.value = size.height.toFixed(0).toString();
-      }
-    });
   }
 
   private createHR(): HTMLHRElement {
@@ -99,10 +75,7 @@ export class SideMenu {
     });
 
     const projectOptionsDiv = document.createElement("div");
-    projectOptionsDiv.setAttribute(
-      "style",
-      `display: flex; gap: 0.25rem; justify-content: space-between; margin-block: 1rem;`,
-    );
+    projectOptionsDiv.className = 'container jc-sb g-1 pad-b-05';
     projectOptionsDiv.append(saveProjectBtn, loadProjectBtn);
     domElements.push(projectOptionsDiv);
 
@@ -116,39 +89,8 @@ export class SideMenu {
     domElements.push(openVideoBtn);
     domElements.push(this.createHR());
 
-    this.transformBox = document.createElement("section");
-    this.transformBox.id = "sec_transform-box-properties";
-    this.transformBox.className = "sec_menu-style element-properties-menu";
-    this.transformBox.innerHTML = `
-      <p style="align-self: flex-start;">Caixa de Transformação:</p>
-      <div style="display: flex; flex-wrap: nowrap; width: 100%;">
-        <div class="number-input-group">
-          <p style="align-self: flex-start;">Posição:</p>
-          <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
-            <label for="x-pos-input">X:</label>
-            <input id="x-pos-input" class="number-input" type="number" value="0" />
-          </div>
-
-          <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
-            <label for="y-pos-input">Y:</label>
-            <input id="y-pos-input" class="number-input" type="number" value="0" />
-          </div>
-        </div>
-        <div class="number-input-group">
-          <p style="align-self: flex-start;">Tamanho:</p>
-
-          <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
-            <label for="width-size-input">Largura:</label>
-            <input id="width-size-input" class="number-input" type="number" value="0" />
-          </div>
-          <div style="display: flex; justify-content: space-between; padding-inline: 0.5rem;">
-            <label for="height-size-input">Altura:</label>
-            <input id="height-size-input" class="number-input" type="number" value="0" />
-          </div>
-        </div>
-      </div>
-    `;
-    domElements.push(this.transformBox);
+    this.transformMenu = TransformMenu.getInstance().getMenu();
+    domElements.push(this.transformMenu);
     domElements.push(this.createHR());
 
     this.layersMenu = LayersMenu.getInstance().getMenu();
@@ -162,6 +104,7 @@ export class SideMenu {
     this.gradientMenu = GradientMenu.getInstance().getMenu();
     domElements.push(this.gradientMenu);
     domElements.push(this.createHR());
+
     // APPEND ELEMENTS TO SIDE MENU:
     this.sideMenu.append(...domElements);
 

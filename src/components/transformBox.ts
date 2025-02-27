@@ -1,35 +1,33 @@
 import EVENT from "src/utils/customEvents";
-import getElementById from "src/utils/getElementById";
 import type { Element } from "src/components/elements/element";
-import { GrabTool } from "src/components/tools/grabTool";
-import type { BoundingBox, Position, Size, TElementData } from "src/components/types";
+import type { Position, Scale, Size, TElementData } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
+import { BoundingBox } from "src/utils/boundingBox";
+import { Vector } from "src/utils/vector";
+import { toRadians } from "src/utils/transforms";
 
 export class TransformBox {
-  private position: Position = { x: 0, y: 0 };
-  private size: Size = { width: 0, height: 0 };
-  private selectedElements: Element<TElementData>[] = [];
-  public isHandleDragging = false;
-  private context: CanvasRenderingContext2D | null;
-  public centerHandle: HTMLImageElement | null = null;
-  public boundingBox: BoundingBox | null = null;
+  public position: Position = { x: 0, y: 0 };
+  public scale: Scale = { x: 1.0, y: 1.0 };
+  public size: Size = { width: 0, height: 0 };
+  public anchorPoint: Position | null = null;
+  public rotation = 0;
 
-  private xPosInput: {
-    element: HTMLInputElement;
-    listener: (event: Event) => void;
-  };
-  private yPosInput: {
-    element: HTMLInputElement;
-    listener: (event: Event) => void;
-  };
-  private widthSizeInput: {
-    element: HTMLInputElement;
-    listener: (event: Event) => void;
-  };
-  private heightSizeInput: {
-    element: HTMLInputElement;
-    listener: (event: Event) => void;
-  };
+  private selectedElements: Element<TElementData>[] = [];
+  private context: CanvasRenderingContext2D | null;
+  public boundingBox: BoundingBox | null = null;
+  public handles: Record<
+    | "BOTTOM"
+    | "BOTTOM_LEFT"
+    | "BOTTOM_RIGHT"
+    | "CENTER"
+    | "LEFT"
+    | "RIGHT"
+    | "TOP"
+    | "TOP_LEFT"
+    | "TOP_RIGHT",
+    Position
+  > | null = null;
 
   public constructor(
     selectedElements: Element<TElementData>[],
@@ -37,125 +35,213 @@ export class TransformBox {
   ) {
     this.context = canvas.getContext("2d");
     this.selectedElements = selectedElements;
-    this.recalculateBoundingBox();
-
-    this.xPosInput = {
-      element: getElementById<HTMLInputElement>("x-pos-input"),
-      listener: this.updateTransformBoxPosition.bind(this),
-    };
-    this.yPosInput = {
-      element: getElementById<HTMLInputElement>("y-pos-input"),
-      listener: this.updateTransformBoxPosition.bind(this),
-    };
-    this.widthSizeInput = {
-      element: getElementById<HTMLInputElement>("width-size-input"),
-      listener: this.updateTransformBoxSize.bind(this),
-    };
-    this.heightSizeInput = {
-      element: getElementById<HTMLInputElement>("height-size-input"),
-      listener: this.updateTransformBoxSize.bind(this),
-    };
-
-    this.createEventListeners();
+    if (this.selectedElements.length > 0) {
+      this.calculateBoundingBox();
+    }
   }
 
-  private createEventListeners(): void {
-    this.xPosInput.element.addEventListener("input", this.xPosInput.listener);
-    this.yPosInput.element.addEventListener("input", this.yPosInput.listener);
-    this.widthSizeInput.element.addEventListener(
-      "input",
-      this.widthSizeInput.listener,
-    );
-    this.heightSizeInput.element.addEventListener(
-      "input",
-      this.heightSizeInput.listener,
+  private calculateBoundingBox(): void {
+    if (this.selectedElements.length === 1) {
+      const element = this.selectedElements[0];
+      this.position = { ...element.position };
+      this.rotation = element.rotation;
+      const scaledSize = {
+        width: element.size.width * element.scale.x,
+        height: element.size.height * element.scale.y,
+      };
+      this.size = scaledSize;
+      this.anchorPoint = { ...this.position };
+      this.boundingBox = element.getBoundingBox();
+    } else {
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+
+      this.selectedElements.forEach((element: Element<TElementData>) => {
+        const boundingBox = element.getBoundingBox();
+
+        // Considerando os quatro pontos da BoundingBox
+        const corners = [
+          boundingBox.topLeft,
+          boundingBox.topRight,
+          boundingBox.bottomLeft,
+          boundingBox.bottomRight,
+        ];
+
+        // Atualizando os limites da bounding box que vai circundar todos os elementos
+        corners.forEach((corner) => {
+          if (corner.x < minX) minX = corner.x;
+          if (corner.y < minY) minY = corner.y;
+          if (corner.x > maxX) maxX = corner.x;
+          if (corner.y > maxY) maxY = corner.y;
+        });
+      });
+
+      // Calcula a posição e tamanho da TransformBox em torno de todos os elementos
+      const width = maxX - minX;
+      const height = maxY - minY;
+
+      this.position = { x: minX + width / 2, y: minY + height / 2 };
+      this.size = { width, height };
+      this.anchorPoint = { ...this.position };
+
+      // Atualiza o boundingBox da TransformBox
+      this.boundingBox = new BoundingBox(
+        this.position,
+        this.size,
+        this.rotation,
+      );
+    }
+    // Recalcula os handles
+    this.generateHandles();
+
+    // Notifica a aplicação sobre a atualização da TransformBox
+    window.dispatchEvent(
+      new CustomEvent(EVENT.RECALCULATE_TRANSFORM_BOX, {
+        detail: {
+          position: this.position,
+          size: this.size,
+          rotation: this.rotation,
+        },
+      }),
     );
   }
 
-  private removeEventListeners(): void {
-    this.xPosInput.element.removeEventListener(
-      "input",
-      this.xPosInput.listener,
-    );
-    this.yPosInput.element.removeEventListener(
-      "input",
-      this.yPosInput.listener,
-    );
-    this.widthSizeInput.element.removeEventListener(
-      "input",
-      this.widthSizeInput.listener,
-    );
-    this.heightSizeInput.element.removeEventListener(
-      "input",
-      this.heightSizeInput.listener,
-    );
+  private generateHandles(): void {
+    if (this.boundingBox) {
+      const { center, topLeft, topRight, bottomLeft, bottomRight } =
+        this.boundingBox;
+      this.handles = {
+        TOP_LEFT: new Vector(topLeft),
+        TOP: new Vector(topLeft).mid(topRight) as Position,
+        TOP_RIGHT: new Vector(topRight),
+        RIGHT: new Vector(topRight).mid(bottomRight) as Position,
+        BOTTOM_RIGHT: new Vector(bottomRight),
+        BOTTOM: new Vector(bottomLeft).mid(bottomRight) as Position,
+        BOTTOM_LEFT: new Vector(bottomLeft),
+        LEFT: new Vector(bottomLeft).mid(topLeft) as Position,
+        CENTER: new Vector(center),
+      };
+    }
   }
 
-  private updateTransformBoxPosition(): void {
-    const center = this.getCenter();
-    const delta = {
-      x: parseFloat(this.xPosInput.element.value) - center.x,
-      y: parseFloat(this.yPosInput.element.value) - center.y,
+  private rotatePoint(
+    point: Position,
+    center: Position,
+    angle: number,
+  ): Position {
+    const radians = toRadians(angle);
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    const dx = point.x - center.x;
+    const dy = point.y - center.y;
+
+    return {
+      x: cos * dx - sin * dy + center.x,
+      y: sin * dx + cos * dy + center.y,
     };
-    this.position.x += delta.x;
-    this.position.y += delta.y;
-    GrabTool.moveSelectedElements(
-      WorkArea.getInstance().getSelectedElements(),
-      delta,
+  }
+
+  private updateHandles(): void {
+    if (this.boundingBox && this.handles) {
+      this.boundingBox.update(this.position, this.size, this.rotation);
+      this.generateHandles();
+    }
+    window.dispatchEvent(
+      new CustomEvent(EVENT.RECALCULATE_TRANSFORM_BOX, {
+        detail: {
+          position: this.position,
+          size: this.size,
+          rotation: this.rotation,
+        },
+      }),
     );
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
   }
 
-  private updateTransformBoxSize(): void {
-    this.size.width = parseFloat(this.widthSizeInput.element.value);
-    this.size.height = parseFloat(this.heightSizeInput.element.value);
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+  public updatePosition({ x, y }: Position): void {
+    const delta = { x: x - this.position.x, y: y - this.position.y };
+    this.selectedElements.forEach((element) => {
+      element.position = {
+        x: element.position.x + delta.x,
+        y: element.position.y + delta.y,
+      };
+    });
+    this.position = { x, y };
+    this.anchorPoint = { ...this.position };
+
+    this.updateHandles();
+  }
+
+  public updateRotation(angle: number, anchor: Position = this.position): void {
+    this.anchorPoint = anchor;
+    const deltaAngle = angle - this.rotation;
+    const deltaPos = this.rotatePoint(
+      this.position,
+      this.anchorPoint,
+      deltaAngle,
+    );
+    if (this.selectedElements && this.anchorPoint) {
+      const angleInRadians = toRadians(deltaAngle);
+      this.selectedElements.forEach((element) => {
+        const deltaX = element.position.x - this.anchorPoint!.x;
+        const deltaY = element.position.y - this.anchorPoint!.y;
+        const newX =
+          deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians);
+        const newY =
+          deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians);
+        element.position = {
+          x: this.anchorPoint!.x + newX,
+          y: this.anchorPoint!.y + newY,
+        };
+        element.rotation += deltaAngle;
+      });
+    }
+    this.position = deltaPos;
+    this.rotation = angle;
+
+    this.updateHandles();
+  }
+
+  public updateScale(delta: Scale, anchor: Position = this.position): void {
+    this.anchorPoint = anchor;
+    if (this.selectedElements) {
+       this.selectedElements.forEach((element) => {
+         element.scale = {
+           x: element.scale.x * delta.x,
+           y: element.scale.y * delta.y,
+         };
+         // Ajusta a posição com base no ponto de ancoragem e nos fatores de escala
+         element.position = {
+           x: anchor.x + (element.position.x - anchor.x) * delta.x,
+           y: anchor.y + (element.position.y - anchor.y) * delta.y,
+         };
+       });
+     }
+    this.size = {
+      width: this.size.width * delta.x,
+      height: this.size.height * delta.y,
+    };
+    this.scale = {
+      x: this.scale.x * delta.x,
+      y: this.scale.y * delta.y,
+    };
+    const offsetX = this.position.x - anchor.x;
+    const offsetY = this.position.y - anchor.y;
+    this.position = {
+      x: anchor.x + offsetX * delta.x,
+      y: anchor.y + offsetY * delta.y,
+    };
+    this.updateHandles();
   }
 
   public contains(element: Element<TElementData>): boolean {
     return !!this.selectedElements.find((el) => el.zDepth === element.zDepth);
   }
 
-  private recalculateBoundingBox(): void {
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-
-    this.selectedElements.forEach((element: Element<TElementData>) => {
-      const boundingBox = element.getTransformedBoundingBox();
-      if (boundingBox.x1 < minX) minX = boundingBox.x1;
-      if (boundingBox.y1 < minY) minY = boundingBox.y1;
-      if (boundingBox.x2 > maxX) maxX = boundingBox.x2;
-      if (boundingBox.y2 > maxY) maxY = boundingBox.y2;
-    });
-
-    this.position = { x: minX, y: minY };
-    this.size = { width: maxX - minX, height: maxY - minY };
-    this.boundingBox = {
-      x1: this.position.x,
-      y1: this.position.y,
-      x2: this.size.width,
-      y2: this.size.height,
-    };
-    window.dispatchEvent(
-      new CustomEvent(EVENT.RECALCULATE_TRANSFORM_BOX, {
-        detail: { position: this.getCenter(), size: this.size },
-      }),
-    );
-  }
-
-  /** Returns the center of the transform box */
-  public getCenter(): Position {
-    return {
-      x: this.position.x + this.size.width * 0.5,
-      y: this.position.y + this.size.height * 0.5,
-    };
-  }
-
   public draw(): void {
-    if (!this.context) return;
-    this.recalculateBoundingBox();
+    if (!this.context || !this.boundingBox) return;
     const workAreaZoom = WorkArea.getInstance().zoomLevel;
     const workAreaOffset = WorkArea.getInstance().offset;
 
@@ -163,25 +249,40 @@ export class TransformBox {
     this.context.save();
     this.context.translate(workAreaOffset.x, workAreaOffset.y);
     this.context.scale(workAreaZoom, workAreaZoom);
-    //
-    // this.context.translate(centerPos.x, centerPos.y)
-    // this.context.rotate(this.rotation * (Math.PI / 180))
-    // this.context.translate(-centerPos.x, -centerPos.y)
+    const { topLeft, topRight, bottomLeft, bottomRight } = this.boundingBox;
 
     this.context.strokeStyle = "red";
     this.context.setLineDash([3 / workAreaZoom, 3 / workAreaZoom]);
     this.context.lineWidth = 2 / workAreaZoom;
-    this.context.strokeRect(
-      this.position.x,
-      this.position.y,
-      this.size.width,
-      this.size.height,
-    );
+    this.context.beginPath();
+    this.context.moveTo(topLeft.x, topLeft.y);
+    this.context.lineTo(topRight.x, topRight.y);
+    this.context.lineTo(bottomRight.x, bottomRight.y);
+    this.context.lineTo(bottomLeft.x, bottomLeft.y);
+    this.context.closePath();
+    this.context.stroke();
+    // Desenhar os handles
+    if (this.handles) {
+      Object.keys(this.handles).forEach((handle) => {
+        if (this.handles) {
+          const point = this.handles[handle as keyof typeof this.handles];
+          if (this.context) {
+            this.context.fillStyle = "blue";
+            this.context.beginPath();
+            this.context.arc(
+              point.x,
+              point.y,
+              5 / workAreaZoom,
+              0,
+              Math.PI * 2,
+            );
+            this.context.closePath();
+            this.context.fill();
+          }
+        }
+      });
+    }
 
     this.context.restore();
-  }
-
-  public remove(): void {
-    this.removeEventListeners();
   }
 }

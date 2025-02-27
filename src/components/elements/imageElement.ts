@@ -1,8 +1,9 @@
-import { BB } from "src/utils/bb";
 import EVENT from "src/utils/customEvents";
 import { Element } from "src/components/elements/element";
-import type { BoundingBox, IImageElementData, Position, Size } from "src/components/types";
+import type { IImageElementData, Position, Size } from "src/components/types";
 import { clamp } from "src/utils/easing";
+import { BoundingBox } from "src/utils/boundingBox";
+import { toRadians } from "src/utils/transforms";
 
 export class ImageElement extends Element<IImageElementData> {
   public get backgroundColor(): string {
@@ -15,15 +16,10 @@ export class ImageElement extends Element<IImageElementData> {
     return this.properties.get("backgroundOpacity") as number;
   }
   public set backgroundOpacity(value: number) {
-    this.properties.set("backgroundOpacity", clamp(value, 0 ,1));
+    this.properties.set("backgroundOpacity", clamp(value, 0, 1));
   }
 
-  private corners: {
-    upperLeft: Position;
-    upperRight: Position;
-    lowerRight: Position;
-    lowerLeft: Position;
-  };
+  private boundingBox: BoundingBox;
   public image: HTMLImageElement | null = null;
   private isImageLoaded = false;
 
@@ -33,15 +29,7 @@ export class ImageElement extends Element<IImageElementData> {
     this.properties.set("encodedImage", "");
     this.backgroundColor = "#00FF00";
     this.backgroundOpacity = 0;
-
-    const halfWidth = this.size.width * 0.5 * this.scale.x;
-    const halfHeight = this.size.height * 0.5 * this.scale.y;
-    this.corners = {
-      upperLeft: { x: -halfWidth, y: -halfHeight },
-      upperRight: { x: halfWidth, y: -halfHeight },
-      lowerLeft: { x: halfWidth, y: halfHeight },
-      lowerRight: { x: -halfWidth, y: halfHeight },
-    };
+    this.boundingBox = new BoundingBox(position, size, this.rotation);
   }
 
   public deserialize(data: IImageElementData): void {
@@ -54,18 +42,17 @@ export class ImageElement extends Element<IImageElementData> {
   public serialize(): IImageElementData {
     const serialized = super.serialize();
     if (this.isImageLoaded) {
-      serialized.encodedImage = this.properties.get(
-        "encodedImage",
-      ) as string;
+      serialized.encodedImage = this.properties.get("encodedImage") as string;
     }
     return serialized;
   }
 
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return;
+    const angleInRadians = toRadians(this.rotation);
     context.save();
     context.translate(this.position.x, this.position.y);
-    context.rotate(this.rotation);
+    context.rotate(angleInRadians);
     context.scale(this.scale.x, this.scale.y);
     // Draw main background for image
     if (this.backgroundOpacity > 0) {
@@ -116,52 +103,18 @@ export class ImageElement extends Element<IImageElementData> {
       if (this.image) {
         this.isImageLoaded = true;
         this.size = { width: this.image.width, height: this.image.height };
-        const halfWidth = this.size.width * 0.5;
-        const halfHeight = this.size.height * 0.5;
-        this.corners = {
-          upperLeft: { x: -halfWidth, y: -halfHeight },
-          upperRight: { x: halfWidth, y: -halfHeight },
-          lowerLeft: { x: halfWidth, y: halfHeight },
-          lowerRight: { x: -halfWidth, y: halfHeight },
-        };
+        this.boundingBox.update(this.position, this.size, this.rotation);
       }
       window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
     };
   }
 
-  public getTransformedBoundingBox(): BoundingBox {
-    const transformedCorners = Object.values(this.corners).map(({ x, y }) => {
-      const transformedX =
-        this.position.x +
-        x * this.scale.x * Math.cos(this.rotation) -
-        y * this.scale.y * Math.sin(this.rotation);
-      const transformedY =
-        this.position.y +
-        x * this.scale.x * Math.sin(this.rotation) +
-        y * this.scale.y * Math.cos(this.rotation);
-      return { x: transformedX, y: transformedY };
-    });
-
-    const xCoordinates = transformedCorners.map((corner) => corner.x);
-    const yCoordinates = transformedCorners.map((corner) => corner.y);
-
-    return {
-      x1: Math.min(...xCoordinates),
-      y1: Math.min(...yCoordinates),
-      x2: Math.max(...xCoordinates),
-      y2: Math.max(...yCoordinates),
+  public getBoundingBox(): BoundingBox {
+    const scaledSize = {
+      width: this.size.width * this.scale.x,
+      height: this.size.height * this.scale.y,
     };
-  }
-
-  public isBelowSelection(selection: BoundingBox | null): boolean {
-    if (!selection) return false;
-    const elementBoundingBox: BoundingBox = this.getTransformedBoundingBox();
-    return new BB(selection).isBBWithin(elementBoundingBox);
-  }
-
-  public isWithinBounds(selection: BoundingBox | null): boolean {
-    if (!selection) return false;
-    const elementBoundingBox: BoundingBox = this.getTransformedBoundingBox();
-    return new BB(elementBoundingBox).isBBWithin(selection);
+    this.boundingBox.update(this.position, scaledSize, this.rotation);
+    return this.boundingBox;
   }
 }

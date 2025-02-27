@@ -132,10 +132,8 @@ export class GradientTool extends Tool {
       this.isCreating = true;
       WorkArea.getInstance().addGradientElement();
       WorkArea.getInstance().selectElements({
-        x1: offsetX,
-        x2: offsetX,
-        y1: offsetY,
-        y2: offsetY,
+        x: offsetX,
+        y: offsetY,
       });
       this.selectActiveGradient();
     }
