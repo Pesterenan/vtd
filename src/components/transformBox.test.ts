@@ -1,3 +1,4 @@
+import { BoundingBox } from "src/utils/boundingBox";
 import type { Element } from "./elements/element";
 import { TextElement } from "./elements/textElement";
 import { TransformBox } from "./transformBox";
@@ -50,20 +51,16 @@ describe("TransformBox", () => {
 
   it("should update the scale when calling updateScale", () => {
     const transformBox = new TransformBox(elements, canvas);
-    const newSize = { x: 100, y: 100 };
-    const origin = transformBox.position;
+    const newScale = { x: 4, y: 4 };
+    const newSize = { width: 200, height: 200 };
+    const origin = transformBox?.handles?.CENTER || { x: 0, y: 0 };
 
-    transformBox.updateScale(newSize, origin);
+    transformBox.updateScale(newScale, origin);
 
     expect(transformBox.size).toEqual(newSize);
-    expect(transformBox.boundingBox).toEqual({
-      center: { x: 200, y: 200 },
-      bottomLeft: { x: 100 - 25, y: 100 + 25 },
-      bottomRight: { x: 100 + 25, y: 100 + 25 },
-      rotation: 0,
-      topLeft: { x: 100 - 25, y: 100 - 25 },
-      topRight: { x: 100 + 25, y: 100 - 25 },
-    });
+    expect(transformBox.boundingBox).toEqual(
+      new BoundingBox({ x: 200, y: 200 }, newSize, 0),
+    );
   });
 
   it("should update the rotation when calling updateRotation", () => {
@@ -80,16 +77,17 @@ describe("TransformBox", () => {
   it("should calculate handles based on bounding box", () => {
     const transformBox = new TransformBox(elements, canvas);
 
-    const expectedHandles = [
-      { x: 175, y: 175 }, // Top-left
-      { x: 200, y: 175 }, // Top-middle
-      { x: 225, y: 175 }, // Top-right
-      { x: 225, y: 200 }, // Right-middle
-      { x: 225, y: 225 }, // Bottom-right
-      { x: 200, y: 225 }, // Bottom-middle
-      { x: 175, y: 225 }, // Bottom-left
-      { x: 175, y: 200 }, // Left-middle
-    ];
+    const expectedHandles: TransformBox["handles"] = {
+      TOP_LEFT: { x: 175, y: 175 },
+      TOP: { x: 200, y: 175 },
+      TOP_RIGHT: { x: 225, y: 175 },
+      RIGHT: { x: 225, y: 200 },
+      BOTTOM_RIGHT: { x: 225, y: 225 },
+      BOTTOM: { x: 200, y: 225 },
+      BOTTOM_LEFT: { x: 175, y: 225 },
+      LEFT: { x: 175, y: 200 },
+      CENTER: { x: 200, y: 200 },
+    };
 
     expect(transformBox.handles).toEqual(expectedHandles);
   });
@@ -103,8 +101,14 @@ describe("TransformBox", () => {
 
   it("should not contain an element that is not in the selectedElements array", () => {
     const transformBox = new TransformBox(elements, canvas);
-    const newElement = new TextElement({ x: 200, y: 200 }, { width: 50, height: 50 }, 1);
+    const newElement = new TextElement(
+      { x: 200, y: 200 },
+      { width: 50, height: 50 },
+      1,
+    );
 
-    expect(transformBox.contains(newElement as Element<TElementData>)).toBe(false);
+    expect(transformBox.contains(newElement as Element<TElementData>)).toBe(
+      false,
+    );
   });
 });
