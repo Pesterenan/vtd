@@ -1,24 +1,31 @@
 <!DOCTYPE HTML>
-<html>
+<html lang="pt-BR" data-theme="light">
 
 <head>
   <meta charset="UTF-8" />
   <title>Video Frame Extractor</title>
 </head>
 
-<body style="height: 96vh;">
-  <div class="container-column ai-jc-c"style="height: 100%;">
+<body>
+  <div class="container-column ai-jc-c"style="background-color: var(--background-50); height: 100%;">
     <input type="range" id="slider" min="0" max="100" step="0.1" value="0" style="width: 80vw;">
-    <canvas height="320" width="800" id="video-canvas" style="background-color: gray;"> </canvas>
+    <canvas height="320" width="800" id="video-canvas" style="background-color: var(--background-300);"> </canvas>
     <div class="container ai-c jc-sb" style="width: 100%;">
       <div class="ai-c pad-1">
-        <button id="btn_extract-frame" type="button">Extract Frame</button>
+        <button id="btn_extract-frame" class="btn-common-wide" type="button">Extract Frame</button>
       </div>
       <div class="ai-c pad-1">
-        <button id="btn_copy-to-clipboard" type="button">Copy Frame to Clipboard</button>
+        <button id="btn_copy-to-clipboard" class="btn-common-wide" type="button">Copy Frame to Clipboard</button>
       </div>
     </div>
   </div>
 </body>
+<script>
+  window.api.onThemeUpdate((event, newTheme) => {
+    console.log('Theme updated:', newTheme);
+    const root = document.documentElement;
+    root.setAttribute('data-theme', newTheme);
+  });
+  </script>
 
 </html>

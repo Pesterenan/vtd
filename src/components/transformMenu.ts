@@ -60,10 +60,10 @@ export class TransformMenu {
 
   private createDOMElements(): void {
     this.transformSection = document.createElement("section");
-    this.transformSection.id = "sec_gradient-menu";
+    this.transformSection.id = "sec_transform-box-properties";
     this.transformSection.className = "sec_menu-style";
     this.transformSection.innerHTML = `
-      <p style="align-self: flex-start;">Caixa de Transformação:</p>
+      <h5 style="align-self: flex-start;">Caixa de Transformação:</h5>
       <div class="container jc-sb">
         <div id="inp_group-position" class="container-column jc-sb">
           <p style="align-self: flex-start;">Posição:</p>

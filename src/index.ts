@@ -18,14 +18,15 @@ if (require("electron-squirrel-startup")) {
 
 let mainWindow: BrowserWindow | null = null;
 let frameExtractorWindow: BrowserWindow | null = null;
+let currentTheme = 'light';
 
 const createMainWindow = (): void => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     autoHideMenuBar: true,
-    height: 670,
+    height: 768,
     show: false,
-    width: 900,
+    width: 1024,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       nodeIntegration: true,
@@ -37,6 +38,7 @@ const createMainWindow = (): void => {
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
   mainWindow.on("ready-to-show", () => {
+    mainWindow?.webContents.send("theme-update", currentTheme);
     mainWindow?.show();
   });
 
@@ -69,6 +71,7 @@ const createFrameExtractorWindow = (metadata: IVideoMetadata): void => {
     frameExtractorWindow.loadURL(VIDEO_FRAME_EXTRACTOR_WEBPACK_ENTRY);
 
     frameExtractorWindow.once("ready-to-show", () => {
+      frameExtractorWindow?.webContents.send("theme-update", currentTheme);
       frameExtractorWindow?.show();
       frameExtractorWindow?.webContents.send("video-metadata", metadata);
     });
@@ -114,6 +117,15 @@ app.on("window-all-closed", () => {
 function registerIPCHandlers(mainWindow: BrowserWindow): void {
   // IPC test
   ipcMain.on("ping", () => console.log("pong"));
+
+  // Change Theme on all windows
+  ipcMain.on("change-theme", (_, newTheme: string) => {
+    console.log("Main Process: Changing theme to", newTheme);
+    currentTheme = newTheme;
+    BrowserWindow.getAllWindows().forEach((window) => {
+      window.webContents.send("theme-update", currentTheme);
+    });
+  });
 
   // Load video into vtd
   ipcMain.on("load-video", async (event) => {
