@@ -202,10 +202,8 @@ export class LayersMenu {
     this.layersSection.id = "sec_layers-menu";
     this.layersSection.className = "sec_menu-style";
     this.layersSection.innerHTML = `
-      <p style="align-self: flex-start;">Camadas:</p>
-      <div style="display: flex; flex-wrap: nowrap; width: 100%;">
-        <ul id="ul_layers-list" />
-      </div>
+      <h5 style="align-self: flex-start;">Camadas:</h5>
+      <ul id="ul_layers-list" />
     `;
   }
 }

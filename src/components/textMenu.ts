@@ -60,7 +60,7 @@ export class TextMenu {
     this.textMenuSection.id = "sec_text-menu";
     this.textMenuSection.className = "sec_menu-style";
     this.textMenuSection.innerHTML = `
-<p style="align-self: flex-start;">Texto:</p>
+<h5 style="align-self: flex-start;">Texto:</h5>
 <div class='container jc-sb'>
   <div class='container ai-jc-c'>
     <textarea id="inp_text-input" style="resize: none;"></textarea>

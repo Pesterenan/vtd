@@ -42,7 +42,7 @@
 }
 
 .bd-r {
-  border-right: 1px solid var(--primary_dark);
+  border-right: 1px solid var(--secondary-500);
 }
 
 .pad-i-05 {
