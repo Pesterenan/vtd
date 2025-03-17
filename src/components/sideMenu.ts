@@ -5,6 +5,11 @@ import { TextMenu } from "src/components/textMenu";
 import { WorkArea } from "src/components/workArea";
 import { SIDE_MENU_WIDTH } from "src/constants";
 import { TransformMenu } from "./transformMenu";
+import importImageIconSrc from "src/assets/icons/import-image.svg";
+import exportImageIconSrc from "src/assets/icons/export-image.svg";
+import saveProjectIconSrc from "src/assets/icons/save-project.svg";
+import loadProjectIconSrc from "src/assets/icons/load-project.svg";
+import extractVideoIconSrc from "src/assets/icons/extract-video.svg";
 
 export class SideMenu {
   private static instance: SideMenu | null = null;
@@ -18,10 +23,24 @@ export class SideMenu {
     this.createDOMElements();
   }
 
-  private createHR(): HTMLHRElement {
-    const horizontalDivider = document.createElement("hr");
-    horizontalDivider.setAttribute("style", "width: 100%;");
-    return horizontalDivider;
+  private createButton(
+    id: string,
+    tooltipTitle: string,
+    iconSrc: string,
+    onClick: () => void,
+  ): HTMLButtonElement {
+    const button = document.createElement("button");
+    button.id = id;
+    button.className = "btn-common";
+    const tooltip = document.createElement("tooltip");
+    tooltip.title = tooltipTitle;
+    const icon = document.createElement("div");
+    icon.className = "icon";
+    icon.style.setProperty("--icon-url", `url(${iconSrc})`);
+    tooltip.appendChild(icon);
+    button.appendChild(tooltip);
+    button.addEventListener("click", onClick);
+    return button;
   }
 
   private createDOMElements(): void {
@@ -32,78 +51,72 @@ export class SideMenu {
     this.sideMenu.setAttribute("style", `width: ${SIDE_MENU_WIDTH}px;`);
     const domElements: HTMLElement[] = [];
 
-    const importImageBtn = document.createElement("button");
-    importImageBtn.id = "btn_import-image";
-    importImageBtn.innerText = "Importar Imagem";
-    importImageBtn.className = "btn-common";
-    importImageBtn.addEventListener("click", () => window.api.loadImage());
-    domElements.push(importImageBtn);
-
-    const exportImageBtn = document.createElement("button");
-    exportImageBtn.id = "btn_export-image";
-    exportImageBtn.innerText = "Exportar Imagem";
-    exportImageBtn.className = "btn-common";
-    exportImageBtn.addEventListener("click", () =>
-      window.api.exportCanvas(WorkArea.getInstance().exportCanvas()),
+    const importImageBtn = this.createButton(
+      "btn_import-image",
+      "Importar Imagem",
+      importImageIconSrc,
+      () => window.api.loadImage(),
     );
-    domElements.push(exportImageBtn);
-
-    const addElementBtn = document.createElement("button");
-    addElementBtn.id = "btn_add-element";
-    addElementBtn.innerText = "Adicionar Elemento";
-    addElementBtn.className = "btn-common";
-    addElementBtn.addEventListener("click", () =>
-      WorkArea.getInstance().addElement(),
+    const exportImageBtn = this.createButton(
+      "btn_export-image",
+      "Exportar Imagem",
+      exportImageIconSrc,
+      () => window.api.exportCanvas(WorkArea.getInstance().exportCanvas()),
     );
-    domElements.push(addElementBtn);
-
-    const saveProjectBtn = document.createElement("button");
-    saveProjectBtn.id = "btn_save-project";
-    saveProjectBtn.innerText = "Salvar Projeto";
-    saveProjectBtn.className = "btn-common";
-    saveProjectBtn.addEventListener("click", () => {
-      const projectData = WorkArea.getInstance().saveProject();
-      window.api.saveProject(projectData);
-    });
-
-    const loadProjectBtn = document.createElement("button");
-    loadProjectBtn.id = "btn_load-project";
-    loadProjectBtn.innerText = "Carregar Projeto";
-    loadProjectBtn.className = "btn-common";
-    loadProjectBtn.addEventListener("click", () => {
-      window.api.loadProject();
-    });
+    const saveProjectBtn = this.createButton(
+      "btn_save-project",
+      "Salvar Projeto",
+      saveProjectIconSrc,
+      () => {
+        const projectData = WorkArea.getInstance().saveProject();
+        window.api.saveProject(projectData);
+      },
+    );
+    const loadProjectBtn = this.createButton(
+      "btn_load-project",
+      "Carregar Projeto",
+      loadProjectIconSrc,
+      () => window.api.loadProject(),
+    );
+    const openVideoBtn = this.createButton(
+      "btn_open-video",
+      "Extrair de Vídeo",
+      extractVideoIconSrc,
+      () => window.api.loadVideo(),
+    );
 
     const projectOptionsDiv = document.createElement("div");
-    projectOptionsDiv.className = 'container jc-sb g-1 pad-b-05';
-    projectOptionsDiv.append(saveProjectBtn, loadProjectBtn);
+    projectOptionsDiv.className =
+      "sec_menu-style container g-05 jc-sb";
+    projectOptionsDiv.append(
+      loadProjectBtn,
+      saveProjectBtn,
+      importImageBtn,
+      openVideoBtn,
+      exportImageBtn,
+    );
     domElements.push(projectOptionsDiv);
 
-    const openVideoBtn = document.createElement("button");
-    openVideoBtn.id = "btn_open-video";
-    openVideoBtn.innerText = "Open Video";
-    openVideoBtn.className = "btn-common";
-    openVideoBtn.onclick = (): void => {
-      window.api.loadVideo();
-    };
-    domElements.push(openVideoBtn);
-    domElements.push(this.createHR());
+    //const addElementBtn = document.createElement("button");
+    //addElementBtn.id = "btn_add-element";
+    //addElementBtn.innerText = "Adicionar Elemento";
+    //addElementBtn.className = "btn-common-wide";
+    //addElementBtn.addEventListener("click", () =>
+    //  WorkArea.getInstance().addElement(),
+    //);
+    //domElements.push(addElementBtn);
 
     this.transformMenu = TransformMenu.getInstance().getMenu();
     domElements.push(this.transformMenu);
-    domElements.push(this.createHR());
 
     this.layersMenu = LayersMenu.getInstance().getMenu();
     domElements.push(this.layersMenu);
-    domElements.push(this.createHR());
 
     this.textMenu = TextMenu.getInstance().getMenu();
     domElements.push(this.textMenu);
-    domElements.push(this.createHR());
 
     this.gradientMenu = GradientMenu.getInstance().getMenu();
     domElements.push(this.gradientMenu);
-    domElements.push(this.createHR());
 
     // APPEND ELEMENTS TO SIDE MENU:
     this.sideMenu.append(...domElements);

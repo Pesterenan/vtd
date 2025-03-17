@@ -1,4 +1,131 @@
+@import url('https://fonts.googleapis.com/css?family=Trajan%20Pro:700|IBM%20Plex%20Sans%20Condensed:400');
+
+:root[data-theme="light"] {
+  --text-50: #f5f0f0;
+  --text-100: #ebe0e0;
+  --text-200: #d6c2c2;
+  --text-300: #c2a3a3;
+  --text-400: #ad8585;
+  --text-500: #996666;
+  --text-600: #7a5252;
+  --text-700: #5c3d3d;
+  --text-800: #3d2929;
+  --text-900: #1f1414;
+  --text-950: #0f0a0a;
+
+  --background-50: #f3f1f1;
+  --background-100: #e8e3e3;
+  --background-200: #d0c8c8;
+  --background-300: #b9acac;
+  --background-400: #a19191;
+  --background-500: #8a7575;
+  --background-600: #6e5e5e;
+  --background-700: #534646;
+  --background-800: #372f2f;
+  --background-900: #1c1717;
+  --background-950: #0e0c0c;
+
+  --primary-50: #fce9ea;
+  --primary-100: #f8d3d5;
+  --primary-200: #f2a6ab;
+  --primary-300: #eb7a81;
+  --primary-400: #e44e58;
+  --primary-500: #de212e;
+  --primary-600: #b11b25;
+  --primary-700: #85141b;
+  --primary-800: #590d12;
+  --primary-900: #2c0709;
+  --primary-950: #160305;
+
+  --secondary-50: #fbeaea;
+  --secondary-100: #f7d4d4;
+  --secondary-200: #efa9a9;
+  --secondary-300: #e77e7e;
+  --secondary-400: #de5454;
+  --secondary-500: #d62929;
+  --secondary-600: #ab2121;
+  --secondary-700: #811818;
+  --secondary-800: #561010;
+  --secondary-900: #2b0808;
+  --secondary-950: #150404;
+
+  --accent-50: #fffde5;
+  --accent-100: #fffccc;
+  --accent-200: #fff899;
+  --accent-300: #fff566;
+  --accent-400: #fff133;
+  --accent-500: #ffee00;
+  --accent-600: #ccbe00;
+  --accent-700: #998f00;
+  --accent-800: #665f00;
+  --accent-900: #333000;
+  --accent-950: #1a1800;
+
+}
+:root[data-theme="dark"] {
+  --text-50: #0f0a0a;
+  --text-100: #1f1414;
+  --text-200: #3d2929;
+  --text-300: #5c3d3d;
+  --text-400: #7a5252;
+  --text-500: #996666;
+  --text-600: #ad8585;
+  --text-700: #c2a3a3;
+  --text-800: #d6c2c2;
+  --text-900: #ebe0e0;
+  --text-950: #f5f0f0;
+
+  --background-50: #0e0c0c;
+  --background-100: #1c1717;
+  --background-200: #372f2f;
+  --background-300: #534646;
+  --background-400: #6e5e5e;
+  --background-500: #8a7575;
+  --background-600: #a19191;
+  --background-700: #b9acac;
+  --background-800: #d0c8c8;
+  --background-900: #e8e3e3;
+  --background-950: #f3f1f1;
+
+  --primary-50: #160305;
+  --primary-100: #2c0709;
+  --primary-200: #590d12;
+  --primary-300: #85141b;
+  --primary-400: #b11b25;
+  --primary-500: #de212e;
+  --primary-600: #e44e58;
+  --primary-700: #eb7a81;
+  --primary-800: #f2a6ab;
+  --primary-900: #f8d3d5;
+  --primary-950: #fce9ea;
+
+  --secondary-50: #150404;
+  --secondary-100: #2b0808;
+  --secondary-200: #561010;
+  --secondary-300: #811818;
+  --secondary-400: #ab2121;
+  --secondary-500: #d62929;
+  --secondary-600: #de5454;
+  --secondary-700: #e77e7e;
+  --secondary-800: #efa9a9;
+  --secondary-900: #f7d4d4;
+  --secondary-950: #fbeaea;
+
+  --accent-50: #1a1800;
+  --accent-100: #333000;
+  --accent-200: #665f00;
+  --accent-300: #998f00;
+  --accent-400: #ccbe00;
+  --accent-500: #ffee00;
+  --accent-600: #fff133;
+  --accent-700: #fff566;
+  --accent-800: #fff899;
+  --accent-900: #fffccc;
+  --accent-950: #fffde5;
+
+}
 :root {
+  --background-transition: background-color 0.15s;
   --primary_hue: 160;
   --primary_main: hsl(var(--primary_hue), 50%, 60%);
   --primary_dark: hsl(var(--primary_hue), 50%, 30%);
@@ -17,39 +144,6 @@
   --font-extra-large: 1.5rem;
 }
 
-:root {
-  --ev-c-white: #ffffff;
-  --ev-c-white-soft: #f8f8f8;
-  --ev-c-white-mute: #f2f2f2;
-
-  --ev-c-black: #1b1b1f;
-  --ev-c-black-soft: #222222;
-  --ev-c-black-mute: #282828;
-
-  --ev-c-gray-1: #515c67;
-  --ev-c-gray-2: #414853;
-  --ev-c-gray-3: #32363f;
-
-  --ev-c-text-1: rgba(255, 255, 245, 0.86);
-  --ev-c-text-2: rgba(235, 235, 245, 0.6);
-  --ev-c-text-3: rgba(235, 235, 245, 0.38);
-
-  --ev-button-alt-border: transparent;
-  --ev-button-alt-text: var(--ev-c-text-1);
-  --ev-button-alt-bg: var(--ev-c-gray-3);
-  --ev-button-alt-hover-border: transparent;
-  --ev-button-alt-hover-text: var(--ev-c-text-1);
-  --ev-button-alt-hover-bg: var(--ev-c-gray-2);
-}
-
-:root {
-  --color-background: var(--ev-c-black);
-  --color-background-soft: var(--ev-c-black-soft);
-  --color-background-mute: var(--ev-c-black-mute);
-
-  --color-text: var(--ev-c-text-1);
-}
-
 *,
 *::before,
 *::after {
@@ -63,24 +157,34 @@ ul {
 }
 
 body {
-  min-height: 100vh;
-  color: var(--color-text);
-  background: var(--color-background);
-  line-height: 1.6;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  background: var(--background-50);
+  color: var(--text-900);
+  font-family:
+    'IBM Plex Sans Condensed',
+    sans-serif;
+  font-weight: 400;
+  line-height: 1.2;
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
 }
+
+h1, h2, h3, h4, h5 {
+  font-family: 'Trajan Pro';
+  font-weight: bold;
+}
+
+html {font-size: 100%;} /* 16px */
+
+h1 {font-size: 1.106rem; /* 17.76px */}
+
+h2 {font-size: 1.037rem; /* 16.64px */}
+
+h3 {font-size: 0.972rem; /* 15.52px */}
+
+h4 {font-size: 0.911rem; /* 14.56px */}
+
+h5 {font-size: 0.854rem; /* 13.6px */}
+
+small {font-size: 0.750rem; /* 12px */}

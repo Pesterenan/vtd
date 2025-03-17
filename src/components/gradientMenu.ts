@@ -73,10 +73,10 @@ export class GradientMenu {
     this.gradientSection.id = "sec_gradient-menu";
     this.gradientSection.className = "sec_menu-style";
     this.gradientSection.innerHTML = `
-      <p style="align-self: flex-start;">Gradiente:</p>
-      <div class='container-column jc-sb g-05' style="padding-inline: 0.5rem;">
-      <div id="gradient-bar" style="width: 100%; height: 20px; background: #FFFFFF;"></div>
-      <div id="color-stops-indicators" style="position: relative; height: 10px;"></div>
+      <h5 style="align-self: flex-start;">Gradiente:</h5>
+      <div class='container-column jc-sb g-05 pad-i-05'></div>
+      <div id="gradient-bar"></div>
+      <div id="color-stops-indicators"></div>
     `;
     this.colorControl = createColorControl(
       "inp_portion_color",

@@ -27,7 +27,7 @@ export class FiltersDialog {
           <div id="filter-controls"></div>
         </div>
         <menu>
-          <button id="btn_close-dialog" class="btn-common">Close</button>
+          <button id="btn_close-dialog" class="btn-common-wide">Fechar</button>
         </menu>
       </form>
     `;

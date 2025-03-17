@@ -31,38 +31,37 @@ export class ToolMenu {
         <tooltip title="Ferramentas" />
           Ferr.
       </label>
-      <button data-tool="${TOOL.SELECT}" class='tool active' aria-label='(V) Selecionar elementos'>
+      <button data-tool="${TOOL.SELECT}" class='btn-common active' aria-label='(V) Selecionar elementos'>
         <tooltip title='(V) Selecionar elementos'/>
-        <img src="${SelectIcon}" alt="Selecionar" />
+        <div class="icon" style="--icon-url: url(${SelectIcon});" />
       </button>
-      <button data-tool="${TOOL.GRAB}" class='tool' aria-label='(G) Mover elementos'>
+      <button data-tool="${TOOL.GRAB}" class='btn-common' aria-label='(G) Mover elementos'>
         <tooltip title='(G) Mover elementos'/>
-        <img src="${GrabIcon}" alt="Mover" />
+        <div class="icon" style="--icon-url: url(${GrabIcon});" />
       </button>
-      <button data-tool="${TOOL.ROTATE}" class='tool' aria-label='(R) Rotacionar elementos'>
+      <button data-tool="${TOOL.ROTATE}" class='btn-common' aria-label='(R) Rotacionar elementos'>
         <tooltip title='(R) Rotacionar elementos'/>
-        <img src="${RotateIcon}" alt="Mover" />
+        <div class="icon" style="--icon-url: url(${RotateIcon});" />
       </button>
-      <button data-tool="${TOOL.SCALE}" class='tool' aria-label='(S) Escalonar elementos'>
+      <button data-tool="${TOOL.SCALE}" class='btn-common' aria-label='(S) Escalonar elementos'>
         <tooltip title='(S) Escalonar elementos'/>
-        <img src="${ScaleIcon}" alt="Mover" />
+        <div class="icon" style="--icon-url: url(${ScaleIcon});" />
       </button>
-      <button data-tool="${TOOL.TEXT}" class='tool' aria-label='(T) Criar textos'>
+      <button data-tool="${TOOL.TEXT}" class='btn-common' aria-label='(T) Criar textos'>
         <tooltip title='(T) Criar textos'/>
-        <img = src="${TextIcon}"alt="Texto" />
+        <div class="icon" style="--icon-url: url(${TextIcon});" />
       </button>
-      <button data-tool="${TOOL.GRADIENT}" class='tool' aria-label='(H) Criar gradientes'>
+      <button data-tool="${TOOL.GRADIENT}" class='btn-common' aria-label='(H) Criar gradientes'>
         <tooltip title='(H) Criar gradientes'/>
-        <img = src="${GradientIcon}"alt="Gradiente" />
+        <div class="icon" style="--icon-url: url(${GradientIcon});" />
       </button>
-      <button data-tool="${TOOL.HAND}" class='tool' aria-label='(Espaço) Mover Área de Trabalho'>
+      <button data-tool="${TOOL.HAND}" class='btn-common' aria-label='(Espaço) Mover Área de Trabalho'>
         <tooltip title='(Espaço) Mover Área de Trabalho'/>
-        <img src="${HandIcon}"alt="Mão" />
+        <div class="icon" style="--icon-url: url(${HandIcon});" />
       </button>
-      <button data-tool="${TOOL.ZOOM}" class='tool' aria-label='(Z) Modificar nível de zoom'>
-        <tooltip title='(Z) Modificar nível de zoom'>
-        <img src="${ZoomIcon}"alt="Zoom" />
-        </tooltip>
+      <button data-tool="${TOOL.ZOOM}" class='btn-common' aria-label='(Z) Modificar nível de zoom'>
+        <tooltip title='(Z) Modificar nível de zoom' />
+        <div class="icon" style="--icon-url: url(${ZoomIcon});" />
       </button>
 `;
 

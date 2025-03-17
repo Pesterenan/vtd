@@ -1,14 +1,30 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE HTML>
+<html lang="pt-BR" data-theme="light">
 
 <head>
   <meta charset="UTF-8" />
   <title>Video Thumbnail Designer</title>
-
 </head>
 
 <body>
   <main id="main-window" />
+  <button id="theme-toggle"
+    style="background-color: var(--primary-300); border-color: var(--accent-400); color: var(--accent-400); position: absolute; left: 0.25rem; top: 96%; border-radius: 10rem;">Theme</button>
 </body>
+<script>
+  window.api.onThemeUpdate((event, newTheme) => {
+    console.log('Theme updated:', newTheme);
+    const root = document.documentElement;
+    root.setAttribute('data-theme', newTheme);
+  });
+  const toggleButton = document.getElementById('theme-toggle');
+  toggleButton.addEventListener('click', () => {
+    const root = document.documentElement;
+    const currentTheme = root.getAttribute('data-theme');
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    console.log('Calling changeTheme with:', newTheme);
+    window.api.changeTheme(newTheme);
+  });
+</script>
 
 </html>

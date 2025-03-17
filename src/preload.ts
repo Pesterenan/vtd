@@ -9,6 +9,7 @@ interface EventResponse {
 declare global {
   interface Window {
     api: {
+      changeTheme: (theme: string) => void;
       exportCanvas: (dataString: string) => void;
       loadImage: () => void;
       loadVideo: () => void;
@@ -50,6 +51,12 @@ declare global {
         callback: (metadata: IVideoMetadata) => void,
       ) => Electron.IpcRenderer;
       ping: () => void;
+      onThemeUpdate: (
+        callback: (
+          event: Electron.IpcRendererEvent,
+          newTheme: string,
+        ) => Electron.IpcRenderer,
+      ) => void;
     };
     electron: typeof electronAPI;
   }
@@ -60,6 +67,7 @@ import type { IVideoMetadata } from "src/types";
 
 // Custom APIs for renderer
 const api = {
+  changeTheme: (theme: string): void => ipcRenderer.send("change-theme", theme),
   exportCanvas: (dataString: string): void =>
     ipcRenderer.send("export-canvas", { dataString }),
   loadImage: (): void => ipcRenderer.send("load-image"),
@@ -107,6 +115,11 @@ const api = {
   ): Electron.IpcRenderer =>
     ipcRenderer.on("video-metadata", (_, metadata) => callback(metadata)),
   ping: () => ipcRenderer.send("ping"),
+  onThemeUpdate: (
+    callback: (event: Electron.IpcRendererEvent, newTheme: string) => void,
+  ): void => {
+    ipcRenderer.on("theme-update", callback);
+  },
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to
