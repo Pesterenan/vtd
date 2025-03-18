@@ -36,7 +36,6 @@ export class OuterGlowFilter extends Filter {
     canvas: OffscreenCanvas | HTMLImageElement,
   ): void {
     context.save();
-    context.globalAlpha = this.globalAlpha;
     context.shadowColor = this.color;
     context.shadowBlur = this.blur;
     context.shadowOffsetX = 0;

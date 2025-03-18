@@ -45,6 +45,12 @@ export abstract class Element<T extends Partial<IElementData>> {
   public set rotation(value: number) {
     this.properties.set("rotation", value);
   }
+  public get opacity(): number {
+    return this.properties.get("opacity") as number;
+  }
+  public set opacity(value: number) {
+    this.properties.set("opacity", value);
+  }
   public get scale(): Scale {
     return this.properties.get("scale") as Scale;
   }
@@ -81,6 +87,7 @@ export abstract class Element<T extends Partial<IElementData>> {
     this.size = size;
     this.zDepth = z;
     this.rotation = 0;
+    this.opacity = 1;
     this.scale = { x: 1.0, y: 1.0 };
     this.isVisible = true;
     this.isLocked = false;

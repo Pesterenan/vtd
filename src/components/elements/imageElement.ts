@@ -65,6 +65,7 @@ export class ImageElement extends Element<IImageElementData> {
         this.size.height,
       );
     }
+    context.globalAlpha = this.opacity;
     // Apply 'before' filters
     for (const filter of this.filters) {
       if (filter.applies === "before" && this.image) {
@@ -84,7 +85,6 @@ export class ImageElement extends Element<IImageElementData> {
 
   private drawImage(context: CanvasRenderingContext2D): void {
     if (this.isImageLoaded && this.image) {
-      context.globalAlpha = 1;
       context.drawImage(
         this.image,
         -this.size.width * 0.5,

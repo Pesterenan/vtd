@@ -12,6 +12,7 @@ export class TransformBox {
   public size: Size = { width: 0, height: 0 };
   public anchorPoint: Position | null = null;
   public rotation = 0;
+  public opacity = 1;
 
   private selectedElements: Element<TElementData>[] = [];
   private context: CanvasRenderingContext2D | null;
@@ -45,6 +46,7 @@ export class TransformBox {
       const element = this.selectedElements[0];
       this.position = { ...element.position };
       this.rotation = element.rotation;
+      this.opacity = element.opacity;
       const scaledSize = {
         width: element.size.width * element.scale.x,
         height: element.size.height * element.scale.y,
@@ -95,17 +97,7 @@ export class TransformBox {
     }
     // Recalcula os handles
     this.generateHandles();
-
-    // Notifica a aplicação sobre a atualização da TransformBox
-    window.dispatchEvent(
-      new CustomEvent(EVENT.RECALCULATE_TRANSFORM_BOX, {
-        detail: {
-          position: this.position,
-          size: this.size,
-          rotation: this.rotation,
-        },
-      }),
-    );
+    this.updateHandles();
   }
 
   private generateHandles(): void {
@@ -154,10 +146,19 @@ export class TransformBox {
           position: this.position,
           size: this.size,
           rotation: this.rotation,
+          opacity: this.opacity,
         },
       }),
     );
     window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+  }
+
+  public updateOpacity(opacity: number): void {
+    this.selectedElements.forEach((element) => {
+      element.opacity = opacity;
+    });
+    this.opacity = opacity;
+    this.updateHandles();
   }
 
   public updatePosition({ x, y }: Position): void {
