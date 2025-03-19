@@ -468,6 +468,8 @@ export class WorkArea {
           detail: {
             elementId: newElement.elementId,
             layerName: newElement.layerName,
+            isVisible: newElement.isVisible,
+            isLocked: newElement.isLocked,
           },
         }),
       );

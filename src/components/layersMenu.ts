@@ -40,9 +40,9 @@ export class LayersMenu {
 
   private createLayer(evt: Event): void {
     const customEvent = evt as CustomEvent;
-    const { elementId, layerName } = customEvent.detail;
+    const { elementId, layerName, isVisible, isLocked} = customEvent.detail;
     const layerList = getElementById<HTMLUListElement>("ul_layers-list");
-    layerList?.append(this.LayerListItem(elementId, layerName));
+    layerList?.append(this.LayerListItem(elementId, isVisible, isLocked, layerName));
   }
 
   private deleteLayer(evt: Event): void {
@@ -53,7 +53,7 @@ export class LayersMenu {
     layerList?.removeChild(layerToDelete);
   }
 
-  private LayerListItem(elementId: number, layerName?: string): HTMLLIElement {
+  private LayerListItem(elementId: number, isVisible: boolean, isLocked: boolean, layerName?: string): HTMLLIElement {
     const layerLI = document.createElement("li") as HTMLLIElement;
     layerLI.id = `layer-${elementId}`;
     layerLI.dataset.id = String(elementId);
@@ -61,7 +61,7 @@ export class LayersMenu {
     layerLI.draggable = true;
     layerLI.innerHTML = `
 <div class="container ai-c bd-r g-05 pad-i-05" style="flex-basis: auto;">
-  <input id="inp_visibility-${elementId}" class="tgl-common" type="checkbox" checked>
+  <input id="inp_visibility-${elementId}" class="tgl-common" type="checkbox" ${isVisible ? "checked" : ""}>
     <label style="--checked-icon-url: url(${OpenEyeIcon}); --icon-url: url(${ClosedEyeIcon});" for="inp_visibility-${elementId}"></label>
   </input>
   <button id="btn_filters-${elementId}" type="button">F</button>
@@ -76,7 +76,7 @@ export class LayersMenu {
     ${layerName ? layerName : `Layer ${elementId}`}
   </span>
   <div class="container ai-c bd-r g-05 pad-i-05" style="flex-basis: auto;">
-    <input id="inp_lock-${elementId}" class="tgl-common" type="checkbox">
+    <input id="inp_lock-${elementId}" class="tgl-common" type="checkbox" ${isLocked ? "checked" : ""}>
       <label style="--checked-icon-url: url(${LockedIcon}); --icon-url: url(${UnlockedIcon});" for="inp_lock-${elementId}"></label>
     </input>
     <button id="btn_delete-layer-${elementId}" type="button">X</button>

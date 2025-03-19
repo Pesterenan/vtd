@@ -83,6 +83,7 @@ export abstract class Element<T extends Partial<IElementData>> {
     this.rotation = 0;
     this.scale = { x: 1.0, y: 1.0 };
     this.isVisible = true;
+    this.isLocked = false;
     this.layerName = "";
     this._elementId = Element.elementIds++;
     this.filters = [];
