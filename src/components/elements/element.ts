@@ -51,6 +51,12 @@ export abstract class Element<T extends Partial<IElementData>> {
   public set scale(value: Scale) {
     this.properties.set("scale", value);
   }
+  public get isLocked(): boolean {
+    return this.properties.get("isLocked") as boolean;
+  }
+  public set isLocked(value: boolean) {
+    this.properties.set("isLocked", value);
+  }
   public get isVisible(): boolean {
     return this.properties.get("isVisible") as boolean;
   }

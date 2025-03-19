@@ -86,6 +86,9 @@ export class LayersMenu {
     const visibilityInput = layerLI.querySelector(
       `#inp_visibility-${elementId}`,
     ) as HTMLInputElement;
+    const lockInput = layerLI.querySelector(
+      `#inp_lock-${elementId}`,
+    ) as HTMLInputElement;
     const filtersBtn = layerLI.querySelector(
       `#btn_filters-${elementId}`,
     ) as HTMLButtonElement;
@@ -103,6 +106,13 @@ export class LayersMenu {
       window.dispatchEvent(
         new CustomEvent(EVENT.TOGGLE_ELEMENT_VISIBILITY, {
           detail: { elementId, isVisible: visibilityInput.checked },
+        }),
+      );
+    };
+    lockInput.onclick = (): void => {
+      window.dispatchEvent(
+        new CustomEvent(EVENT.TOGGLE_ELEMENT_LOCK, {
+          detail: { elementId, isLocked: lockInput.checked },
         }),
       );
     };
