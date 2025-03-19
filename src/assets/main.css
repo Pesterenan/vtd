@@ -88,6 +88,40 @@ body {
   width: 6rem;
 }
 
+.tgl-common {
+  display: none;
+
+  &+label {
+    border-radius: 0.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    height: 1.25rem;
+    justify-content: center;
+    transition: var(--background-transition);
+    width: 1.25rem;
+  }
+  &:checked+label {
+    background-color: var(--primary-500);
+  }
+
+  &+label::before {
+    content: '';
+    display: block;
+    background: linear-gradient(to bottom right, var(--accent-500) 40%, var(--accent-700));
+    height: 1rem;
+    mask-image: var(--icon-url);
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: cover;
+    width: 1rem;
+  }
+
+  &:checked+label::before {
+    mask-image: var(--checked-icon-url);
+  }
+}
+
 .error-element {
   background-color: var(--error_light);
   color: var(--error_main);

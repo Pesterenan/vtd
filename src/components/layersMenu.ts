@@ -1,6 +1,10 @@
 import EVENT from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 import errorElement from "src/components/elements/errorElement";
+import OpenEyeIcon from "src/assets/icons/open-eye.svg";
+import ClosedEyeIcon from "src/assets/icons/closed-eye.svg";
+import LockedIcon from "src/assets/icons/lock.svg";
+import UnlockedIcon from "src/assets/icons/unlock.svg";
 
 export class LayersMenu {
   private static instance: LayersMenu | null = null;
@@ -57,7 +61,9 @@ export class LayersMenu {
     layerLI.draggable = true;
     layerLI.innerHTML = `
 <div class="container ai-c bd-r g-05 pad-i-05" style="flex-basis: auto;">
-  <input id="inp_visibility-${elementId}" type="checkbox" checked/>
+  <input id="inp_visibility-${elementId}" class="tgl-common" type="checkbox" checked>
+    <label style="--checked-icon-url: url(${OpenEyeIcon}); --icon-url: url(${ClosedEyeIcon});" for="inp_visibility-${elementId}"></label>
+  </input>
   <button id="btn_filters-${elementId}" type="button">F</button>
 </div>
 <div class="container ai-c jc-sb fb-100 g-05">
@@ -69,11 +75,19 @@ export class LayersMenu {
   <span id="spn_layer-${elementId}" class="pad-i-05">
     ${layerName ? layerName : `Layer ${elementId}`}
   </span>
-  <button id="btn_delete-layer-${elementId}" type="button">X</button>
+  <div class="container ai-c bd-r g-05 pad-i-05" style="flex-basis: auto;">
+    <input id="inp_lock-${elementId}" class="tgl-common" type="checkbox">
+      <label style="--checked-icon-url: url(${LockedIcon}); --icon-url: url(${UnlockedIcon});" for="inp_lock-${elementId}"></label>
+    </input>
+    <button id="btn_delete-layer-${elementId}" type="button">X</button>
+  </div>
 </div>
 `;
     const visibilityInput = layerLI.querySelector(
       `#inp_visibility-${elementId}`,
+    ) as HTMLInputElement;
+    const lockInput = layerLI.querySelector(
+      `#inp_lock-${elementId}`,
     ) as HTMLInputElement;
     const filtersBtn = layerLI.querySelector(
       `#btn_filters-${elementId}`,
@@ -92,6 +106,13 @@ export class LayersMenu {
       window.dispatchEvent(
         new CustomEvent(EVENT.TOGGLE_ELEMENT_VISIBILITY, {
           detail: { elementId, isVisible: visibilityInput.checked },
+        }),
+      );
+    };
+    lockInput.onclick = (): void => {
+      window.dispatchEvent(
+        new CustomEvent(EVENT.TOGGLE_ELEMENT_LOCK, {
+          detail: { elementId, isLocked: lockInput.checked },
         }),
       );
     };

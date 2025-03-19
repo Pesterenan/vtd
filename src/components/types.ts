@@ -7,6 +7,7 @@ export interface IElementData {
   size: Size;
   rotation: number;
   zDepth: number;
+  isLocked: boolean;
   isVisible: boolean;
   layerName: string;
   filters: Filter[];

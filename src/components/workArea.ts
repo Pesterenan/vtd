@@ -163,6 +163,20 @@ export class WorkArea {
         this.elements.sort((a, b) => a.zDepth - b.zDepth);
         this.update();
       });
+      window.addEventListener(EVENT.TOGGLE_ELEMENT_LOCK, (evt: Event) => {
+        const customEvent = evt as CustomEvent<{
+          elementId: number;
+          isLocked: boolean;
+        }>;
+        const { elementId, isLocked } = customEvent.detail;
+        const elementToToggleLock = this.elements.find(
+          (el) => el.elementId === elementId,
+        );
+        if (elementToToggleLock) {
+          elementToToggleLock.isLocked = isLocked;
+        }
+        this.update();
+      });
       window.addEventListener(EVENT.TOGGLE_ELEMENT_VISIBILITY, (evt: Event) => {
         const customEvent = evt as CustomEvent<{
           elementId: number;
@@ -181,7 +195,7 @@ export class WorkArea {
         const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
         const { elementsId } = customEvent.detail;
         this.elements.forEach((el) => {
-          if (elementsId.has(el.elementId)) {
+          if (elementsId.has(el.elementId) && !el.isLocked) {
             el.selected = true;
           } else {
             el.selected = false;
@@ -499,7 +513,9 @@ export class WorkArea {
       const adjustedFirstPoint = this.adjustForCanvas(firstPoint);
       const firstElement = this.elements.findLast(
         (el) =>
-          el.isVisible && el.getBoundingBox().isPointInside(adjustedFirstPoint),
+          el.isVisible &&
+          !el.isLocked &&
+          el.getBoundingBox().isPointInside(adjustedFirstPoint),
       );
       if (firstElement) {
         selectedElements = [firstElement];
@@ -509,6 +525,7 @@ export class WorkArea {
         selectedElements = this.elements.filter(
           (el) =>
             el.isVisible &&
+            !el.isLocked &&
             el
               .getBoundingBox()
               .isWithinBounds(adjustedFirstPoint, adjustedSecondPoint),
