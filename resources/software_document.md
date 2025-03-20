@@ -43,8 +43,8 @@ Implementar tamanho do contorno - OK
 Retrabalhar a forma como as ferramentas funcionam em relação a posição do mouse, offset e ajustado 
 para zoom. - OK
 O usuário pode travar elementos para não serem movidos - OK
+Implementar opacidade total do elemento - OK
 
-Implementar opacidade total do elemento
 A aplicação pode salvar a imagem final do projeto como um JPG ou PNG - Criar um novo modal para 
 mostrar a qualidade da imagem exportada, e incluir a escolha de formato.
 O usuário pode agrupar elementos em um grupo para movimentar todos juntos
