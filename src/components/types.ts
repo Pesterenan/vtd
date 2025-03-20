@@ -6,6 +6,7 @@ export interface IElementData {
   scale: Scale;
   size: Size;
   rotation: number;
+  opacity: number;
   zDepth: number;
   isLocked: boolean;
   isVisible: boolean;

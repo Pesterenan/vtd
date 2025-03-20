@@ -14,6 +14,7 @@ export class TransformMenu {
   private widthControl: ISliderControl | null = null;
   private heightControl: ISliderControl | null = null;
   private rotationControl: ISliderControl | null = null;
+  private opacityControl: ISliderControl | null = null;
 
   private constructor() {
     this.createDOMElements();
@@ -27,19 +28,21 @@ export class TransformMenu {
     });
     window.addEventListener(EVENT.RECALCULATE_TRANSFORM_BOX, (evt: Event) => {
       const customEvent = evt as CustomEvent;
-      const { position, size, rotation } = customEvent.detail;
+      const { position, size, rotation, opacity } = customEvent.detail;
       if (
         this.xPosControl &&
         this.yPosControl &&
         this.widthControl &&
         this.heightControl &&
-        this.rotationControl
+        this.rotationControl &&
+        this.opacityControl
       ) {
         this.xPosControl.updateValues(position.x);
         this.yPosControl.updateValues(position.y);
         this.widthControl.updateValues(size.width);
         this.heightControl.updateValues(size.height);
         this.rotationControl.updateValues(rotation);
+        this.opacityControl.updateValues(opacity);
       }
     });
   }
@@ -133,6 +136,18 @@ export class TransformMenu {
       this.handleRotationChange,
       false,
     );
+    this.opacityControl = createSliderControl(
+      "inp_opacity",
+      "Opacidade",
+      {
+        min: 0,
+        max: 1,
+        step: 0.05,
+        value: this.transformBox?.opacity || 1,
+      },
+      this.handleOpacityChange,
+      false,
+    );
     this.transformSection
       .querySelector("#inp_group-position")
       ?.append(this.xPosControl.element, this.yPosControl.element);
@@ -140,6 +155,7 @@ export class TransformMenu {
       .querySelector("#inp_group-size")
       ?.append(this.widthControl.element, this.heightControl.element);
     this.transformSection.append(this.rotationControl.element);
+    this.transformSection.append(this.opacityControl.element);
   }
 
   private handleXPosChange = (newValue: number): void => {
@@ -186,6 +202,12 @@ export class TransformMenu {
     }
   };
 
+  private handleOpacityChange = (newValue: number): void => {
+    if (this.transformBox) {
+      this.transformBox.updateOpacity(newValue);
+    }
+  };
+
   private linkDOMElements(): void {
     if (this.transformBox) {
       this.xPosControl?.linkEvents();
@@ -193,10 +215,13 @@ export class TransformMenu {
       this.widthControl?.linkEvents();
       this.heightControl?.linkEvents();
       this.rotationControl?.linkEvents();
+      this.opacityControl?.linkEvents();
       this.xPosControl?.updateValues(this.transformBox.position.x);
       this.yPosControl?.updateValues(this.transformBox.position.y);
       this.widthControl?.updateValues(this.transformBox.size.width);
       this.heightControl?.updateValues(this.transformBox.size.height);
+      this.rotationControl?.updateValues(this.transformBox.rotation);
+      this.opacityControl?.updateValues(this.transformBox.opacity);
     }
   }
 
@@ -207,5 +232,6 @@ export class TransformMenu {
     this.widthControl?.unlinkEvents();
     this.heightControl?.unlinkEvents();
     this.rotationControl?.unlinkEvents();
+    this.opacityControl?.unlinkEvents();
   }
 }
