@@ -6,6 +6,7 @@ const EVENT: Record<string, string> = {
   USING_TOOL: "evt_using_tool",
   DELETE_ELEMENT: "evt_delete-element",
   OPEN_FILTERS_DIALOG: "evt_open-filters-dialog",
+  OPEN_EXPORT_IMAGE_DIALOG: "evt_open-export-image-dialog",
   REORGANIZE_LAYERS: "evt_layers-reorganized",
   RECALCULATE_TRANSFORM_BOX: "evt_transform-box-recalculated",
   SELECT_ELEMENT: "evt_select_element",
