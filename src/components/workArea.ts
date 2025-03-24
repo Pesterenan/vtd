@@ -21,6 +21,7 @@ import { TextTool } from "src/components/tools/textTool";
 import { GradientTool } from "src/components/tools/gradientTool";
 import { GradientElement } from "src/components/elements/gradientElement";
 import { FiltersDialog } from "src/components/dialogs/filtersDialog";
+import { DialogExportImage } from "src/components/dialogs/DialogExportImage";
 import { SIDE_MENU_WIDTH, TOOL_MENU_WIDTH } from "src/constants";
 
 const WORK_AREA_WIDTH = 1920;
@@ -85,6 +86,7 @@ export class WorkArea {
 
     this.createEventListeners();
     new FiltersDialog();
+    new DialogExportImage();
     this.update();
   }
 
@@ -494,12 +496,13 @@ export class WorkArea {
     return JSON.stringify(projectData);
   }
 
-  public exportCanvas(): string {
+  public exportCanvas(format: string, quality: string): string {
     if (!this.workArea.canvas) {
       console.error("Canvas not found");
       return "";
     }
-    return this.workArea.canvas.toDataURL("image/png");
+    const parsedQuality = (parseInt(quality, 10) || 100) / 100;
+    return this.workArea.canvas.toDataURL(`image/${format}`, parsedQuality);
   }
 
   public getSelectedElements(): Element<TElementData>[] | null {

@@ -242,14 +242,14 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
     }
   });
 
-  // Export Canvas as a PNG
+  // Export Canvas as an image
   ipcMain.on(
     "export-canvas",
-    async (event, { dataString }: { dataString: string }) => {
+    async (event, { format, dataString }: {format: string;  dataString: string }) => {
       const { filePath } = await dialog.showSaveDialog({
         title: "Exportar Canvas",
-        defaultPath: "canvas.png",
-        filters: [{ name: "PNG Files", extensions: ["png"] }],
+        defaultPath: "canvas",
+        filters: [{ name: "Arquivos de Imagem", extensions: [format] }],
       });
       if (filePath) {
         const base64Data = dataString.replace(/^data:image\/\w+;base64,/, "");

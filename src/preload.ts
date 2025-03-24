@@ -10,7 +10,7 @@ declare global {
   interface Window {
     api: {
       changeTheme: (theme: string) => void;
-      exportCanvas: (dataString: string) => void;
+      exportCanvas: (format: string, dataString: string) => void;
       loadImage: () => void;
       loadVideo: () => void;
       loadProject: () => void;
@@ -68,8 +68,8 @@ import type { IVideoMetadata } from "src/types";
 // Custom APIs for renderer
 const api = {
   changeTheme: (theme: string): void => ipcRenderer.send("change-theme", theme),
-  exportCanvas: (dataString: string): void =>
-    ipcRenderer.send("export-canvas", { dataString }),
+  exportCanvas: (format: string, dataString: string): void =>
+    ipcRenderer.send("export-canvas", { format, dataString }),
   loadImage: (): void => ipcRenderer.send("load-image"),
   loadVideo: (): void => ipcRenderer.send("load-video"),
   loadProject: (): void => ipcRenderer.send("load-project"),

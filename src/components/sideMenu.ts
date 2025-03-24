@@ -10,6 +10,7 @@ import exportImageIconSrc from "src/assets/icons/export-image.svg";
 import saveProjectIconSrc from "src/assets/icons/save-project.svg";
 import loadProjectIconSrc from "src/assets/icons/load-project.svg";
 import extractVideoIconSrc from "src/assets/icons/extract-video.svg";
+import EVENT from "src/utils/customEvents";
 
 export class SideMenu {
   private static instance: SideMenu | null = null;
@@ -61,8 +62,13 @@ export class SideMenu {
       "btn_export-image",
       "Exportar Imagem",
       exportImageIconSrc,
-      () => window.api.exportCanvas(WorkArea.getInstance().exportCanvas()),
+      (): void => {
+        window.dispatchEvent(
+          new CustomEvent(EVENT.OPEN_EXPORT_IMAGE_DIALOG, {}),
+        );
+      },
     );
+
     const saveProjectBtn = this.createButton(
       "btn_save-project",
       "Salvar Projeto",
@@ -86,8 +92,7 @@ export class SideMenu {
     );
 
     const projectOptionsDiv = document.createElement("div");
-    projectOptionsDiv.className =
-      "sec_menu-style container g-05 jc-sb";
+    projectOptionsDiv.className = "sec_menu-style container g-05 jc-sb";
     projectOptionsDiv.append(
       loadProjectBtn,
       saveProjectBtn,
