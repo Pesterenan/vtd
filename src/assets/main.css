@@ -193,6 +193,20 @@ body {
   border-bottom: 1px solid var(--secondary-800);
   transition: var(--background-transition);
 
+  ul {
+    list-style: square inside;
+    padding-left: 0;
+  }
+
+  ul > li {
+    border:none;
+    border-top: 1px solid var(--secondary-800);
+    padding-left: 1rem;
+    &::before {
+      content: '•';
+    }
+  }
+
   &:hover {
     background-color: var(--secondary-200);
   }
@@ -207,6 +221,13 @@ body {
   margin-inline: 1rem;
   text-align: center;
   width: 100%;
+}
+
+.li_layer-name {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .btn_delete-layer {

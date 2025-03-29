@@ -16,6 +16,10 @@
   align-items: flex-start;
 }
 
+.jc-c {
+  justify-content: center;
+}
+
 .ai-c {
   align-items: center;
 }

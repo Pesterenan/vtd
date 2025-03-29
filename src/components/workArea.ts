@@ -23,6 +23,7 @@ import { GradientElement } from "src/components/elements/gradientElement";
 import { FiltersDialog } from "src/components/dialogs/filtersDialog";
 import { DialogExportImage } from "src/components/dialogs/DialogExportImage";
 import { SIDE_MENU_WIDTH, TOOL_MENU_WIDTH } from "src/constants";
+import { ElementGroup } from "./elements/elementGroup";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -72,6 +73,7 @@ export class WorkArea {
 
     if (!this.mainCanvas) throw new Error("Main canvas not available");
 
+    this.createElementFromData = this.createElementFromData.bind(this);
     this.tools = {
       [TOOL.SELECT]: new SelectTool(this.mainCanvas),
       [TOOL.GRADIENT]: new GradientTool(this.mainCanvas),
@@ -433,6 +435,7 @@ export class WorkArea {
 
   private createElementFromData(
     elData: TElementData,
+    isChild = false,
   ): Element<TElementData> | null {
     let newElement = null;
     switch (elData.type) {
@@ -460,21 +463,46 @@ export class WorkArea {
         );
         newElement.deserialize(elData);
         break;
+      case "group":
+        newElement = new ElementGroup(
+          elData.position,
+          elData.size,
+          elData.zDepth,
+          elData.children
+            .map((el) => this.createElementFromData(el, true))
+            .filter((el) => el !== null),
+        );
+        newElement.deserialize(elData);
+        break;
       default:
         console.warn(`Unknown element type from data couldn't be parsed.`);
         break;
     }
-    if (newElement) {
-      window.dispatchEvent(
-        new CustomEvent(EVENT.ADD_ELEMENT, {
-          detail: {
-            elementId: newElement.elementId,
-            layerName: newElement.layerName,
-            isVisible: newElement.isVisible,
-            isLocked: newElement.isLocked,
-          },
-        }),
-      );
+    if (!isChild && newElement) {
+      const eventDetail = {
+        detail: {
+          elementId: newElement.elementId,
+          layerName: newElement.layerName,
+          isVisible: newElement.isVisible,
+          isLocked: newElement.isLocked,
+          type: elData.type,
+          children: [] as {
+            id: number;
+            name: string;
+            isVisible: boolean;
+            isLocked: boolean;
+          }[],
+        },
+      };
+      if (newElement instanceof ElementGroup && newElement.children) {
+        eventDetail.detail.children = newElement?.children.map((child) => ({
+          id: child.elementId,
+          name: child.layerName,
+          isVisible: child.isVisible,
+          isLocked: child.isLocked,
+        }));
+      }
+        window.dispatchEvent(new CustomEvent(EVENT.ADD_ELEMENT, eventDetail));
     }
     return newElement as Element<TElementData>;
   }
@@ -483,7 +511,7 @@ export class WorkArea {
     window.dispatchEvent(new CustomEvent(EVENT.CLEAR_WORKAREA));
     const projectData: IProjectData = JSON.parse(data);
     this.elements = projectData.elements
-      .map(this.createElementFromData)
+      .map((el) => this.createElementFromData(el))
       .filter((el) => el !== null);
     this.selectElements();
     this.update();
