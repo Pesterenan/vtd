@@ -5,6 +5,7 @@ import { WorkArea } from "src/components/workArea";
 import { BoundingBox } from "src/utils/boundingBox";
 import { Vector } from "src/utils/vector";
 import { toRadians } from "src/utils/transforms";
+import { ElementGroup } from "./elements/elementGroup";
 
 export class TransformBox {
   public position: Position = { x: 0, y: 0 };
@@ -44,6 +45,7 @@ export class TransformBox {
   private calculateBoundingBox(): void {
     if (this.selectedElements.length === 1) {
       const element = this.selectedElements[0];
+      this.boundingBox = element.getBoundingBox();
       this.position = { ...element.position };
       this.rotation = element.rotation;
       this.opacity = element.opacity;
@@ -53,12 +55,11 @@ export class TransformBox {
       };
       this.size = scaledSize;
       this.anchorPoint = { ...this.position };
-      this.boundingBox = element.getBoundingBox();
     } else {
-      let minX = Infinity;
-      let minY = Infinity;
-      let maxX = -Infinity;
-      let maxY = -Infinity;
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
 
       this.selectedElements.forEach((element: Element<TElementData>) => {
         const boundingBox = element.getBoundingBox();
@@ -163,15 +164,23 @@ export class TransformBox {
 
   public updatePosition({ x, y }: Position): void {
     const delta = { x: x - this.position.x, y: y - this.position.y };
-    this.selectedElements.forEach((element) => {
+    const moveElement = (element: Element<TElementData>) => {
       element.position = {
         x: element.position.x + delta.x,
         y: element.position.y + delta.y,
       };
-    });
+    };
+    if (this.selectedElements) {
+      this.selectedElements.forEach((element) => {
+        if (element instanceof ElementGroup) {
+          element.children?.forEach(moveElement);
+        } else {
+          moveElement(element);
+        }
+      });
+    }
     this.position = { x, y };
     this.anchorPoint = { ...this.position };
-
     this.updateHandles();
   }
 
@@ -183,43 +192,57 @@ export class TransformBox {
       this.anchorPoint,
       deltaAngle,
     );
-    if (this.selectedElements && this.anchorPoint) {
-      const angleInRadians = toRadians(deltaAngle);
-      this.selectedElements.forEach((element) => {
-        const deltaX = element.position.x - this.anchorPoint!.x;
-        const deltaY = element.position.y - this.anchorPoint!.y;
+    const angleInRadians = toRadians(deltaAngle);
+    const rotateElement = (element: Element<TElementData>) => {
+      if (this.anchorPoint) {
+        const deltaX = element.position.x - this.anchorPoint.x;
+        const deltaY = element.position.y - this.anchorPoint.y;
         const newX =
           deltaX * Math.cos(angleInRadians) - deltaY * Math.sin(angleInRadians);
         const newY =
           deltaX * Math.sin(angleInRadians) + deltaY * Math.cos(angleInRadians);
         element.position = {
-          x: this.anchorPoint!.x + newX,
-          y: this.anchorPoint!.y + newY,
+          x: this.anchorPoint.x + newX,
+          y: this.anchorPoint.y + newY,
         };
         element.rotation += deltaAngle;
+      }
+    };
+    if (this.selectedElements) {
+      this.selectedElements.forEach((element) => {
+        if (element instanceof ElementGroup) {
+          element.children?.forEach(rotateElement);
+        } else {
+          rotateElement(element);
+        }
       });
     }
     this.position = deltaPos;
     this.rotation = angle;
-
     this.updateHandles();
   }
 
   public updateScale(delta: Scale, anchor: Position = this.position): void {
     this.anchorPoint = anchor;
+    const scaleElement = (element: Element<TElementData>) => {
+      element.scale = {
+        x: element.scale.x * delta.x,
+        y: element.scale.y * delta.y,
+      };
+      element.position = {
+        x: anchor.x + (element.position.x - anchor.x) * delta.x,
+        y: anchor.y + (element.position.y - anchor.y) * delta.y,
+      };
+    };
     if (this.selectedElements) {
-       this.selectedElements.forEach((element) => {
-         element.scale = {
-           x: element.scale.x * delta.x,
-           y: element.scale.y * delta.y,
-         };
-         // Ajusta a posição com base no ponto de ancoragem e nos fatores de escala
-         element.position = {
-           x: anchor.x + (element.position.x - anchor.x) * delta.x,
-           y: anchor.y + (element.position.y - anchor.y) * delta.y,
-         };
-       });
-     }
+      this.selectedElements.forEach((element) => {
+        if (element instanceof ElementGroup) {
+          element.children?.forEach(scaleElement);
+        } else {
+          scaleElement(element);
+        }
+      });
+    }
     this.size = {
       width: this.size.width * delta.x,
       height: this.size.height * delta.y,

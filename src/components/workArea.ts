@@ -195,19 +195,10 @@ export class WorkArea {
         }
         this.update();
       });
-      window.addEventListener(EVENT.SELECT_ELEMENT, (evt: Event) => {
-        const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
-        const { elementsId } = customEvent.detail;
-        this.elements.forEach((el) => {
-          if (elementsId.has(el.elementId) && !el.isLocked) {
-            el.selected = true;
-          } else {
-            el.selected = false;
-          }
-        });
-        this.createTransformBox();
-        this.update();
-      });
+      window.addEventListener(
+        EVENT.SELECT_ELEMENT,
+        this.handleSelectElement.bind(this),
+      );
       window.addEventListener(EVENT.CHANGE_LAYER_NAME, (evt: Event) => {
         const customEvent = evt as CustomEvent<{
           elementId: number;
@@ -236,6 +227,22 @@ export class WorkArea {
           ).detail.isUsingTool),
       );
     }
+  }
+
+  private handleSelectElement(evt: Event): void {
+    const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
+    const { elementsId } = customEvent.detail;
+    const selectElement = (element: Element<TElementData>) =>
+      (element.selected =
+        elementsId.has(element.elementId) && !element.isLocked);
+    this.elements.forEach((el) => {
+      if (el instanceof ElementGroup && el.children) {
+        el.children.forEach(selectElement);
+      }
+      selectElement(el);
+    });
+    this.createTransformBox();
+    this.update();
   }
 
   public copyCanvasToClipboard(): void {
@@ -502,7 +509,7 @@ export class WorkArea {
           isLocked: child.isLocked,
         }));
       }
-        window.dispatchEvent(new CustomEvent(EVENT.ADD_ELEMENT, eventDetail));
+      window.dispatchEvent(new CustomEvent(EVENT.ADD_ELEMENT, eventDetail));
     }
     return newElement as Element<TElementData>;
   }

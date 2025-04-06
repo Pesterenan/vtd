@@ -30,9 +30,12 @@ export class ElementGroup extends Element<Partial<IElementGroupData>> {
   }
 
   public draw(context: CanvasRenderingContext2D): void {
+    context.save();
+    context.globalAlpha = this.opacity;
     this.children?.forEach((child) => {
       child.draw(context);
     });
+    context.restore();
   }
 
   public getBoundingBox(): BoundingBox {
@@ -61,6 +64,9 @@ export class ElementGroup extends Element<Partial<IElementGroupData>> {
       width: maxX - minX,
       height: maxY - minY,
     };
+    this.position = center;
+    this.size = size;
+    this.rotation = 0;
     return new BoundingBox(center, size, 0);
   }
 }

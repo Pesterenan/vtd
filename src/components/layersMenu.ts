@@ -184,10 +184,6 @@ export class LayersMenu {
       layerNameInput.select();
     });
 
-    layerNameSpan.addEventListener("click", (evt) => {
-      evt.stopPropagation();
-    });
-
     layerNameInput.addEventListener("click", (evt) => {
       evt.stopPropagation();
     });
@@ -211,15 +207,22 @@ export class LayersMenu {
     });
 
     groupLI.addEventListener("click", (evt: MouseEvent): void => {
+      const childrenIds: Set<number> = new Set();
+      childrenList.querySelectorAll("li").forEach((child) => {
+        childrenIds.add(Number(child.dataset.id));
+      });
       if (evt.ctrlKey) {
         if (this.selectedLayersId.has(layer.id)) {
+          childrenIds.forEach((id) => this.selectedLayersId.delete(id));
           this.selectedLayersId.delete(layer.id);
         } else {
-          this.selectedLayersId.add(layer.id);
+          childrenIds.add(layer.id);
+          childrenIds.forEach((id) => this.selectedLayersId.add(id));
         }
       } else {
         this.selectedLayersId.clear();
-        this.selectedLayersId.add(layer.id);
+        childrenIds.add(layer.id);
+        childrenIds.forEach((id) => this.selectedLayersId.add(id));
       }
       window.dispatchEvent(
         new CustomEvent(EVENT.SELECT_ELEMENT, {
@@ -337,10 +340,6 @@ export class LayersMenu {
       layerNameInput.setAttribute("style", "display: block;");
       layerNameInput.focus();
       layerNameInput.select();
-    });
-
-    layerNameSpan.addEventListener("click", (evt) => {
-      evt.stopPropagation();
     });
 
     layerNameInput.addEventListener("click", (evt) => {
