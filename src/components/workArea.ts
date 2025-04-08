@@ -679,7 +679,10 @@ export class WorkArea {
       new CustomEvent(EVENT.ADD_ELEMENT, {
         detail: {
           elementId: newElement.elementId,
+          isLocked: newElement.isLocked,
+          isVisible: newElement.isVisible,
           layerName: newElement.layerName,
+          type: "gradient",
         },
       }),
     );
@@ -708,7 +711,10 @@ export class WorkArea {
       new CustomEvent(EVENT.ADD_ELEMENT, {
         detail: {
           elementId: newElement.elementId,
+          isLocked: newElement.isLocked,
+          isVisible: newElement.isVisible,
           layerName: newElement.layerName,
+          type: "text",
         },
       }),
     );
@@ -751,9 +757,35 @@ export class WorkArea {
       new CustomEvent(EVENT.ADD_ELEMENT, {
         detail: {
           elementId: newElement.elementId,
+          isLocked: newElement.isLocked,
+          isVisible: newElement.isVisible,
           layerName: newElement.layerName,
+          type: "image",
         },
       }),
     );
+  }
+
+  public addGroupElement(): void {
+    const newElement = new ElementGroup(
+      { x: 0, y: 0 },
+      { width: 0, height: 0 },
+      this.elements.length,
+      [],
+    );
+    this.elements.push(newElement as Element<TElementData>);
+    console.log(newElement);
+    window.dispatchEvent(
+      new CustomEvent(EVENT.ADD_ELEMENT, {
+        detail: {
+          elementId: newElement.elementId,
+          isLocked: newElement.isLocked,
+          isVisible: newElement.isVisible,
+          layerName: newElement.layerName,
+          type: "group",
+        },
+      }),
+    );
+    this.update();
   }
 }

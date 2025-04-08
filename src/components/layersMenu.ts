@@ -5,6 +5,7 @@ import OpenEyeIcon from "src/assets/icons/open-eye.svg";
 import ClosedEyeIcon from "src/assets/icons/closed-eye.svg";
 import LockedIcon from "src/assets/icons/lock.svg";
 import UnlockedIcon from "src/assets/icons/unlock.svg";
+import { WorkArea } from "./workArea";
 
 interface Layer {
   id: number;
@@ -421,13 +422,26 @@ export class LayersMenu {
     return errorElement("Menu não instanciado");
   }
 
+  private handleAddNewGroup(): void {
+    WorkArea.getInstance().addGroupElement();
+  }
+
   private createDOMElements(): void {
     this.layersSection = document.createElement("section");
     this.layersSection.id = "sec_layers-menu";
     this.layersSection.className = "sec_menu-style";
-    this.layersSection.innerHTML = `<h5 style="align-self: flex-start;">Camadas:</h5>`;
-    const ulLayersList = document.createElement("ul");
-    ulLayersList.id = "ul_layers-list";
-    this.layersSection.appendChild(ulLayersList);
+    this.layersSection.innerHTML = `
+<h5 style="align-self: flex-start;">Camadas:</h5>
+<ul id="ul_layers-list"></ul>
+<div id="sec_layers-menu-buttons" class="container g-05 ai-c jc-fe"></div>
+`;
+    const addGroupBtn = document.createElement("button");
+    addGroupBtn.className = "btn-common-wide";
+    addGroupBtn.id = "btn_add-group";
+    addGroupBtn.innerText = "Adicionar Grupo";
+    addGroupBtn.addEventListener("click", this.handleAddNewGroup);
+    this.layersSection
+      .querySelector("#sec_layers-menu-buttons")
+      ?.appendChild(addGroupBtn);
   }
 }
