@@ -6,6 +6,7 @@ import type {
   TElementData,
   IProjectData,
   Position,
+  Layer,
 } from "src/components/types";
 import { TOOL } from "src/components/types";
 import { HandTool } from "src/components/tools/handTool";
@@ -157,16 +158,10 @@ export class WorkArea {
         );
         this.update();
       });
-      window.addEventListener(EVENT.REORGANIZE_LAYERS, (evt: Event) => {
-        const customEvent = evt as CustomEvent<{ order: number[] }>;
-        const newOrder = customEvent.detail.order;
-        newOrder.forEach((id, index) => {
-          const element = this.elements.find((el) => el.elementId === id);
-          if (element) element.zDepth = index;
-        });
-        this.elements.sort((a, b) => a.zDepth - b.zDepth);
-        this.update();
-      });
+      window.addEventListener(
+        EVENT.REORGANIZE_LAYERS,
+        this.handleReorganizeLayers.bind(this),
+      );
       window.addEventListener(EVENT.TOGGLE_ELEMENT_LOCK, (evt: Event) => {
         const customEvent = evt as CustomEvent<{
           elementId: number;
@@ -238,10 +233,62 @@ export class WorkArea {
     this.elements.forEach((el) => {
       if (el instanceof ElementGroup && el.children) {
         el.children.forEach(selectElement);
+      } else {
+        selectElement(el);
       }
-      selectElement(el);
     });
     this.createTransformBox();
+    this.update();
+  }
+
+  private getFlatElements(
+    elements: Element<TElementData>[],
+  ): Element<TElementData>[] {
+    const flatElements: Element<TElementData>[] = [];
+    elements.forEach((el) => {
+      flatElements.push(el);
+      if (el instanceof ElementGroup && el.children) {
+        flatElements.push(...this.getFlatElements(el.children));
+      }
+    });
+    return flatElements;
+  }
+
+  private processLayerHierarchy(
+    hierarchy: Layer[],
+    flatElements: Element<TElementData>[],
+    counter: { value: number },
+  ): Element<TElementData>[] {
+    const orderedElements: Element<TElementData>[] = [];
+    hierarchy.forEach((node) => {
+      const element = flatElements.find((el) => el.elementId === node.id);
+      if (element) {
+        element.zDepth = counter.value++;
+        orderedElements.push(element);
+        if (node.children && element instanceof ElementGroup) {
+          const childElements = this.processLayerHierarchy(node.children, flatElements, counter);
+          (element as ElementGroup).children = childElements;
+        }
+      }
+    });
+    return orderedElements;
+  }
+
+  private handleReorganizeLayers(evt: Event): void {
+    const customEvent = evt as CustomEvent<{ hierarchy: Layer[] }>;
+    const newHierarchy = customEvent.detail.hierarchy;
+
+    const flatElements = this.getFlatElements(this.elements);
+
+    const counter = { value: 0 };
+
+    const newOrderedElements = this.processLayerHierarchy(
+      newHierarchy,
+      flatElements,
+      counter,
+    );
+    this.elements = newOrderedElements;
+    this.elements.sort((a, b) => a.zDepth - b.zDepth);
     this.update();
   }
 
@@ -597,9 +644,8 @@ export class WorkArea {
 
   public createTransformBox(): void {
     this.removeTransformBox();
-    const selectedElements: Element<TElementData>[] = this.elements.filter(
-      (el) => el.selected,
-    );
+    const selectedElements: Element<TElementData>[] = this.elements.filter((el) => el.selected);
+    console.log("selectedElements", selectedElements);
     // If there's elements selected, create TransformBox
     if (this.mainCanvas && selectedElements.length) {
       this.transformBox = new TransformBox(selectedElements, this.mainCanvas);

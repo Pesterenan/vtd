@@ -45,7 +45,16 @@ export class FiltersDialog {
     });
   }
 
-  private openDialog(): void {
+  private openDialog(evt: Event): void {
+    const customEvent = evt as CustomEvent<{ elementId: number }>;
+    const elementId = customEvent.detail.elementId;
+    window.dispatchEvent(
+      new CustomEvent(EVENT.SELECT_ELEMENT, {
+        detail: {
+          elementsId: new Set([ elementId ]),
+        },
+      }),
+    );
     this.defaultFilters = [new DropShadowFilter(), new OuterGlowFilter()];
     const selectedElements = WorkArea.getInstance().getSelectedElements();
     if (selectedElements && selectedElements.length === 1) {
@@ -149,6 +158,6 @@ export class FiltersDialog {
   }
 
   private addEventListeners(): void {
-    window.addEventListener(EVENT.OPEN_FILTERS_DIALOG, () => this.openDialog());
+    window.addEventListener(EVENT.OPEN_FILTERS_DIALOG, this.openDialog.bind(this));
   }
 }

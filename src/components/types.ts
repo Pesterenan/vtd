@@ -52,6 +52,14 @@ export interface IElementGroupData extends IElementData {
   children: TElementData[];
 }
 
+export interface Layer {
+  children?: Layer[];
+  id: number;
+  isLocked: boolean;
+  isVisible: boolean;
+  name?: string;
+}
+
 export type TElementData =
   | IImageElementData
   | ITextElementData

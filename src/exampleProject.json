@@ -22,39 +22,6 @@
       "filters": [],
       "type": "group",
       "children": [
-        {
-          "position": {
-            "x": 960,
-            "y": 740
-          },
-          "size": {
-            "width": 930.6318359375,
-            "height": 101.2
-          },
-          "zDepth": 1,
-          "rotation": 0,
-          "opacity": 1,
-          "scale": {
-            "x": 1,
-            "y": 1
-          },
-          "isVisible": true,
-          "isLocked": false,
-          "layerName": "Long text inside group layer",
-          "filters": [],
-          "type": "text",
-          "content": "Text inside group",
-          "fillColor": "#bababa",
-          "font": "Impact",
-          "fontSize": 64,
-          "hasFill": true,
-          "hasStroke": false,
-          "lineHeight": 1.2,
-          "strokeColor": "#202020",
-          "strokeWidth": 10
-        }
-      ]
-    },
     {
       "position": {
         "x": 960,
@@ -85,6 +52,39 @@
       "lineHeight": 1.2,
       "strokeColor": "#202020",
       "strokeWidth": 10
+    },
+        {
+          "position": {
+            "x": 960,
+            "y": 740
+          },
+          "size": {
+            "width": 930.6318359375,
+            "height": 101.2
+          },
+          "zDepth": 1,
+          "rotation": 0,
+          "opacity": 1,
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "isVisible": true,
+          "isLocked": false,
+          "layerName": "Long text inside group layer really long",
+          "filters": [],
+          "type": "text",
+          "content": "Long text inside group layer really long",
+          "fillColor": "#bababa",
+          "font": "Impact",
+          "fontSize": 64,
+          "hasFill": true,
+          "hasStroke": false,
+          "lineHeight": 1.2,
+          "strokeColor": "#202020",
+          "strokeWidth": 10
+        }
+      ]
     },
     {
       "position": {
