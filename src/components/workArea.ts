@@ -150,12 +150,8 @@ export class WorkArea {
         this.removeTransformBox();
         this.elements.length = 0;
       });
-      window.addEventListener(EVENT.DELETE_ELEMENT, (evt: Event): void => {
-        const customEvent = evt as CustomEvent<{ elementId: number }>;
-        const elementId = customEvent.detail.elementId;
-        this.elements = this.elements.filter(
-          (el) => el.elementId !== elementId,
-        );
+      window.addEventListener(EVENT.DELETE_ELEMENT, () => {
+        this.removeTransformBox();
         this.update();
       });
       window.addEventListener(
@@ -168,7 +164,8 @@ export class WorkArea {
           isLocked: boolean;
         }>;
         const { elementId, isLocked } = customEvent.detail;
-        const elementToToggleLock = this.elements.find(
+        const flatElements = this.getFlatElements(this.elements);
+        const elementToToggleLock = flatElements.find(
           (el) => el.elementId === elementId,
         );
         if (elementToToggleLock) {
@@ -182,7 +179,8 @@ export class WorkArea {
           isVisible: boolean;
         }>;
         const { elementId, isVisible } = customEvent.detail;
-        const elementToToggleVisibility = this.elements.find(
+        const flatElements = this.getFlatElements(this.elements);
+        const elementToToggleVisibility = flatElements.find(
           (el) => el.elementId === elementId,
         );
         if (elementToToggleVisibility) {
@@ -266,7 +264,11 @@ export class WorkArea {
         element.zDepth = counter.value++;
         orderedElements.push(element);
         if (node.children && element instanceof ElementGroup) {
-          const childElements = this.processLayerHierarchy(node.children, flatElements, counter);
+          const childElements = this.processLayerHierarchy(
+            node.children,
+            flatElements,
+            counter,
+          );
           (element as ElementGroup).children = childElements;
         }
       }
@@ -353,10 +355,6 @@ export class WorkArea {
         break;
       case "KeyH":
         tool = TOOL.GRADIENT;
-        break;
-      case "KeyX":
-        tool = TOOL.SELECT;
-        this.removeSelectedElements();
         break;
     }
     if (tool) {
@@ -446,21 +444,6 @@ export class WorkArea {
   public removeTransformBox(): void {
     if (this.transformBox) {
       this.transformBox = null;
-    }
-  }
-
-  private removeSelectedElements(): void {
-    if (this.transformBox) {
-      const idsToRemove = this.getSelectedElements()?.map((el) => el.elementId);
-      if (idsToRemove) {
-        idsToRemove.forEach((elementId) =>
-          window.dispatchEvent(
-            new CustomEvent(EVENT.DELETE_ELEMENT, { detail: { elementId } }),
-          ),
-        );
-      }
-      this.removeTransformBox();
-      this.update();
     }
   }
 
@@ -598,25 +581,58 @@ export class WorkArea {
     let selectedElements: Element<TElementData>[] = [];
     if (firstPoint) {
       const adjustedFirstPoint = this.adjustForCanvas(firstPoint);
-      const firstElement = this.elements.findLast(
-        (el) =>
+      const firstElement = this.elements.findLast((el) => {
+        if (el instanceof ElementGroup) {
+          return (
+            el.isVisible &&
+            !el.isLocked &&
+            el.getBoundingBox().isPointInside(adjustedFirstPoint)
+          );
+        }
+        return (
           el.isVisible &&
           !el.isLocked &&
-          el.getBoundingBox().isPointInside(adjustedFirstPoint),
-      );
-      if (firstElement) {
-        selectedElements = [firstElement];
+          el.getBoundingBox().isPointInside(adjustedFirstPoint)
+        );
+      });
+      if (
+        firstElement &&
+        firstElement instanceof ElementGroup &&
+        firstElement.children
+      ) {
+        selectedElements = firstElement.children;
+      } else if (firstElement) {
+        selectedElements = [firstElement as Element<TElementData>];
       }
       if (secondPoint) {
         const adjustedSecondPoint = this.adjustForCanvas(secondPoint);
-        selectedElements = this.elements.filter(
-          (el) =>
-            el.isVisible &&
-            !el.isLocked &&
-            el
-              .getBoundingBox()
-              .isWithinBounds(adjustedFirstPoint, adjustedSecondPoint),
-        );
+        this.elements.forEach((el) => {
+          if (el instanceof ElementGroup) {
+            if (
+              el.children &&
+              el.children.some(
+                (child) =>
+                  child.isVisible &&
+                  !child.isLocked &&
+                  child
+                    .getBoundingBox()
+                    .isWithinBounds(adjustedFirstPoint, adjustedSecondPoint),
+              )
+            ) {
+              selectedElements = [...selectedElements, ...el.children];
+            }
+          } else {
+            if (
+              el.isVisible &&
+              !el.isLocked &&
+              el
+                .getBoundingBox()
+                .isWithinBounds(adjustedFirstPoint, adjustedSecondPoint)
+            ) {
+              selectedElements.push(el);
+            }
+          }
+        });
       }
     }
     window.dispatchEvent(
@@ -644,8 +660,16 @@ export class WorkArea {
 
   public createTransformBox(): void {
     this.removeTransformBox();
-    const selectedElements: Element<TElementData>[] = this.elements.filter((el) => el.selected);
-    console.log("selectedElements", selectedElements);
+    const selectedElements: Element<TElementData>[] = [];
+    this.elements.forEach((el) => {
+      if (el instanceof ElementGroup && el.children && el.children.length) {
+        return el.children.forEach(
+          (child) => child.selected && selectedElements.push(child),
+        );
+      } else {
+        return el.selected && selectedElements.push(el);
+      }
+    });
     // If there's elements selected, create TransformBox
     if (this.mainCanvas && selectedElements.length) {
       this.transformBox = new TransformBox(selectedElements, this.mainCanvas);
@@ -820,7 +844,6 @@ export class WorkArea {
       [],
     );
     this.elements.push(newElement as Element<TElementData>);
-    console.log(newElement);
     window.dispatchEvent(
       new CustomEvent(EVENT.ADD_ELEMENT, {
         detail: {

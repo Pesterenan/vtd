@@ -64,47 +64,8 @@ export class LayersMenu {
   }
 
   private attachGlobalEvents(): void {
-    window.addEventListener(EVENT.ADD_ELEMENT, (evt: Event) => {
-      const customEvent = evt as CustomEvent;
-      const { elementId, layerName, isVisible, isLocked, type, children } =
-        customEvent.detail;
-      if (this.layersList.querySelector(`#layer-${elementId}`)) return;
-
-      if (type === "group") {
-        const groupLI = this.createLayerItem(
-          {
-            children,
-            id: elementId,
-            isLocked,
-            isVisible,
-            name: layerName,
-          },
-          true,
-        );
-        this.layersList.appendChild(groupLI);
-      } else {
-        const layerLI = this.createLayerItem(
-          {
-            id: elementId,
-            isVisible,
-            isLocked,
-            name: layerName,
-          },
-          false,
-        );
-        this.layersList.appendChild(layerLI);
-      }
-    });
-
-    window.addEventListener(EVENT.DELETE_ELEMENT, (evt: Event) => {
-      const customEvent = evt as CustomEvent;
-      const elementId = customEvent.detail.elementId;
-      const layerToDelete = getElementById<HTMLLIElement>(`layer-${elementId}`);
-      if (layerToDelete) {
-        layerToDelete.parentElement?.removeChild(layerToDelete);
-      }
-    });
-
+    window.addEventListener(EVENT.ADD_ELEMENT, this.handleAddElement.bind(this));
+    window.addEventListener(EVENT.DELETE_ELEMENT, this.handleDeleteElement.bind(this));
     window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
       if (this.layersList) {
         this.layersList.innerHTML = "";
@@ -183,31 +144,6 @@ export class LayersMenu {
   }
 
   private attachCommonEvents(li: HTMLLIElement, layer: Layer): HTMLLIElement {
-    //li.addEventListener("click", (evt: MouseEvent): void => {
-    //   const childrenIds: Set<number> = new Set();
-    //   childrenList.querySelectorAll("li").forEach((child) => {
-    //     childrenIds.add(Number(child.dataset.id));
-    //   });
-    //   if (evt.ctrlKey) {
-    //     if (this.selectedLayersId.has(layer.id)) {
-    //       childrenIds.forEach((id) => this.selectedLayersId.delete(id));
-    //       this.selectedLayersId.delete(layer.id);
-    //     } else {
-    //       childrenIds.add(layer.id);
-    //       childrenIds.forEach((id) => this.selectedLayersId.add(id));
-    //     }
-    //   } else {
-    //     this.selectedLayersId.clear();
-    //     childrenIds.add(layer.id);
-    //     childrenIds.forEach((id) => this.selectedLayersId.add(id));
-    //   }
-    //   window.dispatchEvent(
-    //     new CustomEvent(EVENT.SELECT_ELEMENT, {
-    //       detail: { elementsId: this.selectedLayersId },
-    //     }),
-    //   );
-    // });
-
     // Select Layer Event
     li.addEventListener("click", (evt: MouseEvent): void => {
       if (
@@ -217,22 +153,51 @@ export class LayersMenu {
       )
         return;
       evt.stopPropagation();
+
+      const groupChildrenUL =
+        li.querySelector<HTMLUListElement>("ul.group-children");
+
+      const isGroup = groupChildrenUL !== null;
       if (evt.ctrlKey) {
-        if (this.selectedLayersId.has(layer.id)) {
-          this.selectedLayersId.delete(layer.id);
+        if (isGroup) {
+          const currentChildren = this.generateLayerHierarchy(groupChildrenUL);
+          currentChildren.forEach((child) => {
+            if (this.selectedLayersId.has(child.id)) {
+              this.selectedLayersId.delete(child.id);
+            } else {
+              this.selectedLayersId.add(child.id);
+            }
+          });
         } else {
-          this.selectedLayersId.add(layer.id);
+          if (this.selectedLayersId.has(layer.id)) {
+            this.selectedLayersId.delete(layer.id);
+          } else {
+            this.selectedLayersId.add(layer.id);
+          }
         }
       } else {
         this.selectedLayersId.clear();
-        this.selectedLayersId.add(layer.id);
+        if (isGroup) {
+          const currentChildren = this.generateLayerHierarchy(groupChildrenUL);
+          if (currentChildren.length > 0) {
+            currentChildren.forEach((child) => {
+              if (this.selectedLayersId.has(child.id)) {
+                this.selectedLayersId.delete(child.id);
+              } else {
+                this.selectedLayersId.add(child.id);
+              }
+            });
+          }
+        } else {
+          this.selectedLayersId.add(layer.id);
+        }
       }
-      // TODO: IMPLEMENT SELECTING LAYERS CORRECTLY
-      //window.dispatchEvent(
-      //  new CustomEvent(EVENT.SELECT_ELEMENT, {
-      //    detail: { elementsId: this.selectedLayersId },
-      //  }),
-      //);
+
+      window.dispatchEvent(
+        new CustomEvent(EVENT.SELECT_ELEMENT, {
+          detail: { elementsId: this.selectedLayersId },
+        }),
+      );
     });
 
     // Name Change Event
@@ -323,8 +288,21 @@ export class LayersMenu {
     toggleBtn.addEventListener("click", (evt: Event) => {
       evt.stopPropagation();
       const isHidden = childrenList.style.display === "none";
-      childrenList.style.display = isHidden ? "block" : "none";
+      childrenList.style.display = isHidden ? "flex" : "none";
       toggleBtn.textContent = isHidden ? "▼" : "▶";
+    });
+
+    groupLI.addEventListener('click', () => {
+      const groupChildren = this.generateLayerHierarchy(childrenList);
+      const allChildrenSelected = groupChildren.every((child) =>
+        this.selectedLayersId.has(child.id),
+      );
+      const isEmpty = groupChildren.length === 0;
+      if (allChildrenSelected || isEmpty) {
+        groupLI.classList.add("selected");
+      } else {
+        groupLI.classList.remove("selected");
+      }
     });
 
     groupLI.addEventListener(
@@ -361,11 +339,13 @@ export class LayersMenu {
     layer?.querySelectorAll<HTMLLIElement>(":scope > li").forEach((li) => {
       const id = Number(li.dataset.id);
       const isLocked =
-          li.querySelector<HTMLInputElement>(`#inp_lock-${li.dataset.id}`)?.checked || false;
-      const isVisible=
-          li.querySelector<HTMLInputElement>(`#inp_visibility-${li.dataset.id}`)?.checked ||
-          false;
-      const childrenUL = li.querySelector<HTMLUListElement>("ul.group-children");
+        li.querySelector<HTMLInputElement>(`#inp_lock-${li.dataset.id}`)
+          ?.checked || false;
+      const isVisible =
+        li.querySelector<HTMLInputElement>(`#inp_visibility-${li.dataset.id}`)
+          ?.checked || false;
+      const childrenUL =
+        li.querySelector<HTMLUListElement>("ul.group-children");
       let children: Layer[] | undefined;
       if (childrenUL) {
         children = this.generateLayerHierarchy(childrenUL);
@@ -382,17 +362,59 @@ export class LayersMenu {
     );
   }
 
+  /** Gets the current selected layers and sends an event to delete them */
   private handleDeleteLayer(): void {
-    const selectedLayers = this.layersList.querySelectorAll<HTMLLIElement>("li.selected");
-    const selectedLayersId = Array.from(selectedLayers).map((li) =>
-      Number(li.dataset.id),
-    );
-    for (const layer of selectedLayersId) {
+    const selectedLayers =
+      this.layersList.querySelectorAll<HTMLLIElement>("li.selected");
+    const selectedLayersId = Array.from(selectedLayers).map((li) => Number(li.dataset.id));
+    for (const layerId of selectedLayersId) {
       window.dispatchEvent(
         new CustomEvent(EVENT.DELETE_ELEMENT, {
-          detail: { elementId: layer },
+          detail: { elementId: layerId },
         }),
       );
+    }
+  }
+
+  private handleDeleteElement(evt: Event) :void {
+    const customEvent = evt as CustomEvent<{ elementId: number }>;
+    const elementId = customEvent.detail.elementId;
+    const layerToDelete = getElementById<HTMLLIElement>(`layer-${elementId}`);
+    if (layerToDelete) {
+      layerToDelete.parentElement?.removeChild(layerToDelete);
+    }
+    this.dispatchReorganizeEvent();
+  }
+
+  private handleAddElement(evt: Event): void {
+    const customEvent = evt as CustomEvent;
+    const { elementId, layerName, isVisible, isLocked, type, children } =
+      customEvent.detail;
+    if (this.layersList.querySelector(`#layer-${elementId}`)) return;
+
+    if (type === "group") {
+      const groupLI = this.createLayerItem(
+        {
+          children,
+          id: elementId,
+          isLocked,
+          isVisible,
+          name: layerName,
+        },
+        true,
+      );
+      this.layersList.appendChild(groupLI);
+    } else {
+      const layerLI = this.createLayerItem(
+        {
+          id: elementId,
+          isVisible,
+          isLocked,
+          name: layerName,
+        },
+        false,
+      );
+      this.layersList.appendChild(layerLI);
     }
   }
 
@@ -417,7 +439,7 @@ export class LayersMenu {
     style="display: none;"
     value="${layer.name ? layer.name : `Layer ${layer.id}`}" />
     <span id="spn_layer-${layer.id}" class="li_layer-name pad-i-05">
-    ${layer.name ? layer.name : `Layer ${layer.id}`}
+    ${layer.name ? layer.name : `Grupo ${layer.id}`}
     </span>
   </div>
 </div>`;
@@ -439,7 +461,7 @@ export class LayersMenu {
         style="display: none;"
         value="${layer.name ? layer.name : `Layer ${layer.id}`}" />
       <span id="spn_layer-${layer.id}" class="li_layer-name pad-i-05">
-        ${layer.name ? layer.name : `Layer ${layer.id}`}
+        ${layer.name ? layer.name : `Camada ${layer.id}`}
       </span>
     </div>
   `;

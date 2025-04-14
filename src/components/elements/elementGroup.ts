@@ -30,9 +30,11 @@ export class ElementGroup extends Element<Partial<IElementGroupData>> {
   }
 
   public draw(context: CanvasRenderingContext2D): void {
+    if (!this.isVisible) return;
     context.save();
     context.globalAlpha = this.opacity;
     this.children?.forEach((child) => {
+      if (!child.isVisible) return;
       child.draw(context);
     });
     context.restore();
