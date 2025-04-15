@@ -229,7 +229,7 @@ export class WorkArea {
       (element.selected =
         elementsId.has(element.elementId) && !element.isLocked);
     this.elements.forEach((el) => {
-      if (el instanceof ElementGroup && el.children) {
+      if (el instanceof ElementGroup && el.children && !el.isLocked) {
         el.children.forEach(selectElement);
       } else {
         selectElement(el);

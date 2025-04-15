@@ -1,12 +1,16 @@
 import EVENT from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 import errorElement from "src/components/elements/errorElement";
-import OpenEyeIcon from "src/assets/icons/open-eye.svg";
 import ClosedEyeIcon from "src/assets/icons/closed-eye.svg";
+import GroupArrowIcon from "src/assets/icons/group-arrow.svg";
+import GroupIcon from "src/assets/icons/group.svg";
 import LockedIcon from "src/assets/icons/lock.svg";
+import OpenEyeIcon from "src/assets/icons/open-eye.svg";
+import TrashIcon from "src/assets/icons/trash.svg";
 import UnlockedIcon from "src/assets/icons/unlock.svg";
 import { WorkArea } from "./workArea";
 import type { Layer } from "./types";
+import createIconButton from "./helpers/createIconButton";
 
 export class LayersMenu {
   private static instance: LayersMenu | null = null;
@@ -41,23 +45,25 @@ export class LayersMenu {
 <div id="sec_layers-menu-buttons" class="container g-05 ai-c jc-fe"></div>
 `;
 
-    const addGroupBtn = document.createElement("button");
-    addGroupBtn.className = "btn-common-wide";
-    addGroupBtn.id = "btn_add-group";
-    addGroupBtn.innerText = "Adicionar Grupo";
-    addGroupBtn.addEventListener("click", this.handleAddNewGroup.bind(this));
+    const addGroupBtn = createIconButton(
+      "btn_add-group",
+      "Adicionar Grupo",
+      GroupIcon,
+      this.handleAddNewGroup.bind(this),
+    );
 
-    const deleteLayerBtn = document.createElement("button");
-    deleteLayerBtn.className = "btn-common-wide";
-    deleteLayerBtn.id = "btn_delete-layer";
-    deleteLayerBtn.innerText = "Deletar Camada";
-    deleteLayerBtn.addEventListener("click", this.handleDeleteLayer.bind(this));
+    const deleteLayerBtn = createIconButton(
+      "btn_delete-layer",
+      "Deletar Camada",
+      TrashIcon,
+      this.handleDeleteLayer.bind(this),
+    );
 
     const btnContainer = this.layersSection.querySelector(
       "#sec_layers-menu-buttons",
     );
-    btnContainer?.appendChild(deleteLayerBtn);
     btnContainer?.appendChild(addGroupBtn);
+    btnContainer?.appendChild(deleteLayerBtn);
 
     this.layersList =
       this.layersSection.querySelector<HTMLUListElement>("#ul_layers-list")!;
@@ -118,7 +124,7 @@ export class LayersMenu {
     if (isGroup) {
       const childrenList = document.createElement("ul");
       childrenList.className = "group-children";
-      childrenList.style.display = "flex";
+      childrenList.style.display = "none";
       li.appendChild(childrenList);
       if (layer.children && layer.children.length > 0) {
         layer.children.forEach((child) => {
@@ -283,13 +289,13 @@ export class LayersMenu {
     childrenList: HTMLUListElement,
   ): void {
     const toggleBtn = groupLI.querySelector(
-      ".toggle-children",
-    ) as HTMLButtonElement;
+      `#inp_toggle-children-${groupLI.dataset.id}`,
+    ) as HTMLInputElement;
     toggleBtn.addEventListener("click", (evt: Event) => {
       evt.stopPropagation();
       const isHidden = childrenList.style.display === "none";
       childrenList.style.display = isHidden ? "flex" : "none";
-      toggleBtn.textContent = isHidden ? "▼" : "▶";
+      toggleBtn.classList.toggle("active", isHidden);
     });
 
     groupLI.addEventListener('click', () => {
@@ -430,7 +436,8 @@ export class LayersMenu {
     <label style="--checked-icon-url: url(${OpenEyeIcon}); --icon-url: url(${ClosedEyeIcon});" for="inp_visibility-${layer.id}"></label>
     <input id="inp_lock-${layer.id}" class="tgl-common" type="checkbox" ${layer.isLocked ? "checked" : ""} />
     <label style="--checked-icon-url: url(${LockedIcon}); --icon-url: url(${UnlockedIcon});" for="inp_lock-${layer.id}"></label>
-    <button class="toggle-children" title="Mostrar/Ocultar Camadas Filhas">▶</button>
+    <input id="inp_toggle-children-${layer.id}" class="tgl-common" type="checkbox" />
+    <label style="--checked-icon-url: url(${GroupArrowIcon}); --icon-url: url(${GroupArrowIcon});" for="inp_toggle-children-${layer.id}"></label>
   </div>
   <div class="li_layer-info">
     <input id="inp_layer-${layer.id}"

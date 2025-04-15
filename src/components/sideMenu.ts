@@ -11,6 +11,7 @@ import saveProjectIconSrc from "src/assets/icons/save-project.svg";
 import loadProjectIconSrc from "src/assets/icons/load-project.svg";
 import extractVideoIconSrc from "src/assets/icons/extract-video.svg";
 import EVENT from "src/utils/customEvents";
+import createIconButton from "./helpers/createIconButton";
 
 export class SideMenu {
   private static instance: SideMenu | null = null;
@@ -24,26 +25,6 @@ export class SideMenu {
     this.createDOMElements();
   }
 
-  private createButton(
-    id: string,
-    tooltipTitle: string,
-    iconSrc: string,
-    onClick: () => void,
-  ): HTMLButtonElement {
-    const button = document.createElement("button");
-    button.id = id;
-    button.className = "btn-common";
-    const tooltip = document.createElement("tooltip");
-    tooltip.title = tooltipTitle;
-    const icon = document.createElement("div");
-    icon.className = "icon";
-    icon.style.setProperty("--icon-url", `url(${iconSrc})`);
-    tooltip.appendChild(icon);
-    button.appendChild(tooltip);
-    button.addEventListener("click", onClick);
-    return button;
-  }
-
   private createDOMElements(): void {
     const mainWindow = getElementById<HTMLDivElement>("main-window");
     this.sideMenu = document.createElement("menu");
@@ -52,13 +33,13 @@ export class SideMenu {
     this.sideMenu.setAttribute("style", `width: ${SIDE_MENU_WIDTH}px;`);
     const domElements: HTMLElement[] = [];
 
-    const importImageBtn = this.createButton(
+    const importImageBtn = createIconButton(
       "btn_import-image",
       "Importar Imagem",
       importImageIconSrc,
       () => window.api.loadImage(),
     );
-    const exportImageBtn = this.createButton(
+    const exportImageBtn = createIconButton(
       "btn_export-image",
       "Exportar Imagem",
       exportImageIconSrc,
@@ -69,7 +50,7 @@ export class SideMenu {
       },
     );
 
-    const saveProjectBtn = this.createButton(
+    const saveProjectBtn = createIconButton(
       "btn_save-project",
       "Salvar Projeto",
       saveProjectIconSrc,
@@ -78,13 +59,13 @@ export class SideMenu {
         window.api.saveProject(projectData);
       },
     );
-    const loadProjectBtn = this.createButton(
+    const loadProjectBtn = createIconButton(
       "btn_load-project",
       "Carregar Projeto",
       loadProjectIconSrc,
       () => window.api.loadProject(),
     );
-    const openVideoBtn = this.createButton(
+    const openVideoBtn = createIconButton(
       "btn_open-video",
       "Extrair de Vídeo",
       extractVideoIconSrc,

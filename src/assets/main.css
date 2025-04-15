@@ -121,6 +121,10 @@ body {
   &:checked+label::before {
     mask-image: var(--checked-icon-url);
   }
+
+  &.active + label::before{
+    transform: rotate(90deg);
+  }
 }
 
 .dialog-common {
@@ -188,6 +192,7 @@ body {
   padding: 1rem 0 0 0;
   width: 100%;
 }
+
 
 .group-children {
   flex-direction: column-reverse;
