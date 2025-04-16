@@ -570,8 +570,18 @@ export class WorkArea {
     return this.workArea.canvas.toDataURL(`image/${format}`, parsedQuality);
   }
 
-  public getSelectedElements(): Element<TElementData>[] | null {
-    return this.elements.filter((el) => el.selected);
+  public getSelectedElements(): Element<TElementData>[] {
+    const selectedElements: Element<TElementData>[] = [];
+    this.elements.forEach((el) => {
+      if (el instanceof ElementGroup && el.children && el.children.length) {
+        return el.children.forEach(
+          (child) => child.selected && selectedElements.push(child),
+        );
+      } else {
+        return el.selected && selectedElements.push(el);
+      }
+    });
+    return selectedElements;
   }
 
   public selectElements(
@@ -660,18 +670,9 @@ export class WorkArea {
 
   public createTransformBox(): void {
     this.removeTransformBox();
-    const selectedElements: Element<TElementData>[] = [];
-    this.elements.forEach((el) => {
-      if (el instanceof ElementGroup && el.children && el.children.length) {
-        return el.children.forEach(
-          (child) => child.selected && selectedElements.push(child),
-        );
-      } else {
-        return el.selected && selectedElements.push(el);
-      }
-    });
+    const selectedElements: Element<TElementData>[] = this.getSelectedElements();
     // If there's elements selected, create TransformBox
-    if (this.mainCanvas && selectedElements.length) {
+    if (this.mainCanvas && selectedElements) {
       this.transformBox = new TransformBox(selectedElements, this.mainCanvas);
     }
   }

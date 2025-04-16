@@ -194,7 +194,7 @@ body {
 }
 
 
-.group-children {
+.ul_group-children {
   flex-direction: column-reverse;
   padding-top: 0.25rem;
   list-style: none;

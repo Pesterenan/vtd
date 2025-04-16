@@ -123,12 +123,14 @@ export class LayersMenu {
 
     if (isGroup) {
       const childrenList = document.createElement("ul");
-      childrenList.className = "group-children";
+      childrenList.id = `ul_group-children-${layer.id}`;
+      childrenList.className = "ul_group-children";
       childrenList.style.display = "none";
       li.appendChild(childrenList);
       if (layer.children && layer.children.length > 0) {
         layer.children.forEach((child) => {
-          const childLI = this.createLayerItem(child, false);
+          const isChildGroup = 'children' in child;
+          const childLI = this.createLayerItem(child, isChildGroup);
           childrenList.appendChild(childLI);
         });
       }
@@ -161,7 +163,7 @@ export class LayersMenu {
       evt.stopPropagation();
 
       const groupChildrenUL =
-        li.querySelector<HTMLUListElement>("ul.group-children");
+        li.querySelector<HTMLUListElement>(`#ul_group-children-${layer.id}`);
 
       const isGroup = groupChildrenUL !== null;
       if (evt.ctrlKey) {
@@ -345,13 +347,13 @@ export class LayersMenu {
     layer?.querySelectorAll<HTMLLIElement>(":scope > li").forEach((li) => {
       const id = Number(li.dataset.id);
       const isLocked =
-        li.querySelector<HTMLInputElement>(`#inp_lock-${li.dataset.id}`)
+        li.querySelector<HTMLInputElement>(`#inp_lock-${id}`)
           ?.checked || false;
       const isVisible =
-        li.querySelector<HTMLInputElement>(`#inp_visibility-${li.dataset.id}`)
+        li.querySelector<HTMLInputElement>(`#inp_visibility-${id}`)
           ?.checked || false;
       const childrenUL =
-        li.querySelector<HTMLUListElement>("ul.group-children");
+        li.querySelector<HTMLUListElement>(`#ul_group-children-${id}`);
       let children: Layer[] | undefined;
       if (childrenUL) {
         children = this.generateLayerHierarchy(childrenUL);
@@ -398,30 +400,18 @@ export class LayersMenu {
       customEvent.detail;
     if (this.layersList.querySelector(`#layer-${elementId}`)) return;
 
-    if (type === "group") {
-      const groupLI = this.createLayerItem(
-        {
-          children,
-          id: elementId,
-          isLocked,
-          isVisible,
-          name: layerName,
-        },
-        true,
-      );
-      this.layersList.appendChild(groupLI);
-    } else {
-      const layerLI = this.createLayerItem(
-        {
-          id: elementId,
-          isVisible,
-          isLocked,
-          name: layerName,
-        },
-        false,
-      );
-      this.layersList.appendChild(layerLI);
-    }
+  const isGroup = type === "group";
+  const layerLI = this.createLayerItem(
+      {
+        children: children ?? undefined,
+        id: elementId,
+        isLocked,
+        isVisible,
+        name: layerName,
+      },
+      isGroup,
+    );
+    this.layersList.appendChild(layerLI);
   }
 
   private handleAddNewGroup(): void {
