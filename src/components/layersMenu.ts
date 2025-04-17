@@ -2,6 +2,7 @@ import EVENT from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 import errorElement from "src/components/elements/errorElement";
 import ClosedEyeIcon from "src/assets/icons/closed-eye.svg";
+import FilterIcon from "src/assets/icons/filter.svg";
 import GroupArrowIcon from "src/assets/icons/group-arrow.svg";
 import GroupIcon from "src/assets/icons/group.svg";
 import LockedIcon from "src/assets/icons/lock.svg";
@@ -449,7 +450,10 @@ export class LayersMenu {
       <label style="--checked-icon-url: url(${OpenEyeIcon}); --icon-url: url(${ClosedEyeIcon});" for="inp_visibility-${layer.id}"></label>
       <input id="inp_lock-${layer.id}" class="tgl-common" type="checkbox" ${layer.isLocked ? "checked" : ""} />
       <label style="--checked-icon-url: url(${LockedIcon}); --icon-url: url(${UnlockedIcon});" for="inp_lock-${layer.id}"></label>
-      <button id="btn_filters-${layer.id}" type="button">F</button>
+      <button id="btn_filters-${layer.id}" class='btn-small'>
+        <tooltip title='Editar opções de filtros' />
+        <label style="--icon-url: url(${FilterIcon});" />
+      </button>
     </div>
     <div class="li_layer-info">
       <input id="inp_layer-${layer.id}"
