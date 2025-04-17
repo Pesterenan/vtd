@@ -158,21 +158,10 @@ export class WorkArea {
         EVENT.REORGANIZE_LAYERS,
         this.handleReorganizeLayers.bind(this),
       );
-      window.addEventListener(EVENT.TOGGLE_ELEMENT_LOCK, (evt: Event) => {
-        const customEvent = evt as CustomEvent<{
-          elementId: number;
-          isLocked: boolean;
-        }>;
-        const { elementId, isLocked } = customEvent.detail;
-        const flatElements = this.getFlatElements(this.elements);
-        const elementToToggleLock = flatElements.find(
-          (el) => el.elementId === elementId,
-        );
-        if (elementToToggleLock) {
-          elementToToggleLock.isLocked = isLocked;
-        }
-        this.update();
-      });
+      window.addEventListener(
+        EVENT.TOGGLE_ELEMENT_LOCK,
+        this.handleToggleLock.bind(this),
+      );
       window.addEventListener(EVENT.TOGGLE_ELEMENT_VISIBILITY, (evt: Event) => {
         const customEvent = evt as CustomEvent<{
           elementId: number;
@@ -274,6 +263,28 @@ export class WorkArea {
       }
     });
     return orderedElements;
+  }
+
+  private handleToggleLock(evt: Event): void {
+    const customEvent = evt as CustomEvent<{
+      elementId: number;
+      isLocked: boolean;
+    }>;
+    const { elementId, isLocked } = customEvent.detail;
+    const flatElements = this.getFlatElements(this.elements);
+    const elementToToggleLock = flatElements.find(
+      (el) => el.elementId === elementId,
+    );
+    if (elementToToggleLock) {
+      if (elementToToggleLock instanceof ElementGroup) {
+        elementToToggleLock.children?.forEach(
+          (child) => (child.selected = false),
+        );
+      }
+      elementToToggleLock.isLocked = isLocked;
+    }
+    this.selectElements();
+    this.update();
   }
 
   private handleReorganizeLayers(evt: Event): void {
@@ -670,7 +681,8 @@ export class WorkArea {
 
   public createTransformBox(): void {
     this.removeTransformBox();
-    const selectedElements: Element<TElementData>[] = this.getSelectedElements();
+    const selectedElements: Element<TElementData>[] =
+      this.getSelectedElements();
     // If there's elements selected, create TransformBox
     if (this.mainCanvas && selectedElements) {
       this.transformBox = new TransformBox(selectedElements, this.mainCanvas);
