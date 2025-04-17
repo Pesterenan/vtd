@@ -27,27 +27,32 @@ plataforma escolhida para a criação do app redistribuível.
 ### Etapas de desenvolvimento
 ---
 
-Criar interface crua da aplicação - OK
-Terá um canvas no meio com um menu de ferramentas na direita - OK
-Canvas poderá desenhar caixas como teste de render - OK
-Os elementos podem ser rotacionados e movidos pela área de montagem - OK
-A aplicação pode importar imagens dinamicamente - OK
-A importação de vídeo deve conseguir usar o FFMPEG para extrair imagens - OK
-O video  escolhido para importação deve abrir uma nova janela para extrair o frame - OK
-Os elementos (imagens, textos) podem ser reorganizados de acordo com seu z-index - OK
-A aplicação tem um sistema de gerenciar camadas - OK
-O usuário pode escolher qual parte do frame ele quer extrair para a aplicação - OK
-Os elementos tem visibilidade alternável e só podem ser selecionados se estiverem visiveis - OK
-A aplicação pode criar e editar elementos de texto - OK
-Implementar tamanho do contorno - OK
-Retrabalhar a forma como as ferramentas funcionam em relação a posição do mouse, offset e ajustado 
-para zoom. - OK
-O usuário pode travar elementos para não serem movidos - OK
-Implementar opacidade total do elemento - OK
-A aplicação pode salvar a imagem final do projeto como um JPG ou PNG - Criar um novo modal para 
-mostrar a qualidade da imagem exportada, e incluir a escolha de formato. - OK
+&#9746; - Criar interface crua da aplicação\
+&#9746; - Terá um canvas no meio com um menu de ferramentas na direita\
+&#9746; - Canvas poderá desenhar caixas como teste de render\
+&#9746; - Os elementos podem ser rotacionados e movidos pela área de montagem\
+&#9746; - A aplicação pode importar imagens dinamicamente\
+&#9746; - A importação de vídeo deve conseguir usar o FFMPEG para extrair imagens\
+&#9746; - O video  escolhido para importação deve abrir uma nova janela para extrair o frame\
+&#9746; - Os elementos (imagens, textos) podem ser reorganizados de acordo com seu z-index\
+&#9746; - A aplicação tem um sistema de gerenciar camadas\
+&#9746; - O usuário pode escolher qual parte do frame ele quer extrair para a aplicação\
+&#9746; - Os elementos tem visibilidade alternável e só podem ser selecionados se estiverem visiveis\
+&#9746; - A aplicação pode criar e editar elementos de texto\
+&#9746; - Implementar tamanho do contorno\
+&#9746; - Retrabalhar a forma como as ferramentas funcionam em relação a posição do mouse, offset e ajustado para zoom.\
+&#9746; - O usuário pode travar elementos para não serem movidos\
+&#9746; - Implementar opacidade total do elemento\
+&#9746; - A aplicação pode salvar a imagem final do projeto como um JPG ou PNG\
+&#9746; - Criar um novo modal para mostrar a qualidade da imagem exportada, e incluir a escolha de formato.\
+&#9746; - O usuário pode agrupar elementos em um grupo para movimentar todos juntos\
 
-O usuário pode agrupar elementos em um grupo para movimentar todos juntos
-Implementar opacidade nos efeitos
-Implementar um sistema de undo/redo
+&#9744; - Criar sistema de alertas para eventos como salvar, copiar elemento, exportar imagem, etc.\
+&#9744; - Mostrar o tempo em segundos enquanto arrasta o slider do video frame extractor\
+&#9744; - Buscar um novo frame apenas após soltar o slider do video frame extractor\
+&#9744; - Buscar pelo menos 10 imagens do video no início para mostrar como preview.\
+&#9744; - Adicionar controles de teclas para navegação do video frame extractor\
+&#9744; - Implementar opacidade nos efeitos\
+&#9744; - Implementar efeito de chroma/color key\
+&#9744; - Implementar um sistema de undo/redo\
 
