@@ -16,6 +16,14 @@
   align-items: flex-start;
 }
 
+.ai-fe {
+  align-items: flex-end;
+}
+
+.jc-c {
+  justify-content: center;
+}
+
 .ai-c {
   align-items: center;
 }
@@ -27,6 +35,11 @@
 .jc-fs {
   justify-content: flex-start;
 }
+
+.jc-fe {
+  justify-content: flex-end;
+}
+
 
 .ai-jc-c {
   align-items: center;

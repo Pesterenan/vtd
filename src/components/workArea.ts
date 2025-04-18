@@ -6,6 +6,7 @@ import type {
   TElementData,
   IProjectData,
   Position,
+  Layer,
 } from "src/components/types";
 import { TOOL } from "src/components/types";
 import { HandTool } from "src/components/tools/handTool";
@@ -23,6 +24,7 @@ import { GradientElement } from "src/components/elements/gradientElement";
 import { FiltersDialog } from "src/components/dialogs/filtersDialog";
 import { DialogExportImage } from "src/components/dialogs/DialogExportImage";
 import { SIDE_MENU_WIDTH, TOOL_MENU_WIDTH } from "src/constants";
+import { ElementGroup } from "./elements/elementGroup";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -72,6 +74,7 @@ export class WorkArea {
 
     if (!this.mainCanvas) throw new Error("Main canvas not available");
 
+    this.createElementFromData = this.createElementFromData.bind(this);
     this.tools = {
       [TOOL.SELECT]: new SelectTool(this.mainCanvas),
       [TOOL.GRADIENT]: new GradientTool(this.mainCanvas),
@@ -147,45 +150,26 @@ export class WorkArea {
         this.removeTransformBox();
         this.elements.length = 0;
       });
-      window.addEventListener(EVENT.DELETE_ELEMENT, (evt: Event): void => {
-        const customEvent = evt as CustomEvent<{ elementId: number }>;
-        const elementId = customEvent.detail.elementId;
-        this.elements = this.elements.filter(
-          (el) => el.elementId !== elementId,
-        );
+      window.addEventListener(EVENT.DELETE_ELEMENT, () => {
+        this.removeTransformBox();
         this.update();
       });
-      window.addEventListener(EVENT.REORGANIZE_LAYERS, (evt: Event) => {
-        const customEvent = evt as CustomEvent<{ order: number[] }>;
-        const newOrder = customEvent.detail.order;
-        newOrder.forEach((id, index) => {
-          const element = this.elements.find((el) => el.elementId === id);
-          if (element) element.zDepth = index;
-        });
-        this.elements.sort((a, b) => a.zDepth - b.zDepth);
-        this.update();
-      });
-      window.addEventListener(EVENT.TOGGLE_ELEMENT_LOCK, (evt: Event) => {
-        const customEvent = evt as CustomEvent<{
-          elementId: number;
-          isLocked: boolean;
-        }>;
-        const { elementId, isLocked } = customEvent.detail;
-        const elementToToggleLock = this.elements.find(
-          (el) => el.elementId === elementId,
-        );
-        if (elementToToggleLock) {
-          elementToToggleLock.isLocked = isLocked;
-        }
-        this.update();
-      });
+      window.addEventListener(
+        EVENT.REORGANIZE_LAYERS,
+        this.handleReorganizeLayers.bind(this),
+      );
+      window.addEventListener(
+        EVENT.TOGGLE_ELEMENT_LOCK,
+        this.handleToggleLock.bind(this),
+      );
       window.addEventListener(EVENT.TOGGLE_ELEMENT_VISIBILITY, (evt: Event) => {
         const customEvent = evt as CustomEvent<{
           elementId: number;
           isVisible: boolean;
         }>;
         const { elementId, isVisible } = customEvent.detail;
-        const elementToToggleVisibility = this.elements.find(
+        const flatElements = this.getFlatElements(this.elements);
+        const elementToToggleVisibility = flatElements.find(
           (el) => el.elementId === elementId,
         );
         if (elementToToggleVisibility) {
@@ -193,19 +177,10 @@ export class WorkArea {
         }
         this.update();
       });
-      window.addEventListener(EVENT.SELECT_ELEMENT, (evt: Event) => {
-        const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
-        const { elementsId } = customEvent.detail;
-        this.elements.forEach((el) => {
-          if (elementsId.has(el.elementId) && !el.isLocked) {
-            el.selected = true;
-          } else {
-            el.selected = false;
-          }
-        });
-        this.createTransformBox();
-        this.update();
-      });
+      window.addEventListener(
+        EVENT.SELECT_ELEMENT,
+        this.handleSelectElement.bind(this),
+      );
       window.addEventListener(EVENT.CHANGE_LAYER_NAME, (evt: Event) => {
         const customEvent = evt as CustomEvent<{
           elementId: number;
@@ -234,6 +209,100 @@ export class WorkArea {
           ).detail.isUsingTool),
       );
     }
+  }
+
+  private handleSelectElement(evt: Event): void {
+    const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
+    const { elementsId } = customEvent.detail;
+    const selectElement = (element: Element<TElementData>) =>
+      (element.selected =
+        elementsId.has(element.elementId) && !element.isLocked);
+    this.elements.forEach((el) => {
+      if (el instanceof ElementGroup && el.children && !el.isLocked) {
+        el.children.forEach(selectElement);
+      } else {
+        selectElement(el);
+      }
+    });
+    this.createTransformBox();
+    this.update();
+  }
+
+  private getFlatElements(
+    elements: Element<TElementData>[],
+  ): Element<TElementData>[] {
+    const flatElements: Element<TElementData>[] = [];
+    elements.forEach((el) => {
+      flatElements.push(el);
+      if (el instanceof ElementGroup && el.children) {
+        flatElements.push(...this.getFlatElements(el.children));
+      }
+    });
+    return flatElements;
+  }
+
+  private processLayerHierarchy(
+    hierarchy: Layer[],
+    flatElements: Element<TElementData>[],
+    counter: { value: number },
+  ): Element<TElementData>[] {
+    const orderedElements: Element<TElementData>[] = [];
+    hierarchy.forEach((node) => {
+      const element = flatElements.find((el) => el.elementId === node.id);
+      if (element) {
+        element.zDepth = counter.value++;
+        orderedElements.push(element);
+        if (node.children && element instanceof ElementGroup) {
+          const childElements = this.processLayerHierarchy(
+            node.children,
+            flatElements,
+            counter,
+          );
+          (element as ElementGroup).children = childElements;
+        }
+      }
+    });
+    return orderedElements;
+  }
+
+  private handleToggleLock(evt: Event): void {
+    const customEvent = evt as CustomEvent<{
+      elementId: number;
+      isLocked: boolean;
+    }>;
+    const { elementId, isLocked } = customEvent.detail;
+    const flatElements = this.getFlatElements(this.elements);
+    const elementToToggleLock = flatElements.find(
+      (el) => el.elementId === elementId,
+    );
+    if (elementToToggleLock) {
+      if (elementToToggleLock instanceof ElementGroup) {
+        elementToToggleLock.children?.forEach(
+          (child) => (child.selected = false),
+        );
+      }
+      elementToToggleLock.isLocked = isLocked;
+    }
+    this.selectElements();
+    this.update();
+  }
+
+  private handleReorganizeLayers(evt: Event): void {
+    const customEvent = evt as CustomEvent<{ hierarchy: Layer[] }>;
+    const newHierarchy = customEvent.detail.hierarchy;
+
+    const flatElements = this.getFlatElements(this.elements);
+
+    const counter = { value: 0 };
+
+    const newOrderedElements = this.processLayerHierarchy(
+      newHierarchy,
+      flatElements,
+      counter,
+    );
+    this.elements = newOrderedElements;
+    this.elements.sort((a, b) => a.zDepth - b.zDepth);
+    this.update();
   }
 
   public copyCanvasToClipboard(): void {
@@ -297,10 +366,6 @@ export class WorkArea {
         break;
       case "KeyH":
         tool = TOOL.GRADIENT;
-        break;
-      case "KeyX":
-        tool = TOOL.SELECT;
-        this.removeSelectedElements();
         break;
     }
     if (tool) {
@@ -393,21 +458,6 @@ export class WorkArea {
     }
   }
 
-  private removeSelectedElements(): void {
-    if (this.transformBox) {
-      const idsToRemove = this.getSelectedElements()?.map((el) => el.elementId);
-      if (idsToRemove) {
-        idsToRemove.forEach((elementId) =>
-          window.dispatchEvent(
-            new CustomEvent(EVENT.DELETE_ELEMENT, { detail: { elementId } }),
-          ),
-        );
-      }
-      this.removeTransformBox();
-      this.update();
-    }
-  }
-
   /** Adjust canvas object position to be shown on screen */
   public adjustForScreen(workAreaPosition: Position): Position {
     return {
@@ -433,6 +483,7 @@ export class WorkArea {
 
   private createElementFromData(
     elData: TElementData,
+    isChild = false,
   ): Element<TElementData> | null {
     let newElement = null;
     switch (elData.type) {
@@ -460,21 +511,46 @@ export class WorkArea {
         );
         newElement.deserialize(elData);
         break;
+      case "group":
+        newElement = new ElementGroup(
+          elData.position,
+          elData.size,
+          elData.zDepth,
+          elData.children
+            .map((el) => this.createElementFromData(el, true))
+            .filter((el) => el !== null),
+        );
+        newElement.deserialize(elData);
+        break;
       default:
         console.warn(`Unknown element type from data couldn't be parsed.`);
         break;
     }
-    if (newElement) {
-      window.dispatchEvent(
-        new CustomEvent(EVENT.ADD_ELEMENT, {
-          detail: {
-            elementId: newElement.elementId,
-            layerName: newElement.layerName,
-            isVisible: newElement.isVisible,
-            isLocked: newElement.isLocked,
-          },
-        }),
-      );
+    if (!isChild && newElement) {
+      const eventDetail = {
+        detail: {
+          elementId: newElement.elementId,
+          layerName: newElement.layerName,
+          isVisible: newElement.isVisible,
+          isLocked: newElement.isLocked,
+          type: elData.type,
+          children: [] as {
+            id: number;
+            name: string;
+            isVisible: boolean;
+            isLocked: boolean;
+          }[],
+        },
+      };
+      if (newElement instanceof ElementGroup && newElement.children) {
+        eventDetail.detail.children = newElement?.children.map((child) => ({
+          id: child.elementId,
+          name: child.layerName,
+          isVisible: child.isVisible,
+          isLocked: child.isLocked,
+        }));
+      }
+      window.dispatchEvent(new CustomEvent(EVENT.ADD_ELEMENT, eventDetail));
     }
     return newElement as Element<TElementData>;
   }
@@ -483,7 +559,7 @@ export class WorkArea {
     window.dispatchEvent(new CustomEvent(EVENT.CLEAR_WORKAREA));
     const projectData: IProjectData = JSON.parse(data);
     this.elements = projectData.elements
-      .map(this.createElementFromData)
+      .map((el) => this.createElementFromData(el))
       .filter((el) => el !== null);
     this.selectElements();
     this.update();
@@ -505,8 +581,18 @@ export class WorkArea {
     return this.workArea.canvas.toDataURL(`image/${format}`, parsedQuality);
   }
 
-  public getSelectedElements(): Element<TElementData>[] | null {
-    return this.elements.filter((el) => el.selected);
+  public getSelectedElements(): Element<TElementData>[] {
+    const selectedElements: Element<TElementData>[] = [];
+    this.elements.forEach((el) => {
+      if (el instanceof ElementGroup && el.children && el.children.length) {
+        return el.children.forEach(
+          (child) => child.selected && selectedElements.push(child),
+        );
+      } else {
+        return el.selected && selectedElements.push(el);
+      }
+    });
+    return selectedElements;
   }
 
   public selectElements(
@@ -516,25 +602,58 @@ export class WorkArea {
     let selectedElements: Element<TElementData>[] = [];
     if (firstPoint) {
       const adjustedFirstPoint = this.adjustForCanvas(firstPoint);
-      const firstElement = this.elements.findLast(
-        (el) =>
+      const firstElement = this.elements.findLast((el) => {
+        if (el instanceof ElementGroup) {
+          return (
+            el.isVisible &&
+            !el.isLocked &&
+            el.getBoundingBox().isPointInside(adjustedFirstPoint)
+          );
+        }
+        return (
           el.isVisible &&
           !el.isLocked &&
-          el.getBoundingBox().isPointInside(adjustedFirstPoint),
-      );
-      if (firstElement) {
-        selectedElements = [firstElement];
+          el.getBoundingBox().isPointInside(adjustedFirstPoint)
+        );
+      });
+      if (
+        firstElement &&
+        firstElement instanceof ElementGroup &&
+        firstElement.children
+      ) {
+        selectedElements = firstElement.children;
+      } else if (firstElement) {
+        selectedElements = [firstElement as Element<TElementData>];
       }
       if (secondPoint) {
         const adjustedSecondPoint = this.adjustForCanvas(secondPoint);
-        selectedElements = this.elements.filter(
-          (el) =>
-            el.isVisible &&
-            !el.isLocked &&
-            el
-              .getBoundingBox()
-              .isWithinBounds(adjustedFirstPoint, adjustedSecondPoint),
-        );
+        this.elements.forEach((el) => {
+          if (el instanceof ElementGroup) {
+            if (
+              el.children &&
+              el.children.some(
+                (child) =>
+                  child.isVisible &&
+                  !child.isLocked &&
+                  child
+                    .getBoundingBox()
+                    .isWithinBounds(adjustedFirstPoint, adjustedSecondPoint),
+              )
+            ) {
+              selectedElements = [...selectedElements, ...el.children];
+            }
+          } else {
+            if (
+              el.isVisible &&
+              !el.isLocked &&
+              el
+                .getBoundingBox()
+                .isWithinBounds(adjustedFirstPoint, adjustedSecondPoint)
+            ) {
+              selectedElements.push(el);
+            }
+          }
+        });
       }
     }
     window.dispatchEvent(
@@ -562,11 +681,10 @@ export class WorkArea {
 
   public createTransformBox(): void {
     this.removeTransformBox();
-    const selectedElements: Element<TElementData>[] = this.elements.filter(
-      (el) => el.selected,
-    );
+    const selectedElements: Element<TElementData>[] =
+      this.getSelectedElements();
     // If there's elements selected, create TransformBox
-    if (this.mainCanvas && selectedElements.length) {
+    if (this.mainCanvas && selectedElements) {
       this.transformBox = new TransformBox(selectedElements, this.mainCanvas);
     }
   }
@@ -644,7 +762,10 @@ export class WorkArea {
       new CustomEvent(EVENT.ADD_ELEMENT, {
         detail: {
           elementId: newElement.elementId,
+          isLocked: newElement.isLocked,
+          isVisible: newElement.isVisible,
           layerName: newElement.layerName,
+          type: "gradient",
         },
       }),
     );
@@ -673,7 +794,10 @@ export class WorkArea {
       new CustomEvent(EVENT.ADD_ELEMENT, {
         detail: {
           elementId: newElement.elementId,
+          isLocked: newElement.isLocked,
+          isVisible: newElement.isVisible,
           layerName: newElement.layerName,
+          type: "text",
         },
       }),
     );
@@ -716,9 +840,34 @@ export class WorkArea {
       new CustomEvent(EVENT.ADD_ELEMENT, {
         detail: {
           elementId: newElement.elementId,
+          isLocked: newElement.isLocked,
+          isVisible: newElement.isVisible,
           layerName: newElement.layerName,
+          type: "image",
         },
       }),
     );
+  }
+
+  public addGroupElement(): void {
+    const newElement = new ElementGroup(
+      { x: 0, y: 0 },
+      { width: 0, height: 0 },
+      this.elements.length,
+      [],
+    );
+    this.elements.push(newElement as Element<TElementData>);
+    window.dispatchEvent(
+      new CustomEvent(EVENT.ADD_ELEMENT, {
+        detail: {
+          elementId: newElement.elementId,
+          isLocked: newElement.isLocked,
+          isVisible: newElement.isVisible,
+          layerName: newElement.layerName,
+          type: "group",
+        },
+      }),
+    );
+    this.update();
   }
 }

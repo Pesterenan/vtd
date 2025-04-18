@@ -13,7 +13,7 @@ export interface IElementData {
   layerName: string;
   filters: Filter[];
 }
-type ElementType = "text" | "image" | "gradient";
+type ElementType = "text" | "image" | "gradient" | "group";
 
 export interface ITextElementData extends IElementData {
   type: "text";
@@ -47,10 +47,24 @@ export interface IGradientElementData extends IElementData {
   }[];
 }
 
+export interface IElementGroupData extends IElementData {
+  type: "group";
+  children: TElementData[];
+}
+
+export interface Layer {
+  children?: Layer[];
+  id: number;
+  isLocked: boolean;
+  isVisible: boolean;
+  name?: string;
+}
+
 export type TElementData =
   | IImageElementData
   | ITextElementData
-  | IGradientElementData;
+  | IGradientElementData
+  | IElementGroupData;
 
 export interface IProjectData {
   elements: TElementData[];
