@@ -3,14 +3,20 @@ import { SideMenu } from "src/components/sideMenu";
 import { ToolMenu } from "src/components/toolMenu";
 import { WorkArea } from "src/components/workArea";
 import exampleProject from "src/exampleProject.json";
+import { Alerts } from "./components/alerts/alerts";
+import EVENT from "./utils/customEvents";
 
 const initializeVTD = (): void => {
   window.addEventListener("DOMContentLoaded", () => {
+    new Alerts();
     ToolMenu.getInstance();
     const workArea = WorkArea.getInstance();
     SideMenu.getInstance();
     createEventListeners(workArea);
     workArea.loadProject(JSON.stringify(exampleProject));
+    window.dispatchEvent(new CustomEvent(EVENT.ADD_ALERT, { detail: { message: "VTD initialized", type: "sucesso" } }));
+    window.dispatchEvent(new CustomEvent(EVENT.ADD_ALERT, { detail: { message: "VTD initialized2", type: "sucesso" } }));
+    window.dispatchEvent(new CustomEvent(EVENT.ADD_ALERT, { detail: { message: "VTD initialized3", type: "erro" } }));
   });
 };
 

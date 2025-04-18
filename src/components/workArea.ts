@@ -310,8 +310,8 @@ export class WorkArea {
     this.workArea.canvas.toBlob((blob) => {
       if (blob) {
         const item = new ClipboardItem({ "image/png": blob });
-        // TODO: Criar um sistema de alerts na aplicação para mostrar que foi copiado.
         navigator.clipboard.write([item]);
+        window.dispatchEvent(new CustomEvent(EVENT.ADD_ALERT, { detail: { type: "sucesso", message: "Imagem copiada para a área de transferência" }}));
       }
     }, "image/png");
   }
