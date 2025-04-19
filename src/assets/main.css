@@ -50,25 +50,36 @@ body {
   background-color: var(--background-500);
   border-radius: 0.25rem;
   border: 1px solid var(--background-700);
-  box-shadow: "0 0 10px rgba(0, 0, 0, 0.1)";
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   color: var(--text-900);
   font-size: var(--font-small);
   max-width: calc(100% - 2rem);
-  opacity: 0.8;
+  opacity: 0;
   padding: 0.5rem;
-  pointer-events: "all";
-  transition: "opacity 0.5s ease-in-out, transform 0.5s ease-in-out";
+  pointer-events: all;
+  transform: translateY(0);
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
   width: fit-content;
-  & p:nth-child(1) {
+
+  & p:first-child {
+    border-bottom: 1px solid var(--background-700);
     font-size: 0.5rem;
     font-style: italic;
     font-weight: bolder;
   }
-  &.sucesso {
-    background-color: lightgreen;
+  &.success {
+    background-color: var(--background-300);
   }
-  &.erro {
-    background-color: indianred;
+  &.error {
+    background-color: var(--primary-300);
+  }
+  &.show {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+  &.hide {
+    opacity: 0;
+    transform: translateY(-3rem);
   }
 }
 

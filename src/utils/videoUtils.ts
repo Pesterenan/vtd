@@ -53,6 +53,7 @@ export async function getMetadata(filePath: string): Promise<IVideoMetadata> {
         return reject(err);
       }
       try {
+        const format = metadata.format.format_name;
         const duration = metadata.format.duration;
         const width = metadata.streams[0].width;
         const height = metadata.streams[0].height;
@@ -66,6 +67,7 @@ export async function getMetadata(filePath: string): Promise<IVideoMetadata> {
         console.log(`Quadros totais: ${totalFrames}`);
         if (duration && width && height && frameRate && totalFrames) {
           const parsedMetadata: IVideoMetadata = {
+            format,
             filePath,
             duration,
             width,

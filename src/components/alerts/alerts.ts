@@ -1,12 +1,18 @@
 import EVENT from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 
-interface Alert {
+export interface Alert {
   id: string;
   message: string;
-  type: "sucesso" | "erro";
   timestamp: Date;
+  title?: string;
+  type: "success" | "error";
 }
+
+const ALERT_TITLE: Record<Alert["type"], string> = {
+  success: "Sucesso",
+  error: "Erro",
+};
 
 export class Alerts {
   private alertQueue: Alert[];
@@ -36,16 +42,19 @@ export class Alerts {
   }
 
   private addAlert(evt: Event): void {
-    const customEvent = evt as CustomEvent<Pick<Alert, "message" | "type">>;
+    const customEvent = evt as CustomEvent<
+      Pick<Alert, "message" | "type" | "title">
+    >;
     const { message, type } = customEvent.detail;
     const newAlert: Alert = {
       id: this.generateId(),
       message,
-      type,
       timestamp: new Date(),
+      title: customEvent.detail.title,
+      type,
     };
-    this.renderAlert(newAlert);
     this.alertQueue.push(newAlert);
+    this.renderAlert(newAlert);
     if (this.alertInterval === null) {
       this.startRemovalInterval();
     }
@@ -65,18 +74,32 @@ export class Alerts {
   }
 
   private removeAlert(id: string): void {
-    this.alertQueue = this.alertQueue.filter((alert) => alert.id !== id);
-    this.alertsContainer?.removeChild(
-      document.getElementById(`alt_${id}`) as HTMLDivElement,
+    const el = document.getElementById(`alt_${id}`) as HTMLDivElement;
+    if (!el) return;
+
+    el.classList.remove("show");
+    el.classList.add("hide");
+    el.addEventListener(
+      "transitionend",
+      () => {
+        el.remove();
+      },
+      { once: true },
     );
   }
 
   private renderAlert(alert: Alert): void {
+    const alertTitle = alert.title ? alert.title : ALERT_TITLE[alert.type];
     const alertElement = document.createElement("div");
     alertElement.id = `alt_${alert.id}`;
     alertElement.className = `alert ${alert.type}`;
-    alertElement.innerHTML = `<p>${alert.type.toUpperCase()}:</p>
+    alertElement.innerHTML = `<p>${alertTitle.toUpperCase()}:</p>
     <p>${alert.message}</p>`;
     this.alertsContainer?.appendChild(alertElement);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        alertElement.classList.add("show");
+      });
+    });
   }
 }

@@ -1,20 +1,52 @@
-const EVENT: Record<string, string> = {
-  ADD_ELEMENT: "evt_add-element",
-  ADD_ALERT: "evt_add-alert",
-  CLEAR_WORKAREA: "evt_clear-workarea",
-  CHANGE_LAYER_NAME: "evt_change_layer_name",
-  CHANGE_TOOL: "evt_change_tool",
-  USING_TOOL: "evt_using_tool",
-  DELETE_ELEMENT: "evt_delete-element",
-  OPEN_FILTERS_DIALOG: "evt_open-filters-dialog",
-  OPEN_EXPORT_IMAGE_DIALOG: "evt_open-export-image-dialog",
-  REORGANIZE_LAYERS: "evt_layers-reorganized",
-  RECALCULATE_TRANSFORM_BOX: "evt_transform-box-recalculated",
-  SELECT_ELEMENT: "evt_select_element",
-  TOGGLE_ELEMENT_LOCK: "evt_toggle_element_lock",
-  TOGGLE_ELEMENT_VISIBILITY: "evt_toggle_element_visibility",
-  UPDATE_WORKAREA: "evt_update-workarea",
-  UPDATE_VFE: "evt_update-video-frame-extractor",
+import type { AddAlertDetail, AddElementDetail, ChangeToolDetail } from "src/components/types";
+
+const EVENT = {
+  ADD_ALERT: "ADD_ALERT",
+  ADD_ELEMENT: "ADD_ELEMENT",
+  CHANGE_LAYER_NAME: "CHANGE_LAYER_NAME",
+  CHANGE_TOOL: "CHANGE_TOOL",
+  CLEAR_WORKAREA: "CLEAR_WORKAREA",
+  DELETE_ELEMENT: "DELETE_ELEMENT",
+  OPEN_EXPORT_IMAGE_DIALOG: "OPEN_EXPORT_IMAGE_DIALOG",
+  OPEN_FILTERS_DIALOG: "OPEN_FILTERS_DIALOG",
+  RECALCULATE_TRANSFORM_BOX: "RECALCULATE_TRANSFORM_BOX",
+  REORGANIZE_LAYERS: "REORGANIZE_LAYERS",
+  SELECT_ELEMENT: "SELECT_ELEMENT",
+  TOGGLE_ELEMENT_LOCK: "TOGGLE_ELEMENT_LOCK",
+  TOGGLE_ELEMENT_VISIBILITY: "TOGGLE_ELEMENT_VISIBILITY",
+  UPDATE_VFE: "UPDATE_VFE",
+  UPDATE_WORKAREA: "UPDATE_WORKAREA",
+  USING_TOOL: "USING_TOOL",
 } as const;
+
+declare global {
+  interface WindowEventMap {
+    [EVENT.ADD_ALERT]: AddAlertDetail;
+    [EVENT.ADD_ELEMENT]: AddElementDetail;
+    [EVENT.CHANGE_LAYER_NAME]: unknown;
+    [EVENT.CHANGE_TOOL]: ChangeToolDetail;
+    [EVENT.CLEAR_WORKAREA]: void;
+    [EVENT.DELETE_ELEMENT]: unknown;
+    [EVENT.OPEN_EXPORT_IMAGE_DIALOG]: unknown;
+    [EVENT.OPEN_FILTERS_DIALOG]: unknown;
+    [EVENT.RECALCULATE_TRANSFORM_BOX]: unknown;
+    [EVENT.REORGANIZE_LAYERS]: unknown;
+    [EVENT.SELECT_ELEMENT]: unknown;
+    [EVENT.TOGGLE_ELEMENT_LOCK]: unknown;
+    [EVENT.TOGGLE_ELEMENT_VISIBILITY]: unknown;
+    [EVENT.UPDATE_VFE]: unknown;
+    [EVENT.UPDATE_WORKAREA]: unknown;
+    [EVENT.USING_TOOL]: unknown;
+  }
+}
+
+type EventName = (typeof EVENT)[keyof typeof EVENT];
+
+export function dispatch<E extends EventName>(
+  evt: E,
+  detail?: WindowEventMap[E],
+): void {
+  window.dispatchEvent(new CustomEvent(evt, { detail }));
+}
 
 export default EVENT;

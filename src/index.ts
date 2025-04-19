@@ -18,7 +18,7 @@ if (require("electron-squirrel-startup")) {
 
 let mainWindow: BrowserWindow | null = null;
 let frameExtractorWindow: BrowserWindow | null = null;
-let currentTheme = 'light';
+let currentTheme = "light";
 
 const createMainWindow = (): void => {
   // Create the browser window.
@@ -120,7 +120,6 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
 
   // Change Theme on all windows
   ipcMain.on("change-theme", (_, newTheme: string) => {
-    console.log("Main Process: Changing theme to", newTheme);
     currentTheme = newTheme;
     BrowserWindow.getAllWindows().forEach((window) => {
       window.webContents.send("theme-update", currentTheme);
@@ -143,40 +142,41 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
       if (filePaths.length > 0) {
         const filePath = filePaths[0];
         if (!fs.existsSync(filePath)) {
-          throw new Error("Arquivo não encontrado");
+          event.reply("load-video-response", {
+            success: false,
+            message: "Arquivo de vídeo não encontrado.",
+          });
+          return;
         }
 
         const videoMetadata = await getMetadata(filePath);
         event.reply("load-video-response", {
           success: true,
-          message: "Video metadata parsed, opening VFE...",
+          message: `Vídeo ${videoMetadata.format} carregado com sucesso. Abrindo VFE...`,
         });
         createFrameExtractorWindow(videoMetadata as IVideoMetadata);
       }
     } catch (err: unknown) {
-      console.error(err);
       event.reply("load-video-response", {
         success: false,
-        message: "Couldn't parse video metadata.",
+        message: "Erro ao carregar arquivo de vídeo.",
       });
     }
   });
 
   // Process video frame
   ipcMain.on("process-video-frame", async (event, filePath, timeInSeconds) => {
-    console.log("Starting video frame process", filePath, timeInSeconds);
     try {
       const videoFrame = await processVideoFrame(filePath, timeInSeconds);
       event.reply("process-video-frame-response", {
         success: true,
-        message: "Video frame processed.",
+        message: `Quadro em ${timeInSeconds} segundos extraído com sucesso.`,
         data: videoFrame,
       });
     } catch (err) {
-      console.error(err, "erro ao preocessar frame");
       event.reply("process-video-frame-response", {
         success: false,
-        message: "Error processing frame.",
+        message: "Erro ao processar frame.",
       });
     }
   });
@@ -186,7 +186,7 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
     mainWindow.webContents.send("load-image-response", {
       success: true,
       data: imageUrl,
-      message: "Sending frame to work area",
+      message: "Quadro extraído do vídeo com sucesso.",
     });
   });
 
@@ -216,27 +216,26 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
             console.log(err);
             event.reply("load-image-response", {
               success: false,
-              message: "Failed to load file.",
+              message: "Falha ao carregar arquivo de imagem.",
             });
             return;
           }
           const base64 = Buffer.from(data).toString("base64");
-          if (extension === "svg") {
-            const base64Data = `data:image/svg+xml;base64,${base64}`;
-            event.reply("load-image-response", {
-              success: true,
-              message: `Loading ${extension} image...`,
-              data: base64Data,
-            });
-          } else {
-            const mimeType = `image/${extension === "jpg" ? "jpeg" : extension}`;
-            const base64Data = `data:${mimeType};base64,${base64}`;
-            event.reply("load-image-response", {
-              success: true,
-              message: `Loading ${extension} image...`,
-              data: base64Data,
-            });
+          let mimeType = "";
+          switch (extension) {
+            case "svg":
+              mimeType = "image/svg+xml";
+              break;
+            case "jpg":
+            case "jpeg":
+              mimeType = "image/jpeg";
+              break;
           }
+          event.reply("load-image-response", {
+            success: true,
+            message: `Imagem ${extension?.toUpperCase()} importada.`,
+            data: `data:${mimeType};base64,${base64}`,
+          });
         },
       );
     }
@@ -245,7 +244,10 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
   // Export Canvas as an image
   ipcMain.on(
     "export-canvas",
-    async (event, { format, dataString }: {format: string;  dataString: string }) => {
+    async (
+      event,
+      { format, dataString }: { format: string; dataString: string },
+    ) => {
       const { filePath } = await dialog.showSaveDialog({
         title: "Exportar Canvas",
         defaultPath: "canvas",
@@ -259,13 +261,13 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
           if (err) {
             event.reply("export-canvas-response", {
               success: false,
-              message: "Failed to save file.",
+              message: `Falha ao salvar arquivo em: ${filePath}`,
             });
             return;
           }
           event.reply("export-canvas-response", {
             success: true,
-            message: "File saved successfully.",
+            message: `Canvas exportado com sucesso em: ${filePath}`,
           });
         });
       }
@@ -279,20 +281,20 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
       const { filePath } = await dialog.showSaveDialog({
         title: "Salvar Projeto",
         defaultPath: "projeto.json",
-        filters: [{ name: "JSON Files", extensions: ["json"] }],
+        filters: [{ name: "Arquivos JSON", extensions: ["json"] }],
       });
       if (filePath) {
         fs.writeFile(filePath, dataString, (err) => {
           if (err) {
             event.reply("save-project-response", {
               success: false,
-              message: "Failed to save file.",
+              message: `Falha ao salvar projeto em: ${filePath}`,
             });
             return;
           }
           event.reply("save-project-response", {
             success: true,
-            message: "File saved successfully.",
+            message: `Projeto salvo em: ${filePath}`,
           });
         });
       }
@@ -302,28 +304,29 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
   // Load Project from file
   ipcMain.on("load-project", async (event) => {
     const { filePaths } = await dialog.showOpenDialog({
+      title: "Carregar Projeto",
       properties: ["openFile"],
-      filters: [{ name: "JSON Files", extensions: ["json"] }],
+      filters: [{ name: "Arquivos JSON", extensions: ["json"] }],
     });
     if (filePaths.length > 0) {
       fs.readFile(filePaths[0], "utf-8", (err, data: string) => {
         if (err) {
           event.reply("load-project-response", {
             success: false,
-            message: "Failed to load file.",
+            message: `Falha ao carregar projeto: ${filePaths[0]}`,
           });
           return;
         }
         event.reply("load-project-response", {
           success: true,
-          message: "File loaded successfully.",
+          message: "Projeto carregado com sucesso.",
           data,
         });
       });
     } else {
       event.reply("load-project-response", {
         success: false,
-        message: "No file selected.",
+        message: "Nenhum projeto selecionado.",
       });
     }
   });

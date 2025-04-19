@@ -7,6 +7,7 @@ import type {
   IProjectData,
   Position,
   Layer,
+  ChangeToolDetail,
 } from "src/components/types";
 import { TOOL } from "src/components/types";
 import { HandTool } from "src/components/tools/handTool";
@@ -14,7 +15,7 @@ import { ZoomTool } from "src/components/tools/zoomTool";
 import { GrabTool } from "src/components/tools/grabTool";
 import { RotateTool } from "src/components/tools/rotateTool";
 import { ScaleTool } from "src/components/tools/scaleTool";
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 import { ImageElement } from "src/components/elements/imageElement";
 import { TextElement } from "src/components/elements/textElement";
@@ -311,7 +312,11 @@ export class WorkArea {
       if (blob) {
         const item = new ClipboardItem({ "image/png": blob });
         navigator.clipboard.write([item]);
-        window.dispatchEvent(new CustomEvent(EVENT.ADD_ALERT, { detail: { type: "sucesso", message: "Imagem copiada para a área de transferência" }}));
+        dispatch(EVENT.ADD_ALERT, {
+          message: "Área de Trabalho copiada para a área de transferência",
+          title: "Copiado",
+          type: "success",
+        });
       }
     }, "image/png");
   }
@@ -347,7 +352,7 @@ export class WorkArea {
       activeElement?.tagName === "INPUT";
     if (isTyping || this.isUsingTool) return;
 
-    let tool = "";
+    let tool: TOOL | null = null;
     switch (evt.code) {
       case "KeyV":
         tool = TOOL.SELECT;
@@ -369,17 +374,11 @@ export class WorkArea {
         break;
     }
     if (tool) {
-      window.dispatchEvent(
-        new CustomEvent(EVENT.CHANGE_TOOL, {
-          detail: {
-            tool,
-          },
-        }),
-      );
+      dispatch(EVENT.CHANGE_TOOL, { tool });
     }
   }
   private changeTool(evt: Event): void {
-    const customEvent = evt as CustomEvent<{ tool: string }>;
+    const customEvent = evt as CustomEvent<ChangeToolDetail>;
     const { tool } = customEvent.detail;
 
     const activeElement = document.activeElement;
@@ -389,7 +388,7 @@ export class WorkArea {
     if (isTyping || this.isUsingTool) return;
 
     this.tools[this.currentTool].unequipTool();
-    this.currentTool = tool as TOOL;
+    this.currentTool = tool;
     this.tools[this.currentTool].equipTool();
   }
 
@@ -404,13 +403,9 @@ export class WorkArea {
       switch (evt.code) {
         case "Space":
         case "KeyZ":
-          window.dispatchEvent(
-            new CustomEvent(EVENT.CHANGE_TOOL, {
-              detail: {
-                tool: this.lastTool ? this.lastTool : TOOL.SELECT,
-              },
-            }),
-          );
+          dispatch(EVENT.CHANGE_TOOL, {
+            tool: this.lastTool ? this.lastTool : TOOL.SELECT,
+          });
       }
     }
   }
@@ -427,7 +422,7 @@ export class WorkArea {
         this.copyCanvasToClipboard();
       }
 
-      let tool = "";
+      let tool: TOOL | null = null;
       this.lastTool =
         this.currentTool !== TOOL.HAND && this.currentTool !== TOOL.ZOOM
           ? this.currentTool
@@ -441,13 +436,7 @@ export class WorkArea {
           break;
       }
       if (tool) {
-        window.dispatchEvent(
-          new CustomEvent(EVENT.CHANGE_TOOL, {
-            detail: {
-              tool,
-            },
-          }),
-        );
+        dispatch(EVENT.CHANGE_TOOL, { tool });
       }
     }
   }
@@ -528,7 +517,6 @@ export class WorkArea {
     }
     if (!isChild && newElement) {
       const eventDetail = {
-        detail: {
           elementId: newElement.elementId,
           layerName: newElement.layerName,
           isVisible: newElement.isVisible,
@@ -540,23 +528,22 @@ export class WorkArea {
             isVisible: boolean;
             isLocked: boolean;
           }[],
-        },
       };
       if (newElement instanceof ElementGroup && newElement.children) {
-        eventDetail.detail.children = newElement?.children.map((child) => ({
+        eventDetail.children = newElement?.children.map((child) => ({
           id: child.elementId,
           name: child.layerName,
           isVisible: child.isVisible,
           isLocked: child.isLocked,
         }));
       }
-      window.dispatchEvent(new CustomEvent(EVENT.ADD_ELEMENT, eventDetail));
+      dispatch(EVENT.ADD_ELEMENT, eventDetail);
     }
     return newElement as Element<TElementData>;
   }
 
   public loadProject(data: string): void {
-    window.dispatchEvent(new CustomEvent(EVENT.CLEAR_WORKAREA));
+    dispatch(EVENT.CLEAR_WORKAREA);
     const projectData: IProjectData = JSON.parse(data);
     this.elements = projectData.elements
       .map((el) => this.createElementFromData(el))

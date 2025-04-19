@@ -14,9 +14,6 @@ const initializeVTD = (): void => {
     SideMenu.getInstance();
     createEventListeners(workArea);
     workArea.loadProject(JSON.stringify(exampleProject));
-    window.dispatchEvent(new CustomEvent(EVENT.ADD_ALERT, { detail: { message: "VTD initialized", type: "sucesso" } }));
-    window.dispatchEvent(new CustomEvent(EVENT.ADD_ALERT, { detail: { message: "VTD initialized2", type: "sucesso" } }));
-    window.dispatchEvent(new CustomEvent(EVENT.ADD_ALERT, { detail: { message: "VTD initialized3", type: "erro" } }));
   });
 };
 
@@ -33,40 +30,64 @@ const createEventListeners = (workArea: WorkArea): void => {
       };
       reader.readAsDataURL(blob);
     } else {
-      console.error(response.message);
+      window.dispatchEvent(
+        new CustomEvent(EVENT.ADD_ALERT, {
+          detail: {
+            message: response.message,
+            type: response.success ? "success" : "error",
+          },
+        }),
+      );
     }
   });
 
   window.api.onLoadVideoResponse((_, response) => {
-    if (response.success) {
-      console.log(response.message);
-    } else {
-      console.error(response.message);
-    }
+    window.dispatchEvent(
+      new CustomEvent(EVENT.ADD_ALERT, {
+        detail: {
+          message: response.message,
+          type: response.success ? "success" : "error",
+        },
+      }),
+    );
   });
 
   window.api.onLoadImageResponse((_, response) => {
+    window.dispatchEvent(
+      new CustomEvent(EVENT.ADD_ALERT, {
+        detail: {
+          message: response.message,
+          type: response.success ? "success" : "error",
+        },
+      }),
+    );
     if (response.success) {
       workArea.addImageElement(response.data as string);
-      console.log(response.message);
-    } else {
-      console.error(response.message);
     }
   });
 
   window.api.onSaveProjectResponse((_, response) => {
-    if (response.success) {
-      console.log(response.message);
-    } else {
-      console.error(response.message);
-    }
+    window.dispatchEvent(
+      new CustomEvent(EVENT.ADD_ALERT, {
+        detail: {
+          message: response.message,
+          type: response.success ? "success" : "error",
+        },
+      }),
+    );
   });
 
   window.api.onLoadProjectResponse((_, response) => {
+    window.dispatchEvent(
+      new CustomEvent(EVENT.ADD_ALERT, {
+        detail: {
+          message: response.message,
+          type: response.success ? "success" : "error",
+        },
+      }),
+    );
     if (response.success) {
       WorkArea.getInstance().loadProject(response.data as string);
-    } else {
-      console.error(response.message);
     }
   });
 };

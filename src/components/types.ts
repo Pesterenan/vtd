@@ -1,4 +1,5 @@
 import type { Filter } from "../filters/filter";
+import { Alert } from "./alerts/alerts";
 
 export interface IElementData {
   type: ElementType;
@@ -113,4 +114,23 @@ export enum TOOL {
   HAND = 'hand-tool',
   /** @prop ZOOM - Modificar zoom */
   ZOOM = 'zoom-tool',
+}
+
+export interface AddAlertDetail {
+  message: string;
+  type: Alert["type"];
+  title?: string;
+}
+
+export interface AddElementDetail {
+  elementId: number;
+  layerName: string;
+  isVisible: boolean;
+  isLocked: boolean;
+  type: ElementType;
+  children: Array<Layer>;
+}
+
+export interface ChangeToolDetail {
+  tool: TOOL;
 }
