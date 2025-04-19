@@ -73,7 +73,7 @@ export class GrabTool extends Tool {
   }
 
   handleMouseDown(evt: MouseEvent): void {
-    super.handleMouseDown();
+    super.handleMouseDown(evt);
     if (this.transformBox && this.transformBox.boundingBox) {
       const mousePos = WorkArea.getInstance().adjustForCanvas({
         x: evt.offsetX,
@@ -88,8 +88,8 @@ export class GrabTool extends Tool {
     }
   }
 
-  handleMouseUp(): void {
-    super.handleMouseUp();
+  handleMouseUp(evt: MouseEvent): void {
+    super.handleMouseUp(evt);
     this.resetTool();
   }
 

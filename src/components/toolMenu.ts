@@ -9,7 +9,7 @@ import TextIcon from "src/assets/icons/text-tool.svg";
 import HandIcon from "src/assets/icons/hand-tool.svg";
 import GradientIcon from "src/assets/icons/gradient-tool.svg";
 import ZoomIcon from "src/assets/icons/zoom-tool.svg";
-import type { ChangeToolDetail, UsingToolDetail } from "./types";
+import type { ChangeToolDetail } from "./types";
 import { TOOL } from "./types";
 
 export class ToolMenu {
@@ -92,8 +92,7 @@ export class ToolMenu {
     window.addEventListener(EVENT.CHANGE_TOOL, this.setActiveTool.bind(this));
     window.addEventListener(
       EVENT.USING_TOOL,
-      (evt: CustomEvent<UsingToolDetail>) =>
-        (this.isUsingTool = evt.detail.isUsingTool),
+      (evt) => (this.isUsingTool = evt.detail.isUsingTool),
     );
   }
 

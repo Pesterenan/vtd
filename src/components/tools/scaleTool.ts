@@ -144,17 +144,17 @@ export class ScaleTool extends Tool {
             handleIndex as keyof typeof this.transformBox.handles,
           );
           this.isScaling = true;
-          super.handleMouseDown();
+          super.handleMouseDown(evt);
         }
       }
     }
   }
 
-  handleMouseUp(): void {
+  handleMouseUp(evt: MouseEvent): void {
     this.startingPosition = null;
     this.isScaling = false;
     this.selectedHandle = null;
-    super.handleMouseUp();
+    super.handleMouseUp(evt);
     dispatch(EVENT.UPDATE_WORKAREA);
   }
 

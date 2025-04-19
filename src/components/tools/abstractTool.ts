@@ -29,14 +29,14 @@ export abstract class Tool {
     this.canvas.removeEventListener("mousemove", this.onMouseMove);
     this.canvas.removeEventListener("mouseup", this.onMouseUp);
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  handleMouseDown(_evt?: MouseEvent): void {
+
+  handleMouseDown(_evt: MouseEvent): void {
     dispatch(EVENT.USING_TOOL, { isUsingTool: true });
     this.canvas.addEventListener("mousemove", this.onMouseMove);
     this.canvas.addEventListener("mouseup", this.onMouseUp);
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  handleMouseUp(_evt?: MouseEvent): void {
+
+  handleMouseUp(_evt: MouseEvent): void {
     dispatch(EVENT.USING_TOOL, { isUsingTool: false });
     this.canvas.removeEventListener("mousemove", this.onMouseMove);
     this.canvas.removeEventListener("mouseup", this.onMouseUp);

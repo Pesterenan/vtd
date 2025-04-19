@@ -77,12 +77,12 @@ export class RotateTool extends Tool {
     if (!this.isRotating) {
       this.isRotating = true;
       this.startPosition = mousePos;
-      super.handleMouseDown();
+      super.handleMouseDown(evt);
     }
   }
 
-  handleMouseUp(): void {
-    super.handleMouseUp();
+  handleMouseUp(evt: MouseEvent): void {
+    super.handleMouseUp(evt);
     this.resetTool();
     dispatch(EVENT.UPDATE_WORKAREA);
   }

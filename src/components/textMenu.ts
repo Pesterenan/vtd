@@ -7,6 +7,7 @@ import type { ISliderControl } from "./helpers/createSliderControl";
 import { createSliderControl } from "./helpers/createSliderControl";
 import type { IColorControl } from "./helpers/createColorControl";
 import { createColorControl } from "./helpers/createColorControl";
+import type { SelectElementDetail } from "./types";
 
 export class TextMenu {
   private static instance: TextMenu | null = null;
@@ -26,19 +27,21 @@ export class TextMenu {
 
   private constructor() {
     this.createDOMElements();
-    window.addEventListener(EVENT.SELECT_ELEMENT, (evt: Event) => {
-      const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
-      const { elementsId } = customEvent.detail;
-      if (elementsId.size !== 1) {
-        this.unlinkDOMElements();
-        return;
-      }
-      const selectedElements = WorkArea.getInstance().getSelectedElements();
-      if (selectedElements && selectedElements[0] instanceof TextElement) {
+    window.addEventListener(
+      EVENT.SELECT_ELEMENT,
+      this.handleSelectElement.bind(this),
+    );
+  }
+
+  private handleSelectElement(evt: CustomEvent<SelectElementDetail>): void {
+    const { elementsId } = evt.detail;
+    const selectedElements = WorkArea.getInstance().getSelectedElements();
+    if (elementsId.size === 1 && selectedElements && selectedElements[0] instanceof TextElement) {
         this.activeTextElement = selectedElements[0];
         this.linkDOMElements();
-      }
-    });
+    } else {
+      this.unlinkDOMElements();
+    }
   }
 
   public static getInstance(): TextMenu {
@@ -193,7 +196,9 @@ export class TextMenu {
       }
       if (this.strokeWidthControl) {
         this.strokeWidthControl.unlinkEvents();
-        this.strokeWidthControl.updateValues(this.activeTextElement.strokeWidth);
+        this.strokeWidthControl.updateValues(
+          this.activeTextElement.strokeWidth,
+        );
         this.strokeWidthControl.linkEvents();
       }
     }

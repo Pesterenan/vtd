@@ -10,7 +10,12 @@ import OpenEyeIcon from "src/assets/icons/open-eye.svg";
 import TrashIcon from "src/assets/icons/trash.svg";
 import UnlockedIcon from "src/assets/icons/unlock.svg";
 import { WorkArea } from "./workArea";
-import type { Layer } from "./types";
+import type {
+  AddElementDetail,
+  DeleteElementDetail,
+  Layer,
+  SelectElementDetail,
+} from "./types";
 import createIconButton from "./helpers/createIconButton";
 
 export class LayersMenu {
@@ -67,10 +72,17 @@ export class LayersMenu {
     btnContainer?.appendChild(deleteLayerBtn);
 
     this.layersList =
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this.layersSection.querySelector<HTMLUListElement>("#ul_layers-list")!;
   }
 
   private attachGlobalEvents(): void {
+    window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
+      if (this.layersList) {
+        this.layersList.innerHTML = "";
+      }
+    });
+
     window.addEventListener(
       EVENT.ADD_ELEMENT,
       this.handleAddElement.bind(this),
@@ -79,25 +91,10 @@ export class LayersMenu {
       EVENT.DELETE_ELEMENT,
       this.handleDeleteElement.bind(this),
     );
-    window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
-      if (this.layersList) {
-        this.layersList.innerHTML = "";
-      }
-    });
-
-    window.addEventListener(EVENT.SELECT_ELEMENT, (evt: Event) => {
-      const { elementsId } = (evt as CustomEvent<{ elementsId: Set<number> }>)
-        .detail;
-      this.selectedLayersId = elementsId;
-      this.layersList?.querySelectorAll("li").forEach((node) => {
-        const nodeId = Number(node.dataset.id);
-        if (this.selectedLayersId.has(nodeId)) {
-          node.classList.add("selected");
-        } else {
-          node.classList.remove("selected");
-        }
-      });
-    });
+    window.addEventListener(
+      EVENT.SELECT_ELEMENT,
+      this.handleSelectElement.bind(this),
+    );
 
     this.layersList.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -361,7 +358,9 @@ export class LayersMenu {
   }
 
   private dispatchReorganizeEvent(): void {
-    dispatch(EVENT.REORGANIZE_LAYERS, { hierarchy: this.generateLayerHierarchy(this.layersList) });
+    dispatch(EVENT.REORGANIZE_LAYERS, {
+      hierarchy: this.generateLayerHierarchy(this.layersList),
+    });
   }
 
   /** Gets the current selected layers and sends an event to delete them */
@@ -376,9 +375,21 @@ export class LayersMenu {
     }
   }
 
-  private handleDeleteElement(evt: Event): void {
-    const customEvent = evt as CustomEvent<{ elementId: number }>;
-    const elementId = customEvent.detail.elementId;
+  private handleSelectElement(evt: CustomEvent<SelectElementDetail>): void {
+    const { elementsId } = evt.detail;
+    this.selectedLayersId = elementsId;
+    this.layersList?.querySelectorAll("li").forEach((node) => {
+      const nodeId = Number(node.dataset.id);
+      if (this.selectedLayersId.has(nodeId)) {
+        node.classList.add("selected");
+      } else {
+        node.classList.remove("selected");
+      }
+    });
+  }
+
+  private handleDeleteElement(evt: CustomEvent<DeleteElementDetail>): void {
+    const elementId = evt.detail.elementId;
     const layerToDelete = getElementById<HTMLLIElement>(`layer-${elementId}`);
     if (layerToDelete) {
       layerToDelete.parentElement?.removeChild(layerToDelete);
@@ -386,10 +397,9 @@ export class LayersMenu {
     this.dispatchReorganizeEvent();
   }
 
-  private handleAddElement(evt: Event): void {
-    const customEvent = evt as CustomEvent;
+  private handleAddElement(evt: CustomEvent<AddElementDetail>): void {
     const { elementId, layerName, isVisible, isLocked, type, children } =
-      customEvent.detail;
+      evt.detail;
     if (this.layersList.querySelector(`#layer-${elementId}`)) return;
 
     const isGroup = type === "group";

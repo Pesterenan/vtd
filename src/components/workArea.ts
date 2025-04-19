@@ -141,21 +141,20 @@ export class WorkArea {
 
   private createEventListeners(): void {
     if (this.mainCanvas) {
-      window.addEventListener(EVENT.CHANGE_TOOL, this.changeTool.bind(this));
       window.addEventListener("keypress", this.handleKeyPress.bind(this));
       window.addEventListener("keydown", this.handleKeyDown.bind(this));
       window.addEventListener("keyup", this.handleKeyUp.bind(this));
       window.addEventListener("resize", this.handleResize.bind(this));
-
+      window.addEventListener(EVENT.CHANGE_TOOL, this.changeTool.bind(this));
       window.addEventListener(EVENT.UPDATE_WORKAREA, this.update.bind(this));
       window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
         this.removeTransformBox();
         this.elements.length = 0;
       });
-      window.addEventListener(EVENT.DELETE_ELEMENT, () => {
-        this.removeTransformBox();
-        this.update();
-      });
+      window.addEventListener(
+        EVENT.DELETE_ELEMENT,
+        this.handleDeleteElement.bind(this),
+      );
       window.addEventListener(
         EVENT.REORGANIZE_LAYERS,
         this.handleReorganizeLayers.bind(this),
@@ -164,31 +163,10 @@ export class WorkArea {
         EVENT.SELECT_ELEMENT,
         this.handleSelectElement.bind(this),
       );
-      window.addEventListener(EVENT.UPDATE_ELEMENT, (evt: Event) => {
-        const customEvent = evt as CustomEvent<UpdateElementDetail>;
-        const { elementId, name, isVisible, isLocked } = customEvent.detail;
-        const elementToUpdate = this.getFlatElements(this.elements).find(
-          (el) => el.elementId === elementId,
-        );
-        if (elementToUpdate) {
-          if (name !== undefined) {
-            elementToUpdate.layerName = name;
-          }
-          if (isVisible !== undefined) {
-            elementToUpdate.isVisible = isVisible;
-          }
-          if (isLocked !== undefined) {
-            if (elementToUpdate instanceof ElementGroup) {
-              elementToUpdate.children?.forEach(
-                (child) => (child.selected = false),
-              );
-            }
-            elementToUpdate.isLocked = isLocked;
-            this.selectElements();
-          }
-        }
-        this.update();
-      });
+      window.addEventListener(
+        EVENT.UPDATE_ELEMENT,
+        this.handleUpdateElement.bind(this),
+      );
       this.mainCanvas.addEventListener("dragover", (evt) => {
         evt.preventDefault();
       });
@@ -196,14 +174,34 @@ export class WorkArea {
       window.addEventListener("paste", this.handleDropItems.bind(this));
       window.addEventListener(
         EVENT.USING_TOOL,
-        (evt: Event) =>
-          (this.isUsingTool = (
-            evt as CustomEvent<{
-              isUsingTool: boolean;
-            }>
-          ).detail.isUsingTool),
+        (evt) => (this.isUsingTool = evt.detail.isUsingTool),
       );
     }
+  }
+
+  private handleUpdateElement(evt: CustomEvent<UpdateElementDetail>): void {
+    const { elementId, name, isVisible, isLocked } = evt.detail;
+    const elementToUpdate = this.getFlatElements(this.elements).find(
+      (el) => el.elementId === elementId,
+    );
+    if (elementToUpdate) {
+      if (name !== undefined) {
+        elementToUpdate.layerName = name;
+      }
+      if (isVisible !== undefined) {
+        elementToUpdate.isVisible = isVisible;
+      }
+      if (isLocked !== undefined) {
+        if (elementToUpdate instanceof ElementGroup) {
+          elementToUpdate.children?.forEach(
+            (child) => (child.selected = false),
+          );
+        }
+        elementToUpdate.isLocked = isLocked;
+        this.selectElements();
+      }
+    }
+    this.update();
   }
 
   private handleSelectElement(evt: Event): void {
@@ -258,6 +256,11 @@ export class WorkArea {
       }
     });
     return orderedElements;
+  }
+
+  private handleDeleteElement(_evt: CustomEvent<UpdateElementDetail>): void {
+    this.removeTransformBox();
+    this.update();
   }
 
   private handleReorganizeLayers(evt: Event): void {
@@ -349,15 +352,14 @@ export class WorkArea {
       dispatch(EVENT.CHANGE_TOOL, { tool });
     }
   }
+
   private changeTool(evt: CustomEvent<ChangeToolDetail>): void {
     const { tool } = evt.detail;
-
     const activeElement = document.activeElement;
     const isTyping =
       activeElement?.tagName === "TEXTAREA" ||
       activeElement?.tagName === "INPUT";
     if (isTyping || this.isUsingTool) return;
-
     this.tools[this.currentTool].unequipTool();
     this.currentTool = tool;
     this.tools[this.currentTool].equipTool();

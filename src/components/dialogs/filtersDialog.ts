@@ -2,7 +2,7 @@ import EVENT, { dispatch } from "src/utils/customEvents";
 import { DropShadowFilter } from "src/filters/dropShadowFilter";
 import type { Element } from "src/components/elements/element";
 import type { Filter } from "src/filters/filter";
-import type { TElementData } from "src/components/types";
+import type { OpenFiltersDialogDetail, TElementData } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { OuterGlowFilter } from "src/filters/outerGlowFilter";
 
@@ -45,9 +45,8 @@ export class FiltersDialog {
     });
   }
 
-  private openDialog(evt: Event): void {
-    const customEvent = evt as CustomEvent<{ elementId: number }>;
-    const elementId = customEvent.detail.elementId;
+  private openDialog(evt: CustomEvent<OpenFiltersDialogDetail>): void {
+    const elementId = evt.detail.layerId;
     dispatch(EVENT.SELECT_ELEMENT, { elementsId: new Set([elementId]) });
     this.defaultFilters = [new DropShadowFilter(), new OuterGlowFilter()];
     const selectedElements = WorkArea.getInstance().getSelectedElements();

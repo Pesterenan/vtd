@@ -4,6 +4,7 @@ import { WorkArea } from "src/components/workArea";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import { createSliderControl } from "./helpers/createSliderControl";
 import type { TransformBox } from "./transformBox";
+import type { RecalculateTransformBoxDetail } from "./types";
 
 export class TransformMenu {
   private static instance: TransformMenu | null = null;
@@ -18,33 +19,44 @@ export class TransformMenu {
 
   private constructor() {
     this.createDOMElements();
-    window.addEventListener(EVENT.SELECT_ELEMENT, () => {
-      this.transformBox = WorkArea.getInstance().transformBox;
-      if (this.transformBox) {
-        this.linkDOMElements();
-      } else {
-        this.unlinkDOMElements();
-      }
-    });
-    window.addEventListener(EVENT.RECALCULATE_TRANSFORM_BOX, (evt: Event) => {
-      const customEvent = evt as CustomEvent;
-      const { position, size, rotation, opacity } = customEvent.detail;
-      if (
-        this.xPosControl &&
-        this.yPosControl &&
-        this.widthControl &&
-        this.heightControl &&
-        this.rotationControl &&
-        this.opacityControl
-      ) {
-        this.xPosControl.updateValues(position.x);
-        this.yPosControl.updateValues(position.y);
-        this.widthControl.updateValues(size.width);
-        this.heightControl.updateValues(size.height);
-        this.rotationControl.updateValues(rotation);
-        this.opacityControl.updateValues(opacity);
-      }
-    });
+    window.addEventListener(
+      EVENT.SELECT_ELEMENT,
+      this.handleSelectElement.bind(this),
+    );
+    window.addEventListener(
+      EVENT.RECALCULATE_TRANSFORM_BOX,
+      this.handleRecalculateTransformBox.bind(this),
+    );
+  }
+
+  private handleSelectElement(): void {
+    this.transformBox = WorkArea.getInstance().transformBox;
+    if (this.transformBox) {
+      this.linkDOMElements();
+    } else {
+      this.unlinkDOMElements();
+    }
+  }
+
+  private handleRecalculateTransformBox(
+    evt: CustomEvent<RecalculateTransformBoxDetail>,
+  ): void {
+    const { position, size, rotation, opacity } = evt.detail;
+    if (
+      this.xPosControl &&
+      this.yPosControl &&
+      this.widthControl &&
+      this.heightControl &&
+      this.rotationControl &&
+      this.opacityControl
+    ) {
+      this.xPosControl.updateValues(position.x);
+      this.yPosControl.updateValues(position.y);
+      this.widthControl.updateValues(size.width);
+      this.heightControl.updateValues(size.height);
+      this.rotationControl.updateValues(rotation);
+      this.opacityControl.updateValues(opacity);
+    }
   }
 
   public static getInstance(): TransformMenu {

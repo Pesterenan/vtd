@@ -127,7 +127,8 @@ export class GradientTool extends Tool {
     }
   }
 
-  handleMouseDown({ offsetX, offsetY }: MouseEvent): void {
+  handleMouseDown(evt: MouseEvent): void {
+    const { offsetX, offsetY } = evt;
     if (this.activeGradientElement === null) {
       this.isCreating = true;
       WorkArea.getInstance().addGradientElement();
@@ -142,10 +143,11 @@ export class GradientTool extends Tool {
       this.endPosition = { x: offsetX, y: offsetY };
     }
     this.isDragging = true;
-    super.handleMouseDown();
+    super.handleMouseDown(evt);
   }
 
-  handleMouseUp({ offsetX, offsetY }: MouseEvent): void {
+  handleMouseUp(evt: MouseEvent): void {
+    const { offsetX, offsetY } = evt;
     if (this.isCreating) {
       this.endPosition = { x: offsetX, y: offsetY };
       this.isCreating = false;
@@ -159,7 +161,7 @@ export class GradientTool extends Tool {
     this.isHoveringEndPos = false;
 
     this.isDragging = false;
-    super.handleMouseUp();
+    super.handleMouseUp(evt);
     dispatch(EVENT.UPDATE_WORKAREA);
   }
 

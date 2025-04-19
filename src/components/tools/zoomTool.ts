@@ -65,12 +65,12 @@ export class ZoomTool extends Tool {
       x: evt.offsetX - currentZoomPosition,
       y: evt.offsetY,
     };
-    super.handleMouseDown();
+    super.handleMouseDown(evt);
   }
 
-  handleMouseUp(): void {
+  handleMouseUp(evt: MouseEvent): void {
     this.startingPosition = null;
-    super.handleMouseUp();
+    super.handleMouseUp(evt);
   }
 
   handleMouseMove({ offsetX, offsetY }: MouseEvent): void {

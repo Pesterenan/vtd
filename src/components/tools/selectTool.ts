@@ -40,7 +40,7 @@ export class SelectTool extends Tool {
   handleMouseDown(evt: MouseEvent): void {
     const { offsetX, offsetY } = evt;
     this.firstPoint = { x: offsetX, y: offsetY };
-    super.handleMouseDown();
+    super.handleMouseDown(evt);
   }
 
   handleMouseMove(evt: MouseEvent): void {
@@ -57,11 +57,11 @@ export class SelectTool extends Tool {
     }
   }
 
-  handleMouseUp(): void {
+  handleMouseUp(evt: MouseEvent): void {
     WorkArea.getInstance().selectElements(this.firstPoint, this.secondPoint);
     this.firstPoint = null;
     this.secondPoint = null;
-    super.handleMouseUp();
+    super.handleMouseUp(evt);
     dispatch(EVENT.UPDATE_WORKAREA);
   }
 

@@ -21,15 +21,14 @@ export class HandTool extends Tool {
     super.unequipTool();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseDown(evt: MouseEvent): void {
     this.startingPosition = { x: evt.offsetX, y: evt.offsetY };
-    super.handleMouseDown();
+    super.handleMouseDown(evt);
   }
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleMouseUp(): void {
+
+  handleMouseUp(evt: MouseEvent): void {
     this.startingPosition = null;
-    super.handleMouseUp();
+    super.handleMouseUp(evt);
   }
 
   handleMouseMove({ offsetX, offsetY }: MouseEvent): void {
