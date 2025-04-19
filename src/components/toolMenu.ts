@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 
 import SelectIcon from "src/assets/icons/select-tool.svg";
@@ -9,6 +9,7 @@ import TextIcon from "src/assets/icons/text-tool.svg";
 import HandIcon from "src/assets/icons/hand-tool.svg";
 import GradientIcon from "src/assets/icons/gradient-tool.svg";
 import ZoomIcon from "src/assets/icons/zoom-tool.svg";
+import type { ChangeToolDetail } from "./types";
 import { TOOL } from "./types";
 
 export class ToolMenu {
@@ -82,31 +83,21 @@ export class ToolMenu {
     toolButtons?.forEach((button) => {
       button.addEventListener("click", () => {
         if (!button.classList.contains("active")) {
-          window.dispatchEvent(
-            new CustomEvent(EVENT.CHANGE_TOOL, {
-              detail: {
-                tool: button.getAttribute('data-tool') as TOOL,
-              },
-            }),
-          );
+          dispatch(EVENT.CHANGE_TOOL, {
+            tool: button.getAttribute("data-tool") as TOOL,
+          });
         }
       });
     });
     window.addEventListener(EVENT.CHANGE_TOOL, this.setActiveTool.bind(this));
     window.addEventListener(
       EVENT.USING_TOOL,
-      (evt: Event) =>
-        (this.isUsingTool = (
-          evt as CustomEvent<{
-            isUsingTool: boolean;
-          }>
-        ).detail.isUsingTool),
+      (evt) => (this.isUsingTool = evt.detail.isUsingTool),
     );
   }
 
-  private setActiveTool(evt: Event): void {
-    const customEvent = evt as CustomEvent<{ tool: string }>;
-    const { tool } = customEvent.detail;
+  private setActiveTool(evt: CustomEvent<ChangeToolDetail>): void {
+    const { tool } = evt.detail;
     if (!this.isUsingTool) {
       if (this.activeToolId) {
         const previousTool = this.toolMenu?.querySelector(

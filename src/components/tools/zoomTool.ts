@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import { remap } from "src/utils/easing";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
@@ -43,12 +43,12 @@ export class ZoomTool extends Tool {
 
   equipTool(): void {
     this.draw();
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
     super.equipTool();
   }
 
   unequipTool(): void {
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
     super.unequipTool();
   }
 
@@ -65,12 +65,12 @@ export class ZoomTool extends Tool {
       x: evt.offsetX - currentZoomPosition,
       y: evt.offsetY,
     };
-    super.handleMouseDown();
+    super.handleMouseDown(evt);
   }
 
-  handleMouseUp(): void {
+  handleMouseUp(evt: MouseEvent): void {
     this.startingPosition = null;
-    super.handleMouseUp();
+    super.handleMouseUp(evt);
   }
 
   handleMouseMove({ offsetX, offsetY }: MouseEvent): void {
@@ -97,7 +97,7 @@ export class ZoomTool extends Tool {
       workarea.zoomLevel = newZoomLevel;
       workarea.offset = newOffset;
 
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   }
 

@@ -1,5 +1,5 @@
 import getElementById from "src/utils/getElementById";
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import errorElement from "src/components/elements/errorElement";
 import { GradientElement } from "src/components/elements/gradientElement";
 import { WorkArea } from "src/components/workArea";
@@ -7,6 +7,7 @@ import type { ISliderControl } from "./helpers/createSliderControl";
 import { createSliderControl } from "./helpers/createSliderControl";
 import type { IColorControl } from "./helpers/createColorControl";
 import { createColorControl } from "./helpers/createColorControl";
+import type { SelectElementDetail } from "./types";
 
 export class GradientMenu {
   private static instance: GradientMenu | null = null;
@@ -23,25 +24,29 @@ export class GradientMenu {
 
   private constructor() {
     this.createDOMElements();
-    window.addEventListener(EVENT.SELECT_ELEMENT, (evt: Event) => {
-      const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
-      const { elementsId } = customEvent.detail;
-      if (elementsId.size !== 1) {
-        this.unlinkDOMElements();
-        return;
-      }
-      const selectedElements = WorkArea.getInstance().getSelectedElements();
-      if (selectedElements && selectedElements[0] instanceof GradientElement) {
-        this.activeGradientElement = selectedElements[0];
-        this.linkDOMElements();
-      }
-    });
+    window.addEventListener(
+      EVENT.SELECT_ELEMENT,
+      this.handleSelectElement.bind(this),
+    );
+  }
+
+  private handleSelectElement(evt: CustomEvent<SelectElementDetail>): void {
+    const { elementsId } = evt.detail;
+    if (elementsId.size !== 1) {
+      this.unlinkDOMElements();
+      return;
+    }
+    const selectedElements = WorkArea.getInstance().getSelectedElements();
+    if (selectedElements && selectedElements[0] instanceof GradientElement) {
+      this.activeGradientElement = selectedElements[0];
+      this.linkDOMElements();
+    }
   }
 
   private handleAlphaControlChange = (newValue: number): void => {
     if (this.activeGradientElement && this.currentColorStop) {
       this.currentColorStop.alpha = Number(newValue);
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
       this.updateGradientBar();
     }
   };
@@ -49,7 +54,7 @@ export class GradientMenu {
   private handleColorControlChange = (newValue: string): void => {
     if (this.activeGradientElement && this.currentColorStop) {
       this.currentColorStop.color = newValue;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
       this.updateGradientBar();
     }
   };

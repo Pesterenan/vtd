@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import { Filter } from "src/filters/filter";
 import { clamp } from "src/utils/easing";
 import type { IColorControl } from "src/components/helpers/createColorControl";
@@ -83,14 +83,14 @@ export class OuterGlowFilter extends Filter {
   private handleBlurControlChange = (newValue: number): void => {
     if (this.blurControl) {
       this.blur = Number(newValue);
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleColorControlChange = (newValue: string): void => {
     if (this.colorControl) {
       this.color = newValue;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 }

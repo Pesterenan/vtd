@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
 import type { Position } from "../types";
@@ -40,7 +40,7 @@ export class SelectTool extends Tool {
   handleMouseDown(evt: MouseEvent): void {
     const { offsetX, offsetY } = evt;
     this.firstPoint = { x: offsetX, y: offsetY };
-    super.handleMouseDown();
+    super.handleMouseDown(evt);
   }
 
   handleMouseMove(evt: MouseEvent): void {
@@ -52,17 +52,17 @@ export class SelectTool extends Tool {
       );
       if (distance > DRAGGING_DISTANCE) {
         this.secondPoint = { x: offsetX, y: offsetY };
-        window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+        dispatch(EVENT.UPDATE_WORKAREA);
       }
     }
   }
 
-  handleMouseUp(): void {
+  handleMouseUp(evt: MouseEvent): void {
     WorkArea.getInstance().selectElements(this.firstPoint, this.secondPoint);
     this.firstPoint = null;
     this.secondPoint = null;
-    super.handleMouseUp();
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    super.handleMouseUp(evt);
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function

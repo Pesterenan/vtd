@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
@@ -21,15 +21,14 @@ export class HandTool extends Tool {
     super.unequipTool();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseDown(evt: MouseEvent): void {
     this.startingPosition = { x: evt.offsetX, y: evt.offsetY };
-    super.handleMouseDown();
+    super.handleMouseDown(evt);
   }
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleMouseUp(): void {
+
+  handleMouseUp(evt: MouseEvent): void {
     this.startingPosition = null;
-    super.handleMouseUp();
+    super.handleMouseUp(evt);
   }
 
   handleMouseMove({ offsetX, offsetY }: MouseEvent): void {
@@ -38,7 +37,7 @@ export class HandTool extends Tool {
       const deltaY = offsetY - this.startingPosition.y;
       WorkArea.getInstance().offset.x += deltaX;
       WorkArea.getInstance().offset.y += deltaY;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
       this.startingPosition = { x: offsetX, y: offsetY };
     }
   }

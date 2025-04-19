@@ -25,6 +25,64 @@ body {
   transition: var(--background-transition);
 }
 
+#alerts-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 10rem;
+  gap: 1rem;
+  padding: 1rem;
+  width: 40rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  overflow: hidden;
+  z-index: 1000;
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 50%);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: cover;
+}
+
+.alert {
+  background-color: var(--background-500);
+  border-radius: 0.25rem;
+  border: 1px solid var(--background-700);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  color: var(--text-900);
+  font-size: var(--font-small);
+  max-width: calc(100% - 2rem);
+  opacity: 0;
+  padding: 0.5rem;
+  pointer-events: all;
+  transform: translateY(0);
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+  width: fit-content;
+
+  & p:first-child {
+    border-bottom: 1px solid var(--background-700);
+    font-size: 0.5rem;
+    font-style: italic;
+    font-weight: bolder;
+  }
+  &.success {
+    background-color: var(--background-300);
+  }
+  &.error {
+    background-color: var(--primary-300);
+  }
+  &.show {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+  &.hide {
+    opacity: 0;
+    transform: translateY(-3rem);
+  }
+}
+
 #side-menu {
   background-color: var(--background-50);
   border-left: 1px solid var(--background-700);

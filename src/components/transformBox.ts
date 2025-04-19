@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import type { Element } from "src/components/elements/element";
 import type { Position, Scale, Size, TElementData } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
@@ -141,17 +141,13 @@ export class TransformBox {
       this.boundingBox.update(this.position, this.size, this.rotation);
       this.generateHandles();
     }
-    window.dispatchEvent(
-      new CustomEvent(EVENT.RECALCULATE_TRANSFORM_BOX, {
-        detail: {
-          position: this.position,
-          size: this.size,
-          rotation: this.rotation,
-          opacity: this.opacity,
-        },
-      }),
-    );
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.RECALCULATE_TRANSFORM_BOX, {
+      position: this.position,
+      size: this.size,
+      rotation: this.rotation,
+      opacity: this.opacity,
+    });
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   public updateOpacity(opacity: number): void {

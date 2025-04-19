@@ -10,7 +10,7 @@ import exportImageIconSrc from "src/assets/icons/export-image.svg";
 import saveProjectIconSrc from "src/assets/icons/save-project.svg";
 import loadProjectIconSrc from "src/assets/icons/load-project.svg";
 import extractVideoIconSrc from "src/assets/icons/extract-video.svg";
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import createIconButton from "./helpers/createIconButton";
 
 export class SideMenu {
@@ -43,11 +43,7 @@ export class SideMenu {
       "btn_export-image",
       "Exportar Imagem",
       exportImageIconSrc,
-      (): void => {
-        window.dispatchEvent(
-          new CustomEvent(EVENT.OPEN_EXPORT_IMAGE_DIALOG, {}),
-        );
-      },
+      () => dispatch(EVENT.OPEN_EXPORT_IMAGE_DIALOG),
     );
 
     const saveProjectBtn = createIconButton(
@@ -82,15 +78,6 @@ export class SideMenu {
       exportImageBtn,
     );
     domElements.push(projectOptionsDiv);
-
-    //const addElementBtn = document.createElement("button");
-    //addElementBtn.id = "btn_add-element";
-    //addElementBtn.innerText = "Adicionar Elemento";
-    //addElementBtn.className = "btn-common-wide";
-    //addElementBtn.addEventListener("click", () =>
-    //  WorkArea.getInstance().addElement(),
-    //);
-    //domElements.push(addElementBtn);
 
     this.transformMenu = TransformMenu.getInstance().getMenu();
     domElements.push(this.transformMenu);

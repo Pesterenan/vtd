@@ -1,5 +1,5 @@
 import { clamp } from "src/utils/easing";
-import EVENT from "../../utils/customEvents";
+import EVENT, { dispatch } from "../../utils/customEvents";
 import type { TBoundingBox, Position, Size } from "../types";
 
 const LINE_WIDTH = 4;
@@ -61,7 +61,7 @@ export class ExtractBox {
       const dY = evt.offsetY - this.lastMousePosition.y;
       this.moveExtractBox(dX, dY);
       this.lastMousePosition = { x: evt.offsetX, y: evt.offsetY };
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_VFE));
+      dispatch(EVENT.UPDATE_VFE);
     }
   }
 

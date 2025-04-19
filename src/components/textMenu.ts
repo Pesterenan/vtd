@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 import errorElement from "src/components/elements/errorElement";
 import { TextElement } from "src/components/elements/textElement";
@@ -7,6 +7,7 @@ import type { ISliderControl } from "./helpers/createSliderControl";
 import { createSliderControl } from "./helpers/createSliderControl";
 import type { IColorControl } from "./helpers/createColorControl";
 import { createColorControl } from "./helpers/createColorControl";
+import type { SelectElementDetail } from "./types";
 
 export class TextMenu {
   private static instance: TextMenu | null = null;
@@ -26,19 +27,21 @@ export class TextMenu {
 
   private constructor() {
     this.createDOMElements();
-    window.addEventListener(EVENT.SELECT_ELEMENT, (evt: Event) => {
-      const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
-      const { elementsId } = customEvent.detail;
-      if (elementsId.size !== 1) {
-        this.unlinkDOMElements();
-        return;
-      }
-      const selectedElements = WorkArea.getInstance().getSelectedElements();
-      if (selectedElements && selectedElements[0] instanceof TextElement) {
+    window.addEventListener(
+      EVENT.SELECT_ELEMENT,
+      this.handleSelectElement.bind(this),
+    );
+  }
+
+  private handleSelectElement(evt: CustomEvent<SelectElementDetail>): void {
+    const { elementsId } = evt.detail;
+    const selectedElements = WorkArea.getInstance().getSelectedElements();
+    if (elementsId.size === 1 && selectedElements && selectedElements[0] instanceof TextElement) {
         this.activeTextElement = selectedElements[0];
         this.linkDOMElements();
-      }
-    });
+    } else {
+      this.unlinkDOMElements();
+    }
   }
 
   public static getInstance(): TextMenu {
@@ -193,7 +196,9 @@ export class TextMenu {
       }
       if (this.strokeWidthControl) {
         this.strokeWidthControl.unlinkEvents();
-        this.strokeWidthControl.updateValues(this.activeTextElement.strokeWidth);
+        this.strokeWidthControl.updateValues(
+          this.activeTextElement.strokeWidth,
+        );
         this.strokeWidthControl.linkEvents();
       }
     }
@@ -234,63 +239,63 @@ export class TextMenu {
   private handleTextInput = (): void => {
     if (this.activeTextElement && this.textInput) {
       this.activeTextElement.content = this.textInput.value.split("\n");
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleFontSizeChange = (newValue: number): void => {
     if (this.activeTextElement) {
       this.activeTextElement.fontSize = parseInt(String(newValue), 10);
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleLineHeightChange = (newValue: number): void => {
     if (this.activeTextElement) {
       this.activeTextElement.lineHeight = parseFloat(String(newValue));
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleFillChange = (): void => {
     if (this.activeTextElement && this.fillCheckbox) {
       this.activeTextElement.hasFill = this.fillCheckbox.checked;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleFillColorChange = (newValue: string): void => {
     if (this.activeTextElement) {
       this.activeTextElement.fillColor = newValue;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleStrokeChange = (): void => {
     if (this.activeTextElement && this.strokeCheckbox) {
       this.activeTextElement.hasStroke = this.strokeCheckbox.checked;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleStrokeColorChange = (newValue: string): void => {
     if (this.activeTextElement) {
       this.activeTextElement.strokeColor = newValue;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleStrokeWidthChange = (newValue: number): void => {
     if (this.activeTextElement) {
       this.activeTextElement.strokeWidth = parseFloat(String(newValue));
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleAcceptTextChange = (): void => {
     this.activeTextElement = null;
     this.unlinkDOMElements();
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   };
 
   private handleDeclineTextChange = (): void => {
@@ -299,6 +304,6 @@ export class TextMenu {
       this.activeTextElement = null;
     }
     this.unlinkDOMElements();
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   };
 }

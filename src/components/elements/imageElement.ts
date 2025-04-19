@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import { Element } from "src/components/elements/element";
 import type { IImageElementData, Position, Size } from "src/components/types";
 import { clamp } from "src/utils/easing";
@@ -105,7 +105,7 @@ export class ImageElement extends Element<IImageElementData> {
         this.size = { width: this.image.width, height: this.image.height };
         this.boundingBox.update(this.position, this.size, this.rotation);
       }
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     };
   }
 
