@@ -1,5 +1,5 @@
 import getElementById from "src/utils/getElementById";
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import errorElement from "src/components/elements/errorElement";
 import { GradientElement } from "src/components/elements/gradientElement";
 import { WorkArea } from "src/components/workArea";
@@ -41,7 +41,7 @@ export class GradientMenu {
   private handleAlphaControlChange = (newValue: number): void => {
     if (this.activeGradientElement && this.currentColorStop) {
       this.currentColorStop.alpha = Number(newValue);
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
       this.updateGradientBar();
     }
   };
@@ -49,7 +49,7 @@ export class GradientMenu {
   private handleColorControlChange = (newValue: string): void => {
     if (this.activeGradientElement && this.currentColorStop) {
       this.currentColorStop.color = newValue;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
       this.updateGradientBar();
     }
   };

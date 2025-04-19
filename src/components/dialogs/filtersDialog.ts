@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import { DropShadowFilter } from "src/filters/dropShadowFilter";
 import type { Element } from "src/components/elements/element";
 import type { Filter } from "src/filters/filter";
@@ -48,18 +48,12 @@ export class FiltersDialog {
   private openDialog(evt: Event): void {
     const customEvent = evt as CustomEvent<{ elementId: number }>;
     const elementId = customEvent.detail.elementId;
-    window.dispatchEvent(
-      new CustomEvent(EVENT.SELECT_ELEMENT, {
-        detail: {
-          elementsId: new Set([ elementId ]),
-        },
-      }),
-    );
+    dispatch(EVENT.SELECT_ELEMENT, { elementsId: new Set([elementId]) });
     this.defaultFilters = [new DropShadowFilter(), new OuterGlowFilter()];
     const selectedElements = WorkArea.getInstance().getSelectedElements();
     if (selectedElements && selectedElements.length === 1) {
       this.activeElement = selectedElements[0];
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
       this.clearFilterControls();
       this.populateFilters();
     }
@@ -147,7 +141,7 @@ export class FiltersDialog {
       );
       this.clearFilterControls();
     }
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   private clearFilterControls(): void {
@@ -158,6 +152,9 @@ export class FiltersDialog {
   }
 
   private addEventListeners(): void {
-    window.addEventListener(EVENT.OPEN_FILTERS_DIALOG, this.openDialog.bind(this));
+    window.addEventListener(
+      EVENT.OPEN_FILTERS_DIALOG,
+      this.openDialog.bind(this),
+    );
   }
 }

@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
@@ -38,7 +38,7 @@ export class HandTool extends Tool {
       const deltaY = offsetY - this.startingPosition.y;
       WorkArea.getInstance().offset.x += deltaX;
       WorkArea.getInstance().offset.y += deltaY;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
       this.startingPosition = { x: offsetX, y: offsetY };
     }
   }

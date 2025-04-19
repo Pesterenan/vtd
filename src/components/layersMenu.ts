@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 import errorElement from "src/components/elements/errorElement";
 import ClosedEyeIcon from "src/assets/icons/closed-eye.svg";
@@ -71,8 +71,14 @@ export class LayersMenu {
   }
 
   private attachGlobalEvents(): void {
-    window.addEventListener(EVENT.ADD_ELEMENT, this.handleAddElement.bind(this));
-    window.addEventListener(EVENT.DELETE_ELEMENT, this.handleDeleteElement.bind(this));
+    window.addEventListener(
+      EVENT.ADD_ELEMENT,
+      this.handleAddElement.bind(this),
+    );
+    window.addEventListener(
+      EVENT.DELETE_ELEMENT,
+      this.handleDeleteElement.bind(this),
+    );
     window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
       if (this.layersList) {
         this.layersList.innerHTML = "";
@@ -130,7 +136,7 @@ export class LayersMenu {
       li.appendChild(childrenList);
       if (layer.children && layer.children.length > 0) {
         layer.children.forEach((child) => {
-          const isChildGroup = 'children' in child;
+          const isChildGroup = "children" in child;
           const childLI = this.createLayerItem(child, isChildGroup);
           childrenList.appendChild(childLI);
         });
@@ -141,11 +147,7 @@ export class LayersMenu {
         `#btn_filters-${layer.id}`,
       ) as HTMLButtonElement;
       filtersBtn.addEventListener("dblclick", () => {
-        window.dispatchEvent(
-          new CustomEvent(EVENT.OPEN_FILTERS_DIALOG, {
-            detail: { elementId: layer.id },
-          }),
-        );
+        dispatch(EVENT.OPEN_FILTERS_DIALOG, { layerId: layer.id });
       });
     }
 
@@ -163,8 +165,9 @@ export class LayersMenu {
         return;
       evt.stopPropagation();
 
-      const groupChildrenUL =
-        li.querySelector<HTMLUListElement>(`#ul_group-children-${layer.id}`);
+      const groupChildrenUL = li.querySelector<HTMLUListElement>(
+        `#ul_group-children-${layer.id}`,
+      );
 
       const isGroup = groupChildrenUL !== null;
       if (evt.ctrlKey) {
@@ -202,11 +205,7 @@ export class LayersMenu {
         }
       }
 
-      window.dispatchEvent(
-        new CustomEvent(EVENT.SELECT_ELEMENT, {
-          detail: { elementsId: this.selectedLayersId },
-        }),
-      );
+      dispatch(EVENT.SELECT_ELEMENT, { elementsId: this.selectedLayersId });
     });
 
     // Name Change Event
@@ -235,11 +234,10 @@ export class LayersMenu {
         }
         layerNameSpan.style.display = "block";
         layerNameInput.style.display = "none";
-        window.dispatchEvent(
-          new CustomEvent(EVENT.CHANGE_LAYER_NAME, {
-            detail: { elementId: layer.id, name: layerNameSpan.innerText },
-          }),
-        );
+        dispatch(EVENT.UPDATE_ELEMENT, {
+          elementId: layer.id,
+          name: layerNameSpan.innerText,
+        });
       }
     });
 
@@ -249,22 +247,20 @@ export class LayersMenu {
     ) as HTMLInputElement;
     visibilityInput.addEventListener("click", (evt) => {
       evt.stopPropagation();
-      window.dispatchEvent(
-        new CustomEvent(EVENT.TOGGLE_ELEMENT_VISIBILITY, {
-          detail: { elementId: layer.id, isVisible: visibilityInput.checked },
-        }),
-      );
+      dispatch(EVENT.UPDATE_ELEMENT, {
+        elementId: layer.id,
+        isVisible: visibilityInput.checked,
+      });
     });
     const lockInput = li.querySelector(
       `#inp_lock-${layer.id}`,
     ) as HTMLInputElement;
     lockInput.addEventListener("click", (evt) => {
       evt.stopPropagation();
-      window.dispatchEvent(
-        new CustomEvent(EVENT.TOGGLE_ELEMENT_LOCK, {
-          detail: { elementId: layer.id, isLocked: lockInput.checked },
-        }),
-      );
+      dispatch(EVENT.UPDATE_ELEMENT, {
+        elementId: layer.id,
+        isLocked: lockInput.checked,
+      });
     });
 
     li.addEventListener("dragstart", () => {
@@ -301,7 +297,7 @@ export class LayersMenu {
       toggleBtn.classList.toggle("active", isHidden);
     });
 
-    groupLI.addEventListener('click', () => {
+    groupLI.addEventListener("click", () => {
       const groupChildren = this.generateLayerHierarchy(childrenList);
       const allChildrenSelected = groupChildren.every((child) =>
         this.selectedLayersId.has(child.id),
@@ -348,13 +344,13 @@ export class LayersMenu {
     layer?.querySelectorAll<HTMLLIElement>(":scope > li").forEach((li) => {
       const id = Number(li.dataset.id);
       const isLocked =
-        li.querySelector<HTMLInputElement>(`#inp_lock-${id}`)
-          ?.checked || false;
+        li.querySelector<HTMLInputElement>(`#inp_lock-${id}`)?.checked || false;
       const isVisible =
-        li.querySelector<HTMLInputElement>(`#inp_visibility-${id}`)
-          ?.checked || false;
-      const childrenUL =
-        li.querySelector<HTMLUListElement>(`#ul_group-children-${id}`);
+        li.querySelector<HTMLInputElement>(`#inp_visibility-${id}`)?.checked ||
+        false;
+      const childrenUL = li.querySelector<HTMLUListElement>(
+        `#ul_group-children-${id}`,
+      );
       let children: Layer[] | undefined;
       if (childrenUL) {
         children = this.generateLayerHierarchy(childrenUL);
@@ -365,27 +361,22 @@ export class LayersMenu {
   }
 
   private dispatchReorganizeEvent(): void {
-    const hierarchy = this.generateLayerHierarchy(this.layersList);
-    window.dispatchEvent(
-      new CustomEvent(EVENT.REORGANIZE_LAYERS, { detail: { hierarchy } }),
-    );
+    dispatch(EVENT.REORGANIZE_LAYERS, { hierarchy: this.generateLayerHierarchy(this.layersList) });
   }
 
   /** Gets the current selected layers and sends an event to delete them */
   private handleDeleteLayer(): void {
     const selectedLayers =
       this.layersList.querySelectorAll<HTMLLIElement>("li.selected");
-    const selectedLayersId = Array.from(selectedLayers).map((li) => Number(li.dataset.id));
+    const selectedLayersId = Array.from(selectedLayers).map((li) =>
+      Number(li.dataset.id),
+    );
     for (const layerId of selectedLayersId) {
-      window.dispatchEvent(
-        new CustomEvent(EVENT.DELETE_ELEMENT, {
-          detail: { elementId: layerId },
-        }),
-      );
+      dispatch(EVENT.DELETE_ELEMENT, { elementId: layerId });
     }
   }
 
-  private handleDeleteElement(evt: Event) :void {
+  private handleDeleteElement(evt: Event): void {
     const customEvent = evt as CustomEvent<{ elementId: number }>;
     const elementId = customEvent.detail.elementId;
     const layerToDelete = getElementById<HTMLLIElement>(`layer-${elementId}`);
@@ -401,8 +392,8 @@ export class LayersMenu {
       customEvent.detail;
     if (this.layersList.querySelector(`#layer-${elementId}`)) return;
 
-  const isGroup = type === "group";
-  const layerLI = this.createLayerItem(
+    const isGroup = type === "group";
+    const layerLI = this.createLayerItem(
       {
         children: children ?? undefined,
         id: elementId,

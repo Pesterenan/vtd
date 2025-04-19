@@ -1,5 +1,5 @@
 import type { Filter } from "../filters/filter";
-import { Alert } from "./alerts/alerts";
+import type { Alert } from "./alerts/alerts";
 
 export interface IElementData {
   type: ElementType;
@@ -92,28 +92,24 @@ export enum MOUSE_BUTTONS {
   FORWARD = 4,
 }
 
-/**
- * Ferramentas para manipular elementos
- * @readonly
- * @enum
- * */
+/** Ferramentas para manipular elementos @readonly @enum */
 export enum TOOL {
   /** @prop SELECT - Selecionar elemento */
-  SELECT = 'select-tool',
+  SELECT = "select-tool",
   /** @prop GRAB - Mover elemento */
-  GRAB = 'grab-tool',
+  GRAB = "grab-tool",
   /** @prop ROTATE - Rotacionar elemento */
-  ROTATE = 'rotate-tool',
+  ROTATE = "rotate-tool",
   /** @prop SCALE - Escalonar elemento */
-  SCALE = 'scale-tool',
+  SCALE = "scale-tool",
   /** @prop TEXT - Selecionar e editar texto */
-  TEXT = 'text-tool',
+  TEXT = "text-tool",
   /** @prop GRADIENT - Criar gradientes */
-  GRADIENT = 'gradient-tool',
+  GRADIENT = "gradient-tool",
   /** @prop HAND - Mover área de trabalho */
-  HAND = 'hand-tool',
+  HAND = "hand-tool",
   /** @prop ZOOM - Modificar zoom */
-  ZOOM = 'zoom-tool',
+  ZOOM = "zoom-tool",
 }
 
 export interface AddAlertDetail {
@@ -128,9 +124,43 @@ export interface AddElementDetail {
   isVisible: boolean;
   isLocked: boolean;
   type: ElementType;
-  children: Array<Layer>;
+  children?: Array<Layer>;
+}
+
+export interface UpdateElementDetail {
+  elementId: number;
+  name?: Layer["name"];
+  isVisible?: boolean;
+  isLocked?: boolean;
+}
+
+export interface SelectElementDetail {
+  elementsId: Set<number>;
+}
+
+export interface DeleteElementDetail {
+  elementId: number;
+}
+
+export interface OpenFiltersDialogDetail {
+  layerId: number;
+}
+
+export interface ReorganizeLayersDetail {
+  hierarchy: Layer[];
+}
+
+export interface RecalculateTransformBoxDetail {
+  position: Position;
+  size: Size;
+  rotation: number;
+  opacity: number;
 }
 
 export interface ChangeToolDetail {
   tool: TOOL;
+}
+
+export interface UsingToolDetail {
+  isUsingTool: boolean;
 }

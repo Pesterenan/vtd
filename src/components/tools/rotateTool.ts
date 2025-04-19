@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
@@ -24,7 +24,7 @@ export class RotateTool extends Tool {
     if (this.transformBox) {
       this.transformBox.anchorPoint = this.transformBox.position;
     }
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   unequipTool(): void {
@@ -35,7 +35,7 @@ export class RotateTool extends Tool {
   resetTool() {
     this.startPosition = null;
     this.isRotating = false;
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   draw(): void {
@@ -84,7 +84,7 @@ export class RotateTool extends Tool {
   handleMouseUp(): void {
     super.handleMouseUp();
     this.resetTool();
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   handleMouseMove(evt: MouseEvent): void {

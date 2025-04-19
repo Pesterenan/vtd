@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 import errorElement from "src/components/elements/errorElement";
 import { TextElement } from "src/components/elements/textElement";
@@ -234,63 +234,63 @@ export class TextMenu {
   private handleTextInput = (): void => {
     if (this.activeTextElement && this.textInput) {
       this.activeTextElement.content = this.textInput.value.split("\n");
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleFontSizeChange = (newValue: number): void => {
     if (this.activeTextElement) {
       this.activeTextElement.fontSize = parseInt(String(newValue), 10);
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleLineHeightChange = (newValue: number): void => {
     if (this.activeTextElement) {
       this.activeTextElement.lineHeight = parseFloat(String(newValue));
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleFillChange = (): void => {
     if (this.activeTextElement && this.fillCheckbox) {
       this.activeTextElement.hasFill = this.fillCheckbox.checked;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleFillColorChange = (newValue: string): void => {
     if (this.activeTextElement) {
       this.activeTextElement.fillColor = newValue;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleStrokeChange = (): void => {
     if (this.activeTextElement && this.strokeCheckbox) {
       this.activeTextElement.hasStroke = this.strokeCheckbox.checked;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleStrokeColorChange = (newValue: string): void => {
     if (this.activeTextElement) {
       this.activeTextElement.strokeColor = newValue;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleStrokeWidthChange = (newValue: number): void => {
     if (this.activeTextElement) {
       this.activeTextElement.strokeWidth = parseFloat(String(newValue));
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
 
   private handleAcceptTextChange = (): void => {
     this.activeTextElement = null;
     this.unlinkDOMElements();
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   };
 
   private handleDeclineTextChange = (): void => {
@@ -299,6 +299,6 @@ export class TextMenu {
       this.activeTextElement = null;
     }
     this.unlinkDOMElements();
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   };
 }

@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import { TextElement } from "src/components/elements/textElement";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
@@ -14,13 +14,13 @@ export class TextTool extends Tool {
   equipTool(): void {
     super.equipTool();
     this.canvas.addEventListener("mousemove", this.onMouseMove);
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   unequipTool(): void {
     super.unequipTool();
     this.lastPosition = null;
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -54,7 +54,7 @@ export class TextTool extends Tool {
   handleMouseMove(evt: MouseEvent): void {
     const { offsetX, offsetY } = evt;
     this.lastPosition = { x: offsetX, y: offsetY };
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function

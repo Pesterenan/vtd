@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import type { Position } from "src/components/types";
 import { Tool } from "src/components/tools/abstractTool";
 import { WorkArea } from "src/components/workArea";
@@ -30,7 +30,7 @@ export class GradientTool extends Tool {
         this.isHoveringEndPos = endPosBB.isPointWithinBB(mousePosition);
         this.isHoveringStartPos =
           !this.isHoveringEndPos && startPosBB.isPointWithinBB(mousePosition);
-        window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+        dispatch(EVENT.UPDATE_WORKAREA);
       }
     };
     this.canvas.addEventListener("mousemove", this.onHover);
@@ -47,7 +47,7 @@ export class GradientTool extends Tool {
     if (this.onHover) {
       this.canvas.removeEventListener("mousemove", this.onHover);
     }
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   resetTool(): void {
@@ -56,7 +56,7 @@ export class GradientTool extends Tool {
     this.activeGradientElement = null;
     this.isCreating = false;
     this.isDragging = false;
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   draw(): void {
@@ -160,7 +160,7 @@ export class GradientTool extends Tool {
 
     this.isDragging = false;
     super.handleMouseUp();
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   handleMouseMove({ offsetX, offsetY, shiftKey }: MouseEvent): void {
@@ -212,7 +212,7 @@ export class GradientTool extends Tool {
         this.activeGradientElement.endPosition,
       );
       this.isCreating = false;
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   }
 

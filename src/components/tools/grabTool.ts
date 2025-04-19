@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
@@ -29,11 +29,11 @@ export class GrabTool extends Tool {
           y: evt.offsetY,
         });
         this.isHovering = this.transformBox.boundingBox.isPointInside(mousePos);
-        window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+        dispatch(EVENT.UPDATE_WORKAREA);
       }
     };
     this.canvas.addEventListener("mousemove", this.onHover);
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   unequipTool(): void {
@@ -48,7 +48,7 @@ export class GrabTool extends Tool {
     this.startPosition = null;
     this.isDragging = false;
     this.isHovering = false;
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   draw(): void {
@@ -84,7 +84,7 @@ export class GrabTool extends Tool {
         x: mousePos.x - this.transformBox.position.x,
         y: mousePos.y - this.transformBox.position.y,
       };
-      window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+      dispatch(EVENT.UPDATE_WORKAREA);
     }
   }
 

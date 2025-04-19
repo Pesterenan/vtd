@@ -8,6 +8,7 @@ import type {
   Position,
   Layer,
   ChangeToolDetail,
+  UpdateElementDetail,
 } from "src/components/types";
 import { TOOL } from "src/components/types";
 import { HandTool } from "src/components/tools/handTool";
@@ -160,40 +161,33 @@ export class WorkArea {
         this.handleReorganizeLayers.bind(this),
       );
       window.addEventListener(
-        EVENT.TOGGLE_ELEMENT_LOCK,
-        this.handleToggleLock.bind(this),
-      );
-      window.addEventListener(EVENT.TOGGLE_ELEMENT_VISIBILITY, (evt: Event) => {
-        const customEvent = evt as CustomEvent<{
-          elementId: number;
-          isVisible: boolean;
-        }>;
-        const { elementId, isVisible } = customEvent.detail;
-        const flatElements = this.getFlatElements(this.elements);
-        const elementToToggleVisibility = flatElements.find(
-          (el) => el.elementId === elementId,
-        );
-        if (elementToToggleVisibility) {
-          elementToToggleVisibility.isVisible = isVisible;
-        }
-        this.update();
-      });
-      window.addEventListener(
         EVENT.SELECT_ELEMENT,
         this.handleSelectElement.bind(this),
       );
-      window.addEventListener(EVENT.CHANGE_LAYER_NAME, (evt: Event) => {
-        const customEvent = evt as CustomEvent<{
-          elementId: number;
-          name: string;
-        }>;
-        const { elementId, name } = customEvent.detail;
-        const elementToRename = this.elements.find(
+      window.addEventListener(EVENT.UPDATE_ELEMENT, (evt: Event) => {
+        const customEvent = evt as CustomEvent<UpdateElementDetail>;
+        const { elementId, name, isVisible, isLocked } = customEvent.detail;
+        const elementToUpdate = this.getFlatElements(this.elements).find(
           (el) => el.elementId === elementId,
         );
-        if (elementToRename) {
-          elementToRename.layerName = name;
+        if (elementToUpdate) {
+          if (name !== undefined) {
+            elementToUpdate.layerName = name;
+          }
+          if (isVisible !== undefined) {
+            elementToUpdate.isVisible = isVisible;
+          }
+          if (isLocked !== undefined) {
+            if (elementToUpdate instanceof ElementGroup) {
+              elementToUpdate.children?.forEach(
+                (child) => (child.selected = false),
+              );
+            }
+            elementToUpdate.isLocked = isLocked;
+            this.selectElements();
+          }
         }
+        this.update();
       });
       this.mainCanvas.addEventListener("dragover", (evt) => {
         evt.preventDefault();
@@ -264,28 +258,6 @@ export class WorkArea {
       }
     });
     return orderedElements;
-  }
-
-  private handleToggleLock(evt: Event): void {
-    const customEvent = evt as CustomEvent<{
-      elementId: number;
-      isLocked: boolean;
-    }>;
-    const { elementId, isLocked } = customEvent.detail;
-    const flatElements = this.getFlatElements(this.elements);
-    const elementToToggleLock = flatElements.find(
-      (el) => el.elementId === elementId,
-    );
-    if (elementToToggleLock) {
-      if (elementToToggleLock instanceof ElementGroup) {
-        elementToToggleLock.children?.forEach(
-          (child) => (child.selected = false),
-        );
-      }
-      elementToToggleLock.isLocked = isLocked;
-    }
-    this.selectElements();
-    this.update();
   }
 
   private handleReorganizeLayers(evt: Event): void {
@@ -377,9 +349,8 @@ export class WorkArea {
       dispatch(EVENT.CHANGE_TOOL, { tool });
     }
   }
-  private changeTool(evt: Event): void {
-    const customEvent = evt as CustomEvent<ChangeToolDetail>;
-    const { tool } = customEvent.detail;
+  private changeTool(evt: CustomEvent<ChangeToolDetail>): void {
+    const { tool } = evt.detail;
 
     const activeElement = document.activeElement;
     const isTyping =
@@ -517,17 +488,12 @@ export class WorkArea {
     }
     if (!isChild && newElement) {
       const eventDetail = {
-          elementId: newElement.elementId,
-          layerName: newElement.layerName,
-          isVisible: newElement.isVisible,
-          isLocked: newElement.isLocked,
-          type: elData.type,
-          children: [] as {
-            id: number;
-            name: string;
-            isVisible: boolean;
-            isLocked: boolean;
-          }[],
+        elementId: newElement.elementId,
+        layerName: newElement.layerName,
+        isVisible: newElement.isVisible,
+        isLocked: newElement.isLocked,
+        type: elData.type,
+        children: [] as Layer[],
       };
       if (newElement instanceof ElementGroup && newElement.children) {
         eventDetail.children = newElement?.children.map((child) => ({
@@ -643,13 +609,9 @@ export class WorkArea {
         });
       }
     }
-    window.dispatchEvent(
-      new CustomEvent(EVENT.SELECT_ELEMENT, {
-        detail: {
-          elementsId: new Set(selectedElements.map((el) => el.elementId)),
-        },
-      }),
-    );
+    dispatch(EVENT.SELECT_ELEMENT, {
+      elementsId: new Set(selectedElements.map((el) => el.elementId)),
+    });
   }
 
   public drawbox(a: Position, b: Position): void {
@@ -745,17 +707,13 @@ export class WorkArea {
       this.elements.length,
     );
     this.elements.push(newElement as Element<TElementData>);
-    window.dispatchEvent(
-      new CustomEvent(EVENT.ADD_ELEMENT, {
-        detail: {
-          elementId: newElement.elementId,
-          isLocked: newElement.isLocked,
-          isVisible: newElement.isVisible,
-          layerName: newElement.layerName,
-          type: "gradient",
-        },
-      }),
-    );
+    dispatch(EVENT.ADD_ELEMENT, {
+      elementId: newElement.elementId,
+      isLocked: newElement.isLocked,
+      isVisible: newElement.isVisible,
+      layerName: newElement.layerName,
+      type: "gradient",
+    });
     this.update();
   }
 
@@ -777,39 +735,13 @@ export class WorkArea {
       this.elements.length,
     );
     this.elements.push(newElement as Element<TElementData>);
-    window.dispatchEvent(
-      new CustomEvent(EVENT.ADD_ELEMENT, {
-        detail: {
-          elementId: newElement.elementId,
-          isLocked: newElement.isLocked,
-          isVisible: newElement.isVisible,
-          layerName: newElement.layerName,
-          type: "text",
-        },
-      }),
-    );
-    this.update();
-  }
-
-  public addElement(): void {
-    const width = 50;
-    const height = 50;
-    const x = Math.floor(Math.random() * this.workArea.canvas.width) - width;
-    const y = Math.floor(Math.random() * this.workArea.canvas.height) - height;
-    const newElement = new ImageElement(
-      { x, y },
-      { width, height },
-      this.elements.length,
-    );
-    this.elements.push(newElement as Element<TElementData>);
-    window.dispatchEvent(
-      new CustomEvent(EVENT.ADD_ELEMENT, {
-        detail: {
-          elementId: newElement.elementId,
-          layerName: newElement.layerName,
-        },
-      }),
-    );
+    dispatch(EVENT.ADD_ELEMENT, {
+      elementId: newElement.elementId,
+      isLocked: newElement.isLocked,
+      isVisible: newElement.isVisible,
+      layerName: newElement.layerName,
+      type: "text",
+    });
     this.update();
   }
 
@@ -823,17 +755,13 @@ export class WorkArea {
     );
     newElement.loadImage(encodedImage);
     this.elements.push(newElement as Element<TElementData>);
-    window.dispatchEvent(
-      new CustomEvent(EVENT.ADD_ELEMENT, {
-        detail: {
-          elementId: newElement.elementId,
-          isLocked: newElement.isLocked,
-          isVisible: newElement.isVisible,
-          layerName: newElement.layerName,
-          type: "image",
-        },
-      }),
-    );
+    dispatch(EVENT.ADD_ELEMENT, {
+      elementId: newElement.elementId,
+      isLocked: newElement.isLocked,
+      isVisible: newElement.isVisible,
+      layerName: newElement.layerName,
+      type: "image",
+    });
   }
 
   public addGroupElement(): void {
@@ -844,17 +772,13 @@ export class WorkArea {
       [],
     );
     this.elements.push(newElement as Element<TElementData>);
-    window.dispatchEvent(
-      new CustomEvent(EVENT.ADD_ELEMENT, {
-        detail: {
-          elementId: newElement.elementId,
-          isLocked: newElement.isLocked,
-          isVisible: newElement.isVisible,
-          layerName: newElement.layerName,
-          type: "group",
-        },
-      }),
-    );
+    dispatch(EVENT.ADD_ELEMENT, {
+      elementId: newElement.elementId,
+      isLocked: newElement.isLocked,
+      isVisible: newElement.isVisible,
+      layerName: newElement.layerName,
+      type: "group",
+    });
     this.update();
   }
 }

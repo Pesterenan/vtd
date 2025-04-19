@@ -1,4 +1,4 @@
-import EVENT from "src/utils/customEvents";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import type { Position } from "src/components/types";
 import { Tool } from "src/components/tools/abstractTool";
 import centerHandleScale from "src/assets/icons/scale-tool.svg";
@@ -49,11 +49,11 @@ export class ScaleTool extends Tool {
             this.hoveredHandle = handleIndex;
           }
         }
-        window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+        dispatch(EVENT.UPDATE_WORKAREA);
       }
     };
     this.canvas.addEventListener("mousemove", this.onHover);
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   unequipTool(): void {
@@ -61,7 +61,7 @@ export class ScaleTool extends Tool {
     if (this.onHover) {
       this.canvas.removeEventListener("mousemove", this.onHover);
     }
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   draw(): void {
@@ -155,7 +155,7 @@ export class ScaleTool extends Tool {
     this.isScaling = false;
     this.selectedHandle = null;
     super.handleMouseUp();
-    window.dispatchEvent(new CustomEvent(EVENT.UPDATE_WORKAREA));
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   private rotatePoint(
