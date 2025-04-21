@@ -28,7 +28,7 @@ export class VideoFrameExtractor {
   private extractFrameBtn: HTMLButtonElement | null = null;
   private copyToClipBoardBtn: HTMLButtonElement | null = null;
   private videoDurationSlider: HTMLInputElement | null = null;
-  private videoDurationSliderThumb: HTMLDivElement | null = null;
+  private videoDurationIndicator: HTMLDivElement | null = null;
   private extractBox: ExtractBox | null = null;
 
   private constructor() {
@@ -60,8 +60,8 @@ export class VideoFrameExtractor {
     this.copyToClipBoardBtn.classList.add("btn-common");
     this.videoDurationSlider =
       getElementById<HTMLInputElement>("sld_video-duration");
-    this.videoDurationSliderThumb = getElementById<HTMLDivElement>(
-      "sld_video-duration-thumb",
+    this.videoDurationIndicator = getElementById<HTMLDivElement>(
+      "vfe_video-duration-indicator",
     );
   }
 
@@ -72,23 +72,23 @@ export class VideoFrameExtractor {
     const value = Number(slider.value);
     const percent = (value - minValue) / (maxValue - minValue);
 
-    if (this.videoMetadata?.totalFrames && this.videoDurationSliderThumb) {
+    if (this.videoMetadata?.totalFrames && this.videoDurationIndicator) {
       const frameRate = this.videoMetadata.frameRate;
-      this.videoDurationSliderThumb.textContent = formatFrameIntoTime(
+      this.videoDurationIndicator.textContent = formatFrameIntoTime(
         value,
         frameRate,
       );
     }
 
-    if (this.videoDurationSliderThumb) {
+    if (this.videoDurationIndicator) {
       const rect = slider.getBoundingClientRect();
       const thumbX = rect.left + percent * rect.width;
       const thumbY = rect.top;
-      this.videoDurationSliderThumb.setAttribute(
+      this.videoDurationIndicator.setAttribute(
         "style",
         `left: ${thumbX}px; top: ${thumbY}px;`,
       );
-      this.videoDurationSliderThumb.classList.add("visible");
+      this.videoDurationIndicator.classList.add("visible");
     }
   }
 
@@ -137,8 +137,8 @@ export class VideoFrameExtractor {
       window.addEventListener("keydown", this.handleKeyDown.bind(this));
     }
     document.addEventListener("mouseup", () => {
-      if (this.videoDurationSliderThumb) {
-        this.videoDurationSliderThumb.classList.remove("visible");
+      if (this.videoDurationIndicator) {
+        this.videoDurationIndicator.classList.remove("visible");
       }
     });
 

@@ -67,16 +67,20 @@ body {
     font-style: italic;
     font-weight: bolder;
   }
+
   &.success {
     background-color: var(--background-300);
   }
+
   &.error {
     background-color: var(--primary-300);
   }
+
   &.show {
     opacity: 1;
     transform: translateY(0px);
   }
+
   &.hide {
     opacity: 0;
     transform: translateY(-3rem);
@@ -209,7 +213,7 @@ body {
     mask-image: var(--checked-icon-url);
   }
 
-  &.active + label::before{
+  &.active+label::before {
     transform: rotate(90deg);
   }
 }
@@ -218,15 +222,18 @@ body {
   &::backdrop {
     background-color: rgba(0, 0, 0, 0.35);
   }
+
   menu {
     padding-top: 1rem;
     padding-inline: 1rem;
   }
+
   h3 {
     border-bottom: 1px solid var(--background-700);
     margin-bottom: 0.5rem;
     width: 100%;
   }
+
   background: linear-gradient(var(--background-300), var(--background-500));
   border: 1px solid var(--background-700);
   border-radius: 0.5rem;
@@ -287,6 +294,7 @@ body {
   list-style: none;
   padding-left: 1rem;
   width: 100%;
+
   li {
     border: none;
     border-top: 1px solid var(--secondary-800);
@@ -294,7 +302,7 @@ body {
 }
 
 .li_layer-item {
-  display: flex; 
+  display: flex;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
   background-color: var(--secondary-400);
   border-bottom: 1px solid var(--secondary-800);
@@ -310,6 +318,7 @@ body {
 .li_layer-controls {
   display: flex;
   flex: 0 0 4rem;
+
   button {
     padding: 0;
     width: 1.25rem;
@@ -366,22 +375,35 @@ body {
   width: 40px;
 }
 
-.sld_video-duration-thumb {
-  width: fit-content;
-  position: absolute;
+#vfe_main-container {
+  background-color: var(--background-50);
+  padding: 1rem;
+  height: 100%;
+  width: 100%;
+}
+
+#sld_video-controls {
+  background-color: var(--background-200);
+  border: 1px solid var(--background-700);
+  border-radius: 0.5rem;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+#sld_video-duration {
+  width: 100%;
+  border-radius: 0.25rem;
+}
+
+#vfe_video-duration-indicator {
+  text-align: center;
+  width: 100%;
   pointer-events: none;
   background: var(--background-300);
+  border: 1px solid var(--background-700);
   color: var(--text-900);
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;
   white-space: nowrap;
-  transform: translateX(-50%) translateY(-100%);
-  opacity: 0;
-  transition: opacity 0.2s, transform 0.2s;
-
-  &.visible {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-120%);
-  }
 }

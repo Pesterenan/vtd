@@ -50,8 +50,8 @@ plataforma escolhida para a criação do app redistribuível.
 &#9746; - Mostrar o tempo em segundos enquanto arrasta o slider do video frame extractor\
 &#9746; - Buscar um novo frame apenas após soltar o slider do video frame extractor\
 &#9746; - Adicionar controles de teclas para navegação do video frame extractor\
+&#9746; - Melhorar interface do video frame extractor, colocar alerts e posicionar melhor os elementos\
 
-&#9744; - Melhorar interface do video frame extractor, colocar alerts e posicionar melhor os elementos\
 &#9744; - Buscar pelo menos 10 imagens do video no início para mostrar como preview.\
 &#9744; - Implementar opacidade nos efeitos\
 &#9744; - Implementar efeito de chroma/color key\
