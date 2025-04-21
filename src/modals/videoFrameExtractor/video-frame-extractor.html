@@ -8,7 +8,10 @@
 
 <body>
   <div class="container-column ai-jc-c"style="background-color: var(--background-50); height: 100%;">
-    <input type="range" id="slider" min="0" max="100" step="0.1" value="0" style="width: 80vw;">
+      <div>
+        <div id="sld_video-duration-thumb" class="sld_video-duration-thumb">00:00:00</div>
+        <input type="range" id="sld_video-duration" min="0" max="100" step="1" value="0" style="width: 80vw;">
+      </div>
     <canvas height="320" width="800" id="video-canvas" style="background-color: var(--background-300);"> </canvas>
     <div class="container ai-c jc-sb" style="width: 100%;">
       <div class="ai-c pad-1">

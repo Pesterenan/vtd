@@ -365,3 +365,23 @@ body {
   transition: var(--background-transition);
   width: 40px;
 }
+
+.sld_video-duration-thumb {
+  width: fit-content;
+  position: absolute;
+  pointer-events: none;
+  background: var(--background-300);
+  color: var(--text-900);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  transform: translateX(-50%) translateY(-100%);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+
+  &.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-120%);
+  }
+}

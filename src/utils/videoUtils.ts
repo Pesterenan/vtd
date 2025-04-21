@@ -57,9 +57,14 @@ export async function getMetadata(filePath: string): Promise<IVideoMetadata> {
         const duration = metadata.format.duration;
         const width = metadata.streams[0].width;
         const height = metadata.streams[0].height;
-        const frameRate = metadata.streams[0].r_frame_rate;
+        const calculateFrameRate = (rate: string) => {
+          const [numerator, denominator] = rate.split("/").map(Number);
+          console.log([numerator, denominator]);
+          return (numerator / denominator);
+        };
+        const frameRate = calculateFrameRate(metadata.streams[0].r_frame_rate || "1");
         const totalFrames = Math.floor(
-          Number(duration) * Number(frameRate?.split("/")[0]),
+          Number(duration) * Number(frameRate),
         );
         console.log(`Duração: ${duration} segundos`);
         console.log(`Resolução: ${width}x${height}`);

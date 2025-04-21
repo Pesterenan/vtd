@@ -2,15 +2,15 @@ import "../../assets/main.css";
 import getElementById from "../../utils/getElementById";
 import type { IVideoMetadata } from "../../types";
 import { ExtractBox } from "../../components/extractBox/extractBox";
-import EVENT from "../../utils/customEvents";
+import EVENT, { dispatch } from "../../utils/customEvents";
+import formatFrameIntoTime from "src/utils/formatFrameIntoTime";
+import { clamp } from "src/utils/easing";
 
 const PREVIEW_CANVAS_HEIGHT = 432;
 const PREVIEW_CANVAS_WIDTH = 768;
 
 export class VideoFrameExtractor {
   private static instance: VideoFrameExtractor | null = null;
-  private extractFrameBtn: HTMLButtonElement;
-  private copyToClipBoardBtn: HTMLButtonElement;
   private preview: {
     canvas: HTMLCanvasElement;
     context: CanvasRenderingContext2D;
@@ -25,10 +25,18 @@ export class VideoFrameExtractor {
   } | null = null;
   private videoMetadata: (IVideoMetadata & { videoRatio?: number }) | null =
     null;
-  private slider: HTMLInputElement;
+  private extractFrameBtn: HTMLButtonElement | null = null;
+  private copyToClipBoardBtn: HTMLButtonElement | null = null;
+  private videoDurationSlider: HTMLInputElement | null = null;
+  private videoDurationSliderThumb: HTMLDivElement | null = null;
   private extractBox: ExtractBox | null = null;
 
   private constructor() {
+    this.createDOMElements();
+    this.createEventListeners();
+  }
+
+  private createDOMElements(): void {
     const previewCanvas = getElementById<HTMLCanvasElement>("video-canvas");
     const extractCanvas = document.createElement("canvas");
     const offScreenCanvas = new OffscreenCanvas(0, 0);
@@ -50,13 +58,90 @@ export class VideoFrameExtractor {
       "btn_copy-to-clipboard",
     );
     this.copyToClipBoardBtn.classList.add("btn-common");
-    this.slider = getElementById<HTMLInputElement>("slider");
+    this.videoDurationSlider =
+      getElementById<HTMLInputElement>("sld_video-duration");
+    this.videoDurationSliderThumb = getElementById<HTMLDivElement>(
+      "sld_video-duration-thumb",
+    );
+  }
 
-    this.createEventListeners();
+  private handleSliderInput(evt: Event): void {
+    const slider = evt.currentTarget as HTMLInputElement;
+    const minValue = Number(slider.min);
+    const maxValue = Number(slider.max);
+    const value = Number(slider.value);
+    const percent = (value - minValue) / (maxValue - minValue);
+
+    if (this.videoMetadata?.totalFrames && this.videoDurationSliderThumb) {
+      const frameRate = this.videoMetadata.frameRate;
+      this.videoDurationSliderThumb.textContent = formatFrameIntoTime(
+        value,
+        frameRate,
+      );
+    }
+
+    if (this.videoDurationSliderThumb) {
+      const rect = slider.getBoundingClientRect();
+      const thumbX = rect.left + percent * rect.width;
+      const thumbY = rect.top;
+      this.videoDurationSliderThumb.setAttribute(
+        "style",
+        `left: ${thumbX}px; top: ${thumbY}px;`,
+      );
+      this.videoDurationSliderThumb.classList.add("visible");
+    }
+  }
+
+  private handleKeyDown(evt: KeyboardEvent): void {
+    if (!this.videoDurationSlider || !this.videoMetadata) return;
+
+    const { code, repeat, shiftKey } = evt;
+    console.log(code, "repeat", repeat, "shift", shiftKey);
+    let delta = 1;
+    if (code === "ArrowRight" || code === "KeyR") {
+      delta = 1;
+      if (shiftKey && this.videoMetadata.frameRate) {
+        delta = Math.floor(this.videoMetadata.frameRate);
+      }
+    } else if (code === "ArrowLeft" || code === "KeyE") {
+      delta = -1;
+      if (shiftKey && this.videoMetadata.frameRate) {
+        delta = -Math.floor(this.videoMetadata.frameRate);
+      }
+    } else {
+      return;
+    }
+    evt.preventDefault();
+    const slider = this.videoDurationSlider;
+    const minValue = Number(slider.min);
+    const maxValue = Number(slider.max);
+    let value = Number(slider.value) + delta;
+    value = clamp(value, minValue, maxValue);
+    slider.value = value.toString();
+    this.videoDurationSlider.dispatchEvent(new Event("input"));
+    if (!repeat) {
+      this.requestProcessFrame();
+    }
   }
 
   private createEventListeners(): void {
-    this.slider.oninput = this.requestProcessFrame.bind(this);
+    if (this.videoDurationSlider) {
+      this.videoDurationSlider.addEventListener(
+        "input",
+        this.handleSliderInput.bind(this),
+      );
+      this.videoDurationSlider.addEventListener(
+        "change",
+        this.requestProcessFrame.bind(this),
+      );
+      window.addEventListener("keydown", this.handleKeyDown.bind(this));
+    }
+    document.addEventListener("mouseup", () => {
+      if (this.videoDurationSliderThumb) {
+        this.videoDurationSliderThumb.classList.remove("visible");
+      }
+    });
+
     if (this.preview) {
       this.preview.canvas.addEventListener("mousedown", (evt) => {
         if (this.extractBox) {
@@ -108,8 +193,9 @@ export class VideoFrameExtractor {
         this.offScreen.canvas.height = height;
       }
       if (this.videoMetadata?.totalFrames) {
-        this.slider.max = this.videoMetadata.totalFrames.toString();
-        this.slider.step = "1";
+        this.videoDurationSlider.max =
+          (this.videoMetadata.totalFrames - 1).toString();
+        this.videoDurationSlider.step = "1";
       }
       window.api.processVideoFrame(this.videoMetadata.filePath, 0);
     });
@@ -204,8 +290,12 @@ export class VideoFrameExtractor {
           this.extract.canvas.toBlob((blob) => {
             if (blob) {
               const item = new ClipboardItem({ "image/png": blob });
-              // TODO: Criar um sistema de alerts na aplicação para mostrar que foi copiado.
               navigator.clipboard.write([item]);
+              dispatch(EVENT.ADD_ALERT, {
+                message: "Frame do vídeo copiado para a área de transferência",
+                title: "Copiado",
+                type: "success",
+              });
             }
           }, "image/png");
         } else {
@@ -218,17 +308,15 @@ export class VideoFrameExtractor {
 
   /** Queries the video file with the slider value to process the resulting frame */
   private requestProcessFrame(): void {
-    if (this.videoMetadata) {
-      const sliderValue = Number(this.slider.value);
-      let sliderValueInterpolated =
-        (this.videoMetadata.duration * sliderValue) / 100;
-      if (this.videoMetadata.totalFrames) {
-        const frameRate = Number(this.videoMetadata.frameRate.split("/")[0]);
-        sliderValueInterpolated = sliderValue / frameRate;
-      }
+    if (this.videoMetadata && this.videoDurationSlider) {
+      const value = Number(this.videoDurationSlider.value);
+      const timeInSeconds = Math.min(
+        value / this.videoMetadata.frameRate,
+        this.videoMetadata.duration,
+      );
       window.api.processVideoFrame(
         this.videoMetadata.filePath,
-        sliderValueInterpolated,
+        timeInSeconds,
       );
     }
   }

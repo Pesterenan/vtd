@@ -47,11 +47,12 @@ plataforma escolhida para a criação do app redistribuível.
 &#9746; - Criar um novo modal para mostrar a qualidade da imagem exportada, e incluir a escolha de formato.\
 &#9746; - O usuário pode agrupar elementos em um grupo para movimentar todos juntos\
 &#9746; - Criar sistema de alertas para eventos como salvar, copiar elemento, exportar imagem, etc.\
+&#9746; - Mostrar o tempo em segundos enquanto arrasta o slider do video frame extractor\
+&#9746; - Buscar um novo frame apenas após soltar o slider do video frame extractor\
+&#9746; - Adicionar controles de teclas para navegação do video frame extractor\
 
-&#9744; - Mostrar o tempo em segundos enquanto arrasta o slider do video frame extractor\
-&#9744; - Buscar um novo frame apenas após soltar o slider do video frame extractor\
+&#9744; - Melhorar interface do video frame extractor, colocar alerts e posicionar melhor os elementos\
 &#9744; - Buscar pelo menos 10 imagens do video no início para mostrar como preview.\
-&#9744; - Adicionar controles de teclas para navegação do video frame extractor\
 &#9744; - Implementar opacidade nos efeitos\
 &#9744; - Implementar efeito de chroma/color key\
 &#9744; - Implementar um sistema de undo/redo\
