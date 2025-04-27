@@ -51,8 +51,8 @@ plataforma escolhida para a criação do app redistribuível.
 &#9746; - Buscar um novo frame apenas após soltar o slider do video frame extractor\
 &#9746; - Adicionar controles de teclas para navegação do video frame extractor\
 &#9746; - Melhorar interface do video frame extractor, colocar alerts e posicionar melhor os elementos\
+&#9746; - Buscar miniaturas para mostrar como preview do video no vfe.\
 
-&#9744; - Buscar pelo menos 10 imagens do video no início para mostrar como preview.\
 &#9744; - Implementar opacidade nos efeitos\
 &#9744; - Implementar efeito de chroma/color key\
 &#9744; - Implementar um sistema de undo/redo\

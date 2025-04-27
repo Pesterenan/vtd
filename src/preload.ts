@@ -14,9 +14,16 @@ declare global {
       loadImage: () => void;
       loadVideo: () => void;
       loadProject: () => void;
+      generateThumbnailSprite: (metadata: IVideoMetadata) => void;
       processVideoFrame: (filePath: string, timeInSeconds: number) => void;
       saveProject: (dataString: string) => void;
       sendFrameToWorkArea: (imageUrl: string) => void;
+      onGenerateThumbnailSpriteResponse: (
+        callback: (
+          event: Electron.IpcRendererEvent,
+          response: EventResponse,
+        ) => void,
+      ) => Electron.IpcRenderer;
       onProcessVideoFrameResponse: (
         callback: (
           event: Electron.IpcRendererEvent,
@@ -73,12 +80,21 @@ const api = {
   loadImage: (): void => ipcRenderer.send("load-image"),
   loadVideo: (): void => ipcRenderer.send("load-video"),
   loadProject: (): void => ipcRenderer.send("load-project"),
+  generateThumbnailSprite: (metadata: IVideoMetadata): void =>
+    ipcRenderer.send("generate-thumbnail-sprite", metadata),
   processVideoFrame: (filePath: string, timeInSeconds: number): void =>
     ipcRenderer.send("process-video-frame", filePath, timeInSeconds),
   saveProject: (dataString: string): void =>
     ipcRenderer.send("save-project", { dataString }),
   sendFrameToWorkArea: (imageUrl: string): void =>
     ipcRenderer.send("send-frame-to-work-area", imageUrl),
+  onGenerateThumbnailSpriteResponse: (
+    callback: (
+      event: Electron.IpcRendererEvent,
+      response: EventResponse,
+    ) => void,
+  ): Electron.IpcRenderer =>
+    ipcRenderer.on("generate-thumbnail-sprite-response", callback),
   onProcessVideoFrameResponse: (
     callback: (
       event: Electron.IpcRendererEvent,

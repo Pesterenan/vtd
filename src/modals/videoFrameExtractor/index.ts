@@ -1,6 +1,6 @@
 import "../../assets/main.css";
 import getElementById from "../../utils/getElementById";
-import type { IVideoMetadata } from "../../types";
+import type { IVideoMetadata, IThumbnailSpriteCell } from "../../types";
 import { ExtractBox } from "../../components/extractBox/extractBox";
 import EVENT, { dispatch } from "../../utils/customEvents";
 import formatFrameIntoTime from "src/utils/formatFrameIntoTime";
@@ -30,6 +30,10 @@ export class VideoFrameExtractor {
   private videoDurationSlider: HTMLInputElement | null = null;
   private videoDurationIndicator: HTMLDivElement | null = null;
   private extractBox: ExtractBox | null = null;
+  private currentThumbIndex = -1;
+  private rafId: number | null = null;
+  private thumbnailSprite: HTMLImageElement | null = null;
+  private thumbnailSpriteCells :IThumbnailSpriteCell[] = [];
 
   private constructor() {
     this.createDOMElements();
@@ -65,12 +69,142 @@ export class VideoFrameExtractor {
     );
   }
 
+  private createEventListeners(): void {
+    if (this.videoDurationSlider) {
+      this.videoDurationSlider.addEventListener(
+        "input",
+        this.handleSliderInput.bind(this),
+      );
+      this.videoDurationSlider.addEventListener(
+        "change",
+        this.requestProcessFrame.bind(this),
+      );
+      window.addEventListener("keydown", this.handleKeyDown.bind(this));
+    }
+
+    if (this.preview) {
+      this.preview.canvas.addEventListener("mousedown", (evt) => {
+        if (this.extractBox) {
+          return this.extractBox.onClick(evt);
+        }
+      });
+    }
+
+    window.addEventListener(EVENT.UPDATE_VFE, () => this.update());
+
+    window.api.onVideoMetadata(async (metadata: IVideoMetadata) => {
+      this.videoMetadata = metadata;
+      const { width, height } = metadata;
+      this.videoMetadata.videoRatio = height / width;
+
+      let canvasWidth = PREVIEW_CANVAS_WIDTH;
+      let canvasHeight = Math.ceil(
+        PREVIEW_CANVAS_WIDTH * this.videoMetadata.videoRatio,
+      );
+      if (canvasHeight > PREVIEW_CANVAS_HEIGHT) {
+        canvasHeight = PREVIEW_CANVAS_HEIGHT;
+        canvasWidth = Math.ceil(
+          PREVIEW_CANVAS_HEIGHT / this.videoMetadata.videoRatio,
+        );
+      }
+
+      if (this.preview && this.extractFrameBtn && this.copyToClipBoardBtn) {
+        this.preview.canvas.width = canvasWidth;
+        this.preview.canvas.height = canvasHeight;
+        this.extractBox = new ExtractBox(this.preview.canvas);
+        this.extractFrameBtn.onclick = (): void => {
+          if (this.extractBox) {
+            this.extractFrame();
+          } else {
+            console.error("Extract Box not initialized");
+          }
+        };
+        this.copyToClipBoardBtn.onclick = (): void => {
+          if (this.extract?.canvas) {
+            this.extractFrame(true);
+          } else {
+            console.error("Extract Box not initialized");
+          }
+        };
+      }
+
+      if (this.offScreen) {
+        this.offScreen.canvas.width = width;
+        this.offScreen.canvas.height = height;
+      }
+      if (this.videoMetadata?.totalFrames && this.videoDurationSlider) {
+        this.videoDurationSlider.max = (
+          this.videoMetadata.totalFrames - 1
+        ).toString();
+        this.videoDurationSlider.step = "1";
+      }
+      window.api.generateThumbnailSprite(this.videoMetadata);
+      window.api.processVideoFrame(this.videoMetadata.filePath, 0);
+    });
+
+    window.api.onGenerateThumbnailSpriteResponse(async (_, response) => {
+      if (response.success) {
+        this.thumbnailSprite = new Image();
+        this.thumbnailSprite.src = response.data as string;
+        this.thumbnailSprite.onload = () => {
+          const cols = 10,
+            rows = 10;
+          if (this.thumbnailSprite) {
+            const sw = this.thumbnailSprite.width / cols;
+            const sh = this.thumbnailSprite.height / rows;
+            this.thumbnailSpriteCells = [];
+            let index = 0;
+            for (let y = 0; y < rows; y++) {
+              for (let x = 0; x < cols; x++) {
+                this.thumbnailSpriteCells.push({
+                  index: index++,
+                  sx: x * sw,
+                  sy: y * sh,
+                  sw,
+                  sh,
+                });
+              }
+            }
+          }
+        };
+      }
+    });
+
+    window.api.onProcessVideoFrameResponse((_, response) => {
+      if (response.success) {
+        if (this.offScreen && this.preview && this.videoMetadata) {
+          const { width, height } = this.offScreen.canvas;
+          const videoFrame = new Uint8ClampedArray(response.data as Uint8Array);
+          const videoFrameData = new ImageData(videoFrame, width, height);
+          this.offScreen.context.putImageData(videoFrameData, 0, 0);
+          this.update();
+          console.log(response.message);
+        }
+      } else {
+        console.error(response.message);
+      }
+    });
+  }
+
+  public static getInstance(): VideoFrameExtractor {
+    if (this.instance === null) {
+      this.instance = new VideoFrameExtractor();
+    }
+    return this.instance;
+  }
+
   private handleSliderInput(evt: Event): void {
     const slider = evt.currentTarget as HTMLInputElement;
-    const minValue = Number(slider.min);
-    const maxValue = Number(slider.max);
+    const totalFrames = this.videoMetadata?.totalFrames || Number(slider.max);
     const value = Number(slider.value);
-    const percent = (value - minValue) / (maxValue - minValue);
+    const ratio = value / (totalFrames - 1);
+
+    if (this.rafId === null) {
+      this.rafId = requestAnimationFrame(() => {
+        this.rafId = null;
+        this.updateThumbnail(ratio);
+      });
+    }
 
     if (this.videoMetadata?.totalFrames && this.videoDurationIndicator) {
       const frameRate = this.videoMetadata.frameRate;
@@ -79,24 +213,12 @@ export class VideoFrameExtractor {
         frameRate,
       );
     }
-
-    if (this.videoDurationIndicator) {
-      const rect = slider.getBoundingClientRect();
-      const thumbX = rect.left + percent * rect.width;
-      const thumbY = rect.top;
-      this.videoDurationIndicator.setAttribute(
-        "style",
-        `left: ${thumbX}px; top: ${thumbY}px;`,
-      );
-      this.videoDurationIndicator.classList.add("visible");
-    }
   }
 
   private handleKeyDown(evt: KeyboardEvent): void {
     if (!this.videoDurationSlider || !this.videoMetadata) return;
 
     const { code, repeat, shiftKey } = evt;
-    console.log(code, "repeat", repeat, "shift", shiftKey);
     let delta = 1;
     if (code === "ArrowRight" || code === "KeyR") {
       delta = 1;
@@ -124,103 +246,34 @@ export class VideoFrameExtractor {
     }
   }
 
-  private createEventListeners(): void {
-    if (this.videoDurationSlider) {
-      this.videoDurationSlider.addEventListener(
-        "input",
-        this.handleSliderInput.bind(this),
-      );
-      this.videoDurationSlider.addEventListener(
-        "change",
-        this.requestProcessFrame.bind(this),
-      );
-      window.addEventListener("keydown", this.handleKeyDown.bind(this));
-    }
-    document.addEventListener("mouseup", () => {
-      if (this.videoDurationIndicator) {
-        this.videoDurationIndicator.classList.remove("visible");
-      }
-    });
+  private updateThumbnail(ratio: number): void {
+    if (
+      !this.preview ||
+      !this.thumbnailSprite ||
+      !this.thumbnailSpriteCells.length
+    )
+      return;
 
-    if (this.preview) {
-      this.preview.canvas.addEventListener("mousedown", (evt) => {
-        if (this.extractBox) {
-          return this.extractBox.onClick(evt);
-        }
-      });
-    }
+    let index = Math.round(ratio * (this.thumbnailSpriteCells.length - 1));
+    index = Math.max(0, Math.min(index, this.thumbnailSpriteCells.length - 1));
 
-    window.addEventListener(EVENT.UPDATE_VFE, () => this.update());
-
-    window.api.onVideoMetadata((metadata: IVideoMetadata) => {
-      this.videoMetadata = metadata;
-      const { width, height } = metadata;
-      this.videoMetadata.videoRatio = height / width;
-
-      let canvasWidth = PREVIEW_CANVAS_WIDTH;
-      let canvasHeight = Math.ceil(
-        PREVIEW_CANVAS_WIDTH * this.videoMetadata.videoRatio,
-      );
-      if (canvasHeight > PREVIEW_CANVAS_HEIGHT) {
-        canvasHeight = PREVIEW_CANVAS_HEIGHT;
-        canvasWidth = Math.ceil(
-          PREVIEW_CANVAS_HEIGHT / this.videoMetadata.videoRatio,
-        );
-      }
-
-      if (this.preview) {
-        this.preview.canvas.width = canvasWidth;
-        this.preview.canvas.height = canvasHeight;
-        this.extractBox = new ExtractBox(this.preview.canvas);
-        this.extractFrameBtn.onclick = (): void => {
-          if (this.extractBox) {
-            this.extractFrame();
-          } else {
-            console.error("Extract Box not initialized");
-          }
-        };
-        this.copyToClipBoardBtn.onclick = (): void => {
-          if (this.extract?.canvas) {
-            this.extractFrame(true);
-          } else {
-            console.error("Extract Box not initialized");
-          }
-        };
-      }
-
-      if (this.offScreen) {
-        this.offScreen.canvas.width = width;
-        this.offScreen.canvas.height = height;
-      }
-      if (this.videoMetadata?.totalFrames) {
-        this.videoDurationSlider.max =
-          (this.videoMetadata.totalFrames - 1).toString();
-        this.videoDurationSlider.step = "1";
-      }
-      window.api.processVideoFrame(this.videoMetadata.filePath, 0);
-    });
-
-    window.api.onProcessVideoFrameResponse((_, response) => {
-      if (response.success) {
-        if (this.offScreen && this.preview && this.videoMetadata) {
-          const { width, height } = this.offScreen.canvas;
-          const videoFrame = new Uint8ClampedArray(response.data as Uint8Array);
-          const videoFrameData = new ImageData(videoFrame, width, height);
-          this.offScreen.context.putImageData(videoFrameData, 0, 0);
-          this.update();
-          console.log(response.message);
-        }
-      } else {
-        console.error(response.message);
-      }
-    });
-  }
-
-  public static getInstance(): VideoFrameExtractor {
-    if (this.instance === null) {
-      this.instance = new VideoFrameExtractor();
-    }
-    return this.instance;
+    if (index === this.currentThumbIndex) return;
+    this.currentThumbIndex = index;
+    const cell = this.thumbnailSpriteCells[index];
+    const { sx, sy, sw, sh } = cell;
+    const { canvas, context } = this.preview;
+    this.clearCanvas(context, canvas);
+    context.drawImage(
+      this.thumbnailSprite,
+      sx,
+      sy,
+      sw,
+      sh,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
   }
 
   private update(): void {
@@ -314,10 +367,7 @@ export class VideoFrameExtractor {
         value / this.videoMetadata.frameRate,
         this.videoMetadata.duration,
       );
-      window.api.processVideoFrame(
-        this.videoMetadata.filePath,
-        timeInSeconds,
-      );
+      window.api.processVideoFrame(this.videoMetadata.filePath, timeInSeconds);
     }
   }
 }
