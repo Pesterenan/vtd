@@ -1,3 +1,5 @@
+import type { ISliderControl } from "src/components/helpers/createSliderControl";
+import { createSliderControl } from "src/components/helpers/createSliderControl";
 import { clamp } from "src/utils/easing";
 
 export type FilterProperty = string | number | undefined;
@@ -20,6 +22,9 @@ export abstract class Filter {
     return this.properties.get("globalAlpha") as number;
   }
 
+  private filterControls: HTMLDivElement | null = null;
+  private opacityControl: ISliderControl | null = null;
+
   constructor(id: string, label: string, applies: "before" | "after") {
     this.properties.set("id", id);
     this.properties.set("label", label);
@@ -39,9 +44,40 @@ export abstract class Filter {
     return Object.fromEntries(this.properties);
   }
 
-  abstract apply(
+  public apply(
     context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-    canvas: CanvasImageSource,
-  ): void;
-  abstract getFilterControls(): HTMLDivElement | null;
+    _canvas: CanvasImageSource,
+  ): void{
+    context.save();
+    context.globalAlpha = this.globalAlpha;
+  }
+
+  public getFilterControls(): HTMLDivElement {
+    if (this.filterControls) return this.filterControls;
+
+    this.filterControls = document.createElement("div");
+    this.filterControls.className = "sec_menu-style pad-05";
+    this.filterControls.id = `${this.id}-filter-controls`;
+    this.opacityControl = createSliderControl(
+      `{this.id}-opacity`,
+      "Opacidade",
+      { min: 0, max:  1, step: 0.01, value: this.globalAlpha },
+      this.handleOpacityChange.bind(this),
+    );
+    this.opacityControl.linkEvents();
+    this.filterControls.append(this.opacityControl.element);
+    this.appendFilterControls(this.filterControls);
+    return this.filterControls;
+  }
+
+  private handleOpacityChange(newValue: number): void {
+    if (this.opacityControl) {
+      this.globalAlpha = Number(newValue);
+      this.onOpacityChange();
+    }
+  }
+
+  protected abstract onOpacityChange(): void;
+
+  protected abstract appendFilterControls(container: HTMLDivElement): void;
 }

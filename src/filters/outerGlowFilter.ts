@@ -20,7 +20,6 @@ export class OuterGlowFilter extends Filter {
     return this.properties.get("color") as string;
   }
 
-  private filterControls: HTMLDivElement | null = null;
   private blurControl: ISliderControl | null = null;
   private colorControl: IColorControl | null = null;
 
@@ -28,14 +27,13 @@ export class OuterGlowFilter extends Filter {
     super("outer-glow", "Luz Brilhante (Fora)", "before");
     this.blur = 10;
     this.color = "#FFFAAA";
-    this.createDOMElements();
   }
 
   apply(
     context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
     canvas: OffscreenCanvas | HTMLImageElement,
   ): void {
-    context.save();
+    super.apply(context, canvas);
     context.shadowColor = this.color;
     context.shadowBlur = this.blur;
     context.shadowOffsetX = 0;
@@ -46,18 +44,9 @@ export class OuterGlowFilter extends Filter {
 
   public deserialize(data: Partial<Filter>): void {
     super.deserialize(data);
-    this.createDOMElements();
   }
 
-  getFilterControls(): HTMLDivElement | null {
-    return this.filterControls;
-  }
-
-  createDOMElements(): void {
-    this.filterControls = document.createElement("div");
-    this.filterControls.className = "sec_menu-style pad-05";
-    this.filterControls.id = `${this.id}-filter-controls`;
-
+  protected appendFilterControls(container: HTMLDivElement): void {
     this.blurControl = createSliderControl(
       `${this.id}-blur`,
       "Desfoque",
@@ -74,7 +63,7 @@ export class OuterGlowFilter extends Filter {
 
     this.blurControl.linkEvents();
     this.colorControl.linkEvents();
-    this.filterControls.append(
+    container.append(
       this.blurControl.element,
       this.colorControl.element,
     );
@@ -93,4 +82,8 @@ export class OuterGlowFilter extends Filter {
       dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
+
+  protected onOpacityChange(): void {
+      dispatch(EVENT.UPDATE_WORKAREA);
+  }
 }

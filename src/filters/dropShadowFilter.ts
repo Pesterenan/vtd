@@ -34,7 +34,6 @@ export class DropShadowFilter extends Filter {
     return this.properties.get("color") as string;
   }
 
-  private filterControls: HTMLDivElement | null = null;
   private angleControl: ISliderControl | null = null;
   private distanceControl: ISliderControl | null = null;
   private blurControl: ISliderControl | null = null;
@@ -48,14 +47,13 @@ export class DropShadowFilter extends Filter {
     this.blur = 10;
     this.color = "#000000";
     this.radians = toRadians(this.angle);
-    this.createDOMElements();
   }
 
   apply(
     context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
     canvas: OffscreenCanvas | HTMLImageElement,
   ): void {
-    context.save();
+    super.apply(context, canvas);
     context.shadowColor = this.color;
     context.shadowBlur = this.blur;
     context.shadowOffsetX = this.distance * Math.sin(this.radians);
@@ -67,18 +65,9 @@ export class DropShadowFilter extends Filter {
   public deserialize(data: Partial<Filter>): void {
     super.deserialize(data);
     this.radians = this.angle * (Math.PI / 180);
-    this.createDOMElements();
   }
 
-  getFilterControls(): HTMLDivElement | null {
-    return this.filterControls;
-  }
-
-  createDOMElements(): void {
-    this.filterControls = document.createElement("div");
-    this.filterControls.className = "sec_menu-style pad-05";
-    this.filterControls.id = `${this.id}-filter-controls`;
-
+  protected appendFilterControls(container: HTMLDivElement): void {
     this.angleControl = createSliderControl(
       `${this.id}-angle`,
       "Ângulo",
@@ -111,7 +100,7 @@ export class DropShadowFilter extends Filter {
     this.distanceControl.linkEvents();
     this.blurControl.linkEvents();
     this.colorControl.linkEvents();
-    this.filterControls.append(
+    container.append(
       this.angleControl.element,
       this.distanceControl.element,
       this.blurControl.element,
@@ -146,4 +135,8 @@ export class DropShadowFilter extends Filter {
       dispatch(EVENT.UPDATE_WORKAREA);
     }
   };
+
+  protected onOpacityChange(): void {
+      dispatch(EVENT.UPDATE_WORKAREA);
+  }
 }
