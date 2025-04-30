@@ -46,7 +46,7 @@ export class DropShadowFilter extends Filter {
     this.color = "#000000";
   }
 
-  filterEffects(
+  protected filterEffects(
     context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
     source: OffscreenCanvas | HTMLImageElement,
   ): void {
@@ -55,6 +55,10 @@ export class DropShadowFilter extends Filter {
     context.shadowOffsetX = this.distance * Math.sin(toRadians(this.angle));
     context.shadowOffsetY = this.distance * Math.cos(toRadians(this.angle));
     context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
+  }
+
+  protected onValueChange(): void {
+      dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   protected appendFilterControls(container: HTMLDivElement): void {
@@ -101,32 +105,28 @@ export class DropShadowFilter extends Filter {
   private handleAngleControlChange = (newValue: number): void => {
     if (this.angleControl) {
       this.angle = Number(newValue);
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.onValueChange();
     }
   };
 
   private handleDistanceControlChange = (newValue: number): void => {
     if (this.distanceControl) {
       this.distance = Number(newValue);
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.onValueChange();
     }
   };
 
   private handleBlurControlChange = (newValue: number): void => {
     if (this.blurControl) {
       this.blur = Number(newValue);
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.onValueChange();
     }
   };
 
   private handleColorControlChange = (newValue: string): void => {
     if (this.colorControl) {
       this.color = newValue;
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.onValueChange();
     }
   };
-
-  protected onOpacityChange(): void {
-      dispatch(EVENT.UPDATE_WORKAREA);
-  }
 }

@@ -26,7 +26,7 @@ export class BrightnessContrastFilter extends Filter {
     this.contrast = 100;
   }
 
-  filterEffects(
+  protected filterEffects(
     context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
     source: OffscreenCanvas | HTMLImageElement,
   ): void {
@@ -34,34 +34,37 @@ export class BrightnessContrastFilter extends Filter {
     context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
   }
 
-  protected onOpacityChange(): void {
-    dispatch(EVENT.UPDATE_WORKAREA)
+  protected onValueChange(): void {
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   protected appendFilterControls(container: HTMLDivElement): void {
     this.brightnessControl = createSliderControl(
-    `${this.id}-brightness`,
-    "Brilho",
-    { min: 0, max: 150, step: 5, value: this.brightness },
-    this.handleBrightnessControlChange,
+      `${this.id}-brightness`,
+      "Brilho",
+      { min: 0, max: 150, step: 5, value: this.brightness },
+      this.handleBrightnessControlChange,
     );
     this.contrastControl = createSliderControl(
-    `${this.id}-contrast`,
-    "Contraste",
-    { min: 0, max: 150, step: 5, value: this.contrast },
-    this.handleContrastControlChange,
+      `${this.id}-contrast`,
+      "Contraste",
+      { min: 0, max: 150, step: 5, value: this.contrast },
+      this.handleContrastControlChange,
     );
     this.brightnessControl.linkEvents();
     this.contrastControl.linkEvents();
-    container.append(this.brightnessControl.element, this.contrastControl.element);
+    container.append(
+      this.brightnessControl.element,
+      this.contrastControl.element,
+    );
   }
 
   private handleBrightnessControlChange = (newValue: number): void => {
     this.brightness = Number(newValue);
-      dispatch(EVENT.UPDATE_WORKAREA);
-  }
+    this.onValueChange();
+  };
   private handleContrastControlChange = (newValue: number): void => {
     this.contrast = Number(newValue);
-      dispatch(EVENT.UPDATE_WORKAREA);
-  }
+    this.onValueChange();
+  };
 }

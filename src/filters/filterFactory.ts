@@ -1,5 +1,6 @@
 import type { Filter } from "src/filters/filter";
 import { BrightnessContrastFilter } from "src/filters/brightnessContrastFilter";
+import { ColorCorrectionFilter } from "src/filters/colorCorrectionFilter";
 import { DropShadowFilter } from "src/filters/dropShadowFilter";
 import { OuterGlowFilter } from "src/filters/outerGlowFilter";
 
@@ -15,6 +16,10 @@ export function createFilter(filterData: Partial<Filter>): Filter | null {
   }
   if (filterData.id === "brightness-contrast") {
     filter = new BrightnessContrastFilter();
+    filter.deserialize(filterData);
+  }
+  if (filterData.id === "color-correction") {
+    filter = new ColorCorrectionFilter();
     filter.deserialize(filterData);
   }
 

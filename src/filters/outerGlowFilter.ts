@@ -29,7 +29,7 @@ export class OuterGlowFilter extends Filter {
     this.color = "#FFFAAA";
   }
 
-  filterEffects(
+  protected filterEffects(
     context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
     source: OffscreenCanvas | HTMLImageElement,
   ): void {
@@ -38,6 +38,10 @@ export class OuterGlowFilter extends Filter {
     context.shadowOffsetX = 0;
     context.shadowOffsetY = 0;
     context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
+  }
+
+  protected onValueChange(): void {
+      dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   protected appendFilterControls(container: HTMLDivElement): void {
@@ -64,20 +68,12 @@ export class OuterGlowFilter extends Filter {
   }
 
   private handleBlurControlChange = (newValue: number): void => {
-    if (this.blurControl) {
       this.blur = Number(newValue);
-      dispatch(EVENT.UPDATE_WORKAREA);
-    }
+      this.onValueChange();
   };
 
   private handleColorControlChange = (newValue: string): void => {
-    if (this.colorControl) {
       this.color = newValue;
-      dispatch(EVENT.UPDATE_WORKAREA);
-    }
+      this.onValueChange();
   };
-
-  protected onOpacityChange(): void {
-      dispatch(EVENT.UPDATE_WORKAREA);
-  }
 }

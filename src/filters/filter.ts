@@ -75,13 +75,13 @@ export abstract class Filter {
   private handleOpacityChange(newValue: number): void {
     if (this.opacityControl) {
       this.globalAlpha = Number(newValue);
-      this.onOpacityChange();
+      this.onValueChange();
     }
   }
 
   protected abstract filterEffects(context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, canvas: CanvasImageSource): void;
 
-  protected abstract onOpacityChange(): void;
+  protected abstract onValueChange(): void;
 
   protected abstract appendFilterControls(container: HTMLDivElement): void;
 }

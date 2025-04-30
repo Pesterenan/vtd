@@ -1,11 +1,15 @@
 import EVENT, { dispatch } from "src/utils/customEvents";
-import { DropShadowFilter } from "src/filters/dropShadowFilter";
 import type { Element } from "src/components/elements/element";
 import type { Filter } from "src/filters/filter";
-import type { OpenFiltersDialogDetail, TElementData } from "src/components/types";
+import type {
+  OpenFiltersDialogDetail,
+  TElementData,
+} from "src/components/types";
 import { WorkArea } from "src/components/workArea";
-import { OuterGlowFilter } from "src/filters/outerGlowFilter";
 import { BrightnessContrastFilter } from "src/filters/brightnessContrastFilter";
+import { ColorCorrectionFilter } from "src/filters/colorCorrectionFilter";
+import { DropShadowFilter } from "src/filters/dropShadowFilter";
+import { OuterGlowFilter } from "src/filters/outerGlowFilter";
 
 export class FiltersDialog {
   private filterDialog: HTMLDialogElement | null = null;
@@ -47,8 +51,15 @@ export class FiltersDialog {
   }
 
   private openDialog(evt: CustomEvent<OpenFiltersDialogDetail>): void {
-    dispatch(EVENT.SELECT_ELEMENT, { elementsId: new Set([(evt.detail.layerId)]) });
-    this.defaultFilters = [new DropShadowFilter(), new OuterGlowFilter(), new BrightnessContrastFilter()];
+    dispatch(EVENT.SELECT_ELEMENT, {
+      elementsId: new Set([evt.detail.layerId]),
+    });
+    this.defaultFilters = [
+      new BrightnessContrastFilter(),
+      new ColorCorrectionFilter(),
+      new DropShadowFilter(),
+      new OuterGlowFilter(),
+    ];
     const selectedElements = WorkArea.getInstance().getSelectedElements();
     if (!selectedElements) return;
     this.clearFilterControls();
