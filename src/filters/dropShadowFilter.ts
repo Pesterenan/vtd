@@ -10,7 +10,6 @@ import { toRadians } from "src/utils/transforms";
 export class DropShadowFilter extends Filter {
   public set angle(value: number) {
     this.properties.set("angle", clamp(value, 0, 360));
-    this.radians = toRadians(this.angle);
   }
   public get angle(): number {
     return this.properties.get("angle") as number;
@@ -38,7 +37,6 @@ export class DropShadowFilter extends Filter {
   private distanceControl: ISliderControl | null = null;
   private blurControl: ISliderControl | null = null;
   private colorControl: IColorControl | null = null;
-  private radians: number;
 
   constructor() {
     super("drop-shadow", "Sombra", "before");
@@ -46,25 +44,17 @@ export class DropShadowFilter extends Filter {
     this.distance = 20;
     this.blur = 10;
     this.color = "#000000";
-    this.radians = toRadians(this.angle);
   }
 
-  apply(
+  filterEffects(
     context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-    canvas: OffscreenCanvas | HTMLImageElement,
+    source: OffscreenCanvas | HTMLImageElement,
   ): void {
-    super.apply(context, canvas);
     context.shadowColor = this.color;
     context.shadowBlur = this.blur;
-    context.shadowOffsetX = this.distance * Math.sin(this.radians);
-    context.shadowOffsetY = this.distance * Math.cos(this.radians);
-    context.drawImage(canvas, -canvas.width * 0.5, -canvas.height * 0.5);
-    context.restore();
-  }
-
-  public deserialize(data: Partial<Filter>): void {
-    super.deserialize(data);
-    this.radians = this.angle * (Math.PI / 180);
+    context.shadowOffsetX = this.distance * Math.sin(toRadians(this.angle));
+    context.shadowOffsetY = this.distance * Math.cos(toRadians(this.angle));
+    context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
   }
 
   protected appendFilterControls(container: HTMLDivElement): void {

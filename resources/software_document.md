@@ -53,6 +53,7 @@ plataforma escolhida para a criação do app redistribuível.
 &#9746; - Melhorar interface do video frame extractor, colocar alerts e posicionar melhor os elementos\
 &#9746; - Buscar miniaturas para mostrar como preview do video no vfe.\
 &#9746; - Implementar opacidade nos filtros, melhorar implementação de filtros\
+&#9746; - Implementar filtro de brilho e contraste\
 
 &#9744; - Implementar efeito de chroma/color key\
 &#9744; - Implementar um sistema de undo/redo\

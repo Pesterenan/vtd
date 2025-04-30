@@ -29,21 +29,15 @@ export class OuterGlowFilter extends Filter {
     this.color = "#FFFAAA";
   }
 
-  apply(
+  filterEffects(
     context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-    canvas: OffscreenCanvas | HTMLImageElement,
+    source: OffscreenCanvas | HTMLImageElement,
   ): void {
-    super.apply(context, canvas);
     context.shadowColor = this.color;
     context.shadowBlur = this.blur;
     context.shadowOffsetX = 0;
     context.shadowOffsetY = 0;
-    context.drawImage(canvas, -canvas.width * 0.5, -canvas.height * 0.5);
-    context.restore();
-  }
-
-  public deserialize(data: Partial<Filter>): void {
-    super.deserialize(data);
+    context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
   }
 
   protected appendFilterControls(container: HTMLDivElement): void {

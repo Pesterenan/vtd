@@ -46,10 +46,12 @@ export abstract class Filter {
 
   public apply(
     context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-    _canvas: CanvasImageSource,
+    source: CanvasImageSource,
   ): void{
     context.save();
     context.globalAlpha = this.globalAlpha;
+    this.filterEffects(context, source);
+    context.restore();
   }
 
   public getFilterControls(): HTMLDivElement {
@@ -76,6 +78,8 @@ export abstract class Filter {
       this.onOpacityChange();
     }
   }
+
+  protected abstract filterEffects(context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, canvas: CanvasImageSource): void;
 
   protected abstract onOpacityChange(): void;
 
