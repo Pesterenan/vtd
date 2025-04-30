@@ -47,16 +47,13 @@ export class FiltersDialog {
   }
 
   private openDialog(evt: CustomEvent<OpenFiltersDialogDetail>): void {
-    const elementId = evt.detail.layerId;
-    dispatch(EVENT.SELECT_ELEMENT, { elementsId: new Set([elementId]) });
+    dispatch(EVENT.SELECT_ELEMENT, { elementsId: new Set([(evt.detail.layerId)]) });
     this.defaultFilters = [new DropShadowFilter(), new OuterGlowFilter(), new BrightnessContrastFilter()];
     const selectedElements = WorkArea.getInstance().getSelectedElements();
-    if (selectedElements && selectedElements.length === 1) {
-      this.activeElement = selectedElements[0];
-      dispatch(EVENT.UPDATE_WORKAREA);
-      this.clearFilterControls();
-      this.populateFilters();
-    }
+    if (!selectedElements) return;
+    this.clearFilterControls();
+    this.activeElement = selectedElements[0];
+    this.populateFilters();
     if (this.filterDialog) {
       this.filterDialog.showModal();
     }
@@ -114,6 +111,7 @@ export class FiltersDialog {
     if (filterControls) {
       filterControls.appendChild(filter.getFilterControls() as HTMLDivElement);
     }
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   private toggleFilter(filter: Filter, isChecked: boolean): void {
@@ -141,7 +139,6 @@ export class FiltersDialog {
       );
       this.clearFilterControls();
     }
-    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   private clearFilterControls(): void {
@@ -149,6 +146,7 @@ export class FiltersDialog {
     if (filterControls) {
       filterControls.innerHTML = "";
     }
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   private addEventListeners(): void {
