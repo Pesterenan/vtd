@@ -55,8 +55,9 @@ plataforma escolhida para a criação do app redistribuível.
 &#9746; - Implementar opacidade nos filtros, melhorar implementação de filtros\
 &#9746; - Implementar filtro de brilho e contraste\
 &#9746; - Implementar filtro de correção de cores\
+&#9746; - Retrabalhar dialogs para componentes genéricos\
 
-&#9744; - Retrabalhar dialogs para componentes genéricos\
+&#9744; - Retrabalhar o sistema de texto para ter mais opções de formatação\
 &#9744; - Implementar efeito de chroma/color key\
 &#9744; - Implementar um sistema de undo/redo\
 

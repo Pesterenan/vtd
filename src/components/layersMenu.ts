@@ -117,7 +117,7 @@ export class LayersMenu {
     li.draggable = true;
 
     li.className = isGroup
-      ? "container-column jc-c li_layer-item"
+      ? "container column jc-c li_layer-item"
       : "container ai-jc-c li_layer-item";
     li.innerHTML = isGroup
       ? this.groupTemplate(layer)

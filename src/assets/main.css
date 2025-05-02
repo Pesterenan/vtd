@@ -220,10 +220,14 @@ body {
 
 .dialog-common {
   &::backdrop {
-    background-color: rgba(0, 0, 0, 0.35);
+    background-color: transparent;
   }
 
   menu {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
     padding-top: 1rem;
     padding-inline: 1rem;
   }
@@ -237,9 +241,8 @@ body {
   background: linear-gradient(var(--background-300), var(--background-500));
   border: 1px solid var(--background-700);
   border-radius: 0.5rem;
+  box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.4);
   color: var(--text-900);
-  align-self: center;
-  justify-self: center;
   height: fit-content;
   padding: 0.5rem;
   width: fit-content;

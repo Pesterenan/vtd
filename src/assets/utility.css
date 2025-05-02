@@ -3,8 +3,7 @@
   flex-direction: row;
 }
 
-.container-column {
-  display: flex;
+.column {
   flex-direction: column;
 }
 
