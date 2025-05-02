@@ -80,10 +80,10 @@ export class TransformMenu {
     this.transformSection.innerHTML = `
       <h5 style="align-self: flex-start;">Caixa de Transformação:</h5>
       <div class="container jc-sb">
-        <div id="inp_group-position" class="container-column jc-sb">
+        <div id="inp_group-position" class="container column jc-sb">
           <p style="align-self: flex-start;">Posição:</p>
         </div>
-        <div id="inp_group-size" class="container-column jc-sb">
+        <div id="inp_group-size" class="container column jc-sb">
           <p style="align-self: flex-start;">Tamanho:</p>
         </div>
       </div>

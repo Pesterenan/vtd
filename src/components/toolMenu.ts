@@ -26,7 +26,7 @@ export class ToolMenu {
   private createDOMElements(): void {
     this.toolMenu = document.createElement("menu");
     this.toolMenu.id = "tool-menu";
-    this.toolMenu.className = "container-column ai-c jc-fs g-05";
+    this.toolMenu.className = "container column ai-c jc-fs g-05";
     this.toolMenu.innerHTML = `
       <label>
         <tooltip title="Ferramentas" />

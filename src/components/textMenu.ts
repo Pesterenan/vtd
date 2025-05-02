@@ -68,7 +68,7 @@ export class TextMenu {
   <div class='container ai-jc-c'>
     <textarea id="inp_text-input" style="resize: none;"></textarea>
   </div>
-  <div class='container-column ai-jc-c'>
+  <div class='container column ai-jc-c'>
     <button id="btn_accept-text-changes" type="button">V</button>
     <button id="btn_decline-text-changes" type="button">X</button>
   </div>

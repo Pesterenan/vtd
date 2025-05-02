@@ -23,7 +23,7 @@ import { TextElement } from "src/components/elements/textElement";
 import { TextTool } from "src/components/tools/textTool";
 import { GradientTool } from "src/components/tools/gradientTool";
 import { GradientElement } from "src/components/elements/gradientElement";
-import { FiltersDialog } from "src/components/dialogs/filtersDialog";
+import { DialogElementFilters } from "src/components/dialogs/DialogElementFilters";
 import { DialogExportImage } from "src/components/dialogs/DialogExportImage";
 import { SIDE_MENU_WIDTH, TOOL_MENU_WIDTH } from "src/constants";
 import { ElementGroup } from "./elements/elementGroup";
@@ -90,7 +90,7 @@ export class WorkArea {
     this.tools[this.currentTool].equipTool();
 
     this.createEventListeners();
-    new FiltersDialog();
+    new DialogElementFilters();
     new DialogExportImage();
     this.update();
   }

@@ -79,7 +79,7 @@ export class GradientMenu {
     this.gradientSection.className = "sec_menu-style";
     this.gradientSection.innerHTML = `
       <h5 style="align-self: flex-start;">Gradiente:</h5>
-      <div class='container-column jc-sb g-05 pad-i-05'></div>
+      <div class='container column jc-sb g-05 pad-i-05'></div>
       <div id="gradient-bar"></div>
       <div id="color-stops-indicators"></div>
     `;
