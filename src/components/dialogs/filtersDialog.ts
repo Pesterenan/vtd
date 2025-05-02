@@ -6,7 +6,6 @@ import type {
   TElementData,
 } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
-import { BrightnessContrastFilter } from "src/filters/brightnessContrastFilter";
 import { ColorCorrectionFilter } from "src/filters/colorCorrectionFilter";
 import { DropShadowFilter } from "src/filters/dropShadowFilter";
 import { OuterGlowFilter } from "src/filters/outerGlowFilter";
@@ -55,7 +54,6 @@ export class FiltersDialog {
       elementsId: new Set([evt.detail.layerId]),
     });
     this.defaultFilters = [
-      new BrightnessContrastFilter(),
       new ColorCorrectionFilter(),
       new DropShadowFilter(),
       new OuterGlowFilter(),

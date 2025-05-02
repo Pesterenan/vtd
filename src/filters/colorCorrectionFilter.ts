@@ -5,9 +5,12 @@ import type { ISliderControl } from "src/components/helpers/createSliderControl"
 import { createSliderControl } from "src/components/helpers/createSliderControl";
 
 export class ColorCorrectionFilter extends Filter {
+  private brightnessControl: ISliderControl | null = null;
+  private contrastControl: ISliderControl | null = null;
+  private grayScaleControl: ISliderControl | null = null;
   private hueControl: ISliderControl | null = null;
   private saturationControl: ISliderControl | null = null;
-  private grayScaleControl: ISliderControl | null = null;
+
   public get hue(): number {
     return this.properties.get("hue") as number;
   }
@@ -20,25 +23,39 @@ export class ColorCorrectionFilter extends Filter {
   public set saturation(value: number) {
     this.properties.set("saturation", clamp(value, 0, 200));
   }
-  public get grayScale(): number {
-    return this.properties.get("grayScale") as number;
+  public get grayscale(): number {
+    return this.properties.get("grayscale") as number;
   }
-  public set grayScale(value: number) {
-    this.properties.set("grayScale", clamp(value, 0, 100));
+  public set grayscale(value: number) {
+    this.properties.set("grayscale", clamp(value, 0, 100));
+  }
+  public set brightness(value: number) {
+    this.properties.set("brightness", clamp(value, 0, 150));
+  }
+  public get brightness(): number {
+    return this.properties.get("brightness") as number;
+  }
+  public set contrast(value: number) {
+    this.properties.set("contrast", clamp(value, 0, 150));
+  }
+  public get contrast(): number {
+    return this.properties.get("contrast") as number;
   }
 
   constructor() {
     super("color-correction", "Correção de Cor", "after");
+    this.brightness = 100;
+    this.contrast = 100;
+    this.grayscale = 0;
     this.hue = 0;
     this.saturation = 100;
-    this.grayScale = 0;
   }
 
   protected filterEffects(
     context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
     source: OffscreenCanvas | HTMLImageElement,
   ): void {
-    context.filter = `grayscale(${this.grayScale}%) hue-rotate(${this.hue}deg) saturate(${this.saturation}%)`;
+    context.filter = `grayscale(${this.grayscale}%) hue-rotate(${this.hue}deg) saturate(${this.saturation}%) brightness(${this.brightness}%) contrast(${this.contrast}%)`;
     context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
   }
 
@@ -47,6 +64,24 @@ export class ColorCorrectionFilter extends Filter {
   }
 
   protected appendFilterControls(container: HTMLDivElement): void {
+    this.brightnessControl = createSliderControl(
+      `${this.id}-brightness`,
+      "Brilho",
+      { min: 0, max: 150, step: 5, value: this.brightness },
+      this.handleBrightnessControlChange,
+    );
+    this.contrastControl = createSliderControl(
+      `${this.id}-contrast`,
+      "Contraste",
+      { min: 0, max: 150, step: 5, value: this.contrast },
+      this.handleContrastControlChange,
+    );
+    this.grayScaleControl = createSliderControl(
+      `${this.id}-grayscale`,
+      "Escala de Cinza",
+      { min: 0, max: 100, step: 1, value: this.grayscale },
+      this.handleGrayScaleChange,
+    );
     this.hueControl = createSliderControl(
       `${this.id}-hue`,
       "Matiz",
@@ -59,33 +94,39 @@ export class ColorCorrectionFilter extends Filter {
       { min: 0, max: 200, step: 1, value: this.saturation },
       this.handleSaturationChange,
     );
-    this.grayScaleControl = createSliderControl(
-      `${this.id}-grayscale`,
-      "Escala de Cinza",
-      { min: 0, max: 100, step: 1, value: this.grayScale },
-      this.handleGrayScaleChange,
-    );
     this.hueControl.linkEvents();
     this.saturationControl.linkEvents();
     this.grayScaleControl.linkEvents();
+    this.brightnessControl.linkEvents();
+    this.contrastControl.linkEvents();
 
     container.append(
+      this.brightnessControl.element,
+      this.contrastControl.element,
+      this.grayScaleControl.element,
       this.hueControl.element,
       this.saturationControl.element,
-      this.grayScaleControl.element,
     );
   }
 
+  private handleBrightnessControlChange = (newValue: number): void => {
+    this.brightness = Number(newValue);
+    this.onValueChange();
+  };
+  private handleContrastControlChange = (newValue: number): void => {
+    this.contrast = Number(newValue);
+    this.onValueChange();
+  };
+  private handleGrayScaleChange = (newValue: number): void => {
+    this.grayscale = Number(newValue);
+    this.onValueChange();
+  };
   private handleHueControlChange = (newValue: number): void => {
     this.hue = Number(newValue);
     this.onValueChange();
   };
   private handleSaturationChange = (newValue: number): void => {
     this.saturation = Number(newValue);
-    this.onValueChange();
-  };
-  private handleGrayScaleChange = (newValue: number): void => {
-    this.grayScale = Number(newValue);
     this.onValueChange();
   };
 }
