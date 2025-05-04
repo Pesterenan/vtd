@@ -24,6 +24,7 @@ export abstract class Dialog {
     this.dialogEl.id = `dialog-${options.id}`;
     this.dialogEl.className = "dialog-common";
     this.dialogEl.style.position = "fixed";
+    if (!options.isDraggable) this.dialogEl.classList.add("fixed-dialog");
     this.resetPosition();
 
     this.dialogEl.innerHTML = `

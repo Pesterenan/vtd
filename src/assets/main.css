@@ -248,6 +248,12 @@ body {
   width: fit-content;
 }
 
+.fixed-dialog {
+  &::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+}
+
 .error-element {
   background-color: var(--error_light);
   color: var(--error_main);
