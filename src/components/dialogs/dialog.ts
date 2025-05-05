@@ -4,6 +4,9 @@ interface IDialogOptions {
   title: string;
   id: string;
   isDraggable?: boolean;
+  style?: {
+    minWidth?: string;
+  };
 }
 
 export abstract class Dialog {
@@ -24,13 +27,15 @@ export abstract class Dialog {
     this.dialogEl.id = `dialog-${options.id}`;
     this.dialogEl.className = "dialog-common";
     this.dialogEl.style.position = "fixed";
+    this.dialogEl.style.minWidth = options?.style?.minWidth || "fit-content";
+    if (!options.isDraggable) this.dialogEl.classList.add("fixed-dialog");
     this.resetPosition();
 
     this.dialogEl.innerHTML = `
     <form method="dialog">
       <h3 id="dialog-${options.id}-header" style="cursor: ${options.isDraggable ? 'move' : 'default'};">${options.title}</h3>
       <div id="dialog-${options.id}-content" class="container g-05 ai-fs"></div>
-      <menu id="dialog-${options.id}-actions"></menu>
+      <menu id="dialog-${options.id}-actions" class="container g-05 ai-fs"></menu>
     </form>
     `;
     document.body.appendChild(this.dialogEl);
