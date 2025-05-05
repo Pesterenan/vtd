@@ -12,6 +12,7 @@ import { OuterGlowFilter } from "src/filters/outerGlowFilter";
 import { Dialog } from "./dialog";
 
 export class DialogElementFilters extends Dialog {
+  private currentFilters: Filter[] = [];
   private defaultFilters: Filter[] = [];
   private activeElement: Element<TElementData> | null = null;
   private activeElementId = -1;
@@ -35,17 +36,45 @@ export class DialogElementFilters extends Dialog {
   }
 
   protected appendDialogActions(menu: HTMLMenuElement): void {
-    const btnClose = document.createElement("button");
-    btnClose.id = "btn_close-dialog";
-    btnClose.className = "btn-common-wide";
-    btnClose.textContent = "Fechar";
-    btnClose.type = "button";
-    btnClose.addEventListener("click", () => {
-      this.activeElement = null;
+    const btnAccept = document.createElement("button");
+    btnAccept.id = "btn_accept-filters";
+    btnAccept.className = "btn-common-wide";
+    btnAccept.textContent = "Aplicar";
+    btnAccept.type = "button";
+    btnAccept.addEventListener("click", () => {
+      this.activeElementId = -1;
       this.clearFilterControls();
       this.close();
     });
-    menu.appendChild(btnClose);
+
+    const btnCancel = document.createElement("button");
+    btnCancel.id = "btn_cancel-filters";
+    btnCancel.className = "btn-common-wide";
+    btnCancel.textContent = "Cancelar";
+    btnCancel.type = "button";
+    btnCancel.addEventListener("click", () => {
+      if (!this.activeElement) return;
+      this.activeElement.filters = this.currentFilters;
+      this.activeElement = null;
+      this.activeElementId = -1;
+      this.clearFilterControls();
+      this.close();
+    });
+
+    const btnReset = document.createElement("button");
+    btnReset.id = "btn_reset-filters";
+    btnReset.className = "btn-common-wide";
+    btnReset.textContent = "Resetar";
+    btnReset.type = "button";
+    btnReset.addEventListener("click", () => {
+      if (!this.activeElement) return;
+      this.activeElement.filters = [];
+      this.populateFilters();
+      dispatch(EVENT.UPDATE_WORKAREA);
+    });
+    menu.appendChild(btnAccept)
+    menu.appendChild(btnCancel);
+    menu.appendChild(btnReset);
   }
 
   protected override onOpen(): void {
@@ -60,6 +89,7 @@ export class DialogElementFilters extends Dialog {
     const selectedElements = WorkArea.getInstance().getSelectedElements();
     if (!selectedElements) return;
     this.activeElement = selectedElements[0];
+    this.currentFilters = [ ...this.activeElement.filters ];
     this.populateFilters();
   }
 

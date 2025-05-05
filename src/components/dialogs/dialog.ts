@@ -31,7 +31,7 @@ export abstract class Dialog {
     <form method="dialog">
       <h3 id="dialog-${options.id}-header" style="cursor: ${options.isDraggable ? 'move' : 'default'};">${options.title}</h3>
       <div id="dialog-${options.id}-content" class="container g-05 ai-fs"></div>
-      <menu id="dialog-${options.id}-actions"></menu>
+      <menu id="dialog-${options.id}-actions" class="container g-05 ai-fs"></menu>
     </form>
     `;
     document.body.appendChild(this.dialogEl);
