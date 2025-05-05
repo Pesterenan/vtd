@@ -64,7 +64,7 @@ export class DialogElementFilters extends Dialog {
     const btnReset = document.createElement("button");
     btnReset.id = "btn_reset-filters";
     btnReset.className = "btn-common-wide";
-    btnReset.textContent = "Resetar";
+    btnReset.textContent = "Redefinir";
     btnReset.type = "button";
     btnReset.addEventListener("click", () => {
       if (!this.activeElement) return;

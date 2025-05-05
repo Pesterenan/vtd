@@ -4,6 +4,9 @@ interface IDialogOptions {
   title: string;
   id: string;
   isDraggable?: boolean;
+  style?: {
+    minWidth?: string;
+  };
 }
 
 export abstract class Dialog {
@@ -24,6 +27,7 @@ export abstract class Dialog {
     this.dialogEl.id = `dialog-${options.id}`;
     this.dialogEl.className = "dialog-common";
     this.dialogEl.style.position = "fixed";
+    this.dialogEl.style.minWidth = options?.style?.minWidth || "fit-content";
     if (!options.isDraggable) this.dialogEl.classList.add("fixed-dialog");
     this.resetPosition();
 

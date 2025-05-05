@@ -4,7 +4,7 @@ import { Dialog } from "./dialog";
 
 export class DialogExportImage extends Dialog {
   constructor() {
-    super({ id: "export-image", title: "Exportar Imagem" });
+    super({ id: "export-image", title: "Exportar Imagem", style: { minWidth: "25rem" } });
     window.addEventListener(EVENT.OPEN_EXPORT_IMAGE_DIALOG, () =>
       this.open(),
     );

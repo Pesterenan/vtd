@@ -239,8 +239,8 @@ body {
   }
 
   background: linear-gradient(var(--background-300), var(--background-500));
-  border: 1px solid var(--background-700);
   border-radius: 0.5rem;
+  border: 1px solid var(--background-700);
   box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.4);
   color: var(--text-900);
   height: fit-content;
