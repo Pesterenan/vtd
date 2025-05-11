@@ -33,6 +33,7 @@ export function createSliderControl(
   sliderEl.value = clamped(options.value);
 
   const inputFieldEl = document.createElement("input");
+  inputFieldEl.id = `${id}-input`;
   inputFieldEl.type = "number";
   inputFieldEl.min = options.min.toString();
   inputFieldEl.max = options.max.toString();

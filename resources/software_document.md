@@ -58,6 +58,9 @@ plataforma escolhida para a criação do app redistribuível.
 &#9746; - Retrabalhar dialogs para componentes genéricos\
 
 &#9744; - Retrabalhar o sistema de texto para ter mais opções de formatação\
+&#9744; - Adicionar opções de alinhamento de texto\
+&#9744; - Adicionar Fontes diferentes\
+&#9744; - Trabalhar input de texto de forma instantânea\
 &#9744; - Implementar efeito de chroma/color key\
 &#9744; - Implementar um sistema de undo/redo\
 
