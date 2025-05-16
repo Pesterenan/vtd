@@ -22,11 +22,15 @@ export interface ITextElementData extends IElementData {
   fillColor: string;
   font: string;
   fontSize: number;
+  fontStyle: "normal" | "underline" | "strike-through";
+  fontWeight: "normal" | "bold" | "italic" | "bold italic";
   hasFill: boolean;
   hasStroke: boolean;
   lineHeight: number;
   strokeColor: string;
   strokeWidth: number;
+  textAlign: "left" | "center" | "right";
+  textBaseline: "alphabetic" | "top" | "middle"  | "bottom";
 }
 
 export interface IImageElementData extends IElementData {

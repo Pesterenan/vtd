@@ -12,6 +12,30 @@ export class TextElement extends Element<ITextElementData> {
     this.needsBoundingBoxUpdate = true;
     this.needsCacheUpdate = true;
   }
+  public get fontWeight(): string {
+    return this.properties.get("fontWeight") as string;
+  }
+  public set fontWeight(value: string) {
+    this.properties.set("fontWeight", value);
+    this.needsBoundingBoxUpdate = true;
+    this.needsCacheUpdate = true;
+  }
+  public get textAlign(): string {
+    return this.properties.get("textAlign") as string;
+  }
+  public set textAlign(value: string) {
+    this.properties.set("textAlign", value);
+    this.needsBoundingBoxUpdate = true;
+    this.needsCacheUpdate = true;
+  }
+  public get textBaseline(): string {
+    return this.properties.get("textBaseline") as string;
+  }
+  public set textBaseline(value: string) {
+    this.properties.set("textBaseline", value);
+    this.needsBoundingBoxUpdate = true;
+    this.needsCacheUpdate = true;
+  }
   public get fillColor(): string {
     return this.properties.get("fillColor") as string;
   }
@@ -94,11 +118,14 @@ export class TextElement extends Element<ITextElementData> {
     this.fillColor = "#bababa";
     this.font = "Impact";
     this.fontSize = 64;
+    this.fontWeight = "normal";
     this.hasFill = true;
     this.hasStroke = false;
     this.lineHeight = 1.2;
     this.strokeColor = "#202020";
     this.strokeWidth = 10;
+    this.textAlign = "left";
+    this.textBaseline = "middle";
 
     this.lineVerticalSpacing = this.fontSize * this.lineHeight;
     this.boundingBox = new BoundingBox(position, size, this.rotation);
@@ -139,8 +166,8 @@ export class TextElement extends Element<ITextElementData> {
   ): void {
     context.save();
     context.font = `${this.fontSize}pt ${this.font}`;
-    context.textAlign = "center";
-    context.textBaseline = "middle";
+    context.textAlign = this.textAlign as CanvasTextAlign;
+    context.textBaseline = this.textBaseline as CanvasTextBaseline;
     if (!this.needsBoundingBoxUpdate) return;
     const totalSize = this.content.reduce(
       (acc, line) => {
@@ -204,9 +231,10 @@ export class TextElement extends Element<ITextElementData> {
   private drawText(
     context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
   ): void {
-    context.font = `${this.fontSize}pt ${this.font}`;
-    context.textAlign = "center";
-    context.textBaseline = "middle";
+    const weight = (this.fontWeight === "normal") ? "" : this.fontWeight;
+    context.font = `${weight} ${this.fontSize}pt ${this.font}`;
+    context.textAlign = this.textAlign as CanvasTextAlign;
+    context.textBaseline = this.textBaseline as CanvasTextBaseline;
     context.strokeStyle = this.strokeColor;
     context.lineJoin = "round";
     context.lineWidth = this.strokeWidth;

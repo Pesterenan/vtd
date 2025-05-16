@@ -89,15 +89,18 @@ describe("TextMenu", () => {
   describe("accept/decline buttons", () => {
     it("should clear and unlink on accept", () => {
       acceptButton.click();
+
       expect(textInput.value).toBe("");
     });
 
     it("should restore original content on decline", () => {
       textInput.value = "new text";
       textInput.dispatchEvent(new Event("input"));
+
       expect(element.content).toEqual(["new text"]);
 
       declineButton.click();
+
       expect(element.content).toEqual(["Sample Text"]);
       expect(textInput.value).toBe("");
     });
@@ -107,42 +110,49 @@ describe("TextMenu", () => {
     it("should update fontSize via slider change", () => {
       sizeControlInput.value = "24";
       sizeControlInput.dispatchEvent(new Event("input"));
+
       expect(element.fontSize).toBe(24);
     });
 
     it("should toggle hasFill via checkbox change", () => {
       fillCheckbox.checked = !element.hasFill;
       fillCheckbox.dispatchEvent(new Event("change"));
+
       expect(element.hasFill).toBe(fillCheckbox.checked);
     });
 
     it("should toggle hasStroke via checkbox change", () => {
       strokeCheckbox.checked = !element.hasStroke;
       strokeCheckbox.dispatchEvent(new Event("change"));
+
       expect(element.hasStroke).toBe(strokeCheckbox.checked);
     });
 
     it("should update fillColor via control callback", () => {
       fillColorControlInput.value = "#123456";
       fillColorControlInput.dispatchEvent(new Event("input"));
+
       expect(element.fillColor).toBe("#123456");
     });
 
     it("should update strokeWidth via slider change", () => {
       strokeWidthControlInput.value = "12";
       strokeWidthControlInput.dispatchEvent(new Event("input"));
+
       expect(element.strokeWidth).toBe(12);
     });
 
     it("should update strokeColor via color control change", () => {
       strokeColorControlInput.value = "#abcdef";
       strokeColorControlInput.dispatchEvent(new Event("input"));
+
       expect(element.strokeColor).toBe("#abcdef");
     });
 
     it("should update lineHeight via slider change", () => {
       lineHeightControlInput.value = "1.8";
       lineHeightControlInput.dispatchEvent(new Event("input"));
+
       expect(element.lineHeight).toBeCloseTo(1.8);
     });
   });
