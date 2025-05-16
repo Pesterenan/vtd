@@ -1,13 +1,12 @@
 import EVENT, { dispatch } from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
-import errorElement from "src/components/elements/errorElement";
 import { TextElement } from "src/components/elements/textElement";
 import { WorkArea } from "src/components/workArea";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import { createSliderControl } from "./helpers/createSliderControl";
 import type { IColorControl } from "./helpers/createColorControl";
 import { createColorControl } from "./helpers/createColorControl";
-import type { SelectElementDetail } from "./types";
+import type { ITextElementData, SelectElementDetail } from "./types";
 
 export class TextMenu {
   private static instance: TextMenu | null = null;
@@ -18,30 +17,22 @@ export class TextMenu {
   private originalText = "";
   private strokeCheckbox: HTMLInputElement | null = null;
   private textInput: HTMLTextAreaElement | null = null;
-  private textMenuSection: HTMLElement | null = null;
+  private textMenuSection: HTMLElement;
   private sizeControl: ISliderControl | null = null;
   private lineHeightControl: ISliderControl | null = null;
   private fillColorControl: IColorControl | null = null;
   private strokeColorControl: IColorControl | null = null;
   private strokeWidthControl: ISliderControl | null = null;
+  private textAlignRadios: HTMLInputElement[] | null = null;
+  private textBaselineRadios: HTMLInputElement[] | null = null;
 
   private constructor() {
+    this.textMenuSection = document.createElement("section");
     this.createDOMElements();
     window.addEventListener(
       EVENT.SELECT_ELEMENT,
       this.handleSelectElement.bind(this),
     );
-  }
-
-  private handleSelectElement(evt: CustomEvent<SelectElementDetail>): void {
-    const { elementsId } = evt.detail;
-    const selectedElements = WorkArea.getInstance().getSelectedElements();
-    if (elementsId.size === 1 && selectedElements && selectedElements[0] instanceof TextElement) {
-        this.activeTextElement = selectedElements[0];
-        this.linkDOMElements();
-    } else {
-      this.unlinkDOMElements();
-    }
   }
 
   public static getInstance(): TextMenu {
@@ -52,25 +43,21 @@ export class TextMenu {
   }
 
   public getMenu(): HTMLElement {
-    if (this.textMenuSection) {
-      return this.textMenuSection;
-    }
-    return errorElement("Menu não instanciado");
+    return this.textMenuSection;
   }
 
   private createDOMElements(): void {
-    this.textMenuSection = document.createElement("section");
     this.textMenuSection.id = "sec_text-menu";
     this.textMenuSection.className = "sec_menu-style";
     this.textMenuSection.innerHTML = `
-<h5 style="align-self: flex-start;">Texto:</h5>
+<div class='container ai-jc-c'>
+  <h5 style="align-self: flex-start;">Texto:</h5>
+  <button id="btn_accept-text-changes" type="button">V</button>
+  <button id="btn_decline-text-changes" type="button">X</button>
+</div>
 <div class='container jc-sb'>
   <div class='container ai-jc-c'>
     <textarea id="inp_text-input" style="resize: none;"></textarea>
-  </div>
-  <div class='container column ai-jc-c'>
-    <button id="btn_accept-text-changes" type="button">V</button>
-    <button id="btn_decline-text-changes" type="button">X</button>
   </div>
 </div>
 <div id="div_font-size-line-height" class='container jc-sb' style="padding-inline: 0.5rem;"></div>
@@ -84,7 +71,30 @@ export class TextMenu {
     <input id="chk_stroke" type="checkbox"/>
   </div>
 </div>
+<div id="div_text-align">
+  Alinhamento:
+  <label><input type="radio" name="text-align" value="left"/>Esq</label>
+  <label><input checked type="radio" name="text-align" value="center"/>Centro</label>
+  <label><input type="radio" name="text-align" value="right"/>Dir</label>
+</div>
+<div id="div_text-baseline">
+  Linha de Base:
+  <label><input type="radio" name="text-baseline" value="alphabetic"/>Alfabético</label>
+  <label><input type="radio" name="text-baseline" value="top"/>Cima</label>
+  <label><input checked type="radio" name="text-baseline" value="middle"/>Meio</label>
+  <label><input type="radio" name="text-baseline" value="bottom"/>Baixo</label>
+</div>
 `;
+    this.textAlignRadios = Array.from(
+      this.textMenuSection.querySelectorAll<HTMLInputElement>(
+        'input[name="text-align"]',
+      ),
+    );
+    this.textBaselineRadios = Array.from(
+      this.textMenuSection.querySelectorAll<HTMLInputElement>(
+        'input[name="text-baseline"]',
+      ),
+    );
     this.fillColorControl = createColorControl(
       "fill-color-control",
       "Preenchimento",
@@ -155,6 +165,26 @@ export class TextMenu {
     this.textInput = getElementById<HTMLTextAreaElement>("inp_text-input");
     this.textInput.value = this.originalText;
     this.textInput.addEventListener("input", this.handleTextInput);
+    this.textAlignRadios?.forEach((radio) => {
+      radio.checked = radio.value === this.activeTextElement?.textAlign;
+      radio.addEventListener("click", () => {
+        if (radio.checked && this.activeTextElement) {
+          this.activeTextElement.textAlign =
+            radio.value as ITextElementData["textAlign"];
+          dispatch(EVENT.UPDATE_WORKAREA);
+        }
+      });
+    });
+    this.textBaselineRadios?.forEach((radio) => {
+      radio.checked = radio.value === this.activeTextElement?.textBaseline;
+      radio.addEventListener("click", () => {
+        if (radio.checked && this.activeTextElement) {
+          this.activeTextElement.textBaseline =
+            radio.value as ITextElementData["textBaseline"];
+          dispatch(EVENT.UPDATE_WORKAREA);
+        }
+      });
+    });
     this.acceptButton = getElementById<HTMLButtonElement>(
       "btn_accept-text-changes",
     );
@@ -234,6 +264,20 @@ export class TextMenu {
     this.fillColorControl?.unlinkEvents();
     this.strokeColorControl?.unlinkEvents();
     this.strokeWidthControl?.unlinkEvents();
+  }
+
+  private handleSelectElement(evt: CustomEvent<SelectElementDetail>): void {
+    const { elementsId } = evt.detail;
+    const selectedElements = WorkArea.getInstance().getSelectedElements();
+    this.unlinkDOMElements();
+    if (
+      elementsId.size === 1 &&
+      selectedElements &&
+      selectedElements[0] instanceof TextElement
+    ) {
+      this.activeTextElement = selectedElements[0];
+      this.linkDOMElements();
+    }
   }
 
   private handleTextInput = (): void => {
