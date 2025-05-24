@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { TextElement } from "./textElement";
-import type { Position, Size } from "src/components/types";
+import type { ITextElementData, Position, Size } from "src/components/types";
 import { BoundingBox } from "src/utils/boundingBox";
 
 describe("TextElement", () => {
@@ -105,42 +105,45 @@ describe("TextElement", () => {
       const box2 = element.getBoundingBox();
       expect(box2.center).toEqual({ x: 300, y: 400 });
     });
-  });
 
-  describe("cache drawing (updateCache)", () => {
-    it("updateCache should not throw when cache is not initialized or needsCacheUpdate=false", () => {
-      element["needsCacheUpdate"] = false;
-      expect(() => {
-        element["updateCache"]();
-      }).not.toThrow();
+    describe("should grow bounding box according to text alignment", () =>  {
+      it("should grow to the right when editing left-aligned content", () => {
+        let box = element.getBoundingBox();
+        const initialTopLeftX = box.topLeft;
+        element.content = ["Sample Text"];
+        expect(box.topLeft.x).toBeCloseTo(initialTopLeftX.x);
+        element.textAlign = "left";
+        element.content = ["Sample", "Text"];
+        box = element.getBoundingBox();
+        expect(box.topLeft.x).toBeCloseTo(initialTopLeftX.x);
+      });
+
+      it("should grow to the left when editing right-aligned content", () => {
+        let box = element.getBoundingBox();
+        const initialTopRightX = box.topRight;
+        element.content = ["Sample Text"];
+        expect(box.topRight.x).toBeCloseTo(initialTopRightX.x);
+        element.textAlign = "right";
+        element.content = ["Sample", "Text"];
+        box = element.getBoundingBox();
+        expect(box.topRight.x).toBeCloseTo(initialTopRightX.x);
+      });
     });
+
   });
 
   describe("text alignment", () => {
-    it("should default to textAlign 'left'", () => {
-      expect(element.textAlign).toBe("left");
+    it("should default to textAlign 'center'", () => {
+      expect(element.textAlign).toBe("center");
     });
 
-    it.each(["left", "center", "right", "start", "end"]) (
+    it.each(["left", "center", "right"]) (
       "should set textAlign to %s",
       (alignment) => {
-        element.textAlign = alignment;
+        element.textAlign = alignment as ITextElementData['textAlign'];
         expect(element.textAlign).toBe(alignment);
       }
     );
-
-    it("should default to textBaseline 'alphabetic'", () => {
-      expect((element).textBaseline).toBe("alphabetic");
-    });
-
-    it.each(["alphabetic", "top", "middle", "bottom"]) (
-      "should set textBaseline to %s",
-      (baseline) => {
-        (element).textBaseline = baseline;
-        expect((element).textBaseline).toBe(baseline);
-      }
-    );
-
   });
 
   describe("font styles", () => {

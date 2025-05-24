@@ -30,7 +30,6 @@ export interface ITextElementData extends IElementData {
   strokeColor: string;
   strokeWidth: number;
   textAlign: "left" | "center" | "right";
-  textBaseline: "alphabetic" | "top" | "middle"  | "bottom";
 }
 
 export interface IImageElementData extends IElementData {

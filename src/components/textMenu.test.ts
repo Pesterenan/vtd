@@ -21,6 +21,7 @@ describe("TextMenu", () => {
   let strokeColorControlInput: HTMLInputElement;
   let strokeWidthControlInput: HTMLInputElement;
   let textInput: HTMLTextAreaElement;
+  let fontSelect: HTMLSelectElement;
 
   afterAll(() => {
     document.body.removeChild(instance.getMenu());
@@ -29,18 +30,31 @@ describe("TextMenu", () => {
   beforeAll(() => {
     // Instantiate menu and append to DOM
     instance = TextMenu.getInstance();
-    document.body.appendChild(instance.getMenu())
+    document.body.appendChild(instance.getMenu());
 
     // References to controls
     acceptButton = getElementById<HTMLButtonElement>("btn_accept-text-changes");
-    declineButton = getElementById<HTMLButtonElement>("btn_decline-text-changes");
+    declineButton = getElementById<HTMLButtonElement>(
+      "btn_decline-text-changes",
+    );
     fillCheckbox = getElementById<HTMLInputElement>("chk_fill");
-    fillColorControlInput = getElementById<HTMLInputElement>("fill-color-control-color-input");
-    lineHeightControlInput = getElementById<HTMLInputElement>("line-height-control-input");
-    sizeControlInput = getElementById<HTMLInputElement>("font-size-control-input");
+    fillColorControlInput = getElementById<HTMLInputElement>(
+      "fill-color-control-color-input",
+    );
+    fontSelect = getElementById<HTMLSelectElement>("font-select");
+    lineHeightControlInput = getElementById<HTMLInputElement>(
+      "line-height-control-input",
+    );
+    sizeControlInput = getElementById<HTMLInputElement>(
+      "font-size-control-input",
+    );
     strokeCheckbox = getElementById<HTMLInputElement>("chk_stroke");
-    strokeColorControlInput = getElementById<HTMLInputElement>("stroke-color-control-color-input");
-    strokeWidthControlInput = getElementById<HTMLInputElement>("stroke-width-control-input");
+    strokeColorControlInput = getElementById<HTMLInputElement>(
+      "stroke-color-control-color-input",
+    );
+    strokeWidthControlInput = getElementById<HTMLInputElement>(
+      "stroke-width-control-input",
+    );
     textInput = getElementById<HTMLTextAreaElement>("inp_text-input");
   });
 
@@ -48,14 +62,13 @@ describe("TextMenu", () => {
     textInput.value = "";
     fillCheckbox.checked = false;
     strokeCheckbox.checked = false;
-    element = new TextElement(
-        { x: 0, y: 0 },
-        { width: 100, height: 50 },
-        0
-    );
-    jest.spyOn(WorkArea, "getInstance")
-      .mockReturnValueOnce({ getSelectedElements: () => [element] } as unknown as WorkArea);
-    dispatch(EVENT.SELECT_ELEMENT, { elementsId: new Set([element.elementId]) });
+    element = new TextElement({ x: 0, y: 0 }, { width: 100, height: 50 }, 0);
+    jest.spyOn(WorkArea, "getInstance").mockReturnValueOnce({
+      getSelectedElements: () => [element],
+    } as unknown as WorkArea);
+    dispatch(EVENT.SELECT_ELEMENT, {
+      elementsId: new Set([element.elementId]),
+    });
   });
 
   describe("handleSelectElement", () => {
@@ -63,6 +76,7 @@ describe("TextMenu", () => {
       expect(textInput.value).toBe(element.content.join("\n"));
       expect(fillCheckbox.checked).toBe(element.hasFill);
       expect(strokeCheckbox.checked).toBe(element.hasStroke);
+      expect(fontSelect.value).toBe(element.font);
     });
 
     it("should disable controls when no TextElement is selected", () => {
@@ -74,6 +88,7 @@ describe("TextMenu", () => {
       expect(textInput.value).toBe("");
       expect(fillCheckbox.checked).toBe(false);
       expect(strokeCheckbox.checked).toBe(false);
+      expect(fontSelect.value).toBe("");
     });
   });
 
@@ -91,6 +106,7 @@ describe("TextMenu", () => {
       acceptButton.click();
 
       expect(textInput.value).toBe("");
+      expect(fontSelect.value).toBe("");
     });
 
     it("should restore original content on decline", () => {
@@ -107,6 +123,13 @@ describe("TextMenu", () => {
   });
 
   describe("formatting controls", () => {
+    it("should update the font using the font selector", () => {
+      fontSelect.value = "Arial";
+      fontSelect.dispatchEvent(new Event("change"));
+
+      expect(element.font).toBe("Arial");
+    });
+
     it("should update fontSize via slider change", () => {
       sizeControlInput.value = "24";
       sizeControlInput.dispatchEvent(new Event("input"));
@@ -154,6 +177,32 @@ describe("TextMenu", () => {
       lineHeightControlInput.dispatchEvent(new Event("input"));
 
       expect(element.lineHeight).toBeCloseTo(1.8);
+    });
+  });
+
+  describe("alignment radio buttons", () => {
+    it("should render three radio buttons for textAlign", () => {
+      const radios = Array.from(
+        document.querySelectorAll<HTMLInputElement>('input[name="text-align"]'),
+      );
+      const values = radios.map((r) => r.value).sort();
+      expect(values).toEqual(["center", "left", "right"]);
+    });
+
+    it("should reflect element.textAlign in the checked radio", () => {
+      const centerRadio = document.querySelector<HTMLInputElement>(
+        'input[name="text-align"][value="center"]',
+      )!;
+      expect(centerRadio.checked).toBe(true);
+      expect(element.textAlign).toEqual("center");
+    });
+
+    it("should update element.textAlign when a radio is clicked", () => {
+      const rightRadio = document.querySelector<HTMLInputElement>(
+        'input[name="text-align"][value="right"]',
+      )!;
+      rightRadio.click();
+      expect(element.textAlign).toBe("right");
     });
   });
 });
