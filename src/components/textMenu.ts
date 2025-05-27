@@ -7,6 +7,9 @@ import { createColorControl } from "./helpers/createColorControl";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import { createSliderControl } from "./helpers/createSliderControl";
 import type { ITextElementData, SelectElementDetail } from "./types";
+import IconAlignLeft from "../assets/icons/alignLeft.svg";
+import IconAlignCenter from "../assets/icons/alignCenter.svg";
+import IconAlignRight from "../assets/icons/alignRight.svg";
 
 export class TextMenu {
   private static instance: TextMenu | null = null;
@@ -77,11 +80,16 @@ export class TextMenu {
     <input id="chk_stroke" type="checkbox"/>
   </div>
 </div>
-<div id="div_text-align">
+<div class='container ai-c'>
   Alinhamento:
-  <label><input type="radio" name="text-align" value="left"/>Esq</label>
-  <label><input checked type="radio" name="text-align" value="center"/>Centro</label>
-  <label><input type="radio" name="text-align" value="right"/>Dir</label>
+  <div class='container' style="border-radius: 0.25rem; background-color: var(--background-600);">
+    <input id="align-left" name="text-align" class="tgl-common" type="radio" value="left"/>
+    <label for="align-left" style="--checked-icon-url: url(${IconAlignLeft}); --icon-url: url(${IconAlignLeft});"></label>
+    <input id="align-center" checked name="text-align" class="tgl-common" type="radio" value="center"/>
+    <label for="align-center" style="--checked-icon-url: url(${IconAlignCenter}); --icon-url: url(${IconAlignCenter});"></label>
+    <input id="align-right" name="text-align" class="tgl-common" type="radio" value="right"/>
+    <label for="align-right" style="--checked-icon-url: url(${IconAlignRight}); --icon-url: url(${IconAlignRight});"></label>
+  </div> 
 </div>
 `;
     this.textAlignRadios = Array.from(
@@ -282,7 +290,6 @@ export class TextMenu {
     if (this.activeTextElement && selectedFont)  {
       this.activeTextElement.font = selectedFont;
     }
-    console.log("selectedFont: ",selectedFont);
     dispatch(EVENT.UPDATE_WORKAREA);
   }
 
