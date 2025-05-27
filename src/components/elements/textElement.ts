@@ -261,6 +261,7 @@ export class TextElement extends Element<ITextElementData> {
     const weight = this.fontWeight === "normal" ? "" : this.fontWeight;
     context.font = `${weight} ${this.fontSize}px ${this.font}`;
     context.textAlign = this.textAlign as CanvasTextAlign;
+    context.textBaseline = "middle";
     context.strokeStyle = this.strokeColor;
     context.lineJoin = "round";
     context.lineWidth = this.strokeWidth;
