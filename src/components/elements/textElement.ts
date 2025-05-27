@@ -129,7 +129,6 @@ export class TextElement extends Element<ITextElementData> {
       this.cacheContext = this.cacheCanvas.getContext("2d");
     }
     this.boundingBox = new BoundingBox(position, size, this.rotation);
-    this.refreshCache();
   }
 
   private refreshCache(): void {
