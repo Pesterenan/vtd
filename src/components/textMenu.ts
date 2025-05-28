@@ -28,6 +28,19 @@ export class TextMenu {
   private textAlignRadios: HTMLInputElement[] | null = null;
   private textInput: HTMLTextAreaElement | null = null;
   private textMenuSection: HTMLElement;
+  private baseFonts = [
+    "Arial",
+    "Brush Script MT",
+    "Courier New",
+    "Garamond",
+    "Georgia",
+    "Impact",
+    "Tahoma",
+    "Times New Roman",
+    "Trajan Pro",
+    "Trebuchet MS",
+    "Verdana",
+  ];
 
   private constructor() {
     this.textMenuSection = document.createElement("section");
@@ -65,8 +78,6 @@ export class TextMenu {
   <label for="font-select">Fonte:</label>
   <select id="font-select" style="width: 80%">
     <option value="" />
-    <option value="Arial">Arial</option>
-    <option value="Impact">Impact</option>
   </select>
 </div>
 <div id="div_font-size-line-height" class='container ai-c jc-sb'></div>
@@ -145,6 +156,17 @@ export class TextMenu {
       this.handleLineHeightChange,
       false,
     );
+
+    this.fontSelect = this.textMenuSection.querySelector("#font-select");
+    if (this.fontSelect)  {
+      for (const font of this.baseFonts) {
+        const fontOption = document.createElement('option');
+        fontOption.value = font;
+        fontOption.innerText = font;
+        this.fontSelect.append(fontOption);
+      }
+    }
+
     this.textMenuSection
       .querySelector("#div_font-size-line-height")
       ?.append(this.sizeControl.element);
