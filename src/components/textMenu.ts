@@ -6,7 +6,9 @@ import type { IColorControl } from "./helpers/createColorControl";
 import { createColorControl } from "./helpers/createColorControl";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import { createSliderControl } from "./helpers/createSliderControl";
+import { TOOL } from "./types";
 import type { ITextElementData, SelectElementDetail } from "./types";
+
 import IconAlignLeft from "../assets/icons/alignLeft.svg";
 import IconAlignCenter from "../assets/icons/alignCenter.svg";
 import IconAlignRight from "../assets/icons/alignRight.svg";
@@ -158,9 +160,9 @@ export class TextMenu {
     );
 
     this.fontSelect = this.textMenuSection.querySelector("#font-select");
-    if (this.fontSelect)  {
+    if (this.fontSelect) {
       for (const font of this.baseFonts) {
-        const fontOption = document.createElement('option');
+        const fontOption = document.createElement("option");
         fontOption.value = font;
         fontOption.innerText = font;
         this.fontSelect.append(fontOption);
@@ -190,12 +192,13 @@ export class TextMenu {
     this.textInput = getElementById<HTMLTextAreaElement>("inp_text-input");
     this.textInput.value = this.originalText;
     this.textInput.addEventListener("input", this.handleTextInput);
+    this.textInput.addEventListener("select", this.handleSelectTextInput);
 
     this.fontSelect = getElementById<HTMLSelectElement>("font-select");
     this.fontSelect.value = this.activeTextElement?.font || "";
     this.fontSelect.addEventListener("change", this.handleFontChange);
 
-    if (this.textAlignRadios)  {
+    if (this.textAlignRadios) {
       for (const radio of this.textAlignRadios) {
         radio.checked = radio.value === this.activeTextElement?.textAlign;
         radio.addEventListener("click", () => {
@@ -255,12 +258,16 @@ export class TextMenu {
         this.strokeWidthControl.linkEvents();
       }
     }
+    if (WorkArea.getInstance().currentTool === TOOL.TEXT) {
+      this.textInput.select();
+    }
   }
 
   private unlinkDOMElements(): void {
     this.textInput = getElementById<HTMLTextAreaElement>("inp_text-input");
     this.textInput.value = "";
     this.textInput.removeEventListener("input", this.handleTextInput);
+    this.textInput.removeEventListener("select", this.handleSelectTextInput);
 
     this.fontSelect = getElementById<HTMLSelectElement>("font-select");
     this.fontSelect.value = "";
@@ -307,13 +314,19 @@ export class TextMenu {
     }
   }
 
+  private handleSelectTextInput = (evt: Event): void => {
+    evt.preventDefault();
+    (evt.target as HTMLTextAreaElement).focus();
+    dispatch(EVENT.UPDATE_WORKAREA);
+  };
+
   private handleFontChange = (evt: Event): void => {
     const selectedFont = (evt.target as HTMLSelectElement).value;
-    if (this.activeTextElement && selectedFont)  {
+    if (this.activeTextElement && selectedFont) {
       this.activeTextElement.font = selectedFont;
     }
     dispatch(EVENT.UPDATE_WORKAREA);
-  }
+  };
 
   private handleTextInput = (): void => {
     if (this.activeTextElement && this.textInput) {

@@ -7,10 +7,6 @@ import { Tool } from "src/components/tools/abstractTool";
 export class TextTool extends Tool {
   private lastPosition: Position | null = null;
 
-  constructor(canvas: HTMLCanvasElement) {
-    super(canvas);
-  }
-
   equipTool(): void {
     super.equipTool();
     this.canvas.addEventListener("mousemove", this.onMouseMove);
@@ -23,7 +19,6 @@ export class TextTool extends Tool {
     dispatch(EVENT.UPDATE_WORKAREA);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   draw(): void {
     if (this.context && this.lastPosition) {
       this.context.save();
@@ -37,7 +32,6 @@ export class TextTool extends Tool {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseDown(evt: MouseEvent): void {
     const workArea = WorkArea.getInstance();
     const { offsetX, offsetY } = evt;
@@ -50,14 +44,12 @@ export class TextTool extends Tool {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleMouseMove(evt: MouseEvent): void {
     const { offsetX, offsetY } = evt;
     this.lastPosition = { x: offsetX, y: offsetY };
     dispatch(EVENT.UPDATE_WORKAREA);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleKeyDown(evt: KeyboardEvent): void {
     if ((evt.shiftKey && evt.key === "Enter") || evt.key === "Escape") {
       evt.preventDefault();
