@@ -13,6 +13,10 @@ import IconAlignLeft from "../assets/icons/alignLeft.svg";
 import IconAlignCenter from "../assets/icons/alignCenter.svg";
 import IconAlignRight from "../assets/icons/alignRight.svg";
 
+import IconFontStyleOverline from "../assets/icons/fontStyleOverline.svg";
+import IconFontStyleStrikeThrough from "../assets/icons/fontStyleStrikeThrough.svg";
+import IconFontStyleUnderline from "../assets/icons/fontStyleUnderline.svg";
+
 export class TextMenu {
   private static instance: TextMenu | null = null;
   private acceptButton: HTMLButtonElement | null = null;
@@ -28,6 +32,7 @@ export class TextMenu {
   private strokeColorControl: IColorControl | null = null;
   private strokeWidthControl: ISliderControl | null = null;
   private textAlignRadios: HTMLInputElement[] | null = null;
+  private fontStyleRadios: HTMLInputElement[] | null = null;
   private textInput: HTMLTextAreaElement | null = null;
   private textMenuSection: HTMLElement;
   private baseFonts = [
@@ -93,7 +98,7 @@ export class TextMenu {
     <input id="chk_stroke" type="checkbox"/>
   </div>
 </div>
-<div class='container ai-c'>
+<div class='container ai-c jc-sb'>
   Alinhamento:
   <div class='container' style="border-radius: 0.25rem; background-color: var(--background-600);">
     <input id="align-left" name="text-align" class="tgl-common" type="radio" value="left"/>
@@ -103,11 +108,27 @@ export class TextMenu {
     <input id="align-right" name="text-align" class="tgl-common" type="radio" value="right"/>
     <label for="align-right" style="--checked-icon-url: url(${IconAlignRight}); --icon-url: url(${IconAlignRight});"></label>
   </div> 
+  Estilo:
+  <div class='container' style="border-radius: 0.25rem; background-color: var(--background-600);">
+    <input id="style-normal" checked name="font-style" class="tgl-common" type="radio" value="normal"/>
+    <label for="style-normal" style="--checked-icon-url: url(${IconFontStyleOverline}); --icon-url: url(${IconFontStyleOverline});"></label>
+    <input id="style-overline" name="font-style" class="tgl-common" type="radio" value="overline"/>
+    <label for="style-overline" style="--checked-icon-url: url(${IconFontStyleOverline}); --icon-url: url(${IconFontStyleOverline});"></label>
+    <input id="style-strikethrough" name="font-style" class="tgl-common" type="radio" value="strike-through"/>
+    <label for="style-strikethrough" style="--checked-icon-url: url(${IconFontStyleStrikeThrough}); --icon-url: url(${IconFontStyleStrikeThrough});"></label>
+    <input id="style-underline" name="font-style" class="tgl-common" type="radio" value="underline"/>
+    <label for="style-underline" style="--checked-icon-url: url(${IconFontStyleUnderline}); --icon-url: url(${IconFontStyleUnderline});"></label>
+  </div> 
 </div>
 `;
     this.textAlignRadios = Array.from(
       this.textMenuSection.querySelectorAll<HTMLInputElement>(
         'input[name="text-align"]',
+      ),
+    );
+    this.fontStyleRadios = Array.from(
+      this.textMenuSection.querySelectorAll<HTMLInputElement>(
+        'input[name="font-style"]',
       ),
     );
     this.fillColorControl = createColorControl(
@@ -211,6 +232,18 @@ export class TextMenu {
       }
     }
 
+    if (this.fontStyleRadios) {
+      for (const radio of this.fontStyleRadios) {
+        radio.checked = radio.value === this.activeTextElement?.fontStyle;
+        radio.addEventListener("click", () => {
+          if (radio.checked && this.activeTextElement) {
+            this.activeTextElement.fontStyle =
+              radio.value as ITextElementData["fontStyle"];
+            dispatch(EVENT.UPDATE_WORKAREA);
+          }
+        });
+      }
+    }
     this.acceptButton = getElementById<HTMLButtonElement>(
       "btn_accept-text-changes",
     );
