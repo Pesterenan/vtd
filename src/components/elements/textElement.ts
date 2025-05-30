@@ -12,17 +12,17 @@ export class TextElement extends Element<ITextElementData> {
     this.needsCacheUpdate = true;
     this.needsCenterRecalc = true;
   }
-  public get fontStyle(): string {
-    return this.properties.get("fontStyle") as string;
+  public get fontStyle(): ITextElementData["fontStyle"] {
+    return this.properties.get("fontStyle") as ITextElementData["fontStyle"];
   }
-  public set fontStyle(value: string) {
+  public set fontStyle(value: ITextElementData["fontStyle"]) {
     this.properties.set("fontStyle", value);
     this.needsCacheUpdate = true;
   }
-  public get fontWeight(): string {
-    return this.properties.get("fontWeight") as string;
+  public get fontWeight(): ITextElementData["fontWeight"] {
+    return this.properties.get("fontWeight") as ITextElementData["fontWeight"];
   }
-  public set fontWeight(value: string) {
+  public set fontWeight(value: ITextElementData["fontWeight"]) {
     this.properties.set("fontWeight", value);
     this.needsCacheUpdate = true;
   }
@@ -271,23 +271,26 @@ export class TextElement extends Element<ITextElementData> {
       const halfW = metrics.width / 2;
       if (this.hasStroke) context.strokeText(line, 0, yOffset);
       if (this.hasFill) context.fillText(line, 0, yOffset);
-      if (this.fontStyle === "strike-through") {
+      if (this.fontStyle !== "normal") {
+        let strokeLineHeight = yOffset;
+        switch (this.fontStyle) {
+          case "underline":
+            strokeLineHeight += metrics.fontBoundingBoxAscent;
+            break;
+          case "strike-through":
+            strokeLineHeight = yOffset;
+            break;
+          case "overline":
+            strokeLineHeight -= metrics.fontBoundingBoxDescent;
+            break;
+        }
         context.beginPath();
-        context.moveTo(-halfW, -metrics.actualBoundingBoxAscent * 0.5);
-        context.lineTo(halfW, -metrics.actualBoundingBoxAscent * 0.5);
+        context.moveTo(-halfW, strokeLineHeight);
+        context.lineTo(halfW, strokeLineHeight);
         context.closePath();
         context.strokeStyle = this.strokeColor;
         context.stroke();
       }
-
-      // if (this.fontStyle === "underline") {
-      //   const underlineY = yOffset + metrics.actualBoundingBoxDescent * 0.75;
-      //   context.beginPath();
-      //   context.moveTo(-halfW, underlineY);
-      //   context.lineTo(halfW, underlineY);
-      //   context.stroke();
-      // }
-
       yOffset += this.lineVerticalSpacing;
     }
   }

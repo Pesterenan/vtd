@@ -22,7 +22,7 @@ export interface ITextElementData extends IElementData {
   fillColor: string;
   font: string;
   fontSize: number;
-  fontStyle: "normal" | "underline" | "strike-through";
+  fontStyle: "normal" | "underline" | "strike-through" | "overline";
   fontWeight: "normal" | "bold" | "italic" | "bold italic";
   hasFill: boolean;
   hasStroke: boolean;

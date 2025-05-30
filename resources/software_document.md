@@ -61,6 +61,7 @@ plataforma escolhida para a criação do app redistribuível.
 &#9746; - Adicionar Fontes diferentes\
 &#9746; - Trabalhar input de texto de forma instantânea\
 
+&#9744; - Implementar estilos de fonte strike-through e underline\
 &#9744; - Implementar efeito de chroma/color key\
 &#9744; - Implementar um sistema de undo/redo\
 
