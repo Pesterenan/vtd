@@ -137,10 +137,10 @@ describe("TextElement", () => {
       expect(element.textAlign).toBe("center");
     });
 
-    it.each(["left", "center", "right"]) (
+    it.each(["left", "center", "right"] as ITextElementData['textAlign'][]) (
       "should set textAlign to %s",
       (alignment) => {
-        element.textAlign = alignment as ITextElementData['textAlign'];
+        element.textAlign = alignment;
         expect(element.textAlign).toBe(alignment);
       }
     );
@@ -151,9 +151,9 @@ describe("TextElement", () => {
       expect(element.fontWeight).toBe("normal");
     });
 
-    it.each(["normal", "bold", "italic", "bold italic"]) (
+    it.each(["normal", "bold", "italic", "bold italic"] as ITextElementData['fontWeight'][]) (
       "should set fontWeight to %s",
-      (weight) => {
+      (weight): void => {
         (element).fontWeight = weight;
         expect((element).fontWeight).toBe(weight);
       }

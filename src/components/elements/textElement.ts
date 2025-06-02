@@ -275,21 +275,24 @@ export class TextElement extends Element<ITextElementData> {
         let strokeLineHeight = yOffset;
         switch (this.fontStyle) {
           case "underline":
-            strokeLineHeight += metrics.fontBoundingBoxAscent;
+            strokeLineHeight += metrics.fontBoundingBoxDescent;
             break;
           case "strike-through":
             strokeLineHeight = yOffset;
             break;
           case "overline":
-            strokeLineHeight -= metrics.fontBoundingBoxDescent;
+            strokeLineHeight -= metrics.fontBoundingBoxAscent;
             break;
         }
+        context.save();
         context.beginPath();
         context.moveTo(-halfW, strokeLineHeight);
         context.lineTo(halfW, strokeLineHeight);
         context.closePath();
         context.strokeStyle = this.strokeColor;
+        context.lineWidth = Math.round(this.strokeWidth * 0.5);
         context.stroke();
+        context.restore();
       }
       yOffset += this.lineVerticalSpacing;
     }

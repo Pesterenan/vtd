@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
   <title>format-strikethrough</title>
-  <path d="M3,14H21V12H3M5,4V7H10V10H14V7H19V4M10,19H14V16H10V19Z" />
+  <path d="M5,14H20V12H5" />
+  <text x="4" y="20" font-weight="bold" font-family="sans-serif" font-size="16pt" fill="black">T</text>
 </svg>

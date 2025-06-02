@@ -6,6 +6,7 @@ import { TextMenu } from "./textMenu";
 import { TextElement } from "src/components/elements/textElement";
 import { WorkArea } from "src/components/workArea";
 import getElementById from "src/utils/getElementById";
+import type { ITextElementData } from "./types";
 
 describe("TextMenu", () => {
   let instance: TextMenu;
@@ -22,6 +23,9 @@ describe("TextMenu", () => {
   let strokeWidthControlInput: HTMLInputElement;
   let textInput: HTMLTextAreaElement;
   let fontSelect: HTMLSelectElement;
+  let textAlignRadios: HTMLInputElement[];
+  let fontStyleRadios: HTMLInputElement[];
+  let fontWeightRadios: HTMLInputElement[];
 
   afterAll(() => {
     document.body.removeChild(instance.getMenu());
@@ -42,6 +46,12 @@ describe("TextMenu", () => {
       "fill-color-control-color-input",
     );
     fontSelect = getElementById<HTMLSelectElement>("font-select");
+    fontStyleRadios = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[name="font-style"]'),
+    );
+    fontWeightRadios = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[name="font-weight"]'),
+    );
     lineHeightControlInput = getElementById<HTMLInputElement>(
       "line-height-control-input",
     );
@@ -54,6 +64,9 @@ describe("TextMenu", () => {
     );
     strokeWidthControlInput = getElementById<HTMLInputElement>(
       "stroke-width-control-input",
+    );
+    textAlignRadios = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[name="text-align"]'),
     );
     textInput = getElementById<HTMLTextAreaElement>("inp_text-input");
   });
@@ -180,29 +193,81 @@ describe("TextMenu", () => {
     });
   });
 
-  describe("alignment radio buttons", () => {
+  describe("text align radio buttons", () => {
     it("should render three radio buttons for textAlign", () => {
-      const radios = Array.from(
-        document.querySelectorAll<HTMLInputElement>('input[name="text-align"]'),
-      );
-      const values = radios.map((r) => r.value).sort();
-      expect(values).toEqual(["center", "left", "right"]);
+      const alignValues = textAlignRadios.map((r) => r.value).sort();
+      expect(alignValues.length).toBe(3);
+      expect(alignValues).toEqual([
+        "center",
+        "left",
+        "right",
+      ] as ITextElementData["textAlign"][]);
     });
 
     it("should reflect element.textAlign in the checked radio", () => {
-      const centerRadio = document.querySelector<HTMLInputElement>(
-        'input[name="text-align"][value="center"]',
-      )!;
-      expect(centerRadio.checked).toBe(true);
+      const centerRadio = textAlignRadios.find((r) => r.id === "align-center");
+      expect(centerRadio?.checked).toBe(true);
       expect(element.textAlign).toEqual("center");
     });
 
     it("should update element.textAlign when a radio is clicked", () => {
-      const rightRadio = document.querySelector<HTMLInputElement>(
-        'input[name="text-align"][value="right"]',
-      )!;
-      rightRadio.click();
+      const rightRadio = textAlignRadios.find((r) => r.id === "align-right");
+      rightRadio?.click();
       expect(element.textAlign).toBe("right");
+    });
+  });
+
+  describe("font style radio buttons", () => {
+    it("should render four radio buttons for fontStyle", () => {
+      const styleValues = fontStyleRadios.map((r) => r.value).sort();
+      expect(styleValues.length).toBe(4);
+      expect(styleValues).toEqual([
+        "normal",
+        "overline",
+        "strike-through",
+        "underline",
+      ] as ITextElementData["fontStyle"][]);
+    });
+
+    it("should reflect element.fontStyle in the checked radio", () => {
+      const styleNormalRadio = fontStyleRadios.find(
+        (r) => r.id === "style-normal",
+      );
+      expect(styleNormalRadio?.checked).toBe(true);
+      expect(element.fontStyle).toEqual("normal");
+    });
+
+    it("should update element.fontStyle when a radio is clicked", () => {
+      const styleUnderlineRadio = fontStyleRadios.find(
+        (r) => r.id === "style-underline",
+      );
+      styleUnderlineRadio?.click();
+      expect(element.fontStyle).toBe("underline");
+    });
+  });
+
+  describe("font weight radio buttons", () => {
+    it("should render four radio buttons for fontWeight", () => {
+      const weightValues = fontWeightRadios.map((r) => r.value).sort();
+      expect(weightValues.length).toBe(4);
+      expect(weightValues).toEqual([
+        "bold",
+        "bold italic",
+        "italic",
+        "normal",
+      ] as ITextElementData["fontWeight"][]);
+    });
+
+    it("should reflect element.fontWeight in the checked radio", () => {
+      const weightNormalRadio = fontWeightRadios.find((r) => r.id === "weight-normal");
+      expect(weightNormalRadio?.checked).toBe(true);
+      expect(element.fontWeight).toEqual("normal");
+    });
+
+    it("should update element.fontWeight when a radio is clicked", () => {
+      const weightBoldRadio = fontWeightRadios.find((r) => r.id === "weight-bold");
+      weightBoldRadio?.click();
+      expect(element.fontWeight).toBe("bold");
     });
   });
 });

@@ -6,8 +6,8 @@
 				"y": 240
 			},
 			"size": {
-				"width": 930.6318359375,
-				"height": 101.2
+				"width": 710,
+				"height": 115
 			},
 			"zDepth": 2,
 			"rotation": 0,
@@ -21,7 +21,7 @@
 			"layerName": "VTD",
 			"filters": [],
 			"type": "text",
-			"content": "Video Thumbnail Designer",
+			"content": "Video\nThumbnail\nDesigner",
 			"fillColor": "#bababa",
 			"font": "Impact",
 			"fontSize": 64,

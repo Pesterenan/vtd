@@ -9,32 +9,25 @@ import { createSliderControl } from "./helpers/createSliderControl";
 import { TOOL } from "./types";
 import type { ITextElementData, SelectElementDetail } from "./types";
 
-import IconAlignLeft from "../assets/icons/alignLeft.svg";
 import IconAlignCenter from "../assets/icons/alignCenter.svg";
+import IconAlignLeft from "../assets/icons/alignLeft.svg";
 import IconAlignRight from "../assets/icons/alignRight.svg";
 
+import IconFontStyleNormal from "../assets/icons/fontStyleNormal.svg";
 import IconFontStyleOverline from "../assets/icons/fontStyleOverline.svg";
 import IconFontStyleStrikeThrough from "../assets/icons/fontStyleStrikeThrough.svg";
 import IconFontStyleUnderline from "../assets/icons/fontStyleUnderline.svg";
+
+import IconFontWeightBold from "../assets/icons/fontWeightBold.svg";
+import IconFontWeightItalic from "../assets/icons/fontWeightItalic.svg";
+import IconFontWeightBoldItalic from "../assets/icons/fontWeightBoldItalic.svg";
+
+import createIconRadioButton from "./helpers/createIconRadioButton";
 
 export class TextMenu {
   private static instance: TextMenu | null = null;
   private acceptButton: HTMLButtonElement | null = null;
   private activeTextElement: TextElement | null = null;
-  private declineButton: HTMLButtonElement | null = null;
-  private fillCheckbox: HTMLInputElement | null = null;
-  private fillColorControl: IColorControl | null = null;
-  private fontSelect: HTMLSelectElement | null = null;
-  private lineHeightControl: ISliderControl | null = null;
-  private originalText = "";
-  private sizeControl: ISliderControl | null = null;
-  private strokeCheckbox: HTMLInputElement | null = null;
-  private strokeColorControl: IColorControl | null = null;
-  private strokeWidthControl: ISliderControl | null = null;
-  private textAlignRadios: HTMLInputElement[] | null = null;
-  private fontStyleRadios: HTMLInputElement[] | null = null;
-  private textInput: HTMLTextAreaElement | null = null;
-  private textMenuSection: HTMLElement;
   private baseFonts = [
     "Arial",
     "Brush Script MT",
@@ -47,7 +40,22 @@ export class TextMenu {
     "Trajan Pro",
     "Trebuchet MS",
     "Verdana",
-  ];
+  ] as const;
+  private declineButton: HTMLButtonElement | null = null;
+  private fillCheckbox: HTMLInputElement | null = null;
+  private fillColorControl: IColorControl | null = null;
+  private fontSelect: HTMLSelectElement | null = null;
+  private fontStyleRadios: HTMLInputElement[] | null = null;
+  private fontWeightRadios: HTMLInputElement[] | null = null;
+  private lineHeightControl: ISliderControl | null = null;
+  private originalText = "";
+  private sizeControl: ISliderControl | null = null;
+  private strokeCheckbox: HTMLInputElement | null = null;
+  private strokeColorControl: IColorControl | null = null;
+  private strokeWidthControl: ISliderControl | null = null;
+  private textAlignRadios: HTMLInputElement[] | null = null;
+  private textInput: HTMLTextAreaElement | null = null;
+  private textMenuSection: HTMLElement;
 
   private constructor() {
     this.textMenuSection = document.createElement("section");
@@ -99,28 +107,115 @@ export class TextMenu {
   </div>
 </div>
 <div class='container ai-c jc-sb'>
-  Alinhamento:
-  <div class='container' style="border-radius: 0.25rem; background-color: var(--background-600);">
-    <input id="align-left" name="text-align" class="tgl-common" type="radio" value="left"/>
-    <label for="align-left" style="--checked-icon-url: url(${IconAlignLeft}); --icon-url: url(${IconAlignLeft});"></label>
-    <input id="align-center" checked name="text-align" class="tgl-common" type="radio" value="center"/>
-    <label for="align-center" style="--checked-icon-url: url(${IconAlignCenter}); --icon-url: url(${IconAlignCenter});"></label>
-    <input id="align-right" name="text-align" class="tgl-common" type="radio" value="right"/>
-    <label for="align-right" style="--checked-icon-url: url(${IconAlignRight}); --icon-url: url(${IconAlignRight});"></label>
-  </div> 
+  Centralizar:
+  <div id="text-align-container" class='container' style="border-radius: 0.25rem; background-color: var(--background-600);"></div> 
+  Linha:
+  <div id="font-style-container" class='container' style="border-radius: 0.25rem; background-color: var(--background-600);"></div> 
+</div>
+<div class='container ai-c jc-fe'>
   Estilo:
-  <div class='container' style="border-radius: 0.25rem; background-color: var(--background-600);">
-    <input id="style-normal" checked name="font-style" class="tgl-common" type="radio" value="normal"/>
-    <label for="style-normal" style="--checked-icon-url: url(${IconFontStyleOverline}); --icon-url: url(${IconFontStyleOverline});"></label>
-    <input id="style-overline" name="font-style" class="tgl-common" type="radio" value="overline"/>
-    <label for="style-overline" style="--checked-icon-url: url(${IconFontStyleOverline}); --icon-url: url(${IconFontStyleOverline});"></label>
-    <input id="style-strikethrough" name="font-style" class="tgl-common" type="radio" value="strike-through"/>
-    <label for="style-strikethrough" style="--checked-icon-url: url(${IconFontStyleStrikeThrough}); --icon-url: url(${IconFontStyleStrikeThrough});"></label>
-    <input id="style-underline" name="font-style" class="tgl-common" type="radio" value="underline"/>
-    <label for="style-underline" style="--checked-icon-url: url(${IconFontStyleUnderline}); --icon-url: url(${IconFontStyleUnderline});"></label>
-  </div> 
+  <div id="font-weight-container" class='container' style="border-radius: 0.25rem; background-color: var(--background-600);"></div>
 </div>
 `;
+
+    this.textMenuSection
+      .querySelector("#text-align-container")
+      ?.append(
+        ...[
+          createIconRadioButton(
+            IconAlignLeft,
+            "align-left",
+            "text-align",
+            "Esquerda",
+            "left",
+          ),
+          createIconRadioButton(
+            IconAlignCenter,
+            "align-center",
+            "text-align",
+            "Centro",
+            "center",
+          ),
+          createIconRadioButton(
+            IconAlignRight,
+            "align-right",
+            "text-align",
+            "Direita",
+            "right",
+          ),
+        ],
+      );
+
+    this.textMenuSection
+      .querySelector("#font-style-container")
+      ?.append(
+        ...[
+          createIconRadioButton(
+            IconFontStyleNormal,
+            "style-normal",
+            "font-style",
+            "Sem Linha",
+            "normal",
+          ),
+          createIconRadioButton(
+            IconFontStyleOverline,
+            "style-overline",
+            "font-style",
+            "Linha acima",
+            "overline",
+          ),
+          createIconRadioButton(
+            IconFontStyleStrikeThrough,
+            "style-strikethrough",
+            "font-style",
+            "Linha através",
+            "strike-through",
+          ),
+          createIconRadioButton(
+            IconFontStyleUnderline,
+            "style-underline",
+            "font-style",
+            "Linha abaixo",
+            "underline",
+          ),
+        ],
+      );
+
+    this.textMenuSection
+      .querySelector("#font-weight-container")
+      ?.append(
+        ...[
+          createIconRadioButton(
+            IconFontStyleNormal,
+            "weight-normal",
+            "font-weight",
+            "Normal",
+            "normal",
+          ),
+          createIconRadioButton(
+            IconFontWeightBold,
+            "weight-bold",
+            "font-weight",
+            "Negrito",
+            "bold",
+          ),
+          createIconRadioButton(
+            IconFontWeightItalic,
+            "weight-italic",
+            "font-weight",
+            "Itálico",
+            "italic",
+          ),
+          createIconRadioButton(
+            IconFontWeightBoldItalic,
+            "weight-bold-italic",
+            "font-weight",
+            "Negrito e Itálico",
+            "bold italic",
+          ),
+        ],
+      );
+
     this.textAlignRadios = Array.from(
       this.textMenuSection.querySelectorAll<HTMLInputElement>(
         'input[name="text-align"]',
@@ -131,6 +226,12 @@ export class TextMenu {
         'input[name="font-style"]',
       ),
     );
+    this.fontWeightRadios = Array.from(
+      this.textMenuSection.querySelectorAll<HTMLInputElement>(
+        'input[name="font-weight"]',
+      ),
+    );
+
     this.fillColorControl = createColorControl(
       "fill-color-control",
       "Preenchimento",
@@ -244,6 +345,20 @@ export class TextMenu {
         });
       }
     }
+
+    if (this.fontWeightRadios) {
+      for (const radio of this.fontWeightRadios) {
+        radio.checked = radio.value === this.activeTextElement?.fontWeight;
+        radio.addEventListener("click", () => {
+          if (radio.checked && this.activeTextElement) {
+            this.activeTextElement.fontWeight =
+              radio.value as ITextElementData["fontWeight"];
+            dispatch(EVENT.UPDATE_WORKAREA);
+          }
+        });
+      }
+    }
+
     this.acceptButton = getElementById<HTMLButtonElement>(
       "btn_accept-text-changes",
     );

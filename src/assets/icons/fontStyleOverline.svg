@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
   <title>format-overline</title>
-  <path d="M5,5H19V3H5V5M9.62,16L12,9.67L14.37,16M11,7L5.5,21H7.75L8.87,18H15.12L16.25,21H18.5L13,7H11Z" />
+  <path d="M5,5H20V3H5" />
+  <text x="4" y="20" font-weight="bold" font-family="sans-serif" font-size="16pt" fill="black">A</text>
 </svg>
