@@ -1,8 +1,8 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
 import { TextElement } from "src/components/elements/textElement";
+import { Tool } from "src/components/tools/abstractTool";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
-import { Tool } from "src/components/tools/abstractTool";
+import EVENT, { dispatch } from "src/utils/customEvents";
 
 export class TextTool extends Tool {
   private lastPosition: Position | null = null;

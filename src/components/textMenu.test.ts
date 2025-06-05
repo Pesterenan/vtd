@@ -1,13 +1,13 @@
+import { TextElement } from "src/components/elements/textElement";
+import { WorkArea } from "src/components/workArea";
+import EVENT, { dispatch } from "src/utils/customEvents";
+import getElementById from "src/utils/getElementById";
+import { TextMenu } from "./textMenu";
+import type { ITextElementData } from "./types";
+
 /**
  * @jest-environment jsdom
  */
-import EVENT, { dispatch } from "src/utils/customEvents";
-import { TextMenu } from "./textMenu";
-import { TextElement } from "src/components/elements/textElement";
-import { WorkArea } from "src/components/workArea";
-import getElementById from "src/utils/getElementById";
-import type { ITextElementData } from "./types";
-
 describe("TextMenu", () => {
   let instance: TextMenu;
   let element: TextElement;

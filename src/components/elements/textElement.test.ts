@@ -1,10 +1,10 @@
+import type { ITextElementData, Position, Size } from "src/components/types";
+import { BoundingBox } from "src/utils/boundingBox";
+import { TextElement } from "./textElement";
+
 /**
  * @jest-environment jsdom
  */
-import { TextElement } from "./textElement";
-import type { ITextElementData, Position, Size } from "src/components/types";
-import { BoundingBox } from "src/utils/boundingBox";
-
 describe("TextElement", () => {
   const position: Position = { x: 100, y: 200 };
   const initialSize: Size = { width: 300, height: 150 };

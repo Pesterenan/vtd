@@ -3,9 +3,9 @@ import { WorkArea } from "src/components/workArea";
 import EVENT, { dispatch } from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 import type { IColorControl } from "./helpers/createColorControl";
-import { createColorControl } from "./helpers/createColorControl";
+import createColorControl from "./helpers/createColorControl";
 import type { ISliderControl } from "./helpers/createSliderControl";
-import { createSliderControl } from "./helpers/createSliderControl";
+import createSliderControl from "./helpers/createSliderControl";
 import { TOOL } from "./types";
 import type { ITextElementData, SelectElementDetail } from "./types";
 
@@ -19,8 +19,8 @@ import IconFontStyleStrikeThrough from "../assets/icons/fontStyleStrikeThrough.s
 import IconFontStyleUnderline from "../assets/icons/fontStyleUnderline.svg";
 
 import IconFontWeightBold from "../assets/icons/fontWeightBold.svg";
-import IconFontWeightItalic from "../assets/icons/fontWeightItalic.svg";
 import IconFontWeightBoldItalic from "../assets/icons/fontWeightBoldItalic.svg";
+import IconFontWeightItalic from "../assets/icons/fontWeightItalic.svg";
 
 import createIconRadioButton from "./helpers/createIconRadioButton";
 

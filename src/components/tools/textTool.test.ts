@@ -1,9 +1,9 @@
-/**
- * @jest-environment jsdom
- */
 import { TextTool } from "src/components/tools/textTool";
 import EVENT, * as CustomEvents from "src/utils/customEvents";
 
+/**
+ * @jest-environment jsdom
+ */
 describe("TextTool", () => {
   let tool: TextTool;
   let canvas: HTMLCanvasElement;
@@ -11,9 +11,6 @@ describe("TextTool", () => {
   beforeEach(() => {
     canvas = document.createElement('canvas');
   });
-
-  // afterEach(() => {
-  // });
 
   it("should initialize TextTool and dispatch UPDATE_WORKAREA on equip", () => {
     const updateSpy = jest.spyOn(CustomEvents, 'dispatch');
