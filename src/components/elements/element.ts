@@ -1,9 +1,4 @@
-import type {
-  IElementData,
-  Position,
-  Scale,
-  Size,
-} from "components/types";
+import type { IElementData, Position, Scale, Size } from "components/types";
 import type { Filter } from "src/filters/filter";
 import { createFilter } from "src/filters/filterFactory";
 import type { BoundingBox } from "src/utils/boundingBox";
@@ -97,21 +92,20 @@ export abstract class Element<T extends Partial<IElementData>> {
   }
 
   public deserialize(data: T): void {
-    (Object.keys(data) as Array<keyof T>).forEach((key) => {
-      if (this.properties.has(key)) {
-        if (key === "filters" && Array.isArray(data.filters)) {
-          const filters = data.filters.map((filterData) =>
-            createFilter(filterData),
-          );
-          this.properties.set(
-            key,
-            filters.filter((f) => f !== null),
-          );
-          return;
-        }
-        this.properties.set(key, data[key]);
+    for (const key of Object.keys(data) as Array<keyof T>) {
+      if (!this.properties.has(key)) continue;
+      if (key === "filters" && Array.isArray(data.filters)) {
+        const filters = data.filters.map((filterData) =>
+          createFilter(filterData),
+        );
+        this.properties.set(
+          key,
+          filters.filter((f) => f !== null),
+        );
+        continue;
       }
-    });
+      this.properties.set(key, data[key]);
+    }
   }
 
   public serialize(): T {

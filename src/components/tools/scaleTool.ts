@@ -1,9 +1,9 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
-import type { Position } from "src/components/types";
-import { Tool } from "src/components/tools/abstractTool";
 import centerHandleScale from "src/assets/icons/scale-tool.svg";
-import { WorkArea } from "src/components/workArea";
+import { Tool } from "src/components/tools/abstractTool";
 import type { TransformBox } from "src/components/transformBox";
+import type { Position, Scale } from "src/components/types";
+import { WorkArea } from "src/components/workArea";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import { toRadians } from "src/utils/transforms";
 
 export class ScaleTool extends Tool {
@@ -25,7 +25,7 @@ export class ScaleTool extends Tool {
     this.transformBox = WorkArea.getInstance().transformBox;
     super.equipTool();
     this.onHover = (evt: MouseEvent) => {
-      if (this.transformBox && this.transformBox.boundingBox) {
+      if (this.transformBox?.boundingBox) {
         const mousePos = WorkArea.getInstance().adjustForCanvas({
           x: evt.offsetX,
           y: evt.offsetY,
@@ -88,7 +88,7 @@ export class ScaleTool extends Tool {
         this.toolIcon.height / workAreaZoom,
       );
       if (this.transformBox.handles) {
-        Object.keys(this.transformBox.handles).forEach((handle) => {
+        for (const handle of Object.keys(this.transformBox.handles)) {
           if (this.transformBox?.handles) {
             const point =
               this.transformBox.handles[
@@ -97,7 +97,7 @@ export class ScaleTool extends Tool {
             if (this.context) {
               this.context.save();
               this.context.fillStyle =
-                this.hoveredHandle == handle ? "green" : "red";
+                this.hoveredHandle === handle ? "green" : "red";
               this.context.beginPath();
               this.context.arc(point.x, point.y, 10, 0, Math.PI * 2);
               this.context.closePath();
@@ -105,7 +105,7 @@ export class ScaleTool extends Tool {
               this.context.restore();
             }
           }
-        });
+        }
       }
       this.context.restore();
     }
@@ -252,7 +252,7 @@ export class ScaleTool extends Tool {
 
       const { delta, anchor } = this.getDeltaAndAnchor(deltaX, deltaY);
 
-      let scaleChange;
+      let scaleChange: Scale;
       if (evt.shiftKey) {
         // Se Shift estiver pressionado, calcula um fator de escala uniforme
         const startDistance = Math.hypot(

@@ -1,6 +1,6 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
-import { WorkArea } from "src/components/workArea";
 import { Tool } from "src/components/tools/abstractTool";
+import { WorkArea } from "src/components/workArea";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import type { Position } from "../types";
 
 const DRAGGING_DISTANCE = 5;
@@ -8,10 +8,6 @@ const DRAGGING_DISTANCE = 5;
 export class SelectTool extends Tool {
   private firstPoint: Position | null = null;
   private secondPoint: Position | null = null;
-
-  constructor(canvas: HTMLCanvasElement) {
-    super(canvas);
-  }
 
   equipTool(): void {
     super.equipTool();

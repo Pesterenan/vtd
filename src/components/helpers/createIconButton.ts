@@ -17,4 +17,3 @@ export default function createIconButton(
   button.addEventListener("click", onClick);
   return button;
 }
-

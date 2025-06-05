@@ -39,16 +39,18 @@ export interface IImageElementData extends IElementData {
   backgroundOpacity: number;
 }
 
+export interface IColorStop {
+  /** Where the colorstop is located in the gradient, from 0 to 1 */
+  portion: number;
+  color: string;
+  alpha: number;
+}
+
 export interface IGradientElementData extends IElementData {
   type: "gradient";
   startPosition: Position;
   endPosition: Position;
-  colorStops: {
-    /** Where the colorstop is located in the gradient, from 0 to 1 */
-    portion: number;
-    color: string;
-    alpha: number;
-  }[];
+  colorStops: IColorStop[];
 }
 
 export interface IElementGroupData extends IElementData {

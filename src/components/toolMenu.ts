@@ -1,13 +1,13 @@
 import EVENT, { dispatch } from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 
-import SelectIcon from "src/assets/icons/select-tool.svg";
+import GradientIcon from "src/assets/icons/gradient-tool.svg";
+import HandIcon from "src/assets/icons/hand-tool.svg";
 import GrabIcon from "src/assets/icons/move-tool.svg";
 import RotateIcon from "src/assets/icons/rotate-tool.svg";
 import ScaleIcon from "src/assets/icons/scale-tool.svg";
+import SelectIcon from "src/assets/icons/select-tool.svg";
 import TextIcon from "src/assets/icons/text-tool.svg";
-import HandIcon from "src/assets/icons/hand-tool.svg";
-import GradientIcon from "src/assets/icons/gradient-tool.svg";
 import ZoomIcon from "src/assets/icons/zoom-tool.svg";
 import type { ChangeToolDetail } from "./types";
 import { TOOL } from "./types";
@@ -73,26 +73,25 @@ export class ToolMenu {
   }
 
   public static getInstance(): ToolMenu {
-    if (this.instance === null) {
-      this.instance = new ToolMenu();
+    if (ToolMenu.instance === null) {
+      ToolMenu.instance = new ToolMenu();
     }
-    return this.instance;
+    return ToolMenu.instance;
   }
 
   private addEventListeners(): void {
     const toolButtons = this.toolMenu.querySelectorAll("[data-tool]");
-    toolButtons.forEach((button) => {
+    for (const button of toolButtons) {
       button.addEventListener("click", () => {
-          dispatch(EVENT.CHANGE_TOOL, {
-            tool: button.getAttribute("data-tool") as TOOL,
-          });
+        dispatch(EVENT.CHANGE_TOOL, {
+          tool: button.getAttribute("data-tool") as TOOL,
+        });
       });
-    });
+    }
     window.addEventListener(EVENT.CHANGE_TOOL, this.setActiveTool.bind(this));
-    window.addEventListener(
-      EVENT.USING_TOOL,
-      (evt) => (this.isUsingTool = evt.detail.isUsingTool),
-    );
+    window.addEventListener(EVENT.USING_TOOL, (evt) => {
+      this.isUsingTool = evt.detail.isUsingTool;
+    });
   }
 
   private setActiveTool(evt: CustomEvent<ChangeToolDetail>): void {

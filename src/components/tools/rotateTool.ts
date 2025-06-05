@@ -1,9 +1,9 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
+import centerHandleRotate from "src/assets/icons/rotate-tool.svg";
+import { Tool } from "src/components/tools/abstractTool";
+import type { TransformBox } from "src/components/transformBox";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
-import { Tool } from "src/components/tools/abstractTool";
-import centerHandleRotate from "src/assets/icons/rotate-tool.svg";
-import type { TransformBox } from "src/components/transformBox";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import { toDegrees } from "src/utils/transforms";
 
 export class RotateTool extends Tool {
@@ -108,7 +108,10 @@ export class RotateTool extends Tool {
       );
       const angle = toDegrees(currentAngle - startingAngle);
       const normalizedAngle = (this.transformBox.rotation + angle) % 360;
-      this.transformBox.updateRotation(normalizedAngle, this.transformBox.anchorPoint);
+      this.transformBox.updateRotation(
+        normalizedAngle,
+        this.transformBox.anchorPoint,
+      );
       this.startPosition = mousePos;
     }
   }

@@ -1,6 +1,6 @@
 import { clamp } from "src/utils/easing";
 import EVENT, { dispatch } from "../../utils/customEvents";
-import type { TBoundingBox, Position, Size } from "../types";
+import type { Position, Size, TBoundingBox } from "../types";
 
 const LINE_WIDTH = 4;
 const CENTER_RADIUS = 6;
@@ -8,7 +8,7 @@ const FRAME_RATIO: Record<string, number> = {
   vertical_wide: 1.77,
   horizontal_wide: 0.5625,
   letterbox: 1.33,
-};
+} as const;
 
 export class ExtractBox {
   private position: Position = { x: 0, y: 0 };
@@ -83,7 +83,7 @@ export class ExtractBox {
   }
 
   private setupInitialBox(): void {
-    const ratio = FRAME_RATIO["horizontal_wide"];
+    const ratio = FRAME_RATIO.horizontal_wide;
     let width = this.canvas.width;
     let height = Math.ceil(this.canvas.width * ratio);
     if (height > this.canvas.height) {

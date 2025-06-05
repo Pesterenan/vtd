@@ -24,7 +24,7 @@ const createEventListeners = (workArea: WorkArea): void => {
       const blob = new Blob([uint8Array], { type: "image/png" });
 
       const reader = new FileReader();
-      reader.onloadend = function (): void {
+      reader.onloadend = (): void => {
         const dataURL = reader.result as string;
         workArea.addImageElement(dataURL);
       };

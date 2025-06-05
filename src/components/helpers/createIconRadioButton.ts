@@ -24,4 +24,3 @@ export default function createIconRadioButton(
   container.append(tooltip);
   return container;
 }
-

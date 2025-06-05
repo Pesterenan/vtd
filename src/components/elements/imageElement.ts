@@ -1,8 +1,8 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
 import { Element } from "src/components/elements/element";
 import type { IImageElementData, Position, Size } from "src/components/types";
-import { clamp } from "src/utils/easing";
 import { BoundingBox } from "src/utils/boundingBox";
+import EVENT, { dispatch } from "src/utils/customEvents";
+import { clamp } from "src/utils/easing";
 import { toRadians } from "src/utils/transforms";
 
 export class ImageElement extends Element<IImageElementData> {

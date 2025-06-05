@@ -7,7 +7,7 @@ export interface ISliderControl {
   unlinkEvents: () => void;
 }
 
-export function createSliderControl(
+export default function createSliderControl(
   id: string,
   label: string,
   options: { min: number; max: number; step: number; value: number },

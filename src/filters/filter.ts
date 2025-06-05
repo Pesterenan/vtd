@@ -1,5 +1,5 @@
 import type { ISliderControl } from "src/components/helpers/createSliderControl";
-import { createSliderControl } from "src/components/helpers/createSliderControl";
+import createSliderControl from "src/components/helpers/createSliderControl";
 import { clamp } from "src/utils/easing";
 
 export type FilterProperty = string | number | undefined;
@@ -33,11 +33,11 @@ export abstract class Filter {
   }
 
   public deserialize(data: Partial<Filter>): void {
-    Object.entries(data).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(data)) {
       if (this.properties.has(key)) {
         this.properties.set(key, value as FilterProperty);
       }
-    });
+    }
   }
 
   public serialize(): Partial<Filter> {
@@ -61,7 +61,7 @@ export abstract class Filter {
     this.filterControls.className = "sec_menu-style pad-05";
     this.filterControls.id = `${this.id}-filter-controls`;
     this.opacityControl = createSliderControl(
-      `{this.id}-opacity`,
+      `${this.id}-opacity`,
       "Opacidade",
       { min: 0, max:  1, step: 0.01, value: this.globalAlpha },
       this.handleOpacityChange.bind(this),

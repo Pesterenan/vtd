@@ -1,12 +1,12 @@
 import type { Position } from "../types";
 
 interface IDialogOptions {
-  title: string;
   id: string;
   isDraggable?: boolean;
   style?: {
     minWidth?: string;
   };
+  title: string;
 }
 
 export abstract class Dialog {
@@ -33,16 +33,22 @@ export abstract class Dialog {
 
     this.dialogEl.innerHTML = `
     <form method="dialog">
-      <h3 id="dialog-${options.id}-header" style="cursor: ${options.isDraggable ? 'move' : 'default'};">${options.title}</h3>
+      <h3 id="dialog-${options.id}-header" style="cursor: ${options.isDraggable ? "move" : "default"};">${options.title}</h3>
       <div id="dialog-${options.id}-content" class="container g-05 ai-fs"></div>
       <menu id="dialog-${options.id}-actions" class="container g-05 ai-fs"></menu>
     </form>
     `;
     document.body.appendChild(this.dialogEl);
 
-    this.headerEl = this.dialogEl?.querySelector<HTMLHeadingElement>(`#dialog-${options.id}-header`);
-    this.dialogContent = this.dialogEl?.querySelector<HTMLDivElement>(`#dialog-${options.id}-content`);
-    this.dialogActions = this.dialogEl?.querySelector<HTMLMenuElement>(`#dialog-${options.id}-actions`);
+    this.headerEl = this.dialogEl?.querySelector<HTMLHeadingElement>(
+      `#dialog-${options.id}-header`,
+    );
+    this.dialogContent = this.dialogEl?.querySelector<HTMLDivElement>(
+      `#dialog-${options.id}-content`,
+    );
+    this.dialogActions = this.dialogEl?.querySelector<HTMLMenuElement>(
+      `#dialog-${options.id}-actions`,
+    );
     if (this.dialogContent && this.dialogActions) {
       this.appendDialogContent(this.dialogContent);
       this.appendDialogActions(this.dialogActions);
@@ -79,17 +85,17 @@ export abstract class Dialog {
     const y = event.clientY - this.dragOffset.y;
     this.dialogEl.style.left = `${x}px`;
     this.dialogEl.style.top = `${y}px`;
-  }
+  };
 
   private onMouseUp = (): void => {
     if (!this.isDragging) return;
     this.isDragging = false;
     window.removeEventListener("mousemove", this.onMouseMove.bind(this));
     window.removeEventListener("mouseup", this.onMouseUp.bind(this));
-  }
+  };
 
   private resetPosition(): void {
-    if (this.dialogEl)  {
+    if (this.dialogEl) {
       this.dialogEl.style.top = "50%";
       this.dialogEl.style.left = "50%";
       this.dialogEl.style.transform = "translate(-50%, -50%)";

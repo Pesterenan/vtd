@@ -1,8 +1,8 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
-import { Filter } from "./filter";
-import { clamp } from "src/utils/easing";
 import type { ISliderControl } from "src/components/helpers/createSliderControl";
-import { createSliderControl } from "src/components/helpers/createSliderControl";
+import createSliderControl from "src/components/helpers/createSliderControl";
+import EVENT, { dispatch } from "src/utils/customEvents";
+import { clamp } from "src/utils/easing";
+import { Filter } from "./filter";
 
 export class ColorCorrectionFilter extends Filter {
   private brightnessControl: ISliderControl | null = null;

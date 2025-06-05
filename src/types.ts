@@ -1,9 +1,9 @@
 export interface IThumbnailSpriteCell {
   index: number;
+  sh: number;
+  sw: number;
   sx: number;
   sy: number;
-  sw: number;
-  sh: number;
 }
 
 export interface IVideoMetadata {

@@ -1,18 +1,14 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
-import { remap } from "src/utils/easing";
+import { Tool } from "src/components/tools/abstractTool";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
-import { Tool } from "src/components/tools/abstractTool";
+import EVENT, { dispatch } from "src/utils/customEvents";
+import { remap } from "src/utils/easing";
 
 const MIN_ZOOM_LEVEL = 0.1;
 const MAX_ZOOM_LEVEL = 1.5;
 
 export class ZoomTool extends Tool {
   private startingPosition: Position | null = null;
-
-  constructor(canvas: HTMLCanvasElement) {
-    super(canvas);
-  }
 
   draw(): void {
     if (this.context && this.startingPosition) {

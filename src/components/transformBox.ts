@@ -1,10 +1,10 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
 import type { Element } from "src/components/elements/element";
 import type { Position, Scale, Size, TElementData } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
 import { BoundingBox } from "src/utils/boundingBox";
-import { Vector } from "src/utils/vector";
+import EVENT, { dispatch } from "src/utils/customEvents";
 import { toRadians } from "src/utils/transforms";
+import { Vector } from "src/utils/vector";
 import { ElementGroup } from "./elements/elementGroup";
 
 export class TransformBox {
@@ -56,12 +56,12 @@ export class TransformBox {
       this.size = scaledSize;
       this.anchorPoint = { ...this.position };
     } else {
-      let minX = Infinity,
-        minY = Infinity,
-        maxX = -Infinity,
-        maxY = -Infinity;
+      let minX = Number.POSITIVE_INFINITY;
+      let minY = Number.POSITIVE_INFINITY;
+      let maxX = Number.NEGATIVE_INFINITY;
+      let maxY = Number.NEGATIVE_INFINITY;
 
-      this.selectedElements.forEach((element: Element<TElementData>) => {
+      for (const element of this.selectedElements) {
         const boundingBox = element.getBoundingBox();
 
         // Considerando os quatro pontos da BoundingBox
@@ -73,13 +73,13 @@ export class TransformBox {
         ];
 
         // Atualizando os limites da bounding box que vai circundar todos os elementos
-        corners.forEach((corner) => {
+        for (const corner of corners) {
           if (corner.x < minX) minX = corner.x;
           if (corner.y < minY) minY = corner.y;
           if (corner.x > maxX) maxX = corner.x;
           if (corner.y > maxY) maxY = corner.y;
-        });
-      });
+        }
+      }
 
       // Calcula a posição e tamanho da TransformBox em torno de todos os elementos
       const width = maxX - minX;
@@ -151,9 +151,9 @@ export class TransformBox {
   }
 
   public updateOpacity(opacity: number): void {
-    this.selectedElements.forEach((element) => {
+    for (const element of this.selectedElements) {
       element.opacity = opacity;
-    });
+    }
     this.opacity = opacity;
     this.updateHandles();
   }
@@ -167,13 +167,13 @@ export class TransformBox {
       };
     };
     if (this.selectedElements) {
-      this.selectedElements.forEach((element) => {
+      for (const element of this.selectedElements) {
         if (element instanceof ElementGroup) {
           element.children?.forEach(moveElement);
         } else {
           moveElement(element);
         }
-      });
+      }
     }
     this.position = { x, y };
     this.anchorPoint = { ...this.position };
@@ -205,13 +205,13 @@ export class TransformBox {
       }
     };
     if (this.selectedElements) {
-      this.selectedElements.forEach((element) => {
+      for (const element of this.selectedElements) {
         if (element instanceof ElementGroup) {
           element.children?.forEach(rotateElement);
         } else {
           rotateElement(element);
         }
-      });
+      }
     }
     this.position = deltaPos;
     this.rotation = angle;
@@ -231,13 +231,13 @@ export class TransformBox {
       };
     };
     if (this.selectedElements) {
-      this.selectedElements.forEach((element) => {
+      for (const element of this.selectedElements) {
         if (element instanceof ElementGroup) {
           element.children?.forEach(scaleElement);
         } else {
           scaleElement(element);
         }
-      });
+      }
     }
     this.size = {
       width: this.size.width * delta.x,
@@ -283,24 +283,16 @@ export class TransformBox {
     this.context.stroke();
     // Desenhar os handles
     if (this.handles) {
-      Object.keys(this.handles).forEach((handle) => {
-        if (this.handles) {
-          const point = this.handles[handle as keyof typeof this.handles];
-          if (this.context) {
-            this.context.fillStyle = "blue";
-            this.context.beginPath();
-            this.context.arc(
-              point.x,
-              point.y,
-              5 / workAreaZoom,
-              0,
-              Math.PI * 2,
-            );
-            this.context.closePath();
-            this.context.fill();
-          }
+      for (const key of Object.keys(this.handles)) {
+        const point = this.handles[key as keyof typeof this.handles];
+        if (this.context) {
+          this.context.fillStyle = "blue";
+          this.context.beginPath();
+          this.context.arc(point.x, point.y, 5 / workAreaZoom, 0, Math.PI * 2);
+          this.context.closePath();
+          this.context.fill();
         }
-      });
+      }
     }
 
     this.context.restore();

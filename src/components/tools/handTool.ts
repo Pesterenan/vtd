@@ -1,14 +1,10 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
+import { Tool } from "src/components/tools/abstractTool";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
-import { Tool } from "src/components/tools/abstractTool";
+import EVENT, { dispatch } from "src/utils/customEvents";
 
 export class HandTool extends Tool {
   private startingPosition: Position | null = null;
-
-  constructor(canvas: HTMLCanvasElement) {
-    super(canvas);
-  }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   draw(): void {}

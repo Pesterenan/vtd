@@ -1,5 +1,3 @@
-export {};
-
 interface EventResponse {
   success: boolean;
   data?: unknown;
@@ -68,8 +66,8 @@ declare global {
     electron: typeof electronAPI;
   }
 }
-import { contextBridge, ipcRenderer } from "electron";
 import { electronAPI } from "@electron-toolkit/preload";
+import { contextBridge, ipcRenderer } from "electron";
 import type { IVideoMetadata } from "src/types";
 
 // Custom APIs for renderer

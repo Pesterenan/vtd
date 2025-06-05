@@ -1,9 +1,9 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
-import type { Position } from "src/components/types";
-import { Tool } from "src/components/tools/abstractTool";
-import { WorkArea } from "src/components/workArea";
 import { GradientElement } from "src/components/elements/gradientElement";
+import { Tool } from "src/components/tools/abstractTool";
+import type { Position } from "src/components/types";
+import { WorkArea } from "src/components/workArea";
 import { BB } from "src/utils/bb";
+import EVENT, { dispatch } from "src/utils/customEvents";
 
 export class GradientTool extends Tool {
   private activeGradientElement: GradientElement | null = null;
@@ -14,10 +14,6 @@ export class GradientTool extends Tool {
   private startPosition: Position | null = null;
   private endPosition: Position | null = null;
   private onHover: ((evt: MouseEvent) => void) | null = null;
-
-  constructor(canvas: HTMLCanvasElement) {
-    super(canvas);
-  }
 
   equipTool(): void {
     super.equipTool();

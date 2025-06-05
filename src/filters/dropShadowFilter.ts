@@ -1,10 +1,10 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
-import { Filter } from "src/filters/filter";
-import { clamp } from "src/utils/easing";
 import type { IColorControl } from "src/components/helpers/createColorControl";
-import { createColorControl } from "src/components/helpers/createColorControl";
+import createColorControl from "src/components/helpers/createColorControl";
 import type { ISliderControl } from "src/components/helpers/createSliderControl";
-import { createSliderControl } from "src/components/helpers/createSliderControl";
+import createSliderControl from "src/components/helpers/createSliderControl";
+import { Filter } from "src/filters/filter";
+import EVENT, { dispatch } from "src/utils/customEvents";
+import { clamp } from "src/utils/easing";
 import { toRadians } from "src/utils/transforms";
 
 export class DropShadowFilter extends Filter {
@@ -58,7 +58,7 @@ export class DropShadowFilter extends Filter {
   }
 
   protected onValueChange(): void {
-      dispatch(EVENT.UPDATE_WORKAREA);
+    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
   protected appendFilterControls(container: HTMLDivElement): void {
