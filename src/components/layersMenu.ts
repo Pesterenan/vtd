@@ -20,12 +20,14 @@ import createIconButton from "./helpers/createIconButton";
 
 export class LayersMenu {
   private static instance: LayersMenu | null = null;
-  private layersSection: HTMLElement | null = null;
-  private layersList!: HTMLUListElement;
+  private layersSection: HTMLElement;
+  private layersList: HTMLUListElement;
   private draggedLayerLI: HTMLLIElement | null = null;
   private selectedLayersId: Set<number> = new Set();
 
   private constructor() {
+    this.layersSection = document.createElement("section");
+    this.layersList = document.createElement("ul");
     this.createDOMElements();
     this.attachGlobalEvents();
   }
@@ -42,7 +44,6 @@ export class LayersMenu {
   }
 
   private createDOMElements(): void {
-    this.layersSection = document.createElement("section");
     this.layersSection.id = "sec_layers-menu";
     this.layersSection.className = "sec_menu-style";
     this.layersSection.innerHTML = `
@@ -71,17 +72,18 @@ export class LayersMenu {
     btnContainer?.appendChild(addGroupBtn);
     btnContainer?.appendChild(deleteLayerBtn);
 
-    this.layersList =
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      this.layersSection.querySelector<HTMLUListElement>("#ul_layers-list")!;
+    const layersList =
+      this.layersSection.querySelector<HTMLUListElement>("#ul_layers-list");
+    if (layersList) {
+      this.layersList = layersList;
+    }
   }
 
   private attachGlobalEvents(): void {
-    window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
-      if (this.layersList) {
-        this.layersList.innerHTML = "";
-      }
-    });
+    window.addEventListener(
+      EVENT.CLEAR_WORKAREA,
+      () => (this.layersList.innerHTML = ""),
+    );
 
     window.addEventListener(
       EVENT.ADD_ELEMENT,
@@ -378,7 +380,7 @@ export class LayersMenu {
   private handleSelectElement(evt: CustomEvent<SelectElementDetail>): void {
     const { elementsId } = evt.detail;
     this.selectedLayersId = elementsId;
-    this.layersList?.querySelectorAll("li").forEach((node) => {
+    this.layersList.querySelectorAll("li").forEach((node) => {
       const nodeId = Number(node.dataset.id);
       if (this.selectedLayersId.has(nodeId)) {
         node.classList.add("selected");

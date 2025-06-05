@@ -1,31 +1,31 @@
+import { DialogElementFilters } from "src/components/dialogs/DialogElementFilters";
+import { DialogExportImage } from "src/components/dialogs/DialogExportImage";
 import type { Element } from "src/components/elements/element";
-import { SelectTool } from "src/components/tools/selectTool";
+import { GradientElement } from "src/components/elements/gradientElement";
+import { ImageElement } from "src/components/elements/imageElement";
+import { TextElement } from "src/components/elements/textElement";
 import type { Tool } from "src/components/tools/abstractTool";
+import { GrabTool } from "src/components/tools/grabTool";
+import { GradientTool } from "src/components/tools/gradientTool";
+import { HandTool } from "src/components/tools/handTool";
+import { RotateTool } from "src/components/tools/rotateTool";
+import { ScaleTool } from "src/components/tools/scaleTool";
+import { SelectTool } from "src/components/tools/selectTool";
+import { TextTool } from "src/components/tools/textTool";
+import { ZoomTool } from "src/components/tools/zoomTool";
 import { TransformBox } from "src/components/transformBox";
 import type {
-  TElementData,
-  IProjectData,
-  Position,
-  Layer,
   ChangeToolDetail,
+  IProjectData,
+  Layer,
+  Position,
+  TElementData,
   UpdateElementDetail,
 } from "src/components/types";
 import { TOOL } from "src/components/types";
-import { HandTool } from "src/components/tools/handTool";
-import { ZoomTool } from "src/components/tools/zoomTool";
-import { GrabTool } from "src/components/tools/grabTool";
-import { RotateTool } from "src/components/tools/rotateTool";
-import { ScaleTool } from "src/components/tools/scaleTool";
+import { SIDE_MENU_WIDTH, TOOL_MENU_WIDTH } from "src/constants";
 import EVENT, { dispatch } from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
-import { ImageElement } from "src/components/elements/imageElement";
-import { TextElement } from "src/components/elements/textElement";
-import { TextTool } from "src/components/tools/textTool";
-import { GradientTool } from "src/components/tools/gradientTool";
-import { GradientElement } from "src/components/elements/gradientElement";
-import { DialogElementFilters } from "src/components/dialogs/DialogElementFilters";
-import { DialogExportImage } from "src/components/dialogs/DialogExportImage";
-import { SIDE_MENU_WIDTH, TOOL_MENU_WIDTH } from "src/constants";
 import { ElementGroup } from "./elements/elementGroup";
 
 const WORK_AREA_WIDTH = 1920;
@@ -172,10 +172,9 @@ export class WorkArea {
       });
       this.mainCanvas.addEventListener("drop", this.handleDropItems.bind(this));
       window.addEventListener("paste", this.handleDropItems.bind(this));
-      window.addEventListener(
-        EVENT.USING_TOOL,
-        (evt) => (this.isUsingTool = evt.detail.isUsingTool),
-      );
+      window.addEventListener(EVENT.USING_TOOL, (evt) => {
+        this.isUsingTool = evt.detail.isUsingTool;
+      });
     }
   }
 
@@ -193,9 +192,9 @@ export class WorkArea {
       }
       if (isLocked !== undefined) {
         if (elementToUpdate instanceof ElementGroup) {
-          elementToUpdate.children?.forEach(
-            (child) => (child.selected = false),
-          );
+          elementToUpdate.children?.forEach((child) => {
+            child.selected = false;
+          });
         }
         elementToUpdate.isLocked = isLocked;
         this.selectElements();
@@ -207,9 +206,9 @@ export class WorkArea {
   private handleSelectElement(evt: Event): void {
     const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
     const { elementsId } = customEvent.detail;
-    const selectElement = (element: Element<TElementData>) =>
-      (element.selected =
-        elementsId.has(element.elementId) && !element.isLocked);
+    const selectElement = (element: Element<TElementData>) => {
+      element.selected = elementsId.has(element.elementId) && !element.isLocked;
+    };
     this.elements.forEach((el) => {
       if (el instanceof ElementGroup && el.children && !el.isLocked) {
         el.children.forEach(selectElement);
@@ -437,10 +436,10 @@ export class WorkArea {
   }
 
   public static getInstance(): WorkArea {
-    if (this.instance === null) {
-      this.instance = new WorkArea();
+    if (WorkArea.instance === null) {
+      WorkArea.instance = new WorkArea();
     }
-    return this.instance;
+    return WorkArea.instance;
   }
 
   private createElementFromData(
@@ -532,7 +531,7 @@ export class WorkArea {
       console.error("Canvas not found");
       return "";
     }
-    const parsedQuality = (parseInt(quality, 10) || 100) / 100;
+    const parsedQuality = (Number.parseInt(quality, 10) || 100) / 100;
     return this.workArea.canvas.toDataURL(`image/${format}`, parsedQuality);
   }
 
@@ -543,9 +542,8 @@ export class WorkArea {
         return el.children.forEach(
           (child) => child.selected && selectedElements.push(child),
         );
-      } else {
-        return el.selected && selectedElements.push(el);
       }
+      return el.selected && selectedElements.push(el);
     });
     return selectedElements;
   }
@@ -585,8 +583,7 @@ export class WorkArea {
         this.elements.forEach((el) => {
           if (el instanceof ElementGroup) {
             if (
-              el.children &&
-              el.children.some(
+              el.children?.some(
                 (child) =>
                   child.isVisible &&
                   !child.isLocked &&

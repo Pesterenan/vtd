@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <title>format-underline</title>
+  <path d="M5,21H20V19H5V21" />
+  <text x="4" y="20" font-weight="bold" font-family="sans-serif" font-size="16pt" fill="black">U</text>
+</svg>

@@ -14,17 +14,17 @@ import { TOOL } from "./types";
 
 export class ToolMenu {
   private static instance: ToolMenu | null = null;
-  private toolMenu?: HTMLMenuElement;
+  private toolMenu: HTMLMenuElement;
   private activeToolId: string | null = "select-tool";
   private isUsingTool = false;
 
   constructor() {
+    this.toolMenu = document.createElement("menu");
     this.createDOMElements();
     this.addEventListeners();
   }
 
   private createDOMElements(): void {
-    this.toolMenu = document.createElement("menu");
     this.toolMenu.id = "tool-menu";
     this.toolMenu.className = "container column ai-c jc-fs g-05";
     this.toolMenu.innerHTML = `
@@ -78,15 +78,14 @@ export class ToolMenu {
     }
     return this.instance;
   }
+
   private addEventListeners(): void {
-    const toolButtons = this.toolMenu?.querySelectorAll(".tool");
-    toolButtons?.forEach((button) => {
+    const toolButtons = this.toolMenu.querySelectorAll("[data-tool]");
+    toolButtons.forEach((button) => {
       button.addEventListener("click", () => {
-        if (!button.classList.contains("active")) {
           dispatch(EVENT.CHANGE_TOOL, {
             tool: button.getAttribute("data-tool") as TOOL,
           });
-        }
       });
     });
     window.addEventListener(EVENT.CHANGE_TOOL, this.setActiveTool.bind(this));
@@ -100,13 +99,13 @@ export class ToolMenu {
     const { tool } = evt.detail;
     if (!this.isUsingTool) {
       if (this.activeToolId) {
-        const previousTool = this.toolMenu?.querySelector(
+        const previousTool = this.toolMenu.querySelector(
           `[data-tool="${this.activeToolId}"]`,
         );
         previousTool?.classList.remove("active");
       }
 
-      const newTool = this.toolMenu?.querySelector(`[data-tool="${tool}"]`);
+      const newTool = this.toolMenu.querySelector(`[data-tool="${tool}"]`);
       newTool?.classList.add("active");
       this.activeToolId = tool;
     }

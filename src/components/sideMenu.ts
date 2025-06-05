@@ -15,19 +15,22 @@ import createIconButton from "./helpers/createIconButton";
 
 export class SideMenu {
   private static instance: SideMenu | null = null;
-  private sideMenu?: HTMLMenuElement;
-  private layersMenu: HTMLElement | null = null;
-  private gradientMenu: HTMLElement | null = null;
-  private textMenu: HTMLElement | null = null;
-  private transformMenu: HTMLElement | null = null;
+  private sideMenu: HTMLMenuElement;
+  private layersMenu: HTMLElement;
+  private gradientMenu: HTMLElement;
+  private textMenu: HTMLElement;
+  private transformMenu: HTMLElement;
 
   constructor() {
+    this.sideMenu = document.createElement("menu");
+    this.transformMenu = TransformMenu.getInstance().getMenu();
+    this.layersMenu = LayersMenu.getInstance().getMenu();
+    this.textMenu = TextMenu.getInstance().getMenu();
+    this.gradientMenu = GradientMenu.getInstance().getMenu();
     this.createDOMElements();
   }
 
   private createDOMElements(): void {
-    const mainWindow = getElementById<HTMLDivElement>("main-window");
-    this.sideMenu = document.createElement("menu");
     this.sideMenu.id = "side-menu";
     this.sideMenu.className = "side-menu";
     this.sideMenu.setAttribute("style", `width: ${SIDE_MENU_WIDTH}px;`);
@@ -77,23 +80,19 @@ export class SideMenu {
       openVideoBtn,
       exportImageBtn,
     );
-    domElements.push(projectOptionsDiv);
 
-    this.transformMenu = TransformMenu.getInstance().getMenu();
-    domElements.push(this.transformMenu);
-
-    this.layersMenu = LayersMenu.getInstance().getMenu();
-    domElements.push(this.layersMenu);
-
-    this.textMenu = TextMenu.getInstance().getMenu();
-    domElements.push(this.textMenu);
-
-    this.gradientMenu = GradientMenu.getInstance().getMenu();
-    domElements.push(this.gradientMenu);
+    domElements.push(
+      projectOptionsDiv,
+      this.transformMenu,
+      this.layersMenu,
+      this.textMenu,
+      this.gradientMenu,
+    );
 
     // APPEND ELEMENTS TO SIDE MENU:
     this.sideMenu.append(...domElements);
 
+    const mainWindow = getElementById<HTMLDivElement>("main-window");
     if (mainWindow) {
       mainWindow.appendChild(this.sideMenu);
     }

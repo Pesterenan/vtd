@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css?family=Trajan%20Pro:700|IBM%20Plex%20Sans%20Condensed:400');
+@import url("https://fonts.googleapis.com/css?family=Trajan%20Pro:700|IBM%20Plex%20Sans%20Condensed:400");
 
 :root[data-theme="light"] {
   --text-50: #f5f0f0;
@@ -60,8 +60,8 @@
   --accent-800: #665f00;
   --accent-900: #333000;
   --accent-950: #1a1800;
-
 }
+
 :root[data-theme="dark"] {
   --text-50: #0f0a0a;
   --text-100: #1f1414;
@@ -122,8 +122,8 @@
   --accent-800: #fff899;
   --accent-900: #fffccc;
   --accent-950: #fffde5;
-
 }
+
 :root {
   --background-transition: background-color 0.15s;
   --primary_hue: 160;
@@ -161,30 +161,54 @@ body {
   -webkit-font-smoothing: antialiased;
   background: var(--background-50);
   color: var(--text-900);
-  font-family:
-    'IBM Plex Sans Condensed',
-    sans-serif;
+  font-family: "IBM Plex Sans Condensed", sans-serif;
   font-weight: 400;
   line-height: 1.2;
   min-height: 100vh;
   text-rendering: optimizeLegibility;
 }
 
-h1, h2, h3, h4, h5 {
-  font-family: 'Trajan Pro';
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-family: "Trajan Pro", serif;
   font-weight: bold;
 }
 
-html {font-size: 100%;} /* 16px */
+html {
+  font-size: 100%;
+}
 
-h1 {font-size: 1.106rem; /* 17.76px */}
+/* 16px */
 
-h2 {font-size: 1.037rem; /* 16.64px */}
+h1 {
+  font-size: 1.106rem;
+  /* 17.76px */
+}
 
-h3 {font-size: 0.972rem; /* 15.52px */}
+h2 {
+  font-size: 1.037rem;
+  /* 16.64px */
+}
 
-h4 {font-size: 0.911rem; /* 14.56px */}
+h3 {
+  font-size: 0.972rem;
+  /* 15.52px */
+}
 
-h5 {font-size: 0.854rem; /* 13.6px */}
+h4 {
+  font-size: 0.911rem;
+  /* 14.56px */
+}
 
-small {font-size: 0.750rem; /* 12px */}
+h5 {
+  font-size: 0.854rem;
+  /* 13.6px */
+}
+
+small {
+  font-size: 0.750rem;
+  /* 12px */
+}
