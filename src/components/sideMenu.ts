@@ -1,17 +1,17 @@
-import getElementById from "src/utils/getElementById";
+import exportImageIconSrc from "src/assets/icons/export-image.svg";
+import extractVideoIconSrc from "src/assets/icons/extract-video.svg";
+import importImageIconSrc from "src/assets/icons/import-image.svg";
+import loadProjectIconSrc from "src/assets/icons/load-project.svg";
+import saveProjectIconSrc from "src/assets/icons/save-project.svg";
 import { GradientMenu } from "src/components/gradientMenu";
 import { LayersMenu } from "src/components/layersMenu";
 import { TextMenu } from "src/components/textMenu";
 import { WorkArea } from "src/components/workArea";
 import { SIDE_MENU_WIDTH } from "src/constants";
-import { TransformMenu } from "./transformMenu";
-import importImageIconSrc from "src/assets/icons/import-image.svg";
-import exportImageIconSrc from "src/assets/icons/export-image.svg";
-import saveProjectIconSrc from "src/assets/icons/save-project.svg";
-import loadProjectIconSrc from "src/assets/icons/load-project.svg";
-import extractVideoIconSrc from "src/assets/icons/extract-video.svg";
 import EVENT, { dispatch } from "src/utils/customEvents";
+import getElementById from "src/utils/getElementById";
 import createIconButton from "./helpers/createIconButton";
+import { TransformMenu } from "./transformMenu";
 
 export class SideMenu {
   private static instance: SideMenu | null = null;
@@ -99,9 +99,9 @@ export class SideMenu {
   }
 
   public static getInstance(): SideMenu {
-    if (this.instance === null) {
-      this.instance = new SideMenu();
+    if (SideMenu.instance === null) {
+      SideMenu.instance = new SideMenu();
     }
-    return this.instance;
+    return SideMenu.instance;
   }
 }

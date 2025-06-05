@@ -1,10 +1,10 @@
 import "../../assets/main.css";
-import getElementById from "../../utils/getElementById";
-import type { IVideoMetadata, IThumbnailSpriteCell } from "../../types";
-import { ExtractBox } from "../../components/extractBox/extractBox";
-import EVENT, { dispatch } from "../../utils/customEvents";
-import formatFrameIntoTime from "src/utils/formatFrameIntoTime";
 import { clamp } from "src/utils/easing";
+import formatFrameIntoTime from "src/utils/formatFrameIntoTime";
+import { ExtractBox } from "../../components/extractBox/extractBox";
+import type { IThumbnailSpriteCell, IVideoMetadata } from "../../types";
+import EVENT, { dispatch } from "../../utils/customEvents";
+import getElementById from "../../utils/getElementById";
 
 const PREVIEW_CANVAS_HEIGHT = 432;
 const PREVIEW_CANVAS_WIDTH = 768;
@@ -147,8 +147,8 @@ export class VideoFrameExtractor {
         this.thumbnailSprite = new Image();
         this.thumbnailSprite.src = response.data as string;
         this.thumbnailSprite.onload = () => {
-          const cols = 10,
-            rows = 10;
+          const cols = 10;
+          const rows = 10;
           if (this.thumbnailSprite) {
             const sw = this.thumbnailSprite.width / cols;
             const sh = this.thumbnailSprite.height / rows;
@@ -187,10 +187,10 @@ export class VideoFrameExtractor {
   }
 
   public static getInstance(): VideoFrameExtractor {
-    if (this.instance === null) {
-      this.instance = new VideoFrameExtractor();
+    if (VideoFrameExtractor.instance === null) {
+      VideoFrameExtractor.instance = new VideoFrameExtractor();
     }
-    return this.instance;
+    return VideoFrameExtractor.instance;
   }
 
   private handleSliderInput(evt: Event): void {

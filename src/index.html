@@ -13,7 +13,6 @@
 </body>
 <script>
   window.api.onThemeUpdate((event, newTheme) => {
-    console.log('Theme updated:', newTheme);
     const root = document.documentElement;
     root.setAttribute('data-theme', newTheme);
   });
@@ -22,7 +21,6 @@
     const root = document.documentElement;
     const currentTheme = root.getAttribute('data-theme');
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    console.log('Calling changeTheme with:', newTheme);
     window.api.changeTheme(newTheme);
   });
 </script>

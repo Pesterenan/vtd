@@ -4,6 +4,9 @@ import { TextElement } from "./elements/textElement";
 import { TransformBox } from "./transformBox";
 import type { TElementData } from "./types";
 
+/**
+ * @jest-environment jsdom
+ */
 describe("TransformBox", () => {
   let canvas: HTMLCanvasElement;
   let elements: Element<TElementData>[];

@@ -192,9 +192,11 @@ export class WorkArea {
       }
       if (isLocked !== undefined) {
         if (elementToUpdate instanceof ElementGroup) {
-          elementToUpdate.children?.forEach((child) => {
-            child.selected = false;
-          });
+          if (elementToUpdate.children) {
+            for (const child of elementToUpdate.children) {
+              child.selected = false;
+            }
+          }
         }
         elementToUpdate.isLocked = isLocked;
         this.selectElements();
@@ -209,13 +211,15 @@ export class WorkArea {
     const selectElement = (element: Element<TElementData>) => {
       element.selected = elementsId.has(element.elementId) && !element.isLocked;
     };
-    this.elements.forEach((el) => {
-      if (el instanceof ElementGroup && el.children && !el.isLocked) {
-        el.children.forEach(selectElement);
+    for (const el of this.elements) {
+      if (el instanceof ElementGroup) {
+        if (el.children && !el.isLocked) {
+          el.children.forEach(selectElement);
+        }
       } else {
         selectElement(el);
       }
-    });
+    }
     this.createTransformBox();
     this.update();
   }
@@ -224,12 +228,12 @@ export class WorkArea {
     elements: Element<TElementData>[],
   ): Element<TElementData>[] {
     const flatElements: Element<TElementData>[] = [];
-    elements.forEach((el) => {
+    for (const el of elements) {
       flatElements.push(el);
       if (el instanceof ElementGroup && el.children) {
         flatElements.push(...this.getFlatElements(el.children));
       }
-    });
+    }
     return flatElements;
   }
 
@@ -239,21 +243,21 @@ export class WorkArea {
     counter: { value: number },
   ): Element<TElementData>[] {
     const orderedElements: Element<TElementData>[] = [];
-    hierarchy.forEach((node) => {
-      const element = flatElements.find((el) => el.elementId === node.id);
+    for (const layer of hierarchy) {
+      const element = flatElements.find((el) => el.elementId === layer.id);
       if (element) {
         element.zDepth = counter.value++;
         orderedElements.push(element);
-        if (node.children && element instanceof ElementGroup) {
+        if (layer.children && element instanceof ElementGroup) {
           const childElements = this.processLayerHierarchy(
-            node.children,
+            layer.children,
             flatElements,
             counter,
           );
           (element as ElementGroup).children = childElements;
         }
       }
-    });
+    }
     return orderedElements;
   }
 
@@ -537,14 +541,21 @@ export class WorkArea {
 
   public getSelectedElements(): Element<TElementData>[] {
     const selectedElements: Element<TElementData>[] = [];
-    this.elements.forEach((el) => {
-      if (el instanceof ElementGroup && el.children && el.children.length) {
-        return el.children.forEach(
-          (child) => child.selected && selectedElements.push(child),
-        );
+    for (const el of this.elements) {
+      if (el instanceof ElementGroup) {
+        if (el.children?.length) {
+          for (const child of el.children) {
+            if (child.selected) {
+              selectedElements.push(child);
+            }
+          }
+        }
+      } else {
+        if (el.selected) {
+          selectedElements.push(el);
+        }
       }
-      return el.selected && selectedElements.push(el);
-    });
+    }
     return selectedElements;
   }
 
@@ -580,7 +591,7 @@ export class WorkArea {
       }
       if (secondPoint) {
         const adjustedSecondPoint = this.adjustForCanvas(secondPoint);
-        this.elements.forEach((el) => {
+        for (const el of this.elements) {
           if (el instanceof ElementGroup) {
             if (
               el.children?.some(
@@ -605,7 +616,7 @@ export class WorkArea {
               selectedElements.push(el);
             }
           }
-        });
+        }
       }
     }
     dispatch(EVENT.SELECT_ELEMENT, {

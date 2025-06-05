@@ -1,6 +1,6 @@
-import type { Filter } from "src/filters/filter";
 import { ColorCorrectionFilter } from "src/filters/colorCorrectionFilter";
 import { DropShadowFilter } from "src/filters/dropShadowFilter";
+import type { Filter } from "src/filters/filter";
 import { OuterGlowFilter } from "src/filters/outerGlowFilter";
 
 export function createFilter(filterData: Partial<Filter>): Filter | null {

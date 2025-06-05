@@ -1,7 +1,7 @@
 import type { Position, Size } from "src/components/types";
-import { Vector } from "./vector";
 import { WorkArea } from "src/components/workArea";
 import { toRadians } from "./transforms";
+import { Vector } from "./vector";
 
 export class BoundingBox {
   public topLeft: Position = { x: 0, y: 0 };
@@ -69,11 +69,7 @@ export class BoundingBox {
     return new Vector(rotated).add(center);
   }
 
-  public update(
-    position: Position,
-    size: Size,
-    rotation: number,
-  ): void {
+  public update(position: Position, size: Size, rotation: number): void {
     this.center = position;
     this.rotation = rotation;
     this.updateCorners(position, size);

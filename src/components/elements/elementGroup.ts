@@ -1,6 +1,6 @@
 import { BoundingBox } from "src/utils/boundingBox";
-import { Element } from "./element";
 import type { IElementGroupData, Position, Size, TElementData } from "../types";
+import { Element } from "./element";
 
 export class ElementGroup extends Element<Partial<IElementGroupData>> {
   public children: Element<TElementData>[] | null = [];
@@ -33,10 +33,12 @@ export class ElementGroup extends Element<Partial<IElementGroupData>> {
     if (!this.isVisible) return;
     context.save();
     context.globalAlpha = this.opacity;
-    this.children?.forEach((child) => {
-      if (!child.isVisible) return;
-      child.draw(context);
-    });
+    if (this.children)  {
+      for (const child of this.children) {
+        if (!child.isVisible) continue;
+        child.draw(context);
+      }
+    }
     context.restore();
   }
 
@@ -45,18 +47,21 @@ export class ElementGroup extends Element<Partial<IElementGroupData>> {
       return new BoundingBox(this.position, this.size, this.rotation);
     }
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
 
-    this.children.forEach((child) => {
+    for (const child of this.children) {
       const box = child.getBoundingBox();
       const corners = [box.topLeft, box.topRight, box.bottomLeft, box.bottomRight];
-      corners.forEach((corner) => {
+      for (const corner of corners) {
         if (corner.x < minX) minX = corner.x;
         if (corner.y < minY) minY = corner.y;
         if (corner.x > maxX) maxX = corner.x;
         if (corner.y > maxY) maxY = corner.y;
-      });
-    });
+      }
+    }
 
     const center = {
       x: (minX + maxX) / 2,

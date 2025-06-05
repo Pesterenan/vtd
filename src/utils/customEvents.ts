@@ -1,4 +1,15 @@
-import type { AddAlertDetail, AddElementDetail, ChangeToolDetail, DeleteElementDetail, OpenFiltersDialogDetail, RecalculateTransformBoxDetail, ReorganizeLayersDetail, SelectElementDetail, UpdateElementDetail, UsingToolDetail } from "src/components/types";
+import type {
+  AddAlertDetail,
+  AddElementDetail,
+  ChangeToolDetail,
+  DeleteElementDetail,
+  OpenFiltersDialogDetail,
+  RecalculateTransformBoxDetail,
+  ReorganizeLayersDetail,
+  SelectElementDetail,
+  UpdateElementDetail,
+  UsingToolDetail,
+} from "src/components/types";
 
 const EVENT = {
   ADD_ALERT: "ADD_ALERT",

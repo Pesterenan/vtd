@@ -1,6 +1,3 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
-import getElementById from "src/utils/getElementById";
-import errorElement from "src/components/elements/errorElement";
 import ClosedEyeIcon from "src/assets/icons/closed-eye.svg";
 import FilterIcon from "src/assets/icons/filter.svg";
 import GroupArrowIcon from "src/assets/icons/group-arrow.svg";
@@ -9,14 +6,17 @@ import LockedIcon from "src/assets/icons/lock.svg";
 import OpenEyeIcon from "src/assets/icons/open-eye.svg";
 import TrashIcon from "src/assets/icons/trash.svg";
 import UnlockedIcon from "src/assets/icons/unlock.svg";
-import { WorkArea } from "./workArea";
+import errorElement from "src/components/elements/errorElement";
+import EVENT, { dispatch } from "src/utils/customEvents";
+import getElementById from "src/utils/getElementById";
+import createIconButton from "./helpers/createIconButton";
 import type {
   AddElementDetail,
   DeleteElementDetail,
   Layer,
   SelectElementDetail,
 } from "./types";
-import createIconButton from "./helpers/createIconButton";
+import { WorkArea } from "./workArea";
 
 export class LayersMenu {
   private static instance: LayersMenu | null = null;
@@ -33,10 +33,10 @@ export class LayersMenu {
   }
 
   public static getInstance(): LayersMenu {
-    if (this.instance === null) {
-      this.instance = new LayersMenu();
+    if (LayersMenu.instance === null) {
+      LayersMenu.instance = new LayersMenu();
     }
-    return this.instance;
+    return LayersMenu.instance;
   }
 
   public getMenu(): HTMLElement {
@@ -80,10 +80,9 @@ export class LayersMenu {
   }
 
   private attachGlobalEvents(): void {
-    window.addEventListener(
-      EVENT.CLEAR_WORKAREA,
-      () => (this.layersList.innerHTML = ""),
-    );
+    window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
+      this.layersList.innerHTML = "";
+    });
 
     window.addEventListener(
       EVENT.ADD_ELEMENT,
@@ -134,11 +133,11 @@ export class LayersMenu {
       childrenList.style.display = "none";
       li.appendChild(childrenList);
       if (layer.children && layer.children.length > 0) {
-        layer.children.forEach((child) => {
+        for (const child of layer.children) {
           const isChildGroup = "children" in child;
           const childLI = this.createLayerItem(child, isChildGroup);
           childrenList.appendChild(childLI);
-        });
+        }
       }
       this.attachGroupEvents(li, childrenList);
     } else {
@@ -172,13 +171,13 @@ export class LayersMenu {
       if (evt.ctrlKey) {
         if (isGroup) {
           const currentChildren = this.generateLayerHierarchy(groupChildrenUL);
-          currentChildren.forEach((child) => {
+          for (const child of currentChildren) {
             if (this.selectedLayersId.has(child.id)) {
               this.selectedLayersId.delete(child.id);
             } else {
               this.selectedLayersId.add(child.id);
             }
-          });
+          }
         } else {
           if (this.selectedLayersId.has(layer.id)) {
             this.selectedLayersId.delete(layer.id);
@@ -191,13 +190,13 @@ export class LayersMenu {
         if (isGroup) {
           const currentChildren = this.generateLayerHierarchy(groupChildrenUL);
           if (currentChildren.length > 0) {
-            currentChildren.forEach((child) => {
+            for (const child of currentChildren) {
               if (this.selectedLayersId.has(child.id)) {
                 this.selectedLayersId.delete(child.id);
               } else {
                 this.selectedLayersId.add(child.id);
               }
-            });
+            }
           }
         } else {
           this.selectedLayersId.add(layer.id);
@@ -340,22 +339,26 @@ export class LayersMenu {
 
   private generateLayerHierarchy(layer?: HTMLUListElement): Layer[] {
     const hierarchy: Layer[] = [];
-    layer?.querySelectorAll<HTMLLIElement>(":scope > li").forEach((li) => {
-      const id = Number(li.dataset.id);
-      const isLocked =
-        li.querySelector<HTMLInputElement>(`#inp_lock-${id}`)?.checked || false;
-      const isVisible =
-        li.querySelector<HTMLInputElement>(`#inp_visibility-${id}`)?.checked ||
-        false;
-      const childrenUL = li.querySelector<HTMLUListElement>(
-        `#ul_group-children-${id}`,
-      );
-      let children: Layer[] | undefined;
-      if (childrenUL) {
-        children = this.generateLayerHierarchy(childrenUL);
+    const layerItems = layer?.querySelectorAll<HTMLLIElement>(":scope > li");
+    if (layerItems) {
+      for (const li of layerItems) {
+        const id = Number(li.dataset.id);
+        const isLocked =
+          li.querySelector<HTMLInputElement>(`#inp_lock-${id}`)?.checked ||
+          false;
+        const isVisible =
+          li.querySelector<HTMLInputElement>(`#inp_visibility-${id}`)
+            ?.checked || false;
+        const childrenUL = li.querySelector<HTMLUListElement>(
+          `#ul_group-children-${id}`,
+        );
+        let children: Layer[] | undefined;
+        if (childrenUL) {
+          children = this.generateLayerHierarchy(childrenUL);
+        }
+        hierarchy.push({ children, id, isLocked, isVisible });
       }
-      hierarchy.push({ children, id, isLocked, isVisible });
-    });
+    }
     return hierarchy;
   }
 
@@ -380,14 +383,14 @@ export class LayersMenu {
   private handleSelectElement(evt: CustomEvent<SelectElementDetail>): void {
     const { elementsId } = evt.detail;
     this.selectedLayersId = elementsId;
-    this.layersList.querySelectorAll("li").forEach((node) => {
-      const nodeId = Number(node.dataset.id);
-      if (this.selectedLayersId.has(nodeId)) {
-        node.classList.add("selected");
+    for (const li of this.layersList.querySelectorAll("li")) {
+      const liId = Number(li.dataset.id);
+      if (this.selectedLayersId.has(liId)) {
+        li.classList.add("selected");
       } else {
-        node.classList.remove("selected");
+        li.classList.remove("selected");
       }
-    });
+    }
   }
 
   private handleDeleteElement(evt: CustomEvent<DeleteElementDetail>): void {

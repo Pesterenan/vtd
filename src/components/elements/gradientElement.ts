@@ -1,5 +1,11 @@
 import { Element } from "src/components/elements/element";
-import type { TBoundingBox, IGradientElementData, Position, Size } from "src/components/types";
+import type {
+  IColorStop,
+  IGradientElementData,
+  Position,
+  Size,
+  TBoundingBox,
+} from "src/components/types";
 import type { BoundingBox } from "src/utils/boundingBox";
 
 export class GradientElement extends Element<IGradientElementData> {
@@ -37,16 +43,10 @@ export class GradientElement extends Element<IGradientElementData> {
   public set endPosition(value: Position) {
     this.properties.set("endPosition", value);
   }
-  public get colorStops(): { portion: number; color: string; alpha: number }[] {
-    return this.properties.get("colorStops") as {
-      portion: number;
-      color: string;
-      alpha: number;
-    }[];
+  public get colorStops(): IColorStop[] {
+    return this.properties.get("colorStops") as IColorStop[];
   }
-  public set colorStops(
-    value: { portion: number; color: string; alpha: number }[],
-  ) {
+  public set colorStops(value: IColorStop[]) {
     this.properties.set("colorStops", value);
   }
 
@@ -89,7 +89,7 @@ export class GradientElement extends Element<IGradientElementData> {
   }
 
   public getBoundingBox(): BoundingBox {
-      throw new Error("Method not implemented.");
+    throw new Error("Method not implemented.");
   }
 
   public getTransformedBoundingBox(): TBoundingBox {
@@ -97,9 +97,9 @@ export class GradientElement extends Element<IGradientElementData> {
   }
 
   private hexToRgba(hex: string, alpha: number): string {
-    const r = parseInt(hex[1] + hex[2], 16);
-    const g = parseInt(hex[3] + hex[4], 16);
-    const b = parseInt(hex[5] + hex[6], 16);
+    const r = Number.parseInt(hex[1] + hex[2], 16);
+    const g = Number.parseInt(hex[3] + hex[4], 16);
+    const b = Number.parseInt(hex[5] + hex[6], 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 }

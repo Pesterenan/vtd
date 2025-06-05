@@ -72,7 +72,7 @@ export class DialogElementFilters extends Dialog {
       this.populateFilters();
       dispatch(EVENT.UPDATE_WORKAREA);
     });
-    menu.appendChild(btnAccept)
+    menu.appendChild(btnAccept);
     menu.appendChild(btnCancel);
     menu.appendChild(btnReset);
   }
@@ -89,7 +89,7 @@ export class DialogElementFilters extends Dialog {
     const selectedElements = WorkArea.getInstance().getSelectedElements();
     if (!selectedElements) return;
     this.activeElement = selectedElements[0];
-    this.currentFilters = [ ...this.activeElement.filters ];
+    this.currentFilters = [...this.activeElement.filters];
     this.populateFilters();
   }
 
@@ -131,8 +131,12 @@ export class DialogElementFilters extends Dialog {
     this.clearFilterControls();
 
     const mergedFilters = new Map<string, Filter>();
-    this.defaultFilters.forEach((f) => mergedFilters.set(f.id, f));
-    this.activeElement.filters.forEach((f) => mergedFilters.set(f.id, f));
+    for (const filter of this.defaultFilters) {
+      mergedFilters.set(filter.id, filter);
+    }
+    for (const filter of this.activeElement.filters) {
+      mergedFilters.set(filter.id, filter);
+    }
 
     mergedFilters.forEach((filter, key) => {
       const isChecked =
@@ -168,7 +172,9 @@ export class DialogElementFilters extends Dialog {
     if (isChecked) {
       const exists = this.activeElement.filters.some((f) => f.id === filter.id);
       if (!exists) {
-        const defaultFilter = this.defaultFilters.find((f) => f.id === filter.id);
+        const defaultFilter = this.defaultFilters.find(
+          (f) => f.id === filter.id,
+        );
         if (defaultFilter) {
           this.activeElement.filters.push(defaultFilter);
           this.selectFilter(defaultFilter);
@@ -177,7 +183,9 @@ export class DialogElementFilters extends Dialog {
         this.selectFilter(filter);
       }
     } else {
-      this.activeElement.filters = this.activeElement.filters.filter((f) => f.id !== filter.id);
+      this.activeElement.filters = this.activeElement.filters.filter(
+        (f) => f.id !== filter.id,
+      );
       this.clearFilterControls();
     }
   }

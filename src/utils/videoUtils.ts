@@ -1,10 +1,10 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { PassThrough } from "node:stream";
 import type { FfprobeData } from "fluent-ffmpeg";
 import ffmpeg, { ffprobe } from "fluent-ffmpeg";
 import type { IVideoMetadata } from "src/types";
-import { mkdtemp, readFile, rm } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
-import { PassThrough } from "stream";
 
 function streamToBuffer(stream: PassThrough): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -93,21 +93,23 @@ export async function getMetadata(filePath: string): Promise<IVideoMetadata> {
  * @param metadata - The metadata of the video file.
  */
 export async function generateThumbnailSprite(
-  metadata: IVideoMetadata
+  metadata: IVideoMetadata,
 ): Promise<string> {
   const { duration, filePath } = metadata;
   const cols = 10;
   const rows = 10;
   const count = cols * rows;
-  const interval = duration / (count);
+  const interval = duration / count;
   const tmpDir = await mkdtemp(join(tmpdir(), "vfe_sprite-"));
-  const outFile = join(tmpDir, `thumbnail_sprite.jpg`);
+  const outFile = join(tmpDir, "thumbnail_sprite.jpg");
   const time = performance.now();
   await new Promise<void>((resolve, reject) => {
     ffmpeg(filePath)
       .outputOptions([
-        `-vf`, `fps=1/${interval},scale=192:-1,tile=${cols}x${rows}`,
-        `-frames:v`, `1`
+        "-vf",
+        `fps=1/${interval},scale=192:-1,tile=${cols}x${rows}`,
+        "-frames:v",
+        "1",
       ])
       .on("error", (err) => reject(err))
       .on("end", () => resolve())

@@ -1,12 +1,12 @@
-import getElementById from "src/utils/getElementById";
-import EVENT, { dispatch } from "src/utils/customEvents";
 import errorElement from "src/components/elements/errorElement";
 import { GradientElement } from "src/components/elements/gradientElement";
 import { WorkArea } from "src/components/workArea";
-import type { ISliderControl } from "./helpers/createSliderControl";
-import { createSliderControl } from "./helpers/createSliderControl";
+import EVENT, { dispatch } from "src/utils/customEvents";
+import getElementById from "src/utils/getElementById";
 import type { IColorControl } from "./helpers/createColorControl";
-import { createColorControl } from "./helpers/createColorControl";
+import createColorControl from "./helpers/createColorControl";
+import type { ISliderControl } from "./helpers/createSliderControl";
+import createSliderControl from "./helpers/createSliderControl";
 import type { SelectElementDetail } from "./types";
 
 export class GradientMenu {
@@ -60,10 +60,10 @@ export class GradientMenu {
   };
 
   public static getInstance(): GradientMenu {
-    if (this.instance === null) {
-      this.instance = new GradientMenu();
+    if (GradientMenu.instance === null) {
+      GradientMenu.instance = new GradientMenu();
     }
-    return this.instance;
+    return GradientMenu.instance;
   }
 
   public getMenu(): HTMLElement {
@@ -154,9 +154,9 @@ export class GradientMenu {
   }
 
   private hexToRgba(hex: string, alpha: number): string {
-    const r = parseInt(hex[1] + hex[2], 16);
-    const g = parseInt(hex[3] + hex[4], 16);
-    const b = parseInt(hex[5] + hex[6], 16);
+    const r = Number.parseInt(hex[1] + hex[2], 16);
+    const g = Number.parseInt(hex[3] + hex[4], 16);
+    const b = Number.parseInt(hex[5] + hex[6], 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 

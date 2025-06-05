@@ -1,8 +1,8 @@
-import EVENT from "src/utils/customEvents";
 import errorElement from "src/components/elements/errorElement";
 import { WorkArea } from "src/components/workArea";
+import EVENT from "src/utils/customEvents";
 import type { ISliderControl } from "./helpers/createSliderControl";
-import { createSliderControl } from "./helpers/createSliderControl";
+import createSliderControl from "./helpers/createSliderControl";
 import type { TransformBox } from "./transformBox";
 import type { RecalculateTransformBoxDetail } from "./types";
 
@@ -60,10 +60,10 @@ export class TransformMenu {
   }
 
   public static getInstance(): TransformMenu {
-    if (this.instance === null) {
-      this.instance = new TransformMenu();
+    if (TransformMenu.instance === null) {
+      TransformMenu.instance = new TransformMenu();
     }
-    return this.instance;
+    return TransformMenu.instance;
   }
 
   public getMenu(): HTMLElement {

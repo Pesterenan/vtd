@@ -1,9 +1,9 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
+import centerHandleMove from "src/assets/icons/move-tool.svg";
+import { Tool } from "src/components/tools/abstractTool";
+import type { TransformBox } from "src/components/transformBox";
 import type { Position } from "src/components/types";
 import { WorkArea } from "src/components/workArea";
-import { Tool } from "src/components/tools/abstractTool";
-import centerHandleMove from "src/assets/icons/move-tool.svg";
-import type { TransformBox } from "src/components/transformBox";
+import EVENT, { dispatch } from "src/utils/customEvents";
 
 export class GrabTool extends Tool {
   private toolIcon: HTMLImageElement | null = null;
@@ -23,7 +23,7 @@ export class GrabTool extends Tool {
     super.equipTool();
     this.transformBox = WorkArea.getInstance().transformBox;
     this.onHover = (evt: MouseEvent) => {
-      if (this.transformBox && this.transformBox.boundingBox) {
+      if (this.transformBox?.boundingBox) {
         const mousePos = WorkArea.getInstance().adjustForCanvas({
           x: evt.offsetX,
           y: evt.offsetY,
@@ -74,7 +74,7 @@ export class GrabTool extends Tool {
 
   handleMouseDown(evt: MouseEvent): void {
     super.handleMouseDown(evt);
-    if (this.transformBox && this.transformBox.boundingBox) {
+    if (this.transformBox?.boundingBox) {
       const mousePos = WorkArea.getInstance().adjustForCanvas({
         x: evt.offsetX,
         y: evt.offsetY,

@@ -12,7 +12,7 @@ export interface Alert {
 const ALERT_TITLE: Record<Alert["type"], string> = {
   success: "Sucesso",
   error: "Erro",
-};
+} as const;
 
 export class Alerts {
   private alertQueue: Alert[];

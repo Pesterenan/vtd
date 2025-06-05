@@ -5,7 +5,7 @@ export interface IColorControl {
   unlinkEvents: () => void;
 }
 
-export function createColorControl(
+export default function createColorControl(
   id: string,
   label: string,
   options: { value: string },
