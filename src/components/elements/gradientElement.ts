@@ -4,9 +4,8 @@ import type {
   IGradientElementData,
   Position,
   Size,
-  TBoundingBox,
 } from "src/components/types";
-import type { BoundingBox } from "src/utils/boundingBox";
+import { BoundingBox } from "src/utils/boundingBox";
 
 export class GradientElement extends Element<IGradientElementData> {
   public get position(): Position {
@@ -49,6 +48,7 @@ export class GradientElement extends Element<IGradientElementData> {
   public set colorStops(value: IColorStop[]) {
     this.properties.set("colorStops", value);
   }
+  private boundingBox: BoundingBox;
 
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
@@ -59,6 +59,7 @@ export class GradientElement extends Element<IGradientElementData> {
       { portion: 0.0, color: "#000000", alpha: 1.0 },
       { portion: 1.0, color: "#FFFFFF", alpha: 1.0 },
     ];
+    this.boundingBox = new BoundingBox(position, size, this.rotation);
   }
 
   public deserialize(data: IGradientElementData): void {
@@ -89,11 +90,8 @@ export class GradientElement extends Element<IGradientElementData> {
   }
 
   public getBoundingBox(): BoundingBox {
-    throw new Error("Method not implemented.");
-  }
-
-  public getTransformedBoundingBox(): TBoundingBox {
-    return { x1: 0, x2: this.size.width, y1: 0, y2: this.size.height };
+    this.boundingBox.update(this.position, this.size, this.rotation);
+    return this.boundingBox;
   }
 
   private hexToRgba(hex: string, alpha: number): string {
