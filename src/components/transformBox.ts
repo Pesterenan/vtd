@@ -16,7 +16,6 @@ export class TransformBox {
   public opacity = 1;
 
   private selectedElements: Element<TElementData>[] = [];
-  private context: CanvasRenderingContext2D | null;
   public boundingBox: BoundingBox | null = null;
   public handles: Record<
     | "BOTTOM"
@@ -31,11 +30,7 @@ export class TransformBox {
     Position
   > | null = null;
 
-  public constructor(
-    selectedElements: Element<TElementData>[],
-    canvas: HTMLCanvasElement,
-  ) {
-    this.context = canvas.getContext("2d");
+  public constructor(selectedElements: Element<TElementData>[]) {
     this.selectedElements = selectedElements;
     if (this.selectedElements.length > 0) {
       this.calculateBoundingBox();
@@ -260,41 +255,38 @@ export class TransformBox {
     return !!this.selectedElements.find((el) => el.zDepth === element.zDepth);
   }
 
-  public draw(): void {
-    if (!this.context || !this.boundingBox) return;
+  public draw(context: CanvasRenderingContext2D): void {
+    if (!this.boundingBox) return;
     const workAreaZoom = WorkArea.getInstance().zoomLevel;
     const workAreaOffset = WorkArea.getInstance().offset;
 
     // Draw bounding box
-    this.context.save();
-    this.context.translate(workAreaOffset.x, workAreaOffset.y);
-    this.context.scale(workAreaZoom, workAreaZoom);
+    context.save();
+    context.translate(workAreaOffset.x, workAreaOffset.y);
+    context.scale(workAreaZoom, workAreaZoom);
     const { topLeft, topRight, bottomLeft, bottomRight } = this.boundingBox;
 
-    this.context.strokeStyle = "red";
-    this.context.setLineDash([3 / workAreaZoom, 3 / workAreaZoom]);
-    this.context.lineWidth = 2 / workAreaZoom;
-    this.context.beginPath();
-    this.context.moveTo(topLeft.x, topLeft.y);
-    this.context.lineTo(topRight.x, topRight.y);
-    this.context.lineTo(bottomRight.x, bottomRight.y);
-    this.context.lineTo(bottomLeft.x, bottomLeft.y);
-    this.context.closePath();
-    this.context.stroke();
+    context.strokeStyle = "red";
+    context.setLineDash([3 / workAreaZoom, 3 / workAreaZoom]);
+    context.lineWidth = 2 / workAreaZoom;
+    context.beginPath();
+    context.moveTo(topLeft.x, topLeft.y);
+    context.lineTo(topRight.x, topRight.y);
+    context.lineTo(bottomRight.x, bottomRight.y);
+    context.lineTo(bottomLeft.x, bottomLeft.y);
+    context.closePath();
+    context.stroke();
     // Desenhar os handles
     if (this.handles) {
       for (const key of Object.keys(this.handles)) {
         const point = this.handles[key as keyof typeof this.handles];
-        if (this.context) {
-          this.context.fillStyle = "blue";
-          this.context.beginPath();
-          this.context.arc(point.x, point.y, 5 / workAreaZoom, 0, Math.PI * 2);
-          this.context.closePath();
-          this.context.fill();
-        }
+        context.fillStyle = "gray";
+        context.beginPath();
+        context.arc(point.x, point.y, 5 / workAreaZoom, 0, Math.PI * 2);
+        context.closePath();
+        context.fill();
       }
     }
-
-    this.context.restore();
+    context.restore();
   }
 }

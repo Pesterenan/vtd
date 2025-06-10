@@ -418,9 +418,7 @@ export class WorkArea {
   }
 
   public removeTransformBox(): void {
-    if (this.transformBox) {
-      this.transformBox = null;
-    }
+    this.transformBox = null;
   }
 
   /** Adjust canvas object position to be shown on screen */
@@ -640,11 +638,10 @@ export class WorkArea {
 
   public createTransformBox(): void {
     this.removeTransformBox();
-    const selectedElements: Element<TElementData>[] =
-      this.getSelectedElements();
+    const selectedElements: Element<TElementData>[] = this.getSelectedElements();
     // If there's elements selected, create TransformBox
-    if (this.mainCanvas && selectedElements) {
-      this.transformBox = new TransformBox(selectedElements, this.mainCanvas);
+    if (selectedElements.length) {
+      this.transformBox = new TransformBox(selectedElements);
     }
   }
 
@@ -661,23 +658,32 @@ export class WorkArea {
     if (!this.mainContext || !this.workArea.context || !this.mainCanvas) {
       throw new Error("Canvas context is not available");
     }
-    this.clearCanvas(this.mainContext, this.mainCanvas);
-    this.clearCanvas(this.workArea.context, this.workArea.canvas);
+    this.clearCanvas();
     for (const element of this.elements) {
       element.draw(this.workArea.context);
     }
     this.drawWorkArea();
     if (this.transformBox) {
-      this.transformBox.draw();
+      this.transformBox.draw(this.mainContext);
     }
     this.tools[this.currentTool].draw();
   }
 
-  private clearCanvas(
-    context: CanvasRenderingContext2D,
-    canvas: HTMLCanvasElement,
-  ): void {
-    context.clearRect(0, 0, canvas.width, canvas.height);
+  private clearCanvas(): void {
+    if (this.mainContext && this.mainCanvas && this.workArea) {
+      this.mainContext.clearRect(
+        0,
+        0,
+        this.mainCanvas.width,
+        this.mainCanvas.height,
+      );
+      this.workArea.context.clearRect(
+        0,
+        0,
+        this.workArea.canvas.width,
+        this.workArea.canvas.height,
+      );
+    }
   }
 
   private drawWorkArea(): void {
@@ -772,6 +778,7 @@ export class WorkArea {
       layerName: newElement.layerName,
       type: "image",
     });
+    this.update();
   }
 
   public addGroupElement(): void {

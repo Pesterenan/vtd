@@ -216,7 +216,11 @@ export class TextElement extends Element<ITextElementData> {
 
     this.position = { x: centerX, y: centerY };
     this.size = { width, height };
-    this.boundingBox.update(this.position, this.size, this.rotation);
+    const scaledSize = {
+      width: this.size.width * this.scale.x,
+      height: this.size.height * this.scale.y,
+    };
+    this.boundingBox.update(this.position, scaledSize, this.rotation);
     this.needsCacheUpdate = true;
   }
 
