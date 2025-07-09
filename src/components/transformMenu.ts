@@ -1,47 +1,48 @@
 import errorElement from "src/components/elements/errorElement";
-import { WorkArea } from "src/components/workArea";
-import EVENT from "src/utils/customEvents";
+import type { EventBus } from "src/utils/eventBus";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import createSliderControl from "./helpers/createSliderControl";
-import type { TransformBox } from "./transformBox";
-import type { RecalculateTransformBoxDetail } from "./types";
+import type { Position, Size } from "./types";
 
 export class TransformMenu {
   private static instance: TransformMenu | null = null;
   private transformSection: HTMLElement | null = null;
-  private transformBox: TransformBox | null = null;
   private xPosControl: ISliderControl | null = null;
   private yPosControl: ISliderControl | null = null;
   private widthControl: ISliderControl | null = null;
   private heightControl: ISliderControl | null = null;
   private rotationControl: ISliderControl | null = null;
   private opacityControl: ISliderControl | null = null;
+  private eventBus: EventBus;
 
-  private constructor() {
+  private constructor(eventBus: EventBus) {
+    this.eventBus = eventBus;
     this.createDOMElements();
-    window.addEventListener(
-      EVENT.SELECT_ELEMENT,
-      this.handleSelectElement.bind(this),
-    );
-    window.addEventListener(
-      EVENT.RECALCULATE_TRANSFORM_BOX,
+    this.eventBus.on("workarea:selectAt", () => {
+      this.handleSelectElement();
+    });
+    this.eventBus.on(
+      "transformBox:properties:change",
       this.handleRecalculateTransformBox.bind(this),
     );
   }
 
-  private handleSelectElement(): void {
-    this.transformBox = WorkArea.getInstance().transformBox;
-    if (this.transformBox) {
+  private handleSelectElement = (): void => {
+    const [selectedElements] = this.eventBus.request("workarea:selected:get");
+    if (selectedElements.length) {
       this.linkDOMElements();
     } else {
       this.unlinkDOMElements();
     }
-  }
+  };
 
-  private handleRecalculateTransformBox(
-    evt: CustomEvent<RecalculateTransformBoxDetail>,
-  ): void {
-    const { position, size, rotation, opacity } = evt.detail;
+  private handleRecalculateTransformBox(payload: {
+    position: Position;
+    size: Size;
+    rotation: number;
+    opacity: number;
+  }): void {
+    const { position, size, rotation, opacity } = payload;
     if (
       this.xPosControl &&
       this.yPosControl &&
@@ -59,9 +60,9 @@ export class TransformMenu {
     }
   }
 
-  public static getInstance(): TransformMenu {
+  public static getInstance(eventBus: EventBus): TransformMenu {
     if (TransformMenu.instance === null) {
-      TransformMenu.instance = new TransformMenu();
+      TransformMenu.instance = new TransformMenu(eventBus);
     }
     return TransformMenu.instance;
   }
@@ -95,7 +96,7 @@ export class TransformMenu {
         min: -8000,
         max: 8000,
         step: 1,
-        value: this.transformBox?.position.x || 0,
+        value: 0,
       },
       this.handleXPosChange,
       false,
@@ -107,7 +108,7 @@ export class TransformMenu {
         min: -8000,
         max: 8000,
         step: 1,
-        value: this.transformBox?.position.y || 0,
+        value: 0,
       },
       this.handleYPosChange,
       false,
@@ -119,7 +120,7 @@ export class TransformMenu {
         min: -8000,
         max: 8000,
         step: 1,
-        value: this.transformBox?.size.width || 10,
+        value: 0,
       },
       this.handleWidthChange,
       false,
@@ -131,7 +132,7 @@ export class TransformMenu {
         min: -8000,
         max: 8000,
         step: 1,
-        value: this.transformBox?.size.height || 10,
+        value: 0,
       },
       this.handleHeightChange,
       false,
@@ -143,7 +144,7 @@ export class TransformMenu {
         min: 0,
         max: 360,
         step: 1,
-        value: this.transformBox?.rotation || 0,
+        value: 0,
       },
       this.handleRotationChange,
       false,
@@ -155,7 +156,7 @@ export class TransformMenu {
         min: 0,
         max: 1,
         step: 0.05,
-        value: this.transformBox?.opacity || 1,
+        value: 1,
       },
       this.handleOpacityChange,
       false,
@@ -171,74 +172,70 @@ export class TransformMenu {
   }
 
   private handleXPosChange = (newValue: number): void => {
-    if (this.transformBox) {
-      this.transformBox.updatePosition({
-        x: newValue,
-        y: this.transformBox.position.y,
-      });
-    }
+    const [properties] = this.eventBus.request("transformBox:properties:get");
+    this.eventBus.emit("transformBox:updatePosition", {
+      delta: { x: newValue, y: properties.position.y },
+    });
   };
 
   private handleYPosChange = (newValue: number): void => {
-    if (this.transformBox) {
-      this.transformBox.updatePosition({
-        x: this.transformBox.position.x,
-        y: newValue,
-      });
-    }
+    const [properties] = this.eventBus.request("transformBox:properties:get");
+    this.eventBus.emit("transformBox:updatePosition", {
+      delta: { x: properties.position.x, y: newValue },
+    });
   };
 
   private handleWidthChange = (newValue: number): void => {
-    if (this.transformBox && newValue > 0) {
-      const newWidth = newValue / this.transformBox.size.width;
-      this.transformBox.updateScale({
-        x: newWidth,
-        y: 1.0,
+    const [properties] = this.eventBus.request("transformBox:properties:get");
+    if (newValue > 0) {
+      const newWidth = newValue / properties.size.width;
+      this.eventBus.emit("transformBox:updateScale", {
+        delta: {
+          x: newWidth,
+          y: 1.0,
+        },
       });
     }
   };
 
   private handleHeightChange = (newValue: number): void => {
-    if (this.transformBox && newValue > 0) {
-      const newHeight = newValue / this.transformBox.size.height;
-      this.transformBox.updateScale({
-        x: 1.0,
-        y: newHeight,
+    const [properties] = this.eventBus.request("transformBox:properties:get");
+    if (newValue > 0) {
+      const newHeight = newValue / properties.size.height;
+      this.eventBus.emit("transformBox:updateScale", {
+        delta: {
+          x: 1.0,
+          y: newHeight,
+        },
       });
     }
   };
 
   private handleRotationChange = (newValue: number): void => {
-    if (this.transformBox) {
-      this.transformBox.updateRotation(newValue);
-    }
+    this.eventBus.emit("transformBox:updateRotation", { delta: newValue });
   };
 
   private handleOpacityChange = (newValue: number): void => {
-    if (this.transformBox) {
-      this.transformBox.updateOpacity(newValue);
-    }
+    this.eventBus.emit("transformBox:updateOpacity", { delta: newValue });
   };
 
   private linkDOMElements(): void {
-    if (this.transformBox) {
-      this.xPosControl?.linkEvents();
-      this.yPosControl?.linkEvents();
-      this.widthControl?.linkEvents();
-      this.heightControl?.linkEvents();
-      this.rotationControl?.linkEvents();
-      this.opacityControl?.linkEvents();
-      this.xPosControl?.updateValues(this.transformBox.position.x);
-      this.yPosControl?.updateValues(this.transformBox.position.y);
-      this.widthControl?.updateValues(this.transformBox.size.width);
-      this.heightControl?.updateValues(this.transformBox.size.height);
-      this.rotationControl?.updateValues(this.transformBox.rotation);
-      this.opacityControl?.updateValues(this.transformBox.opacity);
-    }
+    const [properties] = this.eventBus.request("transformBox:properties:get");
+    this.xPosControl?.linkEvents();
+    this.yPosControl?.linkEvents();
+    this.widthControl?.linkEvents();
+    this.heightControl?.linkEvents();
+    this.rotationControl?.linkEvents();
+    this.opacityControl?.linkEvents();
+    this.xPosControl?.updateValues(properties.position.x);
+    this.yPosControl?.updateValues(properties.position.y);
+    this.widthControl?.updateValues(properties.size.width);
+    this.heightControl?.updateValues(properties.size.height);
+    this.rotationControl?.updateValues(properties.rotation);
+    this.opacityControl?.updateValues(properties.opacity);
   }
 
   private unlinkDOMElements(): void {
-    this.transformBox = null;
     this.xPosControl?.unlinkEvents();
     this.yPosControl?.unlinkEvents();
     this.widthControl?.unlinkEvents();

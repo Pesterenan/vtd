@@ -1,13 +1,10 @@
 import { TextElement } from "src/components/elements/textElement";
-import { WorkArea } from "src/components/workArea";
-import EVENT, { dispatch } from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 import type { IColorControl } from "./helpers/createColorControl";
 import createColorControl from "./helpers/createColorControl";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import createSliderControl from "./helpers/createSliderControl";
-import { TOOL } from "./types";
-import type { ITextElementData, SelectElementDetail } from "./types";
+import type { ITextElementData } from "./types";
 
 import IconAlignCenter from "../assets/icons/alignCenter.svg";
 import IconAlignLeft from "../assets/icons/alignLeft.svg";
@@ -22,6 +19,7 @@ import IconFontWeightBold from "../assets/icons/fontWeightBold.svg";
 import IconFontWeightBoldItalic from "../assets/icons/fontWeightBoldItalic.svg";
 import IconFontWeightItalic from "../assets/icons/fontWeightItalic.svg";
 
+import type { EventBus } from "src/utils/eventBus";
 import createIconRadioButton from "./helpers/createIconRadioButton";
 
 export class TextMenu {
@@ -56,19 +54,28 @@ export class TextMenu {
   private textAlignRadios: HTMLInputElement[] | null = null;
   private textInput: HTMLTextAreaElement | null = null;
   private textMenuSection: HTMLElement;
+  private eventBus: EventBus;
+  private onSelectElement: () => void;
+  private isTextSelected = false;
 
-  private constructor() {
+  constructor(eventBus: EventBus) {
+    this.eventBus = eventBus;
+    this.onSelectElement = this.handleSelectElement.bind(this);
+    this.eventBus.on("edit:acceptTextChange", this.handleAcceptTextChange);
+    this.eventBus.on("edit:declineTextChange", this.handleDeclineTextChange);
+    this.eventBus.on("edit:text", () => {
+      this.isTextSelected = true;
+      this.onSelectElement();
+    });
+    this.eventBus.on("workarea:selectById", this.onSelectElement);
+    this.eventBus.on("workarea:selectAt", this.onSelectElement);
     this.textMenuSection = document.createElement("section");
     this.createDOMElements();
-    window.addEventListener(
-      EVENT.SELECT_ELEMENT,
-      this.handleSelectElement.bind(this),
-    );
   }
 
-  public static getInstance(): TextMenu {
+  public static getInstance(eventBus: EventBus): TextMenu {
     if (TextMenu.instance === null) {
-      TextMenu.instance = new TextMenu();
+      TextMenu.instance = new TextMenu(eventBus);
     }
     return TextMenu.instance;
   }
@@ -260,7 +267,7 @@ export class TextMenu {
       "font-size-control",
       "Tamanho",
       {
-        min: 8,
+        min: 1,
         max: 250,
         step: 1,
         value: this.activeTextElement?.fontSize || 48,
@@ -313,11 +320,13 @@ export class TextMenu {
 
     this.textInput = getElementById<HTMLTextAreaElement>("inp_text-input");
     this.textInput.value = this.originalText;
+    this.textInput.disabled = false;
     this.textInput.addEventListener("input", this.handleTextInput);
     this.textInput.addEventListener("select", this.handleSelectTextInput);
 
     this.fontSelect = getElementById<HTMLSelectElement>("font-select");
     this.fontSelect.value = this.activeTextElement?.font || "";
+    this.fontSelect.disabled = false;
     this.fontSelect.addEventListener("change", this.handleFontChange);
 
     if (this.textAlignRadios) {
@@ -327,7 +336,7 @@ export class TextMenu {
           if (radio.checked && this.activeTextElement) {
             this.activeTextElement.textAlign =
               radio.value as ITextElementData["textAlign"];
-            dispatch(EVENT.UPDATE_WORKAREA);
+            this.eventBus.emit("workarea:update");
           }
         });
       }
@@ -340,7 +349,7 @@ export class TextMenu {
           if (radio.checked && this.activeTextElement) {
             this.activeTextElement.fontStyle =
               radio.value as ITextElementData["fontStyle"];
-            dispatch(EVENT.UPDATE_WORKAREA);
+            this.eventBus.emit("workarea:update");
           }
         });
       }
@@ -353,7 +362,7 @@ export class TextMenu {
           if (radio.checked && this.activeTextElement) {
             this.activeTextElement.fontWeight =
               radio.value as ITextElementData["fontWeight"];
-            dispatch(EVENT.UPDATE_WORKAREA);
+            this.eventBus.emit("workarea:update");
           }
         });
       }
@@ -406,19 +415,23 @@ export class TextMenu {
         this.strokeWidthControl.linkEvents();
       }
     }
-    if (WorkArea.getInstance().currentTool === TOOL.TEXT) {
+    if (this.isTextSelected) {
       this.textInput.select();
+      this.isTextSelected = false;
     }
   }
 
   private unlinkDOMElements(): void {
+    this.activeTextElement = null;
     this.textInput = getElementById<HTMLTextAreaElement>("inp_text-input");
     this.textInput.value = "";
+    this.textInput.disabled = true;
     this.textInput.removeEventListener("input", this.handleTextInput);
     this.textInput.removeEventListener("select", this.handleSelectTextInput);
 
     this.fontSelect = getElementById<HTMLSelectElement>("font-select");
     this.fontSelect.value = "";
+    this.fontSelect.disabled = true;
     this.fontSelect.removeEventListener("change", this.handleFontChange);
 
     this.fillCheckbox = getElementById<HTMLInputElement>("chk_fill");
@@ -448,13 +461,11 @@ export class TextMenu {
     this.strokeWidthControl?.unlinkEvents();
   }
 
-  private handleSelectElement(evt: CustomEvent<SelectElementDetail>): void {
-    const { elementsId } = evt.detail;
-    const selectedElements = WorkArea.getInstance().getSelectedElements();
+  private handleSelectElement(): void {
+    const [selectedElements] = this.eventBus.request("workarea:selected:get");
     this.unlinkDOMElements();
     if (
-      elementsId.size === 1 &&
-      selectedElements &&
+      selectedElements.length === 1 &&
       selectedElements[0] instanceof TextElement
     ) {
       this.activeTextElement = selectedElements[0];
@@ -465,7 +476,7 @@ export class TextMenu {
   private handleSelectTextInput = (evt: Event): void => {
     evt.preventDefault();
     (evt.target as HTMLTextAreaElement).focus();
-    dispatch(EVENT.UPDATE_WORKAREA);
+    this.eventBus.emit("workarea:update");
   };
 
   private handleFontChange = (evt: Event): void => {
@@ -473,77 +484,78 @@ export class TextMenu {
     if (this.activeTextElement && selectedFont) {
       this.activeTextElement.font = selectedFont;
     }
-    dispatch(EVENT.UPDATE_WORKAREA);
+    this.eventBus.emit("workarea:update");
   };
 
   private handleTextInput = (): void => {
     if (this.activeTextElement && this.textInput) {
       this.activeTextElement.content = this.textInput.value.split("\n");
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.eventBus.emit("workarea:update");
     }
   };
 
   private handleFontSizeChange = (newValue: number): void => {
     if (this.activeTextElement) {
       this.activeTextElement.fontSize = Number.parseInt(String(newValue), 10);
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.eventBus.emit("workarea:update");
     }
   };
 
   private handleLineHeightChange = (newValue: number): void => {
     if (this.activeTextElement) {
       this.activeTextElement.lineHeight = Number.parseFloat(String(newValue));
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.eventBus.emit("workarea:update");
     }
   };
 
   private handleFillChange = (): void => {
     if (this.activeTextElement && this.fillCheckbox) {
       this.activeTextElement.hasFill = this.fillCheckbox.checked;
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.eventBus.emit("workarea:update");
     }
   };
 
   private handleFillColorChange = (newValue: string): void => {
     if (this.activeTextElement) {
       this.activeTextElement.fillColor = newValue;
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.eventBus.emit("workarea:update");
     }
   };
 
   private handleStrokeChange = (): void => {
     if (this.activeTextElement && this.strokeCheckbox) {
       this.activeTextElement.hasStroke = this.strokeCheckbox.checked;
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.eventBus.emit("workarea:update");
     }
   };
 
   private handleStrokeColorChange = (newValue: string): void => {
     if (this.activeTextElement) {
       this.activeTextElement.strokeColor = newValue;
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.eventBus.emit("workarea:update");
     }
   };
 
   private handleStrokeWidthChange = (newValue: number): void => {
     if (this.activeTextElement) {
       this.activeTextElement.strokeWidth = Number.parseFloat(String(newValue));
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.eventBus.emit("workarea:update");
     }
   };
 
   private handleAcceptTextChange = (): void => {
     this.activeTextElement = null;
     this.unlinkDOMElements();
-    dispatch(EVENT.UPDATE_WORKAREA);
+    this.eventBus.emit("workarea:selectAt", { firstPoint: null });
+    this.eventBus.emit("workarea:update");
   };
 
   private handleDeclineTextChange = (): void => {
     if (this.activeTextElement) {
       this.activeTextElement.content = this.originalText.split("\n");
-      this.activeTextElement = null;
     }
     this.unlinkDOMElements();
-    dispatch(EVENT.UPDATE_WORKAREA);
+    this.eventBus.emit("workarea:selectAt", { firstPoint: null });
+    this.eventBus.emit("workarea:update");
   };
 }

@@ -6,9 +6,8 @@ import saveProjectIconSrc from "src/assets/icons/save-project.svg";
 import { GradientMenu } from "src/components/gradientMenu";
 import { LayersMenu } from "src/components/layersMenu";
 import { TextMenu } from "src/components/textMenu";
-import { WorkArea } from "src/components/workArea";
 import { SIDE_MENU_WIDTH } from "src/constants";
-import EVENT, { dispatch } from "src/utils/customEvents";
+import type { EventBus } from "src/utils/eventBus";
 import getElementById from "src/utils/getElementById";
 import createIconButton from "./helpers/createIconButton";
 import { TransformMenu } from "./transformMenu";
@@ -20,13 +19,15 @@ export class SideMenu {
   private gradientMenu: HTMLElement;
   private textMenu: HTMLElement;
   private transformMenu: HTMLElement;
+  private eventBus: EventBus;
 
-  constructor() {
+  constructor(eventBus: EventBus) {
+    this.eventBus = eventBus;
     this.sideMenu = document.createElement("menu");
-    this.transformMenu = TransformMenu.getInstance().getMenu();
-    this.layersMenu = LayersMenu.getInstance().getMenu();
-    this.textMenu = TextMenu.getInstance().getMenu();
-    this.gradientMenu = GradientMenu.getInstance().getMenu();
+    this.transformMenu = TransformMenu.getInstance(eventBus).getMenu();
+    this.layersMenu = LayersMenu.getInstance(eventBus).getMenu();
+    this.textMenu = TextMenu.getInstance(eventBus).getMenu();
+    this.gradientMenu = GradientMenu.getInstance(eventBus).getMenu();
     this.createDOMElements();
   }
 
@@ -46,7 +47,7 @@ export class SideMenu {
       "btn_export-image",
       "Exportar Imagem",
       exportImageIconSrc,
-      () => dispatch(EVENT.OPEN_EXPORT_IMAGE_DIALOG),
+      () => this.eventBus.emit("dialog:exportImage:open"),
     );
 
     const saveProjectBtn = createIconButton(
@@ -54,7 +55,7 @@ export class SideMenu {
       "Salvar Projeto",
       saveProjectIconSrc,
       () => {
-        const projectData = WorkArea.getInstance().saveProject();
+        const [projectData] = this.eventBus.request("workarea:project:save");
         window.api.saveProject(projectData);
       },
     );
@@ -98,9 +99,9 @@ export class SideMenu {
     }
   }
 
-  public static getInstance(): SideMenu {
+  public static getInstance(eventBus: EventBus): SideMenu {
     if (SideMenu.instance === null) {
-      SideMenu.instance = new SideMenu();
+      SideMenu.instance = new SideMenu(eventBus);
     }
     return SideMenu.instance;
   }

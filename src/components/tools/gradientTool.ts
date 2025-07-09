@@ -1,136 +1,92 @@
 import { GradientElement } from "src/components/elements/gradientElement";
 import { Tool } from "src/components/tools/abstractTool";
 import type { Position } from "src/components/types";
-import { WorkArea } from "src/components/workArea";
 import { BB } from "src/utils/bb";
-import EVENT, { dispatch } from "src/utils/customEvents";
+import { linearInterpolation } from "src/utils/easing";
 
 export class GradientTool extends Tool {
   private activeGradientElement: GradientElement | null = null;
+  private colorsStops: GradientElement["colorStops"] | null = null;
   private isCreating = false;
   private isDragging = false;
   private isHoveringEndPos = false;
   private isHoveringStartPos = false;
   private startPosition: Position | null = null;
   private endPosition: Position | null = null;
-  private onHover: ((evt: MouseEvent) => void) | null = null;
 
-  equipTool(): void {
-    super.equipTool();
+  public equip(): void {
+    super.equip();
     this.resetTool();
-    this.onHover = ({ offsetX, offsetY }: MouseEvent) => {
-      if (this.startPosition && this.endPosition) {
-        const mousePosition = { x: offsetX, y: offsetY };
-        const startPosBB = new BB(this.startPosition, 20);
-        const endPosBB = new BB(this.endPosition, 20);
-        this.isHoveringEndPos = endPosBB.isPointWithinBB(mousePosition);
-        this.isHoveringStartPos =
-          !this.isHoveringEndPos && startPosBB.isPointWithinBB(mousePosition);
-        dispatch(EVENT.UPDATE_WORKAREA);
-      }
-    };
-    this.canvas.addEventListener("mousemove", this.onHover);
     this.selectActiveGradient();
-    window.addEventListener(EVENT.SELECT_ELEMENT, () => {
+    this.eventBus.on("workarea:selectAt", () => {
       this.resetTool();
       this.selectActiveGradient();
     });
   }
 
-  unequipTool(): void {
-    super.unequipTool();
+  public unequip(): void {
     this.resetTool();
-    if (this.onHover) {
-      this.canvas.removeEventListener("mousemove", this.onHover);
-    }
-    dispatch(EVENT.UPDATE_WORKAREA);
+    super.unequip();
   }
 
-  resetTool(): void {
-    this.startPosition = null;
-    this.endPosition = null;
+  public resetTool(): void {
     this.activeGradientElement = null;
+    this.colorsStops = null;
+    this.endPosition = null;
     this.isCreating = false;
     this.isDragging = false;
-    dispatch(EVENT.UPDATE_WORKAREA);
+    this.startPosition = null;
   }
 
-  draw(): void {
-    if (this.startPosition && this.endPosition && this.context) {
-      const startRadius = this.isHoveringStartPos ? 4 : 2;
-      const endRadius = this.isHoveringEndPos ? 4 : 2;
-      this.context.save();
-      this.context.fillStyle = "#FFFFFF";
-      this.context.beginPath();
-      this.context.arc(
-        this.startPosition.x,
-        this.startPosition.y,
-        8,
-        0,
-        Math.PI * 2,
-      );
-      this.context.fill();
-      this.context.beginPath();
-      this.context.arc(
-        this.endPosition.x,
-        this.endPosition.y,
-        8,
-        0,
-        Math.PI * 2,
-      );
-      this.context.fill();
-      this.context.fillStyle = "#777777";
-      this.context.beginPath();
-      this.context.arc(
-        this.startPosition.x,
-        this.startPosition.y,
-        6,
-        0,
-        Math.PI * 2,
-      );
-      this.context.fill();
-      this.context.beginPath();
-      this.context.arc(
-        this.endPosition.x,
-        this.endPosition.y,
-        6,
-        0,
-        Math.PI * 2,
-      );
-      this.context.fill();
+  private drawColorStop(
+    context: CanvasRenderingContext2D,
+    position: Position,
+    color: string,
+  ) {
+    context.fillStyle = "#FFFFFF";
+    context.beginPath();
+    context.arc(position.x, position.y, 8, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#777777";
+    context.beginPath();
+    context.arc(position.x, position.y, 6, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = color;
+    context.beginPath();
+    context.arc(position.x, position.y, 4, 0, Math.PI * 2);
+    context.fill();
+  }
 
-      this.context.fillStyle = "#000000";
-      this.context.beginPath();
-      this.context.arc(
-        this.startPosition.x,
-        this.startPosition.y,
-        startRadius,
-        0,
-        Math.PI * 2,
-      );
-      this.context.fill();
-      this.context.beginPath();
-      this.context.fillStyle = "#FFFFFF";
-      this.context.arc(
-        this.endPosition.x,
-        this.endPosition.y,
-        endRadius,
-        0,
-        Math.PI * 2,
-      );
-      this.context.fill();
+  public draw(): void {
+    if (
+      this.startPosition &&
+      this.endPosition &&
+      this.context &&
+      this.colorsStops
+    ) {
+      this.context.save();
+      for (const cs of this.colorsStops) {
+        const posX = linearInterpolation(
+          this.startPosition.x,
+          this.endPosition.x,
+          cs.portion,
+        );
+        const posY = linearInterpolation(
+          this.startPosition.y,
+          this.endPosition.y,
+          cs.portion,
+        );
+        this.drawColorStop(this.context, { x: posX, y: posY }, cs.color);
+      }
       this.context.restore();
     }
   }
 
-  handleMouseDown(evt: MouseEvent): void {
-    const { offsetX, offsetY } = evt;
+  public onMouseDown({ offsetX, offsetY }: MouseEvent): void {
     if (this.activeGradientElement === null) {
       this.isCreating = true;
-      WorkArea.getInstance().addGradientElement();
-      WorkArea.getInstance().selectElements({
-        x: offsetX,
-        y: offsetY,
+      this.eventBus.emit("edit:gradient", {
+        position: { x: offsetX, y: offsetY },
       });
       this.selectActiveGradient();
     }
@@ -139,10 +95,10 @@ export class GradientTool extends Tool {
       this.endPosition = { x: offsetX, y: offsetY };
     }
     this.isDragging = true;
-    super.handleMouseDown(evt);
+    this.eventBus.emit("workarea:update");
   }
 
-  handleMouseUp(evt: MouseEvent): void {
+  public onMouseUp(evt: MouseEvent): void {
     const { offsetX, offsetY } = evt;
     if (this.isCreating) {
       this.endPosition = { x: offsetX, y: offsetY };
@@ -157,11 +113,18 @@ export class GradientTool extends Tool {
     this.isHoveringEndPos = false;
 
     this.isDragging = false;
-    super.handleMouseUp(evt);
-    dispatch(EVENT.UPDATE_WORKAREA);
+    this.eventBus.emit("workarea:update");
   }
 
-  handleMouseMove({ offsetX, offsetY, shiftKey }: MouseEvent): void {
+  public onMouseMove({ offsetX, offsetY, shiftKey }: MouseEvent): void {
+    if (this.startPosition && this.endPosition) {
+      const mousePosition = { x: offsetX, y: offsetY };
+      const startPosBB = new BB(this.startPosition, 20);
+      const endPosBB = new BB(this.endPosition, 20);
+      this.isHoveringEndPos = endPosBB.isPointWithinBB(mousePosition);
+      this.isHoveringStartPos =
+        !this.isHoveringEndPos && startPosBB.isPointWithinBB(mousePosition);
+    }
     if (this.isCreating) {
       this.endPosition = { x: offsetX, y: offsetY };
       return;
@@ -193,42 +156,47 @@ export class GradientTool extends Tool {
       }
       this.modifyGradientPoints();
     }
+    this.eventBus.emit("workarea:update");
   }
 
   private selectActiveGradient(): void {
-    const selectedElements = WorkArea.getInstance().getSelectedElements();
+    const [selectedElements] = this.eventBus.request("workarea:selected:get");
     if (
       selectedElements &&
       selectedElements.length === 1 &&
       selectedElements[0] instanceof GradientElement
     ) {
       this.activeGradientElement = selectedElements[0];
-      this.startPosition = WorkArea.getInstance().adjustForScreen(
-        this.activeGradientElement.startPosition,
-      );
-      this.endPosition = WorkArea.getInstance().adjustForScreen(
-        this.activeGradientElement.endPosition,
-      );
+      const [startPos] = this.eventBus.request("workarea:adjustForScreen", {
+        position: this.activeGradientElement.startPosition,
+      });
+      const [endPos] = this.eventBus.request("workarea:adjustForScreen", {
+        position: this.activeGradientElement.endPosition,
+      });
+      this.colorsStops = this.activeGradientElement.colorStops;
+      this.startPosition = startPos;
+      this.endPosition = endPos;
       this.isCreating = false;
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.eventBus.emit("workarea:update");
     }
   }
 
   private modifyGradientPoints(): void {
     if (this.activeGradientElement === null) return;
-    const workArea = WorkArea.getInstance();
     if (this.startPosition && this.endPosition) {
-      this.activeGradientElement.startPosition = workArea.adjustForCanvas(
-        this.startPosition,
-      );
-      this.activeGradientElement.endPosition = workArea.adjustForCanvas(
-        this.endPosition,
-      );
+      const [gradStartPos] = this.eventBus.request("workarea:adjustForCanvas", {
+        position: this.startPosition,
+      });
+      const [gradEndPos] = this.eventBus.request("workarea:adjustForCanvas", {
+        position: this.endPosition,
+      });
+      this.activeGradientElement.startPosition = gradStartPos;
+      this.activeGradientElement.endPosition = gradEndPos;
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleKeyDown(): void {}
+  public onKeyDown(): void {}
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleKeyUp(): void {}
+  public onKeyUp(): void {}
 }

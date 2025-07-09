@@ -1,46 +1,41 @@
 import { Tool } from "src/components/tools/abstractTool";
 import type { Position } from "src/components/types";
-import { WorkArea } from "src/components/workArea";
-import EVENT, { dispatch } from "src/utils/customEvents";
 
 export class HandTool extends Tool {
-  private startingPosition: Position | null = null;
+  private lastPosition: Position | null = null;
+
+  public equip(): void {
+    super.equip();
+  }
+
+  public unequip(): void {
+    this.lastPosition = null;
+    super.unequip();
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  draw(): void {}
+  public draw(): void {}
 
-  equipTool(): void {
-    super.equipTool();
+  public onMouseDown({ offsetX, offsetY }: MouseEvent): void {
+    this.lastPosition = { x: offsetX, y: offsetY };
   }
 
-  unequipTool(): void {
-    super.unequipTool();
+  public onMouseUp(): void {
+    this.lastPosition = null;
   }
 
-  handleMouseDown(evt: MouseEvent): void {
-    this.startingPosition = { x: evt.offsetX, y: evt.offsetY };
-    super.handleMouseDown(evt);
-  }
-
-  handleMouseUp(evt: MouseEvent): void {
-    this.startingPosition = null;
-    super.handleMouseUp(evt);
-  }
-
-  handleMouseMove({ offsetX, offsetY }: MouseEvent): void {
-    if (this.startingPosition) {
-      const deltaX = offsetX - this.startingPosition.x;
-      const deltaY = offsetY - this.startingPosition.y;
-      WorkArea.getInstance().offset.x += deltaX;
-      WorkArea.getInstance().offset.y += deltaY;
-      dispatch(EVENT.UPDATE_WORKAREA);
-      this.startingPosition = { x: offsetX, y: offsetY };
+  public onMouseMove({ offsetX, offsetY }: MouseEvent): void {
+    if (this.lastPosition) {
+      const x = offsetX - this.lastPosition.x;
+      const y = offsetY - this.lastPosition.y;
+      this.eventBus.emit("workarea:offset:change", { delta: { x, y } });
+      this.lastPosition = { x: offsetX, y: offsetY };
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleKeyDown(): void {}
+  public onKeyDown(): void {}
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleKeyUp(): void {}
+  public onKeyUp(): void {}
 }

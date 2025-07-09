@@ -1,12 +1,16 @@
-import EVENT from "src/utils/customEvents";
-import getElementById from "src/utils/getElementById";
+import type { EventBus } from "src/utils/eventBus";
 
-export interface Alert {
+export interface AlertPayload {
+  message: string;
+  type: "success" | "error";
+}
+
+interface Alert {
   id: string;
   message: string;
   timestamp: Date;
   title?: string;
-  type: "success" | "error";
+  type: AlertPayload["type"];
 }
 
 const ALERT_TITLE: Record<Alert["type"], string> = {
@@ -19,38 +23,35 @@ export class Alerts {
   private alertInterval: number | null = null;
   private alertsContainer: HTMLDivElement | null = null;
   private readonly intervalMs: number = 3000;
+  private eventBus: EventBus;
 
-  constructor() {
+  constructor(eventBus: EventBus) {
     this.alertQueue = [];
+    this.eventBus = eventBus;
     this.createDOMElements();
     this.addEventListeners();
   }
 
   private createDOMElements(): void {
-    const mainWindow = getElementById<HTMLDivElement>("main-window");
     this.alertsContainer = document.createElement("div");
     this.alertsContainer.id = "alerts-container";
-    mainWindow.appendChild(this.alertsContainer);
+    document.body.appendChild(this.alertsContainer);
   }
 
   private addEventListeners(): void {
-    window.addEventListener(EVENT.ADD_ALERT, this.addAlert.bind(this));
+    this.eventBus.on("alert:add", (payload) => this.addAlert(payload));
   }
 
   private generateId(): string {
     return Math.random().toString(36).substring(2, 15);
   }
 
-  private addAlert(evt: Event): void {
-    const customEvent = evt as CustomEvent<
-      Pick<Alert, "message" | "type" | "title">
-    >;
-    const { message, type } = customEvent.detail;
+  private addAlert({ message, type }: AlertPayload): void {
     const newAlert: Alert = {
       id: this.generateId(),
       message,
       timestamp: new Date(),
-      title: customEvent.detail.title,
+      title: ALERT_TITLE[type],
       type,
     };
     this.alertQueue.push(newAlert);

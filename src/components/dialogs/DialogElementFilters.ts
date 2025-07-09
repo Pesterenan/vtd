@@ -1,31 +1,26 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
 import type { Element } from "src/components/elements/element";
-import type { Filter } from "src/filters/filter";
-import type {
-  OpenFiltersDialogDetail,
-  TElementData,
-} from "src/components/types";
-import { WorkArea } from "src/components/workArea";
+import type { TElementData } from "src/components/types";
 import { ColorCorrectionFilter } from "src/filters/colorCorrectionFilter";
 import { DropShadowFilter } from "src/filters/dropShadowFilter";
+import type { Filter } from "src/filters/filter";
 import { OuterGlowFilter } from "src/filters/outerGlowFilter";
+import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
 
 export class DialogElementFilters extends Dialog {
-  private currentFilters: Filter[] = [];
-  private defaultFilters: Filter[] = [];
   private activeElement: Element<TElementData> | null = null;
   private activeElementId = -1;
+  private currentFilters: Filter[] = [];
+  private defaultFilters: Filter[] = [];
+  private eventBus: EventBus;
 
-  constructor() {
+  constructor(eventBus: EventBus) {
     super({ id: "filters", title: "Filtros de Elemento", isDraggable: true });
-    window.addEventListener(
-      EVENT.OPEN_FILTERS_DIALOG,
-      (evt: CustomEvent<OpenFiltersDialogDetail>) => {
-        this.activeElementId = evt.detail.layerId;
-        this.open();
-      },
-    );
+    this.eventBus = eventBus;
+    this.eventBus.on("dialog:elementFilters:open", ({ layerId }) => {
+      this.activeElementId = layerId;
+      this.open();
+    });
   }
 
   protected appendDialogContent(container: HTMLDivElement): void {
@@ -70,7 +65,7 @@ export class DialogElementFilters extends Dialog {
       if (!this.activeElement) return;
       this.activeElement.filters = [];
       this.populateFilters();
-      dispatch(EVENT.UPDATE_WORKAREA);
+      this.eventBus.emit("workarea:update");
     });
     menu.appendChild(btnAccept);
     menu.appendChild(btnCancel);
@@ -83,10 +78,10 @@ export class DialogElementFilters extends Dialog {
       new DropShadowFilter(),
       new OuterGlowFilter(),
     ];
-    dispatch(EVENT.SELECT_ELEMENT, {
+    this.eventBus.emit("workarea:selectById", {
       elementsId: new Set([this.activeElementId]),
     });
-    const selectedElements = WorkArea.getInstance().getSelectedElements();
+    const [selectedElements] = this.eventBus.request("workarea:selected:get");
     if (!selectedElements) return;
     this.activeElement = selectedElements[0];
     this.currentFilters = [...this.activeElement.filters];
@@ -96,14 +91,16 @@ export class DialogElementFilters extends Dialog {
   protected override onClose(): void {
     this.activeElement = null;
     this.activeElementId = -1;
-    dispatch(EVENT.UPDATE_WORKAREA);
+    this.eventBus.emit("workarea:update");
   }
 
   private selectFilter(filter: Filter): void {
     const filterControls =
       this.dialogContent?.querySelector("#filter-controls");
     if (!filterControls) return;
-    filterControls.appendChild(filter.getFilterControls() as HTMLDivElement);
+    filterControls.appendChild(
+      filter.setupFilterControls(() => this.eventBus.emit("workarea:update")),
+    );
   }
 
   private appendToFilterList(filterItem: HTMLLIElement): void {
@@ -151,7 +148,7 @@ export class DialogElementFilters extends Dialog {
       filterItem.addEventListener("click", () => {
         this.clearFilterControls();
         this.selectFilter(filter);
-        dispatch(EVENT.UPDATE_WORKAREA);
+        this.eventBus.emit("workarea:update");
       });
       const checkbox = filterItem.querySelector<HTMLInputElement>(
         `#chk_filter-${key}`,
@@ -159,7 +156,7 @@ export class DialogElementFilters extends Dialog {
       if (checkbox) {
         checkbox.addEventListener("change", () => {
           this.toggleFilter(filter, checkbox.checked);
-          dispatch(EVENT.UPDATE_WORKAREA);
+          this.eventBus.emit("workarea:update");
         });
       }
       this.appendToFilterList(filterItem);

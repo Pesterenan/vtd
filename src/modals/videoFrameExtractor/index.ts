@@ -1,9 +1,10 @@
 import "../../assets/main.css";
+import { Alerts } from "src/components/alerts/alerts";
 import { clamp } from "src/utils/easing";
+import { EventBus } from "src/utils/eventBus";
 import formatFrameIntoTime from "src/utils/formatFrameIntoTime";
 import { ExtractBox } from "../../components/extractBox/extractBox";
 import type { IThumbnailSpriteCell, IVideoMetadata } from "../../types";
-import EVENT, { dispatch } from "../../utils/customEvents";
 import getElementById from "../../utils/getElementById";
 
 const PREVIEW_CANVAS_HEIGHT = 432;
@@ -33,9 +34,11 @@ export class VideoFrameExtractor {
   private currentThumbIndex = -1;
   private rafId: number | null = null;
   private thumbnailSprite: HTMLImageElement | null = null;
-  private thumbnailSpriteCells :IThumbnailSpriteCell[] = [];
+  private thumbnailSpriteCells: IThumbnailSpriteCell[] = [];
+  private eventBus: EventBus;
 
-  private constructor() {
+  private constructor(eventBus: EventBus) {
+    this.eventBus = eventBus;
     this.createDOMElements();
     this.createEventListeners();
   }
@@ -90,7 +93,7 @@ export class VideoFrameExtractor {
       });
     }
 
-    window.addEventListener(EVENT.UPDATE_VFE, () => this.update());
+    this.eventBus.on("vfe:update", () => this.update());
 
     window.api.onVideoMetadata(async (metadata: IVideoMetadata) => {
       this.videoMetadata = metadata;
@@ -111,7 +114,7 @@ export class VideoFrameExtractor {
       if (this.preview && this.extractFrameBtn && this.copyToClipBoardBtn) {
         this.preview.canvas.width = canvasWidth;
         this.preview.canvas.height = canvasHeight;
-        this.extractBox = new ExtractBox(this.preview.canvas);
+        this.extractBox = new ExtractBox(this.preview.canvas, this.eventBus);
         this.extractFrameBtn.onclick = (): void => {
           if (this.extractBox) {
             this.extractFrame();
@@ -178,7 +181,6 @@ export class VideoFrameExtractor {
           const videoFrameData = new ImageData(videoFrame, width, height);
           this.offScreen.context.putImageData(videoFrameData, 0, 0);
           this.update();
-          console.log(response.message);
         }
       } else {
         console.error(response.message);
@@ -186,9 +188,9 @@ export class VideoFrameExtractor {
     });
   }
 
-  public static getInstance(): VideoFrameExtractor {
+  public static getInstance(eventBus: EventBus): VideoFrameExtractor {
     if (VideoFrameExtractor.instance === null) {
-      VideoFrameExtractor.instance = new VideoFrameExtractor();
+      VideoFrameExtractor.instance = new VideoFrameExtractor(eventBus);
     }
     return VideoFrameExtractor.instance;
   }
@@ -344,7 +346,7 @@ export class VideoFrameExtractor {
             if (blob) {
               const item = new ClipboardItem({ "image/png": blob });
               navigator.clipboard.write([item]);
-              dispatch(EVENT.ADD_ALERT, {
+              this.eventBus.emit("alert:add", {
                 message: "Frame do vídeo copiado para a área de transferência",
                 title: "Copiado",
                 type: "success",
@@ -372,4 +374,6 @@ export class VideoFrameExtractor {
   }
 }
 
-VideoFrameExtractor.getInstance();
+const alertEventBus = new EventBus();
+new Alerts(alertEventBus);
+VideoFrameExtractor.getInstance(alertEventBus);

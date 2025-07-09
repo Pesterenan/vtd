@@ -1,47 +1,30 @@
-import EVENT, { dispatch } from "src/utils/customEvents";
+import type { EventBus } from "src/utils/eventBus";
 
 export abstract class Tool {
   protected canvas: HTMLCanvasElement;
   protected context: CanvasRenderingContext2D | null;
-  protected onMouseDown: (evt: MouseEvent) => void;
-  protected onMouseMove: (evt: MouseEvent) => void;
-  protected onMouseUp: (evt: MouseEvent) => void;
-  protected onKeyDown: (evt: KeyboardEvent) => void;
-  protected onKeyUp: (evt: KeyboardEvent) => void;
+  protected eventBus: EventBus;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
     this.canvas = canvas;
     this.context = canvas.getContext("2d");
-
-    this.onMouseDown = this.handleMouseDown.bind(this);
-    this.onMouseMove = this.handleMouseMove.bind(this);
-    this.onMouseUp = this.handleMouseUp.bind(this);
-    this.onKeyDown = this.handleKeyDown.bind(this);
-    this.onKeyUp = this.handleKeyUp.bind(this);
+    this.eventBus = eventBus;
   }
 
-  abstract draw(): void;
-  equipTool(): void {
-    this.canvas.addEventListener("mousedown", this.onMouseDown);
-  }
-  unequipTool(): void {
-    this.canvas.removeEventListener("mousedown", this.onMouseDown);
-    this.canvas.removeEventListener("mousemove", this.onMouseMove);
-    this.canvas.removeEventListener("mouseup", this.onMouseUp);
+  public equip(): void {
+    this.eventBus.emit("tool:equipped", this);
+    this.eventBus.emit("workarea:update");
   }
 
-  handleMouseDown(_evt: MouseEvent): void {
-    dispatch(EVENT.USING_TOOL, { isUsingTool: true });
-    this.canvas.addEventListener("mousemove", this.onMouseMove);
-    this.canvas.addEventListener("mouseup", this.onMouseUp);
+  public unequip(): void {
+    this.eventBus.emit("tool:unequipped", this);
+    this.eventBus.emit("workarea:update");
   }
 
-  handleMouseUp(_evt: MouseEvent): void {
-    dispatch(EVENT.USING_TOOL, { isUsingTool: false });
-    this.canvas.removeEventListener("mousemove", this.onMouseMove);
-    this.canvas.removeEventListener("mouseup", this.onMouseUp);
-  }
-  abstract handleMouseMove(evt: MouseEvent): void;
-  abstract handleKeyDown(evt: KeyboardEvent): void;
-  abstract handleKeyUp(evt: KeyboardEvent): void;
+  public abstract draw(): void;
+  public abstract onKeyDown(evt: KeyboardEvent): void;
+  public abstract onKeyUp(evt: KeyboardEvent): void;
+  public abstract onMouseDown(evt: MouseEvent): void;
+  public abstract onMouseMove(evt: MouseEvent): void;
+  public abstract onMouseUp(evt: MouseEvent): void;
 }

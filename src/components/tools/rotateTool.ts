@@ -1,123 +1,104 @@
 import centerHandleRotate from "src/assets/icons/rotate-tool.svg";
 import { Tool } from "src/components/tools/abstractTool";
-import type { TransformBox } from "src/components/transformBox";
 import type { Position } from "src/components/types";
-import { WorkArea } from "src/components/workArea";
-import EVENT, { dispatch } from "src/utils/customEvents";
+import type { EventBus } from "src/utils/eventBus";
 import { toDegrees } from "src/utils/transforms";
 
 export class RotateTool extends Tool {
   private toolIcon: HTMLImageElement | null = null;
   private startPosition: Position | null = null;
-  private transformBox: TransformBox | null = null;
   private isRotating = false;
 
-  constructor(canvas: HTMLCanvasElement) {
-    super(canvas);
+  constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
+    super(canvas, eventBus);
     this.toolIcon = new Image(20, 20);
     this.toolIcon.src = centerHandleRotate;
   }
 
-  equipTool(): void {
-    super.equipTool();
-    this.transformBox = WorkArea.getInstance().transformBox;
-    if (this.transformBox) {
-      this.transformBox.anchorPoint = this.transformBox.position;
-    }
-    dispatch(EVENT.UPDATE_WORKAREA);
+  public equip(): void {
+    super.equip();
   }
 
-  unequipTool(): void {
-    super.unequipTool();
+  public unequip(): void {
     this.resetTool();
+    super.unequip();
   }
 
-  resetTool() {
+  public resetTool() {
     this.startPosition = null;
     this.isRotating = false;
-    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
-  draw(): void {
-    if (
-      this.toolIcon &&
-      this.transformBox &&
-      this.transformBox.anchorPoint &&
-      this.context
-    ) {
-      const workAreaZoom = WorkArea.getInstance().zoomLevel;
-      const workAreaOffset = WorkArea.getInstance().offset;
+  public draw(): void {
+    const [anchor] = this.eventBus.request("transformBox:anchorPoint:get");
+    if (this.toolIcon && this.context && anchor) {
+      const [zoomLevel] = this.eventBus.request("zoomLevel:get");
+      const [workAreaOffset] = this.eventBus.request("workarea:offset:get");
 
       this.context.save();
       this.context.translate(workAreaOffset.x, workAreaOffset.y);
-      this.context.scale(workAreaZoom, workAreaZoom);
+      this.context.scale(zoomLevel, zoomLevel);
       this.context.drawImage(
         this.toolIcon,
-        this.transformBox.anchorPoint.x -
-          (this.toolIcon.width * 0.5) / workAreaZoom,
-        this.transformBox.anchorPoint.y -
-          (this.toolIcon.height * 0.5) / workAreaZoom,
-        this.toolIcon.width / workAreaZoom,
-        this.toolIcon.height / workAreaZoom,
+        anchor.x - (this.toolIcon.width * 0.5) / zoomLevel,
+        anchor.y - (this.toolIcon.height * 0.5) / zoomLevel,
+        this.toolIcon.width / zoomLevel,
+        this.toolIcon.height / zoomLevel,
       );
       this.context.restore();
     }
   }
 
-  handleMouseDown(evt: MouseEvent): void {
-    const mousePos = WorkArea.getInstance().adjustForCanvas({
-      x: evt.offsetX,
-      y: evt.offsetY,
+  public onMouseDown({ altKey, offsetX, offsetY }: MouseEvent): void {
+    const [mousePos] = this.eventBus.request("workarea:adjustForCanvas", {
+      position: {
+        x: offsetX,
+        y: offsetY,
+      },
     });
-    if (evt.altKey && this.transformBox) {
-      this.transformBox.anchorPoint = mousePos;
-      this.resetTool();
+    if (altKey) {
+      this.eventBus.emit("transformBox:anchorPoint:change", { position: mousePos });
+      this.eventBus.emit("workarea:update");
       return;
     }
     if (!this.isRotating) {
       this.isRotating = true;
       this.startPosition = mousePos;
-      super.handleMouseDown(evt);
+      this.eventBus.emit("workarea:update");
     }
   }
 
-  handleMouseUp(evt: MouseEvent): void {
-    super.handleMouseUp(evt);
+  public onMouseUp(): void {
     this.resetTool();
-    dispatch(EVENT.UPDATE_WORKAREA);
   }
 
-  handleMouseMove(evt: MouseEvent): void {
-    if (
-      this.isRotating &&
-      this.transformBox &&
-      this.transformBox.anchorPoint &&
-      this.startPosition
-    ) {
-      const mousePos = WorkArea.getInstance().adjustForCanvas({
-        x: evt.offsetX,
-        y: evt.offsetY,
+  public onMouseMove({ offsetX, offsetY }: MouseEvent): void {
+    const [anchor] = this.eventBus.request("transformBox:anchorPoint:get");
+    if (this.isRotating && this.startPosition && anchor) {
+      const [mousePos] = this.eventBus.request("workarea:adjustForCanvas", {
+        position: {
+          x: offsetX,
+          y: offsetY,
+        },
       });
       const startingAngle = Math.atan2(
-        this.startPosition.y - this.transformBox.anchorPoint.y,
-        this.startPosition.x - this.transformBox.anchorPoint.x,
+        this.startPosition.y - anchor.y,
+        this.startPosition.x - anchor.x,
       );
       const currentAngle = Math.atan2(
-        mousePos.y - this.transformBox.anchorPoint.y,
-        mousePos.x - this.transformBox.anchorPoint.x,
+        mousePos.y - anchor.y,
+        mousePos.x - anchor.x,
       );
       const angle = toDegrees(currentAngle - startingAngle);
-      const normalizedAngle = (this.transformBox.rotation + angle) % 360;
-      this.transformBox.updateRotation(
-        normalizedAngle,
-        this.transformBox.anchorPoint,
-      );
+      const [rotation] = this.eventBus.request("transformBox:rotation");
+      const normalizedAngle = (rotation + angle) % 360;
+      this.eventBus.emit("transformBox:updateRotation", { delta: normalizedAngle });
       this.startPosition = mousePos;
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleKeyDown(): void {}
+  public onKeyDown(): void {}
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleKeyUp(): void {}
+  public onKeyUp(): void {}
 }
