@@ -1,15 +1,17 @@
-import EVENT from "src/utils/customEvents";
-import { WorkArea } from "../workArea";
+import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
 
 export class DialogExportImage extends Dialog {
-  constructor() {
+  private eventBus: EventBus;
+
+  constructor(eventBus: EventBus) {
     super({
       id: "export-image",
       title: "Exportar Imagem",
       style: { minWidth: "25rem" },
     });
-    window.addEventListener(EVENT.OPEN_EXPORT_IMAGE_DIALOG, () => this.open());
+    this.eventBus = eventBus;
+    this.eventBus.on("dialog:exportImage:open", () => this.open());
   }
 
   protected appendDialogContent(container: HTMLDivElement): void {
@@ -81,10 +83,11 @@ export class DialogExportImage extends Dialog {
             );
           const format = exportFormatSelector.value;
           const quality = jpegRangeQuality?.value || "100";
-          window.api.exportCanvas(
+          const [canvas] = this.eventBus.request("workarea:exportCanvas", {
             format,
-            WorkArea.getInstance().exportCanvas(format, quality),
-          );
+            quality,
+          });
+          window.api.exportCanvas(format, canvas);
         }
         this.close();
       });

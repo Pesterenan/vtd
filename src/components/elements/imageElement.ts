@@ -1,7 +1,6 @@
 import { Element } from "src/components/elements/element";
 import type { IImageElementData, Position, Size } from "src/components/types";
 import { BoundingBox } from "src/utils/boundingBox";
-import EVENT, { dispatch } from "src/utils/customEvents";
 import { clamp } from "src/utils/easing";
 import { toRadians } from "src/utils/transforms";
 
@@ -105,7 +104,6 @@ export class ImageElement extends Element<IImageElementData> {
         this.size = { width: this.image.width, height: this.image.height };
         this.boundingBox.update(this.position, this.size, this.rotation);
       }
-      dispatch(EVENT.UPDATE_WORKAREA);
     };
   }
 

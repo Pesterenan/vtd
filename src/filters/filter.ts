@@ -47,15 +47,16 @@ export abstract class Filter {
   public apply(
     context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
     source: CanvasImageSource,
-  ): void{
+  ): void {
     context.save();
     context.globalAlpha = this.globalAlpha;
     this.filterEffects(context, source);
     context.restore();
   }
 
-  public getFilterControls(): HTMLDivElement {
+  public setupFilterControls(onChange: () => void): HTMLDivElement {
     if (this.filterControls) return this.filterControls;
+    this.onChange = onChange;
 
     this.filterControls = document.createElement("div");
     this.filterControls.className = "sec_menu-style pad-05";
@@ -63,7 +64,7 @@ export abstract class Filter {
     this.opacityControl = createSliderControl(
       `${this.id}-opacity`,
       "Opacidade",
-      { min: 0, max:  1, step: 0.01, value: this.globalAlpha },
+      { min: 0, max: 1, step: 0.01, value: this.globalAlpha },
       this.handleOpacityChange.bind(this),
     );
     this.opacityControl.linkEvents();
@@ -75,13 +76,17 @@ export abstract class Filter {
   private handleOpacityChange(newValue: number): void {
     if (this.opacityControl) {
       this.globalAlpha = Number(newValue);
-      this.onValueChange();
+      this.onChange();
     }
   }
 
-  protected abstract filterEffects(context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, canvas: CanvasImageSource): void;
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  protected onChange(): void {}
 
-  protected abstract onValueChange(): void;
+  protected abstract filterEffects(
+    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    canvas: CanvasImageSource,
+  ): void;
 
   protected abstract appendFilterControls(container: HTMLDivElement): void;
 }

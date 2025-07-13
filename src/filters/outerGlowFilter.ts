@@ -3,7 +3,6 @@ import createColorControl from "src/components/helpers/createColorControl";
 import type { ISliderControl } from "src/components/helpers/createSliderControl";
 import createSliderControl from "src/components/helpers/createSliderControl";
 import { Filter } from "src/filters/filter";
-import EVENT, { dispatch } from "src/utils/customEvents";
 import { clamp } from "src/utils/easing";
 
 export class OuterGlowFilter extends Filter {
@@ -40,10 +39,6 @@ export class OuterGlowFilter extends Filter {
     context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
   }
 
-  protected onValueChange(): void {
-      dispatch(EVENT.UPDATE_WORKAREA);
-  }
-
   protected appendFilterControls(container: HTMLDivElement): void {
     this.blurControl = createSliderControl(
       `${this.id}-blur`,
@@ -61,19 +56,16 @@ export class OuterGlowFilter extends Filter {
 
     this.blurControl.linkEvents();
     this.colorControl.linkEvents();
-    container.append(
-      this.blurControl.element,
-      this.colorControl.element,
-    );
+    container.append(this.blurControl.element, this.colorControl.element);
   }
 
   private handleBlurControlChange = (newValue: number): void => {
-      this.blur = Number(newValue);
-      this.onValueChange();
+    this.blur = Number(newValue);
+    this.onChange();
   };
 
   private handleColorControlChange = (newValue: string): void => {
-      this.color = newValue;
-      this.onValueChange();
+    this.color = newValue;
+    this.onChange();
   };
 }

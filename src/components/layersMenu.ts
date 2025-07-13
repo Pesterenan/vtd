@@ -7,34 +7,35 @@ import OpenEyeIcon from "src/assets/icons/open-eye.svg";
 import TrashIcon from "src/assets/icons/trash.svg";
 import UnlockedIcon from "src/assets/icons/unlock.svg";
 import errorElement from "src/components/elements/errorElement";
-import EVENT, { dispatch } from "src/utils/customEvents";
+import type { EventBus } from "src/utils/eventBus";
 import getElementById from "src/utils/getElementById";
 import createIconButton from "./helpers/createIconButton";
 import type {
-  AddElementDetail,
-  DeleteElementDetail,
+  AddElementPayload,
+  DeleteElementPayload,
   Layer,
-  SelectElementDetail,
+  SelectElementPayload,
 } from "./types";
-import { WorkArea } from "./workArea";
 
 export class LayersMenu {
   private static instance: LayersMenu | null = null;
-  private layersSection: HTMLElement;
-  private layersList: HTMLUListElement;
+  private eventBus: EventBus;
   private draggedLayerLI: HTMLLIElement | null = null;
+  private layersList: HTMLUListElement;
+  private layersSection: HTMLElement;
   private selectedLayersId: Set<number> = new Set();
 
-  private constructor() {
+  private constructor(eventBus: EventBus) {
+    this.eventBus = eventBus;
     this.layersSection = document.createElement("section");
     this.layersList = document.createElement("ul");
     this.createDOMElements();
     this.attachGlobalEvents();
   }
 
-  public static getInstance(): LayersMenu {
+  public static getInstance(eventBus: EventBus): LayersMenu {
     if (LayersMenu.instance === null) {
-      LayersMenu.instance = new LayersMenu();
+      LayersMenu.instance = new LayersMenu(eventBus);
     }
     return LayersMenu.instance;
   }
@@ -80,20 +81,17 @@ export class LayersMenu {
   }
 
   private attachGlobalEvents(): void {
-    window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
+    this.eventBus.on("workarea:clear", () => {
       this.layersList.innerHTML = "";
     });
-
-    window.addEventListener(
-      EVENT.ADD_ELEMENT,
-      this.handleAddElement.bind(this),
-    );
-    window.addEventListener(
-      EVENT.DELETE_ELEMENT,
-      this.handleDeleteElement.bind(this),
-    );
-    window.addEventListener(
-      EVENT.SELECT_ELEMENT,
+    this.eventBus.on("workarea:addElement", (payload) => {
+      this.handleAddElement(payload);
+    });
+    this.eventBus.on("workarea:deleteElement", (payload) => {
+      this.handleDeleteElement(payload);
+    });
+    this.eventBus.on(
+      "workarea:selectById",
       this.handleSelectElement.bind(this),
     );
 
@@ -106,7 +104,7 @@ export class LayersMenu {
       if (this.draggedLayerLI) {
         this.layersList.appendChild(this.draggedLayerLI);
         this.draggedLayerLI = null;
-        this.dispatchReorganizeEvent();
+        this.emitGenerateLayerHierarchy();
       }
     });
   }
@@ -145,7 +143,7 @@ export class LayersMenu {
         `#btn_filters-${layer.id}`,
       ) as HTMLButtonElement;
       filtersBtn.addEventListener("dblclick", () => {
-        dispatch(EVENT.OPEN_FILTERS_DIALOG, { layerId: layer.id });
+        this.eventBus.emit("dialog:elementFilters:open", { layerId: layer.id });
       });
     }
 
@@ -203,7 +201,9 @@ export class LayersMenu {
         }
       }
 
-      dispatch(EVENT.SELECT_ELEMENT, { elementsId: this.selectedLayersId });
+      this.eventBus.emit("workarea:selectById", {
+        elementsId: this.selectedLayersId,
+      });
     });
 
     // Name Change Event
@@ -232,9 +232,9 @@ export class LayersMenu {
         }
         layerNameSpan.style.display = "block";
         layerNameInput.style.display = "none";
-        dispatch(EVENT.UPDATE_ELEMENT, {
+        this.eventBus.emit("workarea:updateElement", {
           elementId: layer.id,
-          name: layerNameSpan.innerText,
+          layerName: layerNameSpan.innerText,
         });
       }
     });
@@ -245,7 +245,7 @@ export class LayersMenu {
     ) as HTMLInputElement;
     visibilityInput.addEventListener("click", (evt) => {
       evt.stopPropagation();
-      dispatch(EVENT.UPDATE_ELEMENT, {
+      this.eventBus.emit("workarea:updateElement", {
         elementId: layer.id,
         isVisible: visibilityInput.checked,
       });
@@ -255,7 +255,7 @@ export class LayersMenu {
     ) as HTMLInputElement;
     lockInput.addEventListener("click", (evt) => {
       evt.stopPropagation();
-      dispatch(EVENT.UPDATE_ELEMENT, {
+      this.eventBus.emit("workarea:updateElement", {
         elementId: layer.id,
         isLocked: lockInput.checked,
       });
@@ -274,7 +274,7 @@ export class LayersMenu {
       if (this.draggedLayerLI && li !== this.draggedLayerLI) {
         li.parentElement?.insertBefore(this.draggedLayerLI, li);
         this.draggedLayerLI = null;
-        this.dispatchReorganizeEvent();
+        this.emitGenerateLayerHierarchy();
       }
     });
 
@@ -316,7 +316,7 @@ export class LayersMenu {
         if (this.draggedLayerLI && this.draggedLayerLI !== groupLI) {
           childrenList.appendChild(this.draggedLayerLI);
           this.draggedLayerLI = null;
-          this.dispatchReorganizeEvent();
+          this.emitGenerateLayerHierarchy();
         }
       },
       true,
@@ -332,7 +332,7 @@ export class LayersMenu {
       if (this.draggedLayerLI && this.draggedLayerLI !== groupLI) {
         childrenList.appendChild(this.draggedLayerLI);
         this.draggedLayerLI = null;
-        this.dispatchReorganizeEvent();
+        this.emitGenerateLayerHierarchy();
       }
     });
   }
@@ -362,8 +362,8 @@ export class LayersMenu {
     return hierarchy;
   }
 
-  private dispatchReorganizeEvent(): void {
-    dispatch(EVENT.REORGANIZE_LAYERS, {
+  private emitGenerateLayerHierarchy(): void {
+    this.eventBus.emit("layer:generateHierarchy", {
       hierarchy: this.generateLayerHierarchy(this.layersList),
     });
   }
@@ -376,12 +376,11 @@ export class LayersMenu {
       Number(li.dataset.id),
     );
     for (const layerId of selectedLayersId) {
-      dispatch(EVENT.DELETE_ELEMENT, { elementId: layerId });
+      this.eventBus.emit("workarea:deleteElement", { elementId: layerId });
     }
   }
 
-  private handleSelectElement(evt: CustomEvent<SelectElementDetail>): void {
-    const { elementsId } = evt.detail;
+  private handleSelectElement({ elementsId }: SelectElementPayload): void {
     this.selectedLayersId = elementsId;
     for (const li of this.layersList.querySelectorAll("li")) {
       const liId = Number(li.dataset.id);
@@ -393,18 +392,22 @@ export class LayersMenu {
     }
   }
 
-  private handleDeleteElement(evt: CustomEvent<DeleteElementDetail>): void {
-    const elementId = evt.detail.elementId;
+  private handleDeleteElement({ elementId }: DeleteElementPayload): void {
     const layerToDelete = getElementById<HTMLLIElement>(`layer-${elementId}`);
     if (layerToDelete) {
       layerToDelete.parentElement?.removeChild(layerToDelete);
     }
-    this.dispatchReorganizeEvent();
+    this.emitGenerateLayerHierarchy();
   }
 
-  private handleAddElement(evt: CustomEvent<AddElementDetail>): void {
-    const { elementId, layerName, isVisible, isLocked, type, children } =
-      evt.detail;
+  private handleAddElement({
+    elementId,
+    layerName,
+    isVisible,
+    isLocked,
+    type,
+    children,
+  }: AddElementPayload): void {
     if (this.layersList.querySelector(`#layer-${elementId}`)) return;
 
     const isGroup = type === "group";
@@ -422,7 +425,7 @@ export class LayersMenu {
   }
 
   private handleAddNewGroup(): void {
-    WorkArea.getInstance().addGroupElement();
+    this.eventBus.emit("workarea:addGroupElement");
   }
 
   private groupTemplate(layer: Layer): string {

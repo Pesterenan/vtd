@@ -57,6 +57,9 @@ export class GradientElement extends Element<IGradientElementData> {
     this.endPosition = { x: position.x, y: position.y };
     this.colorStops = [
       { portion: 0.0, color: "#000000", alpha: 1.0 },
+      { portion: 0.25, color: "#FF0000", alpha: 1.0 },
+      { portion: 0.5, color: "#FFF000", alpha: 1.0 },
+      { portion: 0.75, color: "#FF00FF", alpha: 1.0 },
       { portion: 1.0, color: "#FFFFFF", alpha: 1.0 },
     ];
     this.boundingBox = new BoundingBox(position, size, this.rotation);

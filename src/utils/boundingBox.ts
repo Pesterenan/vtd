@@ -1,6 +1,5 @@
 import type { Position, Size } from "src/components/types";
-import { WorkArea } from "src/components/workArea";
-import { toRadians } from "./transforms";
+import { rotatePoint } from "./transforms";
 import { Vector } from "./vector";
 
 export class BoundingBox {
@@ -36,37 +35,14 @@ export class BoundingBox {
   }
 
   private rotateCorners(): void {
-    this.topLeft = this.rotatePoint(this.topLeft, this.center, this.rotation);
-    this.topRight = this.rotatePoint(this.topRight, this.center, this.rotation);
-    this.bottomLeft = this.rotatePoint(
-      this.bottomLeft,
-      this.center,
-      this.rotation,
-    );
-    this.bottomRight = this.rotatePoint(
+    this.topLeft = rotatePoint(this.topLeft, this.center, this.rotation);
+    this.topRight = rotatePoint(this.topRight, this.center, this.rotation);
+    this.bottomLeft = rotatePoint(this.bottomLeft, this.center, this.rotation);
+    this.bottomRight = rotatePoint(
       this.bottomRight,
       this.center,
       this.rotation,
     );
-  }
-
-  private rotatePoint(
-    point: Position,
-    center: Position,
-    angle: number,
-  ): Position {
-    const radians = toRadians(angle);
-    const cos = Math.cos(radians);
-    const sin = Math.sin(radians);
-
-    const translated = new Vector(point).sub(center);
-
-    const rotated = {
-      x: translated.x * cos - translated.y * sin,
-      y: translated.x * sin + translated.y * cos,
-    };
-
-    return new Vector(rotated).add(center);
   }
 
   public update(position: Position, size: Size, rotation: number): void {
@@ -76,13 +52,13 @@ export class BoundingBox {
   }
 
   public isPointInside(point: Position): boolean {
-    const unrotatedPoint = this.rotatePoint(point, this.center, -this.rotation);
-    const unrotatedTopLeft = this.rotatePoint(
+    const unrotatedPoint = rotatePoint(point, this.center, -this.rotation);
+    const unrotatedTopLeft = rotatePoint(
       this.topLeft,
       this.center,
       -this.rotation,
     );
-    const unrotatedBottomRight = this.rotatePoint(
+    const unrotatedBottomRight = rotatePoint(
       this.bottomRight,
       this.center,
       -this.rotation,
@@ -104,19 +80,18 @@ export class BoundingBox {
       x: Math.max(firstPoint.x, secondPoint.x),
       y: Math.max(firstPoint.y, secondPoint.y),
     };
-    WorkArea.getInstance().drawbox(minBound, maxBound);
 
-    const unrotatedTopLeft = this.rotatePoint(
+    const unrotatedTopLeft = rotatePoint(
       this.topLeft,
       this.center,
       -this.rotation,
     );
-    const unrotatedBottomRight = this.rotatePoint(
+    const unrotatedBottomRight = rotatePoint(
       this.bottomRight,
       this.center,
       -this.rotation,
     );
-    WorkArea.getInstance().drawbox(unrotatedTopLeft, unrotatedBottomRight);
+
     return (
       unrotatedTopLeft.x >= minBound.x &&
       unrotatedTopLeft.x <= maxBound.x &&

@@ -1,9 +1,9 @@
 import { TextElement } from "src/components/elements/textElement";
 import { WorkArea } from "src/components/workArea";
-import EVENT, { dispatch } from "src/utils/customEvents";
 import getElementById from "src/utils/getElementById";
 import { TextMenu } from "./textMenu";
 import type { ITextElementData } from "./types";
+import { EventBus } from "src/utils/eventBus";
 
 /**
  * @jest-environment jsdom
@@ -11,6 +11,7 @@ import type { ITextElementData } from "./types";
 describe("TextMenu", () => {
   let instance: TextMenu;
   let element: TextElement;
+  let eventBus: EventBus;
 
   let acceptButton: HTMLButtonElement;
   let declineButton: HTMLButtonElement;
@@ -32,8 +33,9 @@ describe("TextMenu", () => {
   });
 
   beforeAll(() => {
+    eventBus = new EventBus();
     // Instantiate menu and append to DOM
-    instance = TextMenu.getInstance();
+    instance = TextMenu.getInstance(eventBus);
     document.body.appendChild(instance.getMenu());
 
     // References to controls
@@ -79,7 +81,7 @@ describe("TextMenu", () => {
     jest.spyOn(WorkArea, "getInstance").mockReturnValueOnce({
       getSelectedElements: () => [element],
     } as unknown as WorkArea);
-    dispatch(EVENT.SELECT_ELEMENT, {
+    eventBus.emit("workarea:selectById", {
       elementsId: new Set([element.elementId]),
     });
   });
@@ -96,7 +98,7 @@ describe("TextMenu", () => {
       jest.spyOn(WorkArea, "getInstance").mockReturnValueOnce({
         getSelectedElements: () => [],
       } as unknown as WorkArea);
-      dispatch(EVENT.SELECT_ELEMENT, { elementsId: new Set([]) });
+      eventBus.emit("workarea:selectById", { elementsId: new Set([]) });
 
       expect(textInput.value).toBe("");
       expect(fillCheckbox.checked).toBe(false);
@@ -259,13 +261,17 @@ describe("TextMenu", () => {
     });
 
     it("should reflect element.fontWeight in the checked radio", () => {
-      const weightNormalRadio = fontWeightRadios.find((r) => r.id === "weight-normal");
+      const weightNormalRadio = fontWeightRadios.find(
+        (r) => r.id === "weight-normal",
+      );
       expect(weightNormalRadio?.checked).toBe(true);
       expect(element.fontWeight).toEqual("normal");
     });
 
     it("should update element.fontWeight when a radio is clicked", () => {
-      const weightBoldRadio = fontWeightRadios.find((r) => r.id === "weight-bold");
+      const weightBoldRadio = fontWeightRadios.find(
+        (r) => r.id === "weight-bold",
+      );
       weightBoldRadio?.click();
       expect(element.fontWeight).toBe("bold");
     });

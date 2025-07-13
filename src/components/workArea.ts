@@ -15,18 +15,20 @@ import { TextTool } from "src/components/tools/textTool";
 import { ZoomTool } from "src/components/tools/zoomTool";
 import { TransformBox } from "src/components/transformBox";
 import type {
-  ChangeToolDetail,
   IProjectData,
   Layer,
   Position,
+  ReorganizeLayersPayload,
+  SelectElementPayload,
   TElementData,
-  UpdateElementDetail,
+  UpdateElementPayload,
 } from "src/components/types";
 import { TOOL } from "src/components/types";
 import { SIDE_MENU_WIDTH, TOOL_MENU_WIDTH } from "src/constants";
-import EVENT, { dispatch } from "src/utils/customEvents";
+import type { EventBus } from "src/utils/eventBus";
 import getElementById from "src/utils/getElementById";
 import { ElementGroup } from "./elements/elementGroup";
+import { ToolManager } from "./tools/toolManager";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -48,7 +50,6 @@ export class WorkArea {
   private tools: { [key in TOOL]: Tool };
   public currentTool: TOOL = TOOL.SELECT;
   public lastTool: TOOL | null = TOOL.SELECT;
-  private isUsingTool = false;
   private devCanvas: HTMLCanvasElement | null = null;
 
   public get offset(): Position {
@@ -70,28 +71,31 @@ export class WorkArea {
     this._zoomLevel = zoomLevel;
     this.update();
   }
+  private eventBus: EventBus;
+  private toolManager: ToolManager;
 
-  private constructor() {
+  private constructor(eventBus: EventBus) {
     this.createWorkAreaDOMElements();
 
     if (!this.mainCanvas) throw new Error("Main canvas not available");
 
+    this.eventBus = eventBus;
+    this.toolManager = new ToolManager(this.mainCanvas, this.eventBus);
     this.createElementFromData = this.createElementFromData.bind(this);
     this.tools = {
-      [TOOL.SELECT]: new SelectTool(this.mainCanvas),
-      [TOOL.GRADIENT]: new GradientTool(this.mainCanvas),
-      [TOOL.GRAB]: new GrabTool(this.mainCanvas),
-      [TOOL.HAND]: new HandTool(this.mainCanvas),
-      [TOOL.ZOOM]: new ZoomTool(this.mainCanvas),
-      [TOOL.SCALE]: new ScaleTool(this.mainCanvas),
-      [TOOL.ROTATE]: new RotateTool(this.mainCanvas),
-      [TOOL.TEXT]: new TextTool(this.mainCanvas),
+      [TOOL.SELECT]: new SelectTool(this.mainCanvas, this.eventBus),
+      [TOOL.GRADIENT]: new GradientTool(this.mainCanvas, this.eventBus),
+      [TOOL.GRAB]: new GrabTool(this.mainCanvas, this.eventBus),
+      [TOOL.HAND]: new HandTool(this.mainCanvas, this.eventBus),
+      [TOOL.ZOOM]: new ZoomTool(this.mainCanvas, this.eventBus),
+      [TOOL.SCALE]: new ScaleTool(this.mainCanvas, this.eventBus),
+      [TOOL.ROTATE]: new RotateTool(this.mainCanvas, this.eventBus),
+      [TOOL.TEXT]: new TextTool(this.mainCanvas, this.eventBus),
     };
-    this.tools[this.currentTool].equipTool();
 
     this.createEventListeners();
-    new DialogElementFilters();
-    new DialogExportImage();
+    new DialogElementFilters(eventBus);
+    new DialogExportImage(eventBus);
     this.update();
   }
 
@@ -140,31 +144,133 @@ export class WorkArea {
   }
 
   private createEventListeners(): void {
+    window.api.onProcessVideoFrameResponse((_, response) => {
+      if (response.success) {
+        const uint8Array = new Uint8Array(response.data as Uint8Array);
+        const blob = new Blob([uint8Array], { type: "image/png" });
+
+        const reader = new FileReader();
+        reader.onloadend = (): void => {
+          const dataURL = reader.result as string;
+          this.addImageElement(dataURL);
+        };
+        reader.readAsDataURL(blob);
+      }
+      this.eventBus.emit("alert:add", {
+        message: response.message,
+        type: response.success ? "success" : "error",
+      });
+    });
+
+    window.api.onLoadVideoResponse((_, response) => {
+      this.eventBus.emit("alert:add", {
+        message: response.message,
+        type: response.success ? "success" : "error",
+      });
+    });
+
+    window.api.onLoadImageResponse((_, response) => {
+      this.eventBus.emit("alert:add", {
+        message: response.message,
+        type: response.success ? "success" : "error",
+      });
+      if (response.success) {
+        this.addImageElement(response.data as string);
+        requestAnimationFrame(() => requestAnimationFrame(() => this.update()));
+      }
+    });
+
+    window.api.onSaveProjectResponse((_, response) => {
+      this.eventBus.emit("alert:add", {
+        message: response.message,
+        type: response.success ? "success" : "error",
+      });
+    });
+
+    window.api.onLoadProjectResponse((_, response) => {
+      this.eventBus.emit("alert:add", {
+        message: response.message,
+        type: response.success ? "success" : "error",
+      });
+      if (response.success) {
+        this.loadProject(response.data as string);
+      }
+    });
     if (this.mainCanvas) {
+      this.eventBus.on("edit:gradient", ({ position }) => {
+        this.selectElementsAt(position);
+        const elements = this.getSelectedElements();
+        if (!elements || !(elements[0] instanceof GradientElement)) {
+          this.addGradientElement();
+          this.selectElementsAt(position);
+        }
+      });
+      this.eventBus.on("edit:text", ({ position }) => {
+        this.selectElementsAt(position);
+        const elements = this.getSelectedElements();
+        if (!elements || !(elements[0] instanceof TextElement)) {
+          this.addTextElement(position);
+          this.selectElementsAt(position);
+        }
+      });
+      this.eventBus.on("tool:change", (tool: TOOL) =>
+        this.toolManager.use(this.tools[tool]),
+      );
+      this.eventBus.on("workarea:addGroupElement", () =>
+        this.addGroupElement(),
+      );
+      this.eventBus.on("workarea:adjustForCanvas", ({ position }) =>
+        this.adjustForCanvas(position),
+      );
+      this.eventBus.on("workarea:adjustForScreen", ({ position }) =>
+        this.adjustForScreen(position),
+      );
+      this.eventBus.on("workarea:clear", () => {
+        this.removeTransformBox();
+        this.elements.length = 0;
+      });
+      this.eventBus.on(
+        "workarea:deleteElement",
+        this.handleDeleteElement.bind(this),
+      );
+      this.eventBus.on("workarea:offset:change", ({ delta }) => {
+        this.offset.x += delta.x;
+        this.offset.y += delta.y;
+        this.update();
+      });
+      this.eventBus.on("workarea:offset:get", () => this.offset);
+      this.eventBus.on("workarea:project:save", () => this.saveProject());
+      this.eventBus.on("workarea:selectAt", ({ firstPoint, secondPoint }) => {
+        this.selectElementsAt(firstPoint, secondPoint);
+      });
+      this.eventBus.on(
+        "workarea:selectById",
+        this.selectElementsById.bind(this),
+      );
+      this.eventBus.on("workarea:selected:get", () =>
+        this.getSelectedElements(),
+      );
+      this.eventBus.on("workarea:update", this.update.bind(this));
+      this.eventBus.on("zoomLevel:change", ({ level, center }) => {
+        const previousLevel = this.zoomLevel;
+        this.zoomLevel = level;
+        this.offset = {
+          x: center.x - (center.x - this.offset.x) * (level / previousLevel),
+          y: center.y - (center.y - this.offset.y) * (level / previousLevel),
+        };
+        this.update();
+      });
+      this.eventBus.on("zoomLevel:get", () => this.zoomLevel);
       window.addEventListener("keypress", this.handleKeyPress.bind(this));
       window.addEventListener("keydown", this.handleKeyDown.bind(this));
       window.addEventListener("keyup", this.handleKeyUp.bind(this));
       window.addEventListener("resize", this.handleResize.bind(this));
-      window.addEventListener(EVENT.CHANGE_TOOL, this.changeTool.bind(this));
-      window.addEventListener(EVENT.UPDATE_WORKAREA, this.update.bind(this));
-      window.addEventListener(EVENT.CLEAR_WORKAREA, () => {
-        this.removeTransformBox();
-        this.elements.length = 0;
-      });
-      window.addEventListener(
-        EVENT.DELETE_ELEMENT,
-        this.handleDeleteElement.bind(this),
-      );
-      window.addEventListener(
-        EVENT.REORGANIZE_LAYERS,
+      this.eventBus.on(
+        "layer:generateHierarchy",
         this.handleReorganizeLayers.bind(this),
       );
-      window.addEventListener(
-        EVENT.SELECT_ELEMENT,
-        this.handleSelectElement.bind(this),
-      );
-      window.addEventListener(
-        EVENT.UPDATE_ELEMENT,
+      this.eventBus.on(
+        "workarea:updateElement",
         this.handleUpdateElement.bind(this),
       );
       this.mainCanvas.addEventListener("dragover", (evt) => {
@@ -172,20 +278,22 @@ export class WorkArea {
       });
       this.mainCanvas.addEventListener("drop", this.handleDropItems.bind(this));
       window.addEventListener("paste", this.handleDropItems.bind(this));
-      window.addEventListener(EVENT.USING_TOOL, (evt) => {
-        this.isUsingTool = evt.detail.isUsingTool;
-      });
+      this.eventBus.emit("tool:change", TOOL.SELECT);
     }
   }
 
-  private handleUpdateElement(evt: CustomEvent<UpdateElementDetail>): void {
-    const { elementId, name, isVisible, isLocked } = evt.detail;
+  private handleUpdateElement({
+    elementId,
+    layerName,
+    isVisible,
+    isLocked,
+  }: UpdateElementPayload): void {
     const elementToUpdate = this.getFlatElements(this.elements).find(
       (el) => el.elementId === elementId,
     );
     if (elementToUpdate) {
-      if (name !== undefined) {
-        elementToUpdate.layerName = name;
+      if (layerName !== undefined) {
+        elementToUpdate.layerName = layerName;
       }
       if (isVisible !== undefined) {
         elementToUpdate.isVisible = isVisible;
@@ -199,15 +307,13 @@ export class WorkArea {
           }
         }
         elementToUpdate.isLocked = isLocked;
-        this.selectElements();
+        this.selectElementsAt();
       }
     }
     this.update();
   }
 
-  private handleSelectElement(evt: Event): void {
-    const customEvent = evt as CustomEvent<{ elementsId: Set<number> }>;
-    const { elementsId } = customEvent.detail;
+  private selectElementsById({ elementsId }: SelectElementPayload): void {
     const selectElement = (element: Element<TElementData>) => {
       element.selected = elementsId.has(element.elementId) && !element.isLocked;
     };
@@ -247,6 +353,7 @@ export class WorkArea {
       const element = flatElements.find((el) => el.elementId === layer.id);
       if (element) {
         element.zDepth = counter.value++;
+        element.selected = false;
         orderedElements.push(element);
         if (layer.children && element instanceof ElementGroup) {
           const childElements = this.processLayerHierarchy(
@@ -261,26 +368,22 @@ export class WorkArea {
     return orderedElements;
   }
 
-  private handleDeleteElement(_evt: CustomEvent<UpdateElementDetail>): void {
+  private handleDeleteElement(): void {
     this.removeTransformBox();
     this.update();
   }
 
-  private handleReorganizeLayers(evt: Event): void {
-    const customEvent = evt as CustomEvent<{ hierarchy: Layer[] }>;
-    const newHierarchy = customEvent.detail.hierarchy;
-
+  private handleReorganizeLayers({ hierarchy }: ReorganizeLayersPayload): void {
     const flatElements = this.getFlatElements(this.elements);
-
     const counter = { value: 0 };
-
     const newOrderedElements = this.processLayerHierarchy(
-      newHierarchy,
+      hierarchy,
       flatElements,
       counter,
     );
     this.elements = newOrderedElements;
     this.elements.sort((a, b) => a.zDepth - b.zDepth);
+    this.selectElementsAt();
     this.update();
   }
 
@@ -290,9 +393,8 @@ export class WorkArea {
       if (blob) {
         const item = new ClipboardItem({ "image/png": blob });
         navigator.clipboard.write([item]);
-        dispatch(EVENT.ADD_ALERT, {
+        this.eventBus.emit("alert:add", {
           message: "Área de Trabalho copiada para a área de transferência",
-          title: "Copiado",
           type: "success",
         });
       }
@@ -324,12 +426,6 @@ export class WorkArea {
   }
 
   private handleKeyPress(evt: KeyboardEvent): void {
-    const activeElement = document.activeElement;
-    const isTyping =
-      activeElement?.tagName === "TEXTAREA" ||
-      activeElement?.tagName === "INPUT";
-    if (isTyping || this.isUsingTool) return;
-
     let tool: TOOL | null = null;
     switch (evt.code) {
       case "KeyV":
@@ -352,20 +448,18 @@ export class WorkArea {
         break;
     }
     if (tool) {
-      dispatch(EVENT.CHANGE_TOOL, { tool });
+      this.currentTool = tool;
+      this.changeTool();
     }
   }
 
-  private changeTool(evt: CustomEvent<ChangeToolDetail>): void {
-    const { tool } = evt.detail;
+  private changeTool(): void {
     const activeElement = document.activeElement;
     const isTyping =
       activeElement?.tagName === "TEXTAREA" ||
       activeElement?.tagName === "INPUT";
-    if (isTyping || this.isUsingTool) return;
-    this.tools[this.currentTool].unequipTool();
-    this.currentTool = tool;
-    this.tools[this.currentTool].equipTool();
+    if (isTyping) return;
+    this.eventBus.emit("tool:change", this.currentTool);
   }
 
   private handleKeyUp(evt: KeyboardEvent): void {
@@ -373,27 +467,26 @@ export class WorkArea {
     const isTyping =
       activeElement?.tagName === "TEXTAREA" ||
       activeElement?.tagName === "INPUT";
-    if (isTyping || this.isUsingTool) return;
+    if (isTyping) return;
 
     if (this.currentTool === TOOL.ZOOM || this.currentTool === TOOL.HAND) {
       switch (evt.code) {
         case "Space":
         case "KeyZ":
-          dispatch(EVENT.CHANGE_TOOL, {
-            tool: this.lastTool ? this.lastTool : TOOL.SELECT,
-          });
+          this.currentTool = this.lastTool ? this.lastTool : TOOL.SELECT;
+          this.changeTool();
       }
     }
   }
 
   private handleKeyDown(evt: KeyboardEvent): void {
-    if (!evt.repeat) {
-      const activeElement = document.activeElement;
-      const isTyping =
-        activeElement?.tagName === "TEXTAREA" ||
-        activeElement?.tagName === "INPUT";
-      if (isTyping || this.isUsingTool) return;
+    const activeElement = document.activeElement;
+    const isTyping =
+      activeElement?.tagName === "TEXTAREA" ||
+      activeElement?.tagName === "INPUT";
+    if (isTyping) return;
 
+    if (!evt.repeat) {
       if (evt.ctrlKey && evt.code === "KeyC") {
         this.copyCanvasToClipboard();
       }
@@ -412,12 +505,14 @@ export class WorkArea {
           break;
       }
       if (tool) {
-        dispatch(EVENT.CHANGE_TOOL, { tool });
+        this.currentTool = tool;
+        this.changeTool();
       }
     }
   }
 
   public removeTransformBox(): void {
+    this.transformBox?.removeEvents();
     this.transformBox = null;
   }
 
@@ -437,9 +532,9 @@ export class WorkArea {
     };
   }
 
-  public static getInstance(): WorkArea {
+  public static getInstance(eventBus: EventBus): WorkArea {
     if (WorkArea.instance === null) {
-      WorkArea.instance = new WorkArea();
+      WorkArea.instance = new WorkArea(eventBus);
     }
     return WorkArea.instance;
   }
@@ -457,6 +552,7 @@ export class WorkArea {
           elData.zDepth,
         );
         newElement.deserialize(elData);
+        requestAnimationFrame(() => requestAnimationFrame(() => this.update()));
         break;
       case "text":
         newElement = new TextElement(
@@ -490,7 +586,7 @@ export class WorkArea {
         break;
     }
     if (!isChild && newElement) {
-      const eventDetail = {
+      const payload = {
         elementId: newElement.elementId,
         layerName: newElement.layerName,
         isVisible: newElement.isVisible,
@@ -499,25 +595,25 @@ export class WorkArea {
         children: [] as Layer[],
       };
       if (newElement instanceof ElementGroup && newElement.children) {
-        eventDetail.children = newElement?.children.map((child) => ({
+        payload.children = newElement?.children.map((child) => ({
           id: child.elementId,
           name: child.layerName,
           isVisible: child.isVisible,
           isLocked: child.isLocked,
         }));
       }
-      dispatch(EVENT.ADD_ELEMENT, eventDetail);
+      this.eventBus.emit("workarea:addElement", payload);
     }
     return newElement as Element<TElementData>;
   }
 
   public loadProject(data: string): void {
-    dispatch(EVENT.CLEAR_WORKAREA);
+    this.eventBus.emit("workarea:clear");
     const projectData: IProjectData = JSON.parse(data);
     this.elements = projectData.elements
       .map((el) => this.createElementFromData(el))
       .filter((el) => el !== null);
-    this.selectElements();
+    this.selectElementsAt();
     this.update();
   }
 
@@ -528,7 +624,7 @@ export class WorkArea {
     return JSON.stringify(projectData);
   }
 
-  public exportCanvas(format: string, quality: string): string {
+  public convertCanvasToString(format: string, quality: string): string {
     if (!this.workArea.canvas) {
       console.error("Canvas not found");
       return "";
@@ -557,7 +653,7 @@ export class WorkArea {
     return selectedElements;
   }
 
-  public selectElements(
+  public selectElementsAt(
     firstPoint?: Position | null,
     secondPoint?: Position | null,
   ): void {
@@ -617,31 +713,18 @@ export class WorkArea {
         }
       }
     }
-    dispatch(EVENT.SELECT_ELEMENT, {
+    this.eventBus.emit("workarea:selectById", {
       elementsId: new Set(selectedElements.map((el) => el.elementId)),
     });
   }
 
-  public drawbox(a: Position, b: Position): void {
-    if (this.devCanvas) {
-      const context = this.devCanvas.getContext("2d");
-      if (context) {
-        context.globalAlpha = 0.2;
-        context.save();
-        context.lineWidth = 4;
-        context.strokeStyle = "green";
-        context.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
-        context.restore();
-      }
-    }
-  }
-
   public createTransformBox(): void {
     this.removeTransformBox();
-    const selectedElements: Element<TElementData>[] = this.getSelectedElements();
+    const selectedElements: Element<TElementData>[] =
+      this.getSelectedElements();
     // If there's elements selected, create TransformBox
     if (selectedElements.length) {
-      this.transformBox = new TransformBox(selectedElements);
+      this.transformBox = new TransformBox(selectedElements, this.eventBus);
     }
   }
 
@@ -666,7 +749,7 @@ export class WorkArea {
     if (this.transformBox) {
       this.transformBox.draw(this.mainContext);
     }
-    this.tools[this.currentTool].draw();
+    this.toolManager.draw();
   }
 
   private clearCanvas(): void {
@@ -723,7 +806,7 @@ export class WorkArea {
       this.elements.length,
     );
     this.elements.push(newElement as Element<TElementData>);
-    dispatch(EVENT.ADD_ELEMENT, {
+    this.eventBus.emit("workarea:addElement", {
       elementId: newElement.elementId,
       isLocked: newElement.isLocked,
       isVisible: newElement.isVisible,
@@ -751,7 +834,7 @@ export class WorkArea {
       this.elements.length,
     );
     this.elements.push(newElement as Element<TElementData>);
-    dispatch(EVENT.ADD_ELEMENT, {
+    this.eventBus.emit("workarea:addElement", {
       elementId: newElement.elementId,
       isLocked: newElement.isLocked,
       isVisible: newElement.isVisible,
@@ -771,7 +854,7 @@ export class WorkArea {
     );
     newElement.loadImage(encodedImage);
     this.elements.push(newElement as Element<TElementData>);
-    dispatch(EVENT.ADD_ELEMENT, {
+    this.eventBus.emit("workarea:addElement", {
       elementId: newElement.elementId,
       isLocked: newElement.isLocked,
       isVisible: newElement.isVisible,
@@ -789,7 +872,8 @@ export class WorkArea {
       [],
     );
     this.elements.push(newElement as Element<TElementData>);
-    dispatch(EVENT.ADD_ELEMENT, {
+    this.eventBus.emit("workarea:addElement", {
+      children: [],
       elementId: newElement.elementId,
       isLocked: newElement.isLocked,
       isVisible: newElement.isVisible,

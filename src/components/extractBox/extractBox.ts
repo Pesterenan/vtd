@@ -1,5 +1,5 @@
 import { clamp } from "src/utils/easing";
-import EVENT, { dispatch } from "../../utils/customEvents";
+import type { EventBus } from "src/utils/eventBus";
 import type { Position, Size, TBoundingBox } from "../types";
 
 const LINE_WIDTH = 4;
@@ -16,9 +16,11 @@ export class ExtractBox {
   private canvas: HTMLCanvasElement;
   private isDragging = false;
   private lastMousePosition: Position | null = { x: 0, y: 0 };
+  private eventBus: EventBus;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
     this.canvas = canvas;
+    this.eventBus = eventBus;
     this.setupInitialBox();
     this.draw();
   }
@@ -61,7 +63,7 @@ export class ExtractBox {
       const dY = evt.offsetY - this.lastMousePosition.y;
       this.moveExtractBox(dX, dY);
       this.lastMousePosition = { x: evt.offsetX, y: evt.offsetY };
-      dispatch(EVENT.UPDATE_VFE);
+      this.eventBus.emit("vfe:update");
     }
   }
 

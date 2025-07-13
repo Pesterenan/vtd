@@ -1,6 +1,5 @@
 import type { ISliderControl } from "src/components/helpers/createSliderControl";
 import createSliderControl from "src/components/helpers/createSliderControl";
-import EVENT, { dispatch } from "src/utils/customEvents";
 import { clamp } from "src/utils/easing";
 import { Filter } from "./filter";
 
@@ -59,10 +58,6 @@ export class ColorCorrectionFilter extends Filter {
     context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
   }
 
-  protected onValueChange(): void {
-    dispatch(EVENT.UPDATE_WORKAREA);
-  }
-
   protected appendFilterControls(container: HTMLDivElement): void {
     this.brightnessControl = createSliderControl(
       `${this.id}-brightness`,
@@ -111,22 +106,22 @@ export class ColorCorrectionFilter extends Filter {
 
   private handleBrightnessControlChange = (newValue: number): void => {
     this.brightness = Number(newValue);
-    this.onValueChange();
+    this.onChange();
   };
   private handleContrastControlChange = (newValue: number): void => {
     this.contrast = Number(newValue);
-    this.onValueChange();
+    this.onChange();
   };
   private handleGrayScaleChange = (newValue: number): void => {
     this.grayscale = Number(newValue);
-    this.onValueChange();
+    this.onChange();
   };
   private handleHueControlChange = (newValue: number): void => {
     this.hue = Number(newValue);
-    this.onValueChange();
+    this.onChange();
   };
   private handleSaturationChange = (newValue: number): void => {
     this.saturation = Number(newValue);
-    this.onValueChange();
+    this.onChange();
   };
 }

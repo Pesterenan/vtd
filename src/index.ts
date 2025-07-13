@@ -234,7 +234,6 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
         filePaths[0],
         (err: NodeJS.ErrnoException | null, data: Buffer) => {
           if (err) {
-            console.log(err);
             event.reply("load-image-response", {
               success: false,
               message: "Falha ao carregar arquivo de imagem.",
@@ -272,7 +271,12 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
       const { filePath } = await dialog.showSaveDialog({
         title: "Exportar Canvas",
         defaultPath: "canvas",
-        filters: [{ name: "Arquivos de Imagem", extensions: [format] }],
+        filters: [
+          {
+            name: "Arquivos de Imagem",
+            extensions: format === "jpeg" ? ["jpeg", "jpg"] : [format],
+          },
+        ],
       });
       if (filePath) {
         const base64Data = dataString.replace(/^data:image\/\w+;base64,/, "");

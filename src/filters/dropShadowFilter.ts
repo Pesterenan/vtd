@@ -3,7 +3,6 @@ import createColorControl from "src/components/helpers/createColorControl";
 import type { ISliderControl } from "src/components/helpers/createSliderControl";
 import createSliderControl from "src/components/helpers/createSliderControl";
 import { Filter } from "src/filters/filter";
-import EVENT, { dispatch } from "src/utils/customEvents";
 import { clamp } from "src/utils/easing";
 import { toRadians } from "src/utils/transforms";
 
@@ -57,10 +56,6 @@ export class DropShadowFilter extends Filter {
     context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
   }
 
-  protected onValueChange(): void {
-    dispatch(EVENT.UPDATE_WORKAREA);
-  }
-
   protected appendFilterControls(container: HTMLDivElement): void {
     this.angleControl = createSliderControl(
       `${this.id}-angle`,
@@ -105,28 +100,28 @@ export class DropShadowFilter extends Filter {
   private handleAngleControlChange = (newValue: number): void => {
     if (this.angleControl) {
       this.angle = Number(newValue);
-      this.onValueChange();
+      this.onChange();
     }
   };
 
   private handleDistanceControlChange = (newValue: number): void => {
     if (this.distanceControl) {
       this.distance = Number(newValue);
-      this.onValueChange();
+      this.onChange();
     }
   };
 
   private handleBlurControlChange = (newValue: number): void => {
     if (this.blurControl) {
       this.blur = Number(newValue);
-      this.onValueChange();
+      this.onChange();
     }
   };
 
   private handleColorControlChange = (newValue: string): void => {
     if (this.colorControl) {
       this.color = newValue;
-      this.onValueChange();
+      this.onChange();
     }
   };
 }

@@ -1,6 +1,4 @@
 import { Tool } from "src/components/tools/abstractTool";
-import { WorkArea } from "src/components/workArea";
-import EVENT, { dispatch } from "src/utils/customEvents";
 import type { Position } from "../types";
 
 const DRAGGING_DISTANCE = 5;
@@ -9,12 +7,12 @@ export class SelectTool extends Tool {
   private firstPoint: Position | null = null;
   private secondPoint: Position | null = null;
 
-  equipTool(): void {
-    super.equipTool();
+  public equip(): void {
+    super.equip();
   }
 
-  unequipTool(): void {
-    super.unequipTool();
+  public unequip(): void {
+    super.unequip();
   }
 
   public draw(): void {
@@ -33,14 +31,11 @@ export class SelectTool extends Tool {
     }
   }
 
-  handleMouseDown(evt: MouseEvent): void {
-    const { offsetX, offsetY } = evt;
+  public onMouseDown({ offsetX, offsetY }: MouseEvent): void {
     this.firstPoint = { x: offsetX, y: offsetY };
-    super.handleMouseDown(evt);
   }
 
-  handleMouseMove(evt: MouseEvent): void {
-    const { offsetX, offsetY } = evt;
+  public onMouseMove({ offsetX, offsetY }: MouseEvent): void {
     if (this.firstPoint) {
       const distance = Math.hypot(
         offsetX - this.firstPoint.x,
@@ -48,22 +43,24 @@ export class SelectTool extends Tool {
       );
       if (distance > DRAGGING_DISTANCE) {
         this.secondPoint = { x: offsetX, y: offsetY };
-        dispatch(EVENT.UPDATE_WORKAREA);
+        this.eventBus.emit("workarea:update");
       }
     }
   }
 
-  handleMouseUp(evt: MouseEvent): void {
-    WorkArea.getInstance().selectElements(this.firstPoint, this.secondPoint);
+  public onMouseUp(): void {
+    this.eventBus.emit("workarea:selectAt", {
+      firstPoint: this.firstPoint,
+      secondPoint: this.secondPoint,
+    });
     this.firstPoint = null;
     this.secondPoint = null;
-    super.handleMouseUp(evt);
-    dispatch(EVENT.UPDATE_WORKAREA);
+    this.eventBus.emit("workarea:update");
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleKeyDown(): void {}
+  public onKeyDown(_evt: KeyboardEvent): void {}
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  handleKeyUp(): void {}
+  public onKeyUp(_evt: KeyboardEvent): void {}
 }
