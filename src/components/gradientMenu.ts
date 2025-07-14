@@ -13,6 +13,7 @@ export class GradientMenu {
   private activeGradientElement: GradientElement | null = null;
   private gradientBar: HTMLDivElement | null = null;
   private alphaControl: ISliderControl | null = null;
+  private portionControl: ISliderControl | null = null;
   private colorControl: IColorControl | null = null;
   private currentColorStop: {
     color: string;
@@ -38,6 +39,14 @@ export class GradientMenu {
       this.linkDOMElements();
     }
   }
+
+  private handlePortionControlChange = (newValue: number): void => {
+    if (this.activeGradientElement && this.currentColorStop) {
+      this.currentColorStop.portion = Number(newValue);
+      this.eventBus.emit("workarea:update");
+      this.updateGradientBar();
+    }
+  };
 
   private handleAlphaControlChange = (newValue: number): void => {
     if (this.activeGradientElement && this.currentColorStop) {
@@ -95,8 +104,22 @@ export class GradientMenu {
         value: this.currentColorStop?.alpha || 0,
       },
       this.handleAlphaControlChange,
+      false,
+    );
+    this.portionControl = createSliderControl(
+      "inp_portion_position",
+      "Posição",
+      {
+        min: 0.0,
+        max: 1.0,
+        step: 0.01,
+        value: this.currentColorStop?.portion || 0,
+      },
+      this.handlePortionControlChange,
+      false,
     );
     this.gradientSection.append(this.colorControl.element);
+    this.gradientSection.append(this.portionControl.element);
     this.gradientSection.append(this.alphaControl.element);
   }
 
@@ -138,13 +161,16 @@ export class GradientMenu {
   private selectColorStop(index: number): void {
     if (this.activeGradientElement) {
       this.currentColorStop = this.activeGradientElement.colorStops[index];
-      if (this.alphaControl && this.colorControl) {
+      if (this.alphaControl && this.colorControl && this.portionControl) {
         this.alphaControl.unlinkEvents();
         this.alphaControl.updateValues(this.currentColorStop.alpha);
         this.alphaControl.linkEvents();
         this.colorControl.unlinkEvents();
         this.colorControl.updateValue(this.currentColorStop.color);
         this.colorControl.linkEvents();
+        this.portionControl.unlinkEvents();
+        this.portionControl.updateValues(this.currentColorStop.portion);
+        this.portionControl.linkEvents();
       }
     }
   }
@@ -162,6 +188,7 @@ export class GradientMenu {
       this.currentColorStop = this.activeGradientElement.colorStops[0];
       this.alphaControl?.linkEvents();
       this.colorControl?.linkEvents();
+      this.portionControl?.linkEvents();
     }
   }
 
@@ -170,5 +197,6 @@ export class GradientMenu {
     this.currentColorStop = null;
     this.alphaControl?.unlinkEvents();
     this.colorControl?.unlinkEvents();
+    this.portionControl?.unlinkEvents();
   }
 }
