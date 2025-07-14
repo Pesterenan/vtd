@@ -233,6 +233,9 @@ export class WorkArea {
         "workarea:deleteElement",
         this.handleDeleteElement.bind(this),
       );
+      this.eventBus.on("workarea:exportCanvas", ({ format, quality }) =>
+        this.convertCanvasToString(format, quality),
+      );
       this.eventBus.on("workarea:offset:change", ({ delta }) => {
         this.offset.x += delta.x;
         this.offset.y += delta.y;
