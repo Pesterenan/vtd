@@ -171,6 +171,9 @@ export class GradientMenu {
 
         indicator.addEventListener("mousedown", (event) => {
           event.preventDefault();
+          if (event.button === MOUSE_BUTTONS.RIGHT) {
+            this.handleDeleteColorStop(index);
+          }
           if (event.button === MOUSE_BUTTONS.LEFT) {
             this.handleDrag(index);
           }
@@ -178,6 +181,23 @@ export class GradientMenu {
 
         colorStopsIndicators.appendChild(indicator);
       });
+  private handleDeleteColorStop(index: number): void {
+    if (this.activeGradientElement) {
+      if (
+        index === 0 ||
+        index === this.activeGradientElement.colorStops.length - 1
+      )
+        return;
+      const colorStopToDelete = this.activeGradientElement.colorStops[index];
+      this.activeGradientElement.colorStops =
+        this.activeGradientElement.colorStops.filter(
+          (cs) => cs.portion !== colorStopToDelete.portion,
+        );
+      this.currentColorStop = null;
+      this.eventBus.emit("workarea:update");
+      this.updateGradientBar();
+    }
+  }
   private handleDrag(index: number): void {
     this.selectColorStop(index);
     if (
