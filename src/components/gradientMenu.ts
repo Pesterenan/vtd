@@ -7,6 +7,10 @@ import createColorControl from "./helpers/createColorControl";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import createSliderControl from "./helpers/createSliderControl";
 import { MOUSE_BUTTONS } from "./types";
+import {
+  linearColorInterpolation,
+  linearInterpolation,
+} from "src/utils/easing";
 
 export class GradientMenu {
   private static instance: GradientMenu | null = null;
@@ -181,6 +185,15 @@ export class GradientMenu {
 
         colorStopsIndicators.appendChild(indicator);
       });
+
+      this.gradientBar.addEventListener("mousedown", (event) => {
+        if (event.button === MOUSE_BUTTONS.LEFT) {
+          this.handleAddColorStop(event);
+        }
+      });
+    }
+  }
+
   private handleDeleteColorStop(index: number): void {
     if (this.activeGradientElement) {
       if (
@@ -194,10 +207,53 @@ export class GradientMenu {
           (cs) => cs.portion !== colorStopToDelete.portion,
         );
       this.currentColorStop = null;
-      this.eventBus.emit("workarea:update");
       this.updateGradientBar();
+      this.eventBus.emit("workarea:update");
     }
   }
+
+  private handleAddColorStop(event: MouseEvent): void {
+    if (!this.activeGradientElement) return;
+
+    const bar = this.gradientBar as HTMLDivElement;
+    const barRect = bar.getBoundingClientRect();
+    const portion =
+      Math.round(((event.clientX - barRect.left) / barRect.width) * 100) / 100;
+
+    const { colorStops } = this.activeGradientElement;
+    let leftStop = colorStops[0];
+    let rightStop = colorStops[colorStops.length - 1];
+
+    for (const stop of colorStops) {
+      if (stop.portion === portion) return;
+      if (stop.portion <= portion && stop.portion > leftStop.portion) {
+        leftStop = stop;
+      }
+      if (stop.portion >= portion && stop.portion < rightStop.portion) {
+        rightStop = stop;
+      }
+    }
+
+    const newStop = {
+      portion,
+      color: linearColorInterpolation(
+        leftStop.color,
+        rightStop.color,
+        (portion - leftStop.portion) / (rightStop.portion - leftStop.portion),
+      ),
+      alpha: linearInterpolation(
+        leftStop.alpha,
+        rightStop.alpha,
+        (portion - leftStop.portion) / (rightStop.portion - leftStop.portion),
+      ),
+    };
+
+    this.activeGradientElement.colorStops.push(newStop);
+    this.activeGradientElement.sortColorStops();
+    this.updateGradientBar();
+    this.eventBus.emit("workarea:update");
+  }
+
   private handleDrag(index: number): void {
     this.selectColorStop(index);
     if (
@@ -212,7 +268,9 @@ export class GradientMenu {
     const barRect = bar.getBoundingClientRect();
 
     const onMouseMove = (moveEvent: MouseEvent) => {
-      let newPortion = (moveEvent.clientX - barRect.left) / barRect.width;
+      let newPortion =
+        Math.round(((moveEvent.clientX - barRect.left) / barRect.width) * 100) /
+        100;
       newPortion = Math.max(0, Math.min(1, newPortion));
 
       if (this.activeGradientElement) {
@@ -287,3 +345,4 @@ export class GradientMenu {
     this.portionControl?.unlinkEvents();
   }
 }
+

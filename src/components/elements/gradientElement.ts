@@ -48,6 +48,9 @@ export class GradientElement extends Element<IGradientElementData> {
   public set colorStops(value: IColorStop[]) {
     this.properties.set("colorStops", value);
   }
+  public sortColorStops(): void {
+    this.colorStops.sort((a, b) => a.portion - b.portion);
+  }
   private boundingBox: BoundingBox;
 
   constructor(position: Position, size: Size, z: number) {
