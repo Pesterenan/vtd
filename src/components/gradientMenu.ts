@@ -6,6 +6,7 @@ import type { IColorControl } from "./helpers/createColorControl";
 import createColorControl from "./helpers/createColorControl";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import createSliderControl from "./helpers/createSliderControl";
+import { MOUSE_BUTTONS } from "./types";
 
 export class GradientMenu {
   private static instance: GradientMenu | null = null;
@@ -34,7 +35,10 @@ export class GradientMenu {
   private handleSelectElement(): void {
     const [selectedElements] = this.eventBus.request("workarea:selected:get");
     this.unlinkDOMElements();
-    if (selectedElements.length === 1 && selectedElements[0] instanceof GradientElement) {
+    if (
+      selectedElements.length === 1 &&
+      selectedElements[0] instanceof GradientElement
+    ) {
       this.activeGradientElement = selectedElements[0];
       this.linkDOMElements();
     }
@@ -42,7 +46,21 @@ export class GradientMenu {
 
   private handlePortionControlChange = (newValue: number): void => {
     if (this.activeGradientElement && this.currentColorStop) {
-      this.currentColorStop.portion = Number(newValue);
+      const { colorStops } = this.activeGradientElement;
+      const currentIndex = colorStops.findIndex(
+        (stop) => stop === this.currentColorStop,
+      );
+
+      if (currentIndex === -1) return;
+
+      const prevPortion = colorStops[currentIndex - 1]?.portion ?? -Infinity;
+      const nextPortion = colorStops[currentIndex + 1]?.portion ?? Infinity;
+
+      let newPortion = Number(newValue);
+      newPortion = Math.max(prevPortion + 0.01, newPortion);
+      newPortion = Math.min(nextPortion - 0.01, newPortion);
+
+      this.currentColorStop.portion = newPortion;
       this.eventBus.emit("workarea:update");
       this.updateGradientBar();
     }
@@ -151,17 +169,66 @@ export class GradientMenu {
         indicator.style.borderRadius = "50%";
         indicator.style.cursor = "pointer";
 
-        indicator.addEventListener("click", () => this.selectColorStop(index));
+        indicator.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          if (event.button === MOUSE_BUTTONS.LEFT) {
+            this.handleDrag(index);
+          }
+        });
 
         colorStopsIndicators.appendChild(indicator);
       });
+  private handleDrag(index: number): void {
+    this.selectColorStop(index);
+    if (
+      index === 0 ||
+      (this.activeGradientElement &&
+        index === this.activeGradientElement.colorStops.length - 1)
+    ) {
+      return;
     }
+
+    const bar = this.gradientBar as HTMLDivElement;
+    const barRect = bar.getBoundingClientRect();
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      let newPortion = (moveEvent.clientX - barRect.left) / barRect.width;
+      newPortion = Math.max(0, Math.min(1, newPortion));
+
+      if (this.activeGradientElement) {
+        const { colorStops } = this.activeGradientElement;
+        const prevPortion = colorStops[index - 1].portion;
+        const nextPortion = colorStops[index + 1].portion;
+
+        newPortion = Math.max(prevPortion + 0.01, newPortion);
+        newPortion = Math.min(nextPortion - 0.01, newPortion);
+
+        this.activeGradientElement.colorStops[index].portion = newPortion;
+        this.activeGradientElement.sortColorStops();
+        this.updateGradientBar();
+        this.portionControl?.updateValues(newPortion);
+        this.eventBus.emit("workarea:update");
+      }
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
   }
 
   private selectColorStop(index: number): void {
     if (this.activeGradientElement) {
       this.currentColorStop = this.activeGradientElement.colorStops[index];
       if (this.alphaControl && this.colorControl && this.portionControl) {
+        const isFirstOrLast =
+          index === 0 ||
+          index === this.activeGradientElement.colorStops.length - 1;
+        this.portionControl.element.style.display = isFirstOrLast ? "none" : "";
+
         this.alphaControl.unlinkEvents();
         this.alphaControl.updateValues(this.currentColorStop.alpha);
         this.alphaControl.linkEvents();
