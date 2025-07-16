@@ -26,18 +26,17 @@ export class GradientMenu {
     alpha: number;
   } | null = null;
   private eventBus: EventBus;
-  private onSelectElement: () => void;
 
   private constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
-    this.onSelectElement = this.handleSelectElement.bind(this);
-    this.eventBus.on("edit:gradient", this.onSelectElement);
+    this.eventBus.on("edit:gradient", this.handleSelectElement);
+    this.eventBus.on("workarea:selectById", this.handleSelectElement);
     this.eventBus.on("workarea:selectAt", () => this.unlinkDOMElements());
     this.eventBus.on("edit:gradientUpdateColorStops", this.updateGradientBar.bind(this));
     this.createDOMElements();
   }
 
-  private handleSelectElement(): void {
+  private handleSelectElement = (): void => {
     const [selectedElements] = this.eventBus.request("workarea:selected:get");
     this.unlinkDOMElements();
     if (
@@ -331,12 +330,12 @@ export class GradientMenu {
   }
 
   private linkDOMElements(): void {
-    this.updateGradientBar();
     if (this.activeGradientElement) {
       this.currentColorStop = this.activeGradientElement.colorStops[0];
       this.alphaControl?.linkEvents();
       this.colorControl?.linkEvents();
       this.portionControl?.linkEvents();
+      this.updateGradientBar();
     }
   }
 

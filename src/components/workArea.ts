@@ -198,7 +198,6 @@ export class WorkArea {
     });
     if (this.mainCanvas) {
       this.eventBus.on("edit:gradient", ({ position }) => {
-        this.selectElementsAt(position);
         const elements = this.getSelectedElements();
         if (!elements || !(elements[0] instanceof GradientElement)) {
           this.addGradientElement();

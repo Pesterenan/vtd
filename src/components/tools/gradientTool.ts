@@ -7,7 +7,6 @@ import { clamp, linearInterpolation } from "src/utils/easing";
 export class GradientTool extends Tool {
   private activeGradientElement: GradientElement | null = null;
   private colorsStops: GradientElement["colorStops"] | null = null;
-  private isCreating = false;
   private isDraggingEndPoints = false;
   private isHoveringEnd = false;
   private isHoveringStart = false;
@@ -21,24 +20,23 @@ export class GradientTool extends Tool {
     super.equip();
     this.resetTool();
     this.selectActiveGradient();
-    this.eventBus.on("edit:gradientUpdateColorStops", () => {
-      this.selectActiveGradient();
-    });
-    this.eventBus.on("workarea:selectAt", () => {
-      this.selectActiveGradient();
-    });
+    this.eventBus.on("edit:gradientUpdateColorStops", this.modifyGradientPoints);
+    this.eventBus.on("workarea:selectById", this.selectActiveGradient);
+    this.eventBus.on("workarea:selectAt", this.selectActiveGradient);
   }
 
   public unequip(): void {
     this.resetTool();
     super.unequip();
+    this.eventBus.off("edit:gradientUpdateColorStops", this.modifyGradientPoints);
+    this.eventBus.off("workarea:selectById", this.selectActiveGradient);
+    this.eventBus.off("workarea:selectAt", this.selectActiveGradient);
   }
 
   public resetTool(): void {
     this.activeGradientElement = null;
     this.colorsStops = null;
     this.endPosition = null;
-    this.isCreating = false;
     this.isDraggingEndPoints = false;
     this.startPosition = null;
   }
@@ -96,30 +94,10 @@ export class GradientTool extends Tool {
       } else if (this.activeColorStop !== null) {
         this.isDraggingColorStop = true;
       }
-    } else {
-      this.eventBus.emit("workarea:selectAt", { firstPoint: this.firstPoint });
     }
   }
 
-  public onMouseUp(evt: MouseEvent): void {
-    const { offsetX, offsetY } = evt;
-    if (this.isCreating) {
-      this.endPosition = { x: offsetX, y: offsetY };
-      this.isCreating = false;
-      this.isDraggingEndPoints = false;
-    }
-
-    if (
-      this.isDraggingEndPoints &&
-      !this.isHoveringStart &&
-      !this.isHoveringEnd &&
-      !this.isDraggingColorStop
-    ) {
-      this.endPosition = { x: offsetX, y: offsetY };
-    }
-    this.isHoveringStart = false;
-    this.isHoveringEnd = false;
-
+  public onMouseUp(): void {
     this.isDraggingEndPoints = false;
     this.isDraggingColorStop = false;
     this.activeColorStop = null;
@@ -138,7 +116,6 @@ export class GradientTool extends Tool {
 
       if (distance > Tool.DRAGGING_DISTANCE) {
         if (!this.activeGradientElement) {
-          this.isCreating = true;
           this.eventBus.emit("edit:gradient", {
             position: this.firstPoint,
           });
@@ -238,10 +215,9 @@ export class GradientTool extends Tool {
     this.eventBus.emit("workarea:update");
   }
 
-  private selectActiveGradient(): void {
+  private selectActiveGradient = (): void => {
     const [selectedElements] = this.eventBus.request("workarea:selected:get");
     if (
-      selectedElements &&
       selectedElements.length === 1 &&
       selectedElements[0] instanceof GradientElement
     ) {
@@ -255,12 +231,11 @@ export class GradientTool extends Tool {
       this.colorsStops = this.activeGradientElement.colorStops;
       this.startPosition = startPos;
       this.endPosition = endPos;
-      this.isCreating = false;
       this.eventBus.emit("workarea:update");
     }
   }
 
-  private modifyGradientPoints(): void {
+  private modifyGradientPoints = (): void => {
     if (this.activeGradientElement === null) return;
     if (this.startPosition && this.endPosition) {
       const [gradStartPos] = this.eventBus.request("workarea:adjustForCanvas", {
