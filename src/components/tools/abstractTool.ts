@@ -1,6 +1,7 @@
 import type { EventBus } from "src/utils/eventBus";
 
 export abstract class Tool {
+  protected static DRAGGING_DISTANCE = 5;
   protected canvas: HTMLCanvasElement;
   protected context: CanvasRenderingContext2D | null;
   protected eventBus: EventBus;

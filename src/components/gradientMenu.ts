@@ -33,6 +33,7 @@ export class GradientMenu {
     this.onSelectElement = this.handleSelectElement.bind(this);
     this.eventBus.on("edit:gradient", this.onSelectElement);
     this.eventBus.on("workarea:selectAt", () => this.unlinkDOMElements());
+    this.eventBus.on("edit:gradientUpdateColorStops", this.updateGradientBar.bind(this));
     this.createDOMElements();
   }
 
@@ -208,6 +209,7 @@ export class GradientMenu {
         );
       this.currentColorStop = null;
       this.updateGradientBar();
+      this.eventBus.emit("edit:gradientUpdateColorStops");
       this.eventBus.emit("workarea:update");
     }
   }
@@ -251,6 +253,7 @@ export class GradientMenu {
     this.activeGradientElement.colorStops.push(newStop);
     this.activeGradientElement.sortColorStops();
     this.updateGradientBar();
+    this.eventBus.emit("edit:gradientUpdateColorStops");
     this.eventBus.emit("workarea:update");
   }
 

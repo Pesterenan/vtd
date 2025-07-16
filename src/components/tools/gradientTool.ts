@@ -1,25 +1,30 @@
 import { GradientElement } from "src/components/elements/gradientElement";
 import { Tool } from "src/components/tools/abstractTool";
 import type { Position } from "src/components/types";
-import { BB } from "src/utils/bb";
-import { linearInterpolation } from "src/utils/easing";
+import { Vector } from "src/utils/vector";
+import { clamp, linearInterpolation } from "src/utils/easing";
 
 export class GradientTool extends Tool {
   private activeGradientElement: GradientElement | null = null;
   private colorsStops: GradientElement["colorStops"] | null = null;
   private isCreating = false;
-  private isDragging = false;
-  private isHoveringEndPos = false;
-  private isHoveringStartPos = false;
+  private isDraggingEndPoints = false;
+  private isHoveringEnd = false;
+  private isHoveringStart = false;
+  private isDraggingColorStop = false;
+  private activeColorStop: number | null = null;
   private startPosition: Position | null = null;
   private endPosition: Position | null = null;
+  private firstPoint: Position | null = null;
 
   public equip(): void {
     super.equip();
     this.resetTool();
     this.selectActiveGradient();
+    this.eventBus.on("edit:gradientUpdateColorStops", () => {
+      this.selectActiveGradient();
+    });
     this.eventBus.on("workarea:selectAt", () => {
-      this.resetTool();
       this.selectActiveGradient();
     });
   }
@@ -34,7 +39,7 @@ export class GradientTool extends Tool {
     this.colorsStops = null;
     this.endPosition = null;
     this.isCreating = false;
-    this.isDragging = false;
+    this.isDraggingEndPoints = false;
     this.startPosition = null;
   }
 
@@ -83,19 +88,17 @@ export class GradientTool extends Tool {
   }
 
   public onMouseDown({ offsetX, offsetY }: MouseEvent): void {
-    if (this.activeGradientElement === null) {
-      this.isCreating = true;
-      this.eventBus.emit("edit:gradient", {
-        position: { x: offsetX, y: offsetY },
-      });
-      this.selectActiveGradient();
+    this.firstPoint = { x: offsetX, y: offsetY };
+
+    if (this.activeGradientElement) {
+      if (this.isHoveringStart || this.isHoveringEnd) {
+        this.isDraggingEndPoints = true;
+      } else if (this.activeColorStop !== null) {
+        this.isDraggingColorStop = true;
+      }
+    } else {
+      this.eventBus.emit("workarea:selectAt", { firstPoint: this.firstPoint });
     }
-    if (!this.isHoveringStartPos && !this.isHoveringEndPos) {
-      this.startPosition = { x: offsetX, y: offsetY };
-      this.endPosition = { x: offsetX, y: offsetY };
-    }
-    this.isDragging = true;
-    this.eventBus.emit("workarea:update");
   }
 
   public onMouseUp(evt: MouseEvent): void {
@@ -103,58 +106,134 @@ export class GradientTool extends Tool {
     if (this.isCreating) {
       this.endPosition = { x: offsetX, y: offsetY };
       this.isCreating = false;
-      this.isDragging = false;
+      this.isDraggingEndPoints = false;
     }
 
-    if (!this.isHoveringStartPos && !this.isHoveringEndPos) {
+    if (
+      this.isDraggingEndPoints &&
+      !this.isHoveringStart &&
+      !this.isHoveringEnd &&
+      !this.isDraggingColorStop
+    ) {
       this.endPosition = { x: offsetX, y: offsetY };
     }
-    this.isHoveringStartPos = false;
-    this.isHoveringEndPos = false;
+    this.isHoveringStart = false;
+    this.isHoveringEnd = false;
 
-    this.isDragging = false;
+    this.isDraggingEndPoints = false;
+    this.isDraggingColorStop = false;
+    this.activeColorStop = null;
+    this.firstPoint = null;
     this.eventBus.emit("workarea:update");
   }
 
   public onMouseMove({ offsetX, offsetY, shiftKey }: MouseEvent): void {
-    if (this.startPosition && this.endPosition) {
-      const mousePosition = { x: offsetX, y: offsetY };
-      const startPosBB = new BB(this.startPosition, 20);
-      const endPosBB = new BB(this.endPosition, 20);
-      this.isHoveringEndPos = endPosBB.isPointWithinBB(mousePosition);
-      this.isHoveringStartPos =
-        !this.isHoveringEndPos && startPosBB.isPointWithinBB(mousePosition);
-    }
-    if (this.isCreating) {
-      this.endPosition = { x: offsetX, y: offsetY };
-      return;
-    }
-    if (this.isDragging) {
-      if (this.isHoveringStartPos) {
-        if (shiftKey && this.endPosition) {
-          const isCloserToX = Math.abs(offsetX - this.endPosition.x) < 20;
-          const isCloserToY = Math.abs(offsetY - this.endPosition.y) < 20;
-          this.startPosition = {
-            x: isCloserToX ? this.endPosition.x : offsetX,
-            y: isCloserToY ? this.endPosition.y : offsetY,
-          };
-        } else {
-          this.startPosition = { x: offsetX, y: offsetY };
+    const mousePosition = new Vector({ x: offsetX, y: offsetY });
+    if (
+      this.firstPoint &&
+      !this.isDraggingEndPoints &&
+      !this.isDraggingColorStop
+    ) {
+      const distance = mousePosition.distance(this.firstPoint);
+
+      if (distance > Tool.DRAGGING_DISTANCE) {
+        if (!this.activeGradientElement) {
+          this.isCreating = true;
+          this.eventBus.emit("edit:gradient", {
+            position: this.firstPoint,
+          });
+          this.selectActiveGradient();
+          this.startPosition = this.firstPoint;
+          this.endPosition = mousePosition;
+          this.modifyGradientPoints();
+          this.eventBus.emit("workarea:update");
+        } else if (!this.isHoveringEnd || !this.isHoveringStart) {
+          this.startPosition = this.firstPoint;
+          this.endPosition = mousePosition;
+          this.modifyGradientPoints();
         }
       }
-      if (this.isHoveringEndPos) {
-        if (shiftKey && this.startPosition) {
-          const isCloserToX = Math.abs(offsetX - this.startPosition.x) < 20;
-          const isCloserToY = Math.abs(offsetY - this.startPosition.y) < 20;
-          this.endPosition = {
-            x: isCloserToX ? this.startPosition.x : offsetX,
-            y: isCloserToY ? this.startPosition.y : offsetY,
+    }
+
+    // Hovering Points Logic
+    if (this.startPosition && this.endPosition) {
+      this.isHoveringEnd = mousePosition.distance(this.endPosition) < 10;
+      this.isHoveringStart =
+        !this.isHoveringEnd && mousePosition.distance(this.startPosition) < 10;
+
+      if (this.colorsStops) {
+        for (let i = 1; i < this.colorsStops.length - 1; i++) {
+          const cs = this.colorsStops[i];
+          const colorStopPos = {
+            x: linearInterpolation(
+              this.startPosition.x,
+              this.endPosition.x,
+              cs.portion,
+            ),
+            y: linearInterpolation(
+              this.startPosition.y,
+              this.endPosition.y,
+              cs.portion,
+            ),
           };
-        } else {
-          this.endPosition = { x: offsetX, y: offsetY };
+          if (mousePosition.distance(colorStopPos) < 30) {
+            this.activeColorStop = i;
+            break;
+          }
+          this.activeColorStop = null;
+        }
+      }
+    }
+
+    // Dragging Points Logic
+    if (this.isDraggingEndPoints) {
+      if (this.isHoveringStart) {
+        if (this.endPosition) {
+          const isBoundToX =
+            shiftKey && Math.abs(offsetX - this.endPosition.x) < 40;
+          const isBoundToY =
+            shiftKey && Math.abs(offsetY - this.endPosition.y) < 40;
+          this.startPosition = {
+            x: isBoundToX ? this.endPosition.x : offsetX,
+            y: isBoundToY ? this.endPosition.y : offsetY,
+          };
+        }
+      }
+      if (this.isHoveringEnd) {
+        if (this.startPosition) {
+          const isBoundToX =
+            shiftKey && Math.abs(offsetX - this.startPosition.x) < 40;
+          const isBoundToY =
+            shiftKey && Math.abs(offsetY - this.startPosition.y) < 40;
+          this.endPosition = {
+            x: isBoundToX ? this.startPosition.x : offsetX,
+            y: isBoundToY ? this.startPosition.y : offsetY,
+          };
         }
       }
       this.modifyGradientPoints();
+    } else if (
+      this.isDraggingColorStop &&
+      this.activeColorStop !== null &&
+      this.startPosition &&
+      this.endPosition
+    ) {
+      const vector = new Vector(this.endPosition).sub(this.startPosition);
+      const mouseVec = mousePosition.sub(this.startPosition);
+      let newPortion = clamp(mouseVec.dot(vector) / vector.magnitudeSq(), 0, 1);
+
+      if (this.activeGradientElement) {
+        const { colorStops } = this.activeGradientElement;
+        const prevPortion = colorStops[this.activeColorStop - 1].portion;
+        const nextPortion = colorStops[this.activeColorStop + 1].portion;
+
+        newPortion = clamp(newPortion, prevPortion + 0.01, nextPortion - 0.01);
+
+        this.activeGradientElement.colorStops[this.activeColorStop].portion =
+          newPortion;
+        this.activeGradientElement.sortColorStops();
+        this.eventBus.emit("edit:gradientUpdateColorStops");
+      }
     }
     this.eventBus.emit("workarea:update");
   }
