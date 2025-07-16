@@ -31,8 +31,8 @@ export class GradientMenu {
     this.eventBus = eventBus;
     this.eventBus.on("edit:gradient", this.handleSelectElement);
     this.eventBus.on("workarea:selectById", this.handleSelectElement);
-    this.eventBus.on("workarea:selectAt", () => this.unlinkDOMElements());
-    this.eventBus.on("edit:gradientUpdateColorStops", this.updateGradientBar.bind(this));
+    this.eventBus.on("workarea:selectAt", this.handleSelectElement);
+    this.eventBus.on("edit:gradientUpdateColorStops", this.updateGradientBar);
     this.createDOMElements();
   }
 
@@ -145,7 +145,7 @@ export class GradientMenu {
     this.gradientSection.append(this.alphaControl.element);
   }
 
-  private updateGradientBar(): void {
+  private updateGradientBar = (): void => {
     this.gradientBar = getElementById<HTMLDivElement>("gradient-bar");
     const colorStopsIndicators = getElementById<HTMLDivElement>(
       "color-stops-indicators",
@@ -179,7 +179,7 @@ export class GradientMenu {
             this.handleDeleteColorStop(index);
           }
           if (event.button === MOUSE_BUTTONS.LEFT) {
-            this.handleDrag(index);
+            this.handleDragColorStop(index);
           }
         });
 
@@ -256,7 +256,7 @@ export class GradientMenu {
     this.eventBus.emit("workarea:update");
   }
 
-  private handleDrag(index: number): void {
+  private handleDragColorStop(index: number): void {
     this.selectColorStop(index);
     if (
       index === 0 ||

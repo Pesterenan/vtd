@@ -15,12 +15,16 @@ export class GradientTool extends Tool {
   private startPosition: Position | null = null;
   private endPosition: Position | null = null;
   private firstPoint: Position | null = null;
+  private isCreating = false;
 
   public equip(): void {
     super.equip();
     this.resetTool();
     this.selectActiveGradient();
-    this.eventBus.on("edit:gradientUpdateColorStops", this.modifyGradientPoints);
+    this.eventBus.on(
+      "edit:gradientUpdateColorStops",
+      this.modifyGradientPoints,
+    );
     this.eventBus.on("workarea:selectById", this.selectActiveGradient);
     this.eventBus.on("workarea:selectAt", this.selectActiveGradient);
   }
@@ -28,7 +32,10 @@ export class GradientTool extends Tool {
   public unequip(): void {
     this.resetTool();
     super.unequip();
-    this.eventBus.off("edit:gradientUpdateColorStops", this.modifyGradientPoints);
+    this.eventBus.off(
+      "edit:gradientUpdateColorStops",
+      this.modifyGradientPoints,
+    );
     this.eventBus.off("workarea:selectById", this.selectActiveGradient);
     this.eventBus.off("workarea:selectAt", this.selectActiveGradient);
   }
@@ -94,6 +101,8 @@ export class GradientTool extends Tool {
       } else if (this.activeColorStop !== null) {
         this.isDraggingColorStop = true;
       }
+    } else {
+      this.isCreating = true;
     }
   }
 
@@ -115,7 +124,7 @@ export class GradientTool extends Tool {
       const distance = mousePosition.distance(this.firstPoint);
 
       if (distance > Tool.DRAGGING_DISTANCE) {
-        if (!this.activeGradientElement) {
+        if (!this.activeGradientElement && this.isCreating) {
           this.eventBus.emit("edit:gradient", {
             position: this.firstPoint,
           });
@@ -123,6 +132,7 @@ export class GradientTool extends Tool {
           this.startPosition = this.firstPoint;
           this.endPosition = mousePosition;
           this.modifyGradientPoints();
+          this.isCreating = false;
           this.eventBus.emit("workarea:update");
         } else if (!this.isHoveringEnd || !this.isHoveringStart) {
           this.startPosition = this.firstPoint;
@@ -233,7 +243,7 @@ export class GradientTool extends Tool {
       this.endPosition = endPos;
       this.eventBus.emit("workarea:update");
     }
-  }
+  };
 
   private modifyGradientPoints = (): void => {
     if (this.activeGradientElement === null) return;
@@ -247,7 +257,7 @@ export class GradientTool extends Tool {
       this.activeGradientElement.startPosition = gradStartPos;
       this.activeGradientElement.endPosition = gradEndPos;
     }
-  }
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   public onKeyDown(): void {}
