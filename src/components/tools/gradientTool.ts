@@ -27,6 +27,7 @@ export class GradientTool extends Tool {
     );
     this.eventBus.on("workarea:selectById", this.selectActiveGradient);
     this.eventBus.on("workarea:selectAt", this.selectActiveGradient);
+    this.eventBus.on("workarea:deleteElement", this.resetTool);
   }
 
   public unequip(): void {
@@ -38,14 +39,16 @@ export class GradientTool extends Tool {
     );
     this.eventBus.off("workarea:selectById", this.selectActiveGradient);
     this.eventBus.off("workarea:selectAt", this.selectActiveGradient);
+    this.eventBus.off("workarea:deleteElement", this.resetTool);
   }
 
-  public resetTool(): void {
+  public resetTool = () : void => {
     this.activeGradientElement = null;
     this.colorsStops = null;
     this.endPosition = null;
     this.isDraggingEndPoints = false;
     this.startPosition = null;
+    this.eventBus.emit("workarea:update");
   }
 
   private drawColorStop(

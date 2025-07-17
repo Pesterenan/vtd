@@ -173,7 +173,7 @@ export class GradientMenu {
         indicator.style.borderRadius = "50%";
         indicator.style.cursor = "pointer";
 
-        indicator.addEventListener("mousedown", (event) => {
+        indicator.addEventListener("mousedown", (event: MouseEvent) => {
           event.preventDefault();
           if (event.button === MOUSE_BUTTONS.RIGHT) {
             this.handleDeleteColorStop(index);
@@ -186,11 +186,20 @@ export class GradientMenu {
         colorStopsIndicators.appendChild(indicator);
       });
 
-      this.gradientBar.addEventListener("mousedown", (event) => {
+      this.gradientBar.addEventListener("mousedown", (event: MouseEvent) => {
         if (event.button === MOUSE_BUTTONS.LEFT) {
           this.handleAddColorStop(event);
         }
       });
+    } else {
+      this.gradientBar.style.backgroundImage = '';
+      this.gradientBar.style.background = 'white';
+      this.gradientBar.removeEventListener("mousedown", (event: MouseEvent) => {
+        if (event.button === MOUSE_BUTTONS.LEFT) {
+          this.handleAddColorStop(event);
+        }
+      });
+      colorStopsIndicators.innerHTML = "";
     }
   }
 
@@ -269,9 +278,10 @@ export class GradientMenu {
     const bar = this.gradientBar as HTMLDivElement;
     const barRect = bar.getBoundingClientRect();
 
-    const onMouseMove = (moveEvent: MouseEvent) => {
+    const onMouseMove = (event: MouseEvent) => {
+      event.preventDefault();
       let newPortion =
-        Math.round(((moveEvent.clientX - barRect.left) / barRect.width) * 100) /
+        Math.round(((event.clientX - barRect.left) / barRect.width) * 100) /
         100;
       newPortion = Math.max(0, Math.min(1, newPortion));
 
@@ -291,7 +301,8 @@ export class GradientMenu {
       }
     };
 
-    const onMouseUp = () => {
+    const onMouseUp = (event: MouseEvent) => {
+      event.preventDefault();
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     };
@@ -345,6 +356,7 @@ export class GradientMenu {
     this.alphaControl?.unlinkEvents();
     this.colorControl?.unlinkEvents();
     this.portionControl?.unlinkEvents();
+    this.updateGradientBar();
   }
 }
 

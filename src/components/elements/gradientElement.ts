@@ -6,6 +6,7 @@ import type {
   Size,
 } from "src/components/types";
 import { BoundingBox } from "src/utils/boundingBox";
+import { rotatePoint } from "src/utils/transforms";
 
 export class GradientElement extends Element<IGradientElementData> {
   public get position(): Position {
@@ -28,6 +29,10 @@ export class GradientElement extends Element<IGradientElementData> {
     return this.properties.get("rotation") as number;
   }
   public set rotation(value: number) {
+    if (this.startPosition && this.endPosition) {
+      this.startPosition = rotatePoint(this.startPosition, this.position, value - this.rotation);
+      this.endPosition = rotatePoint(this.endPosition, this.position, value - this.rotation);
+    }
     this.properties.set("rotation", value);
   }
   public get startPosition(): Position {
@@ -60,7 +65,6 @@ export class GradientElement extends Element<IGradientElementData> {
     this.endPosition = { x: position.x, y: position.y };
     this.colorStops = [
       { portion: 0.0, color: "#000000", alpha: 1.0 },
-      { portion: 0.5, color: "#FF0000", alpha: 1.0 },
       { portion: 1.0, color: "#FFFFFF", alpha: 0.0 },
     ];
     this.boundingBox = new BoundingBox(position, size, this.rotation);
