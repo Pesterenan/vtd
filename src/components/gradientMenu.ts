@@ -6,6 +6,7 @@ import type { IColorControl } from "./helpers/createColorControl";
 import createColorControl from "./helpers/createColorControl";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import createSliderControl from "./helpers/createSliderControl";
+import type { IGradientElementData } from "./types";
 import { MOUSE_BUTTONS } from "./types";
 import {
   linearColorInterpolation,
@@ -26,6 +27,7 @@ export class GradientMenu {
     alpha: number;
   } | null = null;
   private eventBus: EventBus;
+  private gradientFormatSelect: HTMLSelectElement | null = null;
 
   private constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
@@ -46,7 +48,7 @@ export class GradientMenu {
       this.activeGradientElement = selectedElements[0];
       this.linkDOMElements();
     }
-  }
+  };
 
   private handlePortionControlChange = (newValue: number): void => {
     if (this.activeGradientElement && this.currentColorStop) {
@@ -109,6 +111,14 @@ export class GradientMenu {
       <div class='container column jc-sb g-05 pad-i-05'></div>
       <div id="gradient-bar"></div>
       <div id="color-stops-indicators"></div>
+      <div class='container ai-c jc-sb'>
+        <label for="gradient-format-select">Formato:</label>
+        <select id="gradient-format-select" style="width: 80%">
+          <option value="conic">Cônico</option>
+          <option value="linear" selected>Linear</option>
+          <option value="radial">Radial</option>
+        </select>
+      </div>
     `;
     this.colorControl = createColorControl(
       "inp_portion_color",
@@ -192,8 +202,8 @@ export class GradientMenu {
         }
       });
     } else {
-      this.gradientBar.style.backgroundImage = '';
-      this.gradientBar.style.background = 'white';
+      this.gradientBar.style.backgroundImage = "";
+      this.gradientBar.style.background = "white";
       this.gradientBar.removeEventListener("mousedown", (event: MouseEvent) => {
         if (event.button === MOUSE_BUTTONS.LEFT) {
           this.handleAddColorStop(event);
@@ -201,7 +211,7 @@ export class GradientMenu {
       });
       colorStopsIndicators.innerHTML = "";
     }
-  }
+  };
 
   private handleDeleteColorStop(index: number): void {
     if (this.activeGradientElement) {
@@ -333,6 +343,15 @@ export class GradientMenu {
     }
   }
 
+  private handleGradientFormatChange = (evt: Event): void => {
+    const selectedFormat = (evt.target as HTMLSelectElement).value;
+    if (this.activeGradientElement && selectedFormat) {
+      this.activeGradientElement.gradientFormat =
+        selectedFormat as IGradientElementData["gradientFormat"];
+    }
+    this.eventBus.emit("workarea:update");
+  };
+
   private hexToRgba(hex: string, alpha: number): string {
     const r = Number.parseInt(hex[1] + hex[2], 16);
     const g = Number.parseInt(hex[3] + hex[4], 16);
@@ -346,6 +365,16 @@ export class GradientMenu {
       this.alphaControl?.linkEvents();
       this.colorControl?.linkEvents();
       this.portionControl?.linkEvents();
+      this.gradientFormatSelect = getElementById<HTMLSelectElement>(
+        "gradient-format-select",
+      );
+      this.gradientFormatSelect.value =
+        this.activeGradientElement.gradientFormat || "linear";
+      this.gradientFormatSelect.disabled = false;
+      this.gradientFormatSelect.addEventListener(
+        "change",
+        this.handleGradientFormatChange,
+      );
       this.updateGradientBar();
     }
   }
@@ -356,7 +385,15 @@ export class GradientMenu {
     this.alphaControl?.unlinkEvents();
     this.colorControl?.unlinkEvents();
     this.portionControl?.unlinkEvents();
+    this.gradientFormatSelect = getElementById<HTMLSelectElement>(
+      "gradient-format-select",
+    );
+    this.gradientFormatSelect.value = "";
+    this.gradientFormatSelect.disabled = true;
+    this.gradientFormatSelect.removeEventListener(
+      "change",
+      this.handleGradientFormatChange,
+    );
     this.updateGradientBar();
   }
 }
-

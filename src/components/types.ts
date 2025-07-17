@@ -50,6 +50,7 @@ export interface IGradientElementData extends IElementData {
   startPosition: Position;
   endPosition: Position;
   colorStops: IColorStop[];
+  gradientFormat: "conic" | "linear" | "radial";
 }
 
 export interface IElementGroupData extends IElementData {
