@@ -6,6 +6,8 @@ import type {
   Size,
 } from "src/components/types";
 import { BoundingBox } from "src/utils/boundingBox";
+import { rotatePoint } from "src/utils/transforms";
+import { Vector } from "src/utils/vector";
 
 export class GradientElement extends Element<IGradientElementData> {
   public get position(): Position {
@@ -28,6 +30,18 @@ export class GradientElement extends Element<IGradientElementData> {
     return this.properties.get("rotation") as number;
   }
   public set rotation(value: number) {
+    if (this.startPosition && this.endPosition) {
+      this.startPosition = rotatePoint(
+        this.startPosition,
+        this.position,
+        value - this.rotation,
+      );
+      this.endPosition = rotatePoint(
+        this.endPosition,
+        this.position,
+        value - this.rotation,
+      );
+    }
     this.properties.set("rotation", value);
   }
   public get startPosition(): Position {
@@ -48,6 +62,17 @@ export class GradientElement extends Element<IGradientElementData> {
   public set colorStops(value: IColorStop[]) {
     this.properties.set("colorStops", value);
   }
+  public get gradientFormat(): IGradientElementData["gradientFormat"] {
+    return this.properties.get(
+      "gradientFormat",
+    ) as IGradientElementData["gradientFormat"];
+  }
+  public set gradientFormat(value: IGradientElementData["gradientFormat"]) {
+    this.properties.set("gradientFormat", value);
+  }
+  public sortColorStops(): void {
+    this.colorStops.sort((a, b) => a.portion - b.portion);
+  }
   private boundingBox: BoundingBox;
 
   constructor(position: Position, size: Size, z: number) {
@@ -57,11 +82,9 @@ export class GradientElement extends Element<IGradientElementData> {
     this.endPosition = { x: position.x, y: position.y };
     this.colorStops = [
       { portion: 0.0, color: "#000000", alpha: 1.0 },
-      { portion: 0.25, color: "#FF0000", alpha: 1.0 },
-      { portion: 0.5, color: "#FFF000", alpha: 1.0 },
-      { portion: 0.75, color: "#FF00FF", alpha: 1.0 },
-      { portion: 1.0, color: "#FFFFFF", alpha: 1.0 },
+      { portion: 1.0, color: "#FFFFFF", alpha: 0.0 },
     ];
+    this.gradientFormat = "linear";
     this.boundingBox = new BoundingBox(position, size, this.rotation);
   }
 
@@ -76,18 +99,46 @@ export class GradientElement extends Element<IGradientElementData> {
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return;
     context.save();
-    const gradient = context.createLinearGradient(
-      this.startPosition.x,
-      this.startPosition.y,
-      this.endPosition.x,
-      this.endPosition.y,
-    );
-
-    for (const cs of this.colorStops) {
-      gradient.addColorStop(cs.portion, this.hexToRgba(cs.color, cs.alpha));
+    let gradient: CanvasGradient | null = null;
+    switch (this.gradientFormat) {
+      case "conic": {
+        const { x, y } = new Vector(this.endPosition).sub(this.startPosition);
+        const angleInRadians = Math.atan2(y, x);
+        gradient = context.createConicGradient(
+          angleInRadians,
+          this.startPosition.x,
+          this.startPosition.y,
+        );
+        break;
+      }
+      case "radial":
+        gradient = context.createRadialGradient(
+          this.startPosition.x,
+          this.startPosition.y,
+          0,
+          this.startPosition.x,
+          this.startPosition.y,
+          new Vector(this.startPosition).distance(this.endPosition),
+        );
+        break;
+      case "linear":
+      default:
+        gradient = context.createLinearGradient(
+          this.startPosition.x,
+          this.startPosition.y,
+          this.endPosition.x,
+          this.endPosition.y,
+        );
+        break;
     }
 
-    context.fillStyle = gradient;
+    if (gradient) {
+      for (const cs of this.colorStops) {
+        gradient.addColorStop(cs.portion, this.hexToRgba(cs.color, cs.alpha));
+      }
+
+      context.fillStyle = gradient;
+    }
     context.fillRect(0, 0, this.size.width, this.size.height);
     context.restore();
   }

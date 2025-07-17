@@ -35,6 +35,10 @@ export interface EventBusMap {
     payload: { position: Position };
     result: unknown;
   };
+  "edit:gradientUpdateColorStops": {
+    payload: unknown;
+    result: unknown;
+  };
   "edit:text": {
     payload: { position: Position };
     result: unknown;

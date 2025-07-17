@@ -1,8 +1,6 @@
 import { Tool } from "src/components/tools/abstractTool";
 import type { Position } from "../types";
 
-const DRAGGING_DISTANCE = 5;
-
 export class SelectTool extends Tool {
   private firstPoint: Position | null = null;
   private secondPoint: Position | null = null;
@@ -41,7 +39,7 @@ export class SelectTool extends Tool {
         offsetX - this.firstPoint.x,
         offsetY - this.firstPoint.y,
       );
-      if (distance > DRAGGING_DISTANCE) {
+      if (distance > Tool.DRAGGING_DISTANCE) {
         this.secondPoint = { x: offsetX, y: offsetY };
         this.eventBus.emit("workarea:update");
       }

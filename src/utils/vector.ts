@@ -51,4 +51,20 @@ export class Vector {
     const that = new Vector(other);
     return that.sub(this).div(2).add(this);
   }
+
+  distance(other: Vectorizable) {
+    const that = new Vector(other);
+    const dx = this.x - that.x;
+    const dy = this.y - that.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  dot(other: Vectorizable) {
+    const that = new Vector(other);
+    return this.x * that.x + this.y * that.y;
+  }
+
+  magnitudeSq() {
+    return this.x * this.x + this.y * this.y;
+  }
 }

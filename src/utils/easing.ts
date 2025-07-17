@@ -55,3 +55,41 @@ export const remap = (
     ? clamp(remappedOutput, outputMin, outputMax)
     : remappedOutput;
 };
+
+/** Interpolates between two colors
+ * @param {string} startColor - Starting color in the hex format: '#123456'
+ * @param {string} endColor - Starting color in the hex format: '#123456'
+ * @param {number} value - the factor to blend between the colors
+ * @returns - the blended color string in the hex format: '#123456
+ */
+export const linearColorInterpolation = (
+  startColor: string,
+  endColor: string,
+  value: number,
+): string => {
+  const startColorValues = startColor.slice(1).match(/.{2}/g);
+  const endColorValues = endColor.slice(1).match(/.{2}/g);
+  if (!startColorValues || !endColorValues) return "";
+
+  const blend = (value1: string, value2: string, factor: number) => {
+    return Math.round(
+      linearInterpolation(
+        Number.parseInt(value1, 16),
+        Number.parseInt(value2, 16),
+        factor,
+      ),
+    );
+  };
+  const finalColorValues = [
+    blend(startColorValues[0], endColorValues[0], value)
+      .toString(16)
+      .padStart(2, "0"),
+    blend(startColorValues[1], endColorValues[1], value)
+      .toString(16)
+      .padStart(2, "0"),
+    blend(startColorValues[2], endColorValues[2], value)
+      .toString(16)
+      .padStart(2, "0"),
+  ];
+  return `#${finalColorValues.join("")}`;
+};

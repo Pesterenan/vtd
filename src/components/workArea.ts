@@ -198,10 +198,9 @@ export class WorkArea {
     });
     if (this.mainCanvas) {
       this.eventBus.on("edit:gradient", ({ position }) => {
-        this.selectElementsAt(position);
         const elements = this.getSelectedElements();
         if (!elements || !(elements[0] instanceof GradientElement)) {
-          this.addGradientElement();
+          this.addGradientElement(position);
           this.selectElementsAt(position);
         }
       });
@@ -800,11 +799,20 @@ export class WorkArea {
     }
   }
 
-  public addGradientElement(): void {
+  public addGradientElement(position?: Position): void {
     const width = this.workArea.canvas.width;
     const height = this.workArea.canvas.height;
+    let adjustedPosition = null;
+    if (position) {
+      adjustedPosition = this.adjustForCanvas(position);
+    } else {
+      adjustedPosition = {
+        x: Math.floor(0.5 * this.workArea.canvas.width) - width,
+        y: Math.floor(0.5 * this.workArea.canvas.height) - height,
+      };
+    }
     const newElement = new GradientElement(
-      { x: width * 0.5, y: height * 0.5 },
+      adjustedPosition,
       { width, height },
       this.elements.length,
     );
