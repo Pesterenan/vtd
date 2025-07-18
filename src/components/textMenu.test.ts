@@ -1,9 +1,7 @@
 import { TextElement } from "src/components/elements/textElement";
-import { WorkArea } from "src/components/workArea";
+import { EventBus } from "src/utils/eventBus";
 import getElementById from "src/utils/getElementById";
 import { TextMenu } from "./textMenu";
-import type { ITextElementData } from "./types";
-import { EventBus } from "src/utils/eventBus";
 
 /**
  * @jest-environment jsdom
@@ -12,6 +10,7 @@ describe("TextMenu", () => {
   let instance: TextMenu;
   let element: TextElement;
   let eventBus: EventBus;
+  let requestSpy: jest.SpyInstance;
 
   let acceptButton: HTMLButtonElement;
   let declineButton: HTMLButtonElement;
@@ -29,16 +28,15 @@ describe("TextMenu", () => {
   let fontWeightRadios: HTMLInputElement[];
 
   afterAll(() => {
-    document.body.removeChild(instance.getMenu());
+    document.body.innerHTML = "";
+    requestSpy.mockRestore();
   });
 
   beforeAll(() => {
     eventBus = new EventBus();
-    // Instantiate menu and append to DOM
     instance = TextMenu.getInstance(eventBus);
     document.body.appendChild(instance.getMenu());
 
-    // References to controls
     acceptButton = getElementById<HTMLButtonElement>("btn_accept-text-changes");
     declineButton = getElementById<HTMLButtonElement>(
       "btn_decline-text-changes",
@@ -74,20 +72,24 @@ describe("TextMenu", () => {
   });
 
   beforeEach(() => {
-    textInput.value = "";
-    fillCheckbox.checked = false;
-    strokeCheckbox.checked = false;
     element = new TextElement({ x: 0, y: 0 }, { width: 100, height: 50 }, 0);
-    jest.spyOn(WorkArea, "getInstance").mockReturnValueOnce({
-      getSelectedElements: () => [element],
-    } as unknown as WorkArea);
-    eventBus.emit("workarea:selectById", {
-      elementsId: new Set([element.elementId]),
+    requestSpy = jest.spyOn(eventBus, "request").mockReturnValue([[element]]);
+    eventBus.emit("edit:text");
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe("DOM", () => {
+    it("should render the text menu", () => {
+      expect(instance.getMenu()).not.toBeNull();
     });
   });
 
   describe("handleSelectElement", () => {
     it("should turn on controls if there's only one text element selected", () => {
+      eventBus.emit("edit:text");
       expect(textInput.value).toBe(element.content.join("\n"));
       expect(fillCheckbox.checked).toBe(element.hasFill);
       expect(strokeCheckbox.checked).toBe(element.hasStroke);
@@ -95,9 +97,7 @@ describe("TextMenu", () => {
     });
 
     it("should disable controls when no TextElement is selected", () => {
-      jest.spyOn(WorkArea, "getInstance").mockReturnValueOnce({
-        getSelectedElements: () => [],
-      } as unknown as WorkArea);
+      requestSpy.mockReturnValue([[]]);
       eventBus.emit("workarea:selectById", { elementsId: new Set([]) });
 
       expect(textInput.value).toBe("");
@@ -118,6 +118,7 @@ describe("TextMenu", () => {
 
   describe("accept/decline buttons", () => {
     it("should clear and unlink on accept", () => {
+      requestSpy.mockReturnValue([[]]);
       acceptButton.click();
 
       expect(textInput.value).toBe("");
@@ -125,14 +126,16 @@ describe("TextMenu", () => {
     });
 
     it("should restore original content on decline", () => {
+      const originalContent = [...element.content];
       textInput.value = "new text";
       textInput.dispatchEvent(new Event("input"));
 
       expect(element.content).toEqual(["new text"]);
 
+      requestSpy.mockReturnValue([[]]);
       declineButton.click();
 
-      expect(element.content).toEqual(["Sample Text"]);
+      expect(element.content).toEqual(originalContent);
       expect(textInput.value).toBe("");
     });
   });
@@ -153,17 +156,19 @@ describe("TextMenu", () => {
     });
 
     it("should toggle hasFill via checkbox change", () => {
-      fillCheckbox.checked = !element.hasFill;
+      const initialValue = element.hasFill;
+      fillCheckbox.checked = !initialValue;
       fillCheckbox.dispatchEvent(new Event("change"));
 
-      expect(element.hasFill).toBe(fillCheckbox.checked);
+      expect(element.hasFill).toBe(!initialValue);
     });
 
     it("should toggle hasStroke via checkbox change", () => {
-      strokeCheckbox.checked = !element.hasStroke;
+      const initialValue = element.hasStroke;
+      strokeCheckbox.checked = !initialValue;
       strokeCheckbox.dispatchEvent(new Event("change"));
 
-      expect(element.hasStroke).toBe(strokeCheckbox.checked);
+      expect(element.hasStroke).toBe(!initialValue);
     });
 
     it("should update fillColor via control callback", () => {
@@ -198,22 +203,18 @@ describe("TextMenu", () => {
   describe("text align radio buttons", () => {
     it("should render three radio buttons for textAlign", () => {
       const alignValues = textAlignRadios.map((r) => r.value).sort();
-      expect(alignValues.length).toBe(3);
-      expect(alignValues).toEqual([
-        "center",
-        "left",
-        "right",
-      ] as ITextElementData["textAlign"][]);
+      expect(alignValues).toEqual(["center", "left", "right"]);
     });
 
     it("should reflect element.textAlign in the checked radio", () => {
-      const centerRadio = textAlignRadios.find((r) => r.id === "align-center");
+      element.textAlign = "center";
+      eventBus.emit("edit:text");
+      const centerRadio = textAlignRadios.find((r) => r.value === "center");
       expect(centerRadio?.checked).toBe(true);
-      expect(element.textAlign).toEqual("center");
     });
 
     it("should update element.textAlign when a radio is clicked", () => {
-      const rightRadio = textAlignRadios.find((r) => r.id === "align-right");
+      const rightRadio = textAlignRadios.find((r) => r.value === "right");
       rightRadio?.click();
       expect(element.textAlign).toBe("right");
     });
@@ -222,26 +223,26 @@ describe("TextMenu", () => {
   describe("font style radio buttons", () => {
     it("should render four radio buttons for fontStyle", () => {
       const styleValues = fontStyleRadios.map((r) => r.value).sort();
-      expect(styleValues.length).toBe(4);
       expect(styleValues).toEqual([
         "normal",
         "overline",
         "strike-through",
         "underline",
-      ] as ITextElementData["fontStyle"][]);
+      ]);
     });
 
     it("should reflect element.fontStyle in the checked radio", () => {
+      element.fontStyle = "normal";
+      eventBus.emit("edit:text");
       const styleNormalRadio = fontStyleRadios.find(
-        (r) => r.id === "style-normal",
+        (r) => r.value === "normal",
       );
       expect(styleNormalRadio?.checked).toBe(true);
-      expect(element.fontStyle).toEqual("normal");
     });
 
     it("should update element.fontStyle when a radio is clicked", () => {
       const styleUnderlineRadio = fontStyleRadios.find(
-        (r) => r.id === "style-underline",
+        (r) => r.value === "underline",
       );
       styleUnderlineRadio?.click();
       expect(element.fontStyle).toBe("underline");
@@ -251,27 +252,20 @@ describe("TextMenu", () => {
   describe("font weight radio buttons", () => {
     it("should render four radio buttons for fontWeight", () => {
       const weightValues = fontWeightRadios.map((r) => r.value).sort();
-      expect(weightValues.length).toBe(4);
-      expect(weightValues).toEqual([
-        "bold",
-        "bold italic",
-        "italic",
-        "normal",
-      ] as ITextElementData["fontWeight"][]);
+      expect(weightValues).toEqual(["bold", "bold italic", "italic", "normal"]);
     });
 
     it("should reflect element.fontWeight in the checked radio", () => {
+      element.fontWeight = "normal";
+      eventBus.emit("edit:text");
       const weightNormalRadio = fontWeightRadios.find(
-        (r) => r.id === "weight-normal",
+        (r) => r.value === "normal",
       );
       expect(weightNormalRadio?.checked).toBe(true);
-      expect(element.fontWeight).toEqual("normal");
     });
 
     it("should update element.fontWeight when a radio is clicked", () => {
-      const weightBoldRadio = fontWeightRadios.find(
-        (r) => r.id === "weight-bold",
-      );
+      const weightBoldRadio = fontWeightRadios.find((r) => r.value === "bold");
       weightBoldRadio?.click();
       expect(element.fontWeight).toBe("bold");
     });

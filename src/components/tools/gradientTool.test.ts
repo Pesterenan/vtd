@@ -53,7 +53,7 @@ describe("GradientTool basic behavior", () => {
         offsetY: 120,
         shiftKey: false,
       } as MouseEvent);
-      tool.onMouseUp({ offsetX: 150, offsetY: 120 } as MouseEvent);
+      tool.onMouseUp();
 
       // biome-ignore lint/suspicious/noExplicitAny: accessing private variable
       expect((tool as any).startPosition).toEqual({ x: 30, y: 40 });

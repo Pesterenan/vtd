@@ -63,8 +63,9 @@ plataforma escolhida para a criação do app redistribuível.
 &#9746; - Implementar estilos de fonte overline, strike-through e underline\
 &#9746; - Implementar controles de estilos de fonte\
 &#9746; - Retrabalhar as ferramentas e fazer os ícones serem desenhados no canvas\
+&#9746; - Retrabalhar o elemento de gradiente e seu menu\
 
-&#9744; - Retrabalhar o elemento de gradiente e seu menu\
+&#9744; - Implementar filtro de composição (globalComposite)
 &#9744; - Implementar menus de contexto para as camadas com ações de cópia, por exemplo\
 &#9744; - Implementar criação de WorkArea de tamanhos arbitrários\
 &#9744; - Implementar corte de elementos (cropping)\
