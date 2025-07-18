@@ -40,6 +40,10 @@ export class LayersMenu {
     return LayersMenu.instance;
   }
 
+  public static resetInstance(): void {
+    LayersMenu.instance = null;
+  }
+
   public getMenu(): HTMLElement {
     return this.layersSection || errorElement("Menu não instanciado");
   }
@@ -121,6 +125,11 @@ export class LayersMenu {
     li.innerHTML = isGroup
       ? this.groupTemplate(layer)
       : this.layerTemplate(layer);
+
+    const layerNameSpan = li.querySelector<HTMLSpanElement>(`#spn_layer-${layer.id}`);
+    if (layerNameSpan) {
+      layerNameSpan.innerText = layer.name ? layer.name : (isGroup ? `Grupo ${layer.id}` : `Camada ${layer.id}`);
+    }
 
     this.attachCommonEvents(li, layer);
 
@@ -356,7 +365,8 @@ export class LayersMenu {
         if (childrenUL) {
           children = this.generateLayerHierarchy(childrenUL);
         }
-        hierarchy.push({ children, id, isLocked, isVisible });
+        const name = li.querySelector<HTMLSpanElement>(`#spn_layer-${id}`)?.innerText;
+        hierarchy.push({ children, id, isLocked, isVisible, name });
       }
     }
     return hierarchy;
@@ -393,9 +403,14 @@ export class LayersMenu {
   }
 
   private handleDeleteElement({ elementId }: DeleteElementPayload): void {
+    console.log(`Attempting to delete element with ID: ${elementId}`);
     const layerToDelete = getElementById<HTMLLIElement>(`layer-${elementId}`);
     if (layerToDelete) {
+      console.log(`Found element: ${layerToDelete.id}`);
       layerToDelete.parentElement?.removeChild(layerToDelete);
+      console.log(`Removed element: ${layerToDelete.id}`);
+    } else {
+      console.log(`Element with ID: ${elementId} not found.`);
     }
     this.emitGenerateLayerHierarchy();
   }

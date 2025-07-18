@@ -259,6 +259,7 @@ export class GradientTool extends Tool {
       });
       this.activeGradientElement.startPosition = gradStartPos;
       this.activeGradientElement.endPosition = gradEndPos;
+      this.colorsStops = this.activeGradientElement.colorStops;
     }
   };
 

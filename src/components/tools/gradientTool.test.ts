@@ -1,64 +1,91 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { EventBus } from "src/utils/eventBus";
-import { GradientTool } from "./gradientTool";
+import { GradientTool } from './gradientTool';
+import { EventBus } from '../../utils/eventBus';
+import { GradientElement } from '../elements/gradientElement';
 
-/**
- * @jest-environment jsdom
- */
-describe("GradientTool basic behavior", () => {
+describe('GradientTool', () => {
   let canvas: HTMLCanvasElement;
-  let ctx: CanvasRenderingContext2D;
-  let bus: EventBus;
-  let tool: GradientTool;
+  let eventBus: EventBus;
+  let gradientTool: GradientTool;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    canvas = document.createElement("canvas");
-    canvas.width = 200;
-    canvas.height = 50;
-    bus = new EventBus();
-    tool = new GradientTool(canvas, bus);
-    // biome-ignore lint/style/noNonNullAssertion: context should exist after tool creation
-    // biome-ignore lint/suspicious/noExplicitAny: accessing private variable
-    ctx = (tool as any).context!;
-    jest.spyOn(bus, "emit");
-    jest.spyOn(ctx, "save");
-    jest.spyOn(ctx, "strokeText");
-    jest.spyOn(ctx, "fillText");
-    jest.spyOn(ctx, "restore");
-    tool.equip();
+    canvas = document.createElement('canvas');
+    eventBus = new EventBus();
+    gradientTool = new GradientTool(canvas, eventBus);
+    jest.spyOn(eventBus, 'request').mockReturnValue([ [] ]);
   });
 
-  it("should emit tool:equipped and tool:unequipped", () => {
-    expect(bus.emit).toHaveBeenCalledWith("tool:equipped", tool);
-    (bus.emit as jest.Mock).mockClear();
-    tool.unequip();
-    expect(bus.emit).toHaveBeenCalledWith("tool:unequipped", tool);
+  it('should equip and unequip correctly', () => {
+    const equipSpy = jest.spyOn(eventBus, 'emit');
+    gradientTool.equip();
+    expect(equipSpy).toHaveBeenCalledWith('tool:equipped', gradientTool);
+
+    const unequipSpy = jest.spyOn(eventBus, 'emit');
+    gradientTool.unequip();
+    expect(unequipSpy).toHaveBeenCalledWith('tool:unequipped', gradientTool);
   });
 
+  it('should create a new gradient on mouse drag', () => {
+    const emitSpy = jest.spyOn(eventBus, 'emit');
+    const mouseDownEvent = new MouseEvent('mousedown') as MouseEvent & { offsetX: number; offsetY: number };
+    Object.defineProperty(mouseDownEvent, 'offsetX', { value: 10 });
+    Object.defineProperty(mouseDownEvent, 'offsetY', { value: 20 });
+    gradientTool.onMouseDown(mouseDownEvent);
 
-  it("onMouseDown emits edit:text with correct payload", () => {
-    tool.onMouseDown({ offsetX: 15, offsetY: 25 } as MouseEvent);
-    expect(bus.emit).toHaveBeenCalledWith("edit:gradient", {
-      position: { x: 15, y: 25 },
-    });
+    const mouseMoveEvent = new MouseEvent('mousemove') as MouseEvent & { offsetX: number; offsetY: number };
+    Object.defineProperty(mouseMoveEvent, 'offsetX', { value: 100 });
+    Object.defineProperty(mouseMoveEvent, 'offsetY', { value: 120 });
+    gradientTool.onMouseMove(mouseMoveEvent);
+
+    expect(emitSpy).toHaveBeenCalledWith('edit:gradient', { position: { x: 10, y: 20 } });
   });
 
-  describe("click and drag sets explicit endpoints", () => {
-    it("uses mouse down as start and mouse move/up as end", () => {
-      tool.onMouseDown({ offsetX: 30, offsetY: 40 } as MouseEvent);
-      tool.onMouseMove({
-        offsetX: 150,
-        offsetY: 120,
-        shiftKey: false,
-      } as MouseEvent);
-      tool.onMouseUp({ offsetX: 150, offsetY: 120 } as MouseEvent);
+  it('should drag start and end points', () => {
+    const gradientElement = new GradientElement({ x: 0, y: 0 }, { width: 100, height: 100 }, 0);
+    jest.spyOn(eventBus, 'request')
+      .mockReturnValueOnce([ [gradientElement] ]) // for equip
+      .mockReturnValueOnce([ { x: 10, y: 20 } ]) // for workarea:adjustForScreen start
+      .mockReturnValueOnce([ { x: 100, y: 120 } ]) // for workarea:adjustForScreen end
+      .mockReturnValueOnce([ { x: 30, y: 40 } ]) // for workarea:adjustForCanvas start
+      .mockReturnValueOnce([ { x: 50, y: 60 } ]); // for workarea:adjustForCanvas end
 
-      // biome-ignore lint/suspicious/noExplicitAny: accessing private variable
-      expect((tool as any).startPosition).toEqual({ x: 30, y: 40 });
-      // biome-ignore lint/suspicious/noExplicitAny: accessing private variable
-      expect((tool as any).endPosition).toEqual({ x: 150, y: 120 });
-    });
+    gradientTool.equip();
+
+    (gradientTool as any).isHoveringStart = true;
+    const mouseDownEvent = new MouseEvent('mousedown') as MouseEvent & { offsetX: number; offsetY: number };
+    Object.defineProperty(mouseDownEvent, 'offsetX', { value: 10 });
+    Object.defineProperty(mouseDownEvent, 'offsetY', { value: 20 });
+    gradientTool.onMouseDown(mouseDownEvent);
+
+    const mouseMoveEvent = new MouseEvent('mousemove') as MouseEvent & { offsetX: number; offsetY: number };
+    Object.defineProperty(mouseMoveEvent, 'offsetX', { value: 30 });
+    Object.defineProperty(mouseMoveEvent, 'offsetY', { value: 40 });
+    gradientTool.onMouseMove(mouseMoveEvent);
+
+    expect(gradientElement.startPosition).toEqual({ x: 30, y: 40 });
+    expect(gradientElement.endPosition).toEqual({ x: 50, y: 60 });
+  });
+
+  it('should drag color stops', () => {
+    const gradientElement = new GradientElement({ x: 0, y: 0 }, { width: 100, height: 100 }, 0);
+    gradientElement.colorStops = [
+      { portion: 0, color: '#ff0000', alpha: 1 },
+      { portion: 0.5, color: '#00ff00', alpha: 1 },
+      { portion: 1, color: '#0000ff', alpha: 1 },
+    ];
+    jest.spyOn(eventBus, 'request').mockReturnValue([ [gradientElement] ]);
+    gradientTool.equip();
+
+    (gradientTool as any).activeColorStop = 1;
+    const mouseDownEvent = new MouseEvent('mousedown') as MouseEvent & { offsetX: number; offsetY: number };
+    Object.defineProperty(mouseDownEvent, 'offsetX', { value: 10 });
+    Object.defineProperty(mouseDownEvent, 'offsetY', { value: 20 });
+    gradientTool.onMouseDown(mouseDownEvent);
+
+    const mouseMoveEvent = new MouseEvent('mousemove') as MouseEvent & { offsetX: number; offsetY: number };
+    Object.defineProperty(mouseMoveEvent, 'offsetX', { value: 60 });
+    Object.defineProperty(mouseMoveEvent, 'offsetY', { value: 70 });
+    gradientTool.onMouseMove(mouseMoveEvent);
+
+    expect(gradientElement.colorStops[1].portion).toBeCloseTo(0.5);
   });
 });

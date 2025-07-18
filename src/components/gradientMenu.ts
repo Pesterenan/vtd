@@ -38,56 +38,6 @@ export class GradientMenu {
     this.createDOMElements();
   }
 
-  private handleSelectElement = (): void => {
-    const [selectedElements] = this.eventBus.request("workarea:selected:get");
-    this.unlinkDOMElements();
-    if (
-      selectedElements.length === 1 &&
-      selectedElements[0] instanceof GradientElement
-    ) {
-      this.activeGradientElement = selectedElements[0];
-      this.linkDOMElements();
-    }
-  };
-
-  private handlePortionControlChange = (newValue: number): void => {
-    if (this.activeGradientElement && this.currentColorStop) {
-      const { colorStops } = this.activeGradientElement;
-      const currentIndex = colorStops.findIndex(
-        (stop) => stop === this.currentColorStop,
-      );
-
-      if (currentIndex === -1) return;
-
-      const prevPortion = colorStops[currentIndex - 1]?.portion ?? -Infinity;
-      const nextPortion = colorStops[currentIndex + 1]?.portion ?? Infinity;
-
-      let newPortion = Number(newValue);
-      newPortion = Math.max(prevPortion + 0.01, newPortion);
-      newPortion = Math.min(nextPortion - 0.01, newPortion);
-
-      this.currentColorStop.portion = newPortion;
-      this.eventBus.emit("workarea:update");
-      this.updateGradientBar();
-    }
-  };
-
-  private handleAlphaControlChange = (newValue: number): void => {
-    if (this.activeGradientElement && this.currentColorStop) {
-      this.currentColorStop.alpha = Number(newValue);
-      this.eventBus.emit("workarea:update");
-      this.updateGradientBar();
-    }
-  };
-
-  private handleColorControlChange = (newValue: string): void => {
-    if (this.activeGradientElement && this.currentColorStop) {
-      this.currentColorStop.color = newValue;
-      this.eventBus.emit("workarea:update");
-      this.updateGradientBar();
-    }
-  };
-
   public static getInstance(eventBus: EventBus): GradientMenu {
     if (GradientMenu.instance === null) {
       GradientMenu.instance = new GradientMenu(eventBus);
@@ -102,7 +52,7 @@ export class GradientMenu {
     return errorElement("Menu não instanciado");
   }
 
-  private createDOMElements(): void {
+  private createDOMElements = (): void => {
     this.gradientSection = document.createElement("section");
     this.gradientSection.id = "sec_gradient-menu";
     this.gradientSection.className = "sec_menu-style";
@@ -153,7 +103,63 @@ export class GradientMenu {
     this.gradientSection.append(this.colorControl.element);
     this.gradientSection.append(this.portionControl.element);
     this.gradientSection.append(this.alphaControl.element);
-  }
+  };
+
+  private handleSelectElement = (): void => {
+    const [selectedElements] = this.eventBus.request("workarea:selected:get");
+    this.unlinkDOMElements();
+    if (
+      selectedElements.length === 1 &&
+      selectedElements[0] instanceof GradientElement
+    ) {
+      this.activeGradientElement = selectedElements[0];
+      this.linkDOMElements();
+    }
+  };
+
+  private linkDOMElements = (): void => {
+    if (this.activeGradientElement) {
+      this.currentColorStop = this.activeGradientElement.colorStops[0];
+      this.alphaControl?.linkEvents();
+      this.colorControl?.linkEvents();
+      this.portionControl?.linkEvents();
+      this.gradientFormatSelect = getElementById<HTMLSelectElement>(
+        "gradient-format-select",
+      );
+      this.gradientFormatSelect.value =
+        this.activeGradientElement.gradientFormat || "linear";
+      this.gradientFormatSelect.disabled = false;
+      this.gradientFormatSelect.addEventListener(
+        "change",
+        this.handleGradientFormatChange,
+      );
+      this.updateGradientBar();
+    }
+  };
+
+  private unlinkDOMElements = (): void => {
+    this.activeGradientElement = null;
+    this.currentColorStop = null;
+    this.alphaControl?.unlinkEvents();
+    this.colorControl?.unlinkEvents();
+    this.portionControl?.unlinkEvents();
+    this.gradientFormatSelect = getElementById<HTMLSelectElement>(
+      "gradient-format-select",
+    );
+    this.gradientFormatSelect.value = "";
+    this.gradientFormatSelect.disabled = true;
+    this.gradientFormatSelect.removeEventListener(
+      "change",
+      this.handleGradientFormatChange,
+    );
+    if (this.gradientBar) {
+      this.gradientBar.removeEventListener(
+        "mousedown",
+        this.handleAddColorStop,
+      );
+    }
+    this.updateGradientBar();
+  };
 
   private updateGradientBar = (): void => {
     this.gradientBar = getElementById<HTMLDivElement>("gradient-bar");
@@ -182,6 +188,7 @@ export class GradientMenu {
         indicator.style.background = stop.color;
         indicator.style.borderRadius = "50%";
         indicator.style.cursor = "pointer";
+        indicator.dataset.index = String(index);
 
         indicator.addEventListener("mousedown", (event: MouseEvent) => {
           event.preventDefault();
@@ -196,24 +203,19 @@ export class GradientMenu {
         colorStopsIndicators.appendChild(indicator);
       });
 
-      this.gradientBar.addEventListener("mousedown", (event: MouseEvent) => {
-        if (event.button === MOUSE_BUTTONS.LEFT) {
-          this.handleAddColorStop(event);
-        }
-      });
-    } else {
+      this.gradientBar.addEventListener("mousedown", this.handleAddColorStop);
+    } else if (this.gradientBar && colorStopsIndicators) {
       this.gradientBar.style.backgroundImage = "";
       this.gradientBar.style.background = "white";
-      this.gradientBar.removeEventListener("mousedown", (event: MouseEvent) => {
-        if (event.button === MOUSE_BUTTONS.LEFT) {
-          this.handleAddColorStop(event);
-        }
-      });
+      this.gradientBar.removeEventListener(
+        "mousedown",
+        this.handleAddColorStop,
+      );
       colorStopsIndicators.innerHTML = "";
     }
   };
 
-  private handleDeleteColorStop(index: number): void {
+  private handleDeleteColorStop = (index: number): void => {
     if (this.activeGradientElement) {
       if (
         index === 0 ||
@@ -230,10 +232,10 @@ export class GradientMenu {
       this.eventBus.emit("edit:gradientUpdateColorStops");
       this.eventBus.emit("workarea:update");
     }
-  }
+  };
 
-  private handleAddColorStop(event: MouseEvent): void {
-    if (!this.activeGradientElement) return;
+  private handleAddColorStop = (event: MouseEvent): void => {
+    if (!this.activeGradientElement || !this.gradientBar) return;
 
     const bar = this.gradientBar as HTMLDivElement;
     const barRect = bar.getBoundingClientRect();
@@ -273,9 +275,9 @@ export class GradientMenu {
     this.updateGradientBar();
     this.eventBus.emit("edit:gradientUpdateColorStops");
     this.eventBus.emit("workarea:update");
-  }
+  };
 
-  private handleDragColorStop(index: number): void {
+  private handleDragColorStop = (index: number): void => {
     this.selectColorStop(index);
     if (
       index === 0 ||
@@ -319,9 +321,9 @@ export class GradientMenu {
 
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-  }
+  };
 
-  private selectColorStop(index: number): void {
+  private selectColorStop = (index: number): void => {
     if (this.activeGradientElement) {
       this.currentColorStop = this.activeGradientElement.colorStops[index];
       if (this.alphaControl && this.colorControl && this.portionControl) {
@@ -341,7 +343,7 @@ export class GradientMenu {
         this.portionControl.linkEvents();
       }
     }
-  }
+  };
 
   private handleGradientFormatChange = (evt: Event): void => {
     const selectedFormat = (evt.target as HTMLSelectElement).value;
@@ -352,48 +354,49 @@ export class GradientMenu {
     this.eventBus.emit("workarea:update");
   };
 
-  private hexToRgba(hex: string, alpha: number): string {
+  private hexToRgba = (hex: string, alpha: number): string => {
     const r = Number.parseInt(hex[1] + hex[2], 16);
     const g = Number.parseInt(hex[3] + hex[4], 16);
     const b = Number.parseInt(hex[5] + hex[6], 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
+  };
 
-  private linkDOMElements(): void {
-    if (this.activeGradientElement) {
-      this.currentColorStop = this.activeGradientElement.colorStops[0];
-      this.alphaControl?.linkEvents();
-      this.colorControl?.linkEvents();
-      this.portionControl?.linkEvents();
-      this.gradientFormatSelect = getElementById<HTMLSelectElement>(
-        "gradient-format-select",
+  private handlePortionControlChange = (newValue: number): void => {
+    if (this.activeGradientElement && this.currentColorStop) {
+      const { colorStops } = this.activeGradientElement;
+      const currentIndex = colorStops.findIndex(
+        (stop) => stop === this.currentColorStop,
       );
-      this.gradientFormatSelect.value =
-        this.activeGradientElement.gradientFormat || "linear";
-      this.gradientFormatSelect.disabled = false;
-      this.gradientFormatSelect.addEventListener(
-        "change",
-        this.handleGradientFormatChange,
-      );
+
+      if (currentIndex === -1) return;
+
+      const prevPortion = colorStops[currentIndex - 1]?.portion ?? -Infinity;
+      const nextPortion = colorStops[currentIndex + 1]?.portion ?? Infinity;
+
+      let newPortion = Number(newValue);
+      newPortion = Math.max(prevPortion + 0.01, newPortion);
+      newPortion = Math.min(nextPortion - 0.01, newPortion);
+
+      this.currentColorStop.portion = newPortion;
+      this.eventBus.emit("workarea:update");
       this.updateGradientBar();
     }
-  }
+  };
 
-  private unlinkDOMElements(): void {
-    this.activeGradientElement = null;
-    this.currentColorStop = null;
-    this.alphaControl?.unlinkEvents();
-    this.colorControl?.unlinkEvents();
-    this.portionControl?.unlinkEvents();
-    this.gradientFormatSelect = getElementById<HTMLSelectElement>(
-      "gradient-format-select",
-    );
-    this.gradientFormatSelect.value = "";
-    this.gradientFormatSelect.disabled = true;
-    this.gradientFormatSelect.removeEventListener(
-      "change",
-      this.handleGradientFormatChange,
-    );
-    this.updateGradientBar();
-  }
+  private handleAlphaControlChange = (newValue: number): void => {
+    if (this.activeGradientElement && this.currentColorStop) {
+      this.currentColorStop.alpha = Number(newValue);
+      this.eventBus.emit("workarea:update");
+      this.updateGradientBar();
+    }
+  };
+
+  private handleColorControlChange = (newValue: string): void => {
+    if (this.activeGradientElement && this.currentColorStop) {
+      this.currentColorStop.color = newValue;
+      this.eventBus.emit("workarea:update");
+      this.updateGradientBar();
+    }
+  };
 }
+

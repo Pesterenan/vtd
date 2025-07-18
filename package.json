@@ -25,6 +25,7 @@
     "@electron-toolkit/eslint-config-ts": "1.0.1",
     "@electron-toolkit/tsconfig": "1.0.1",
     "@electron/fuses": "1.8.0",
+    "@testing-library/jest-dom": "^6.6.3",
     "@types/fluent-ffmpeg": "2.1.26",
     "@types/jest": "29.5.13",
     "@typescript-eslint/eslint-plugin": "5.0.0",
