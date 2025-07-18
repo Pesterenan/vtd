@@ -49,8 +49,8 @@ export class TransformBox {
   private onChangeAnchorPoint: (payload: { position: Position }) => void;
   private onHoverHandle: (payload: { position: Position }) => void;
   private onSelectHandle: () => boolean;
-  private hoveredHandle: TransformBoxHandleKeys | null = null;
-  private selectedHandle: TransformBoxHandleKeys | null = null;
+  public hoveredHandle: TransformBoxHandleKeys | null = null;
+  public selectedHandle: TransformBoxHandleKeys | null = null;
 
   public constructor(
     selectedElements: Element<TElementData>[],
@@ -130,12 +130,12 @@ export class TransformBox {
     this.eventBus.off("transformBox:getSignAndAnchor", this.getSignAndAnchor);
   }
 
-  private selectHandle(): boolean {
+  public selectHandle(): boolean {
     this.selectedHandle = this.hoveredHandle;
     return !!this.hoveredHandle;
   }
 
-  private hoverHandle(position: Position): void {
+  public hoverHandle(position: Position): void {
     if (this.handles) {
       const hitHandle = (
         Object.keys(this.handles) as TransformBoxHandleKeys[]
@@ -350,7 +350,7 @@ export class TransformBox {
     return !!this.selectedElements.find((el) => el.zDepth === element.zDepth);
   }
 
-  private calculateSignAndAnchor(): {
+  public calculateSignAndAnchor(): {
     anchor: Position;
     xSign: 1 | 0 | -1;
     ySign: 1 | 0 | -1;
