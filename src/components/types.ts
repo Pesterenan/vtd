@@ -73,7 +73,12 @@ export type TElementData =
   | IElementGroupData;
 
 export interface IProjectData {
+  createDate: string;
   elements: TElementData[];
+  modifyDate: string;
+  title: string;
+  version: string;
+  workAreaSize: Size;
 }
 
 export interface Rectangle {

@@ -3,6 +3,7 @@ import type { Tool } from "src/components/tools/abstractTool";
 import type { ToolEventHandler } from "src/components/tools/toolManager";
 import type {
   ElementType,
+  IProjectData,
   Layer,
   Position,
   ReorganizeLayersPayload,
@@ -28,6 +29,10 @@ export interface EventBusMap {
     result: unknown;
   };
   "dialog:exportImage:open": {
+    payload: unknown;
+    result: unknown;
+  };
+  "dialog:newProject:open": {
     payload: unknown;
     result: unknown;
   };
@@ -172,6 +177,10 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "workarea:createNewProject": {
+    payload: { projectData: IProjectData };
+    result: unknown;
+  };
   "workarea:deleteElement": {
     payload: { elementId: number };
     result: unknown;
@@ -190,7 +199,7 @@ export interface EventBusMap {
   };
   "workarea:project:save": {
     payload: unknown;
-    result: string;
+    result: Partial<IProjectData>;
   };
   "workarea:selectAt": {
     payload: { firstPoint: Position | null; secondPoint?: Position | null };
