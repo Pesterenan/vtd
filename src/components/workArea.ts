@@ -1,5 +1,6 @@
 import { DialogElementFilters } from "src/components/dialogs/DialogElementFilters";
 import { DialogExportImage } from "src/components/dialogs/DialogExportImage";
+import { DialogNewProject } from "src/components/dialogs/DialogNewProject";
 import type { Element } from "src/components/elements/element";
 import { GradientElement } from "src/components/elements/gradientElement";
 import { ImageElement } from "src/components/elements/imageElement";
@@ -50,7 +51,7 @@ export class WorkArea {
   private tools: { [key in TOOL]: Tool };
   public currentTool: TOOL = TOOL.SELECT;
   public lastTool: TOOL | null = TOOL.SELECT;
-  private devCanvas: HTMLCanvasElement | null = null;
+  private projectTitle = "";
 
   public get offset(): Position {
     return this.workArea.offset;
@@ -96,6 +97,8 @@ export class WorkArea {
     this.createEventListeners();
     new DialogElementFilters(eventBus);
     new DialogExportImage(eventBus);
+    new DialogNewProject(eventBus);
+
     this.update();
   }
 
@@ -107,12 +110,6 @@ export class WorkArea {
       window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
     this.mainCanvas.height = window.innerHeight;
     this.mainContext = this.mainCanvas.getContext("2d");
-
-    const devCanvas = document.createElement("canvas");
-    devCanvas.width = WORK_AREA_WIDTH;
-    devCanvas.height = WORK_AREA_HEIGHT;
-    devCanvas.style.backgroundColor = "white";
-    this.devCanvas = devCanvas;
 
     const workAreaCanvas = document.createElement("canvas");
     workAreaCanvas.width = WORK_AREA_WIDTH;
@@ -193,7 +190,7 @@ export class WorkArea {
         type: response.success ? "success" : "error",
       });
       if (response.success) {
-        this.loadProject(response.data as string);
+        this.loadProject(response.data as Partial<IProjectData>);
       }
     });
     if (this.mainCanvas) {
@@ -275,12 +272,32 @@ export class WorkArea {
         "workarea:updateElement",
         this.handleUpdateElement.bind(this),
       );
+      this.eventBus.on("workarea:createNewProject", ({ projectData }) =>
+        this.createNewProject(projectData),
+      );
       this.mainCanvas.addEventListener("dragover", (evt) => {
         evt.preventDefault();
       });
       this.mainCanvas.addEventListener("drop", this.handleDropItems.bind(this));
       window.addEventListener("paste", this.handleDropItems.bind(this));
       this.eventBus.emit("tool:change", TOOL.SELECT);
+      window.api.onRequestNewProject(() => {
+        this.eventBus.emit("dialog:newProject:open");
+      });
+
+      window.api.onRequestLoadProject(() => {
+        window.api.loadProject();
+      });
+
+      window.api.onRequestSaveProject(() => {
+        const projectData = this.saveProject();
+        window.api.saveProject(projectData);
+      });
+
+      window.api.onRequestSaveProjectAs(() => {
+        const projectData = this.saveProject();
+        window.api.saveProjectAs(projectData);
+      });
     }
   }
 
@@ -609,21 +626,45 @@ export class WorkArea {
     return newElement as Element<TElementData>;
   }
 
-  public loadProject(data: string): void {
+  private createNewProject(projectData: IProjectData): void {
     this.eventBus.emit("workarea:clear");
-    const projectData: IProjectData = JSON.parse(data);
-    this.elements = projectData.elements
-      .map((el) => this.createElementFromData(el))
-      .filter((el) => el !== null);
+    this.projectTitle = projectData.title || "";
+    this.workArea.canvas.width = projectData.workAreaSize.width;
+    this.workArea.canvas.height = projectData.workAreaSize.height;
+    this.elements = [];
     this.selectElementsAt();
+    this.centerWorkArea();
     this.update();
   }
 
-  public saveProject(): string {
+  public loadProject(data: Partial<IProjectData>): void {
+    this.eventBus.emit("workarea:clear");
+    this.projectTitle = data?.title || "";
+    this.workArea.canvas.width = data?.workAreaSize?.width ?? WORK_AREA_WIDTH;
+    this.workArea.canvas.height =
+      data?.workAreaSize?.height ?? WORK_AREA_HEIGHT;
+    this.elements =
+      data?.elements
+        ?.map((el) => this.createElementFromData(el))
+        .filter((el) => el !== null) ?? [];
+    this.selectElementsAt();
+    this.centerWorkArea();
+    this.update();
+  }
+
+  public saveProject(): Partial<IProjectData> {
+    const now = new Date().toISOString();
     const projectData = {
+      modifyDate: now,
+      title: this.projectTitle,
+      version: "0.0.1",
+      workAreaSize: {
+        width: this.workArea.canvas.width,
+        height: this.workArea.canvas.height,
+      },
       elements: this.elements.map((el) => el.serialize()),
     };
-    return JSON.stringify(projectData);
+    return projectData;
   }
 
   public convertCanvasToString(format: string, quality: string): string {
@@ -730,11 +771,22 @@ export class WorkArea {
     }
   }
 
+  private centerWorkArea(): void {
+    if (this.workArea && this.mainCanvas) {
+      const workAreaOffset = {
+        x: this.mainCanvas.width * 0.5 - this.workArea.canvas.width * this.zoomLevel * 0.5,
+        y: this.mainCanvas.height * 0.5 - this.workArea.canvas.height * this.zoomLevel * 0.5,
+      };
+      this.workArea.offset = workAreaOffset;
+    }
+  }
+
   private handleResize(): void {
     if (this.mainCanvas) {
       this.mainCanvas.width =
         window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
       this.mainCanvas.height = window.innerHeight;
+      this.centerWorkArea();
       this.update();
     }
   }
@@ -792,9 +844,6 @@ export class WorkArea {
         this.workArea.canvas.height,
       );
       this.mainContext.drawImage(this.workArea.canvas, 0, 0);
-      if (this.devCanvas) {
-        this.mainContext.drawImage(this.devCanvas, 0, 0);
-      }
       this.mainContext.restore();
     }
   }

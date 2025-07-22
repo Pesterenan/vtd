@@ -14,8 +14,9 @@ declare global {
       loadProject: () => void;
       generateThumbnailSprite: (metadata: IVideoMetadata) => void;
       processVideoFrame: (filePath: string, timeInSeconds: number) => void;
-      saveProject: (dataString: string) => void;
+      saveProject: (projectData: Partial<IProjectData>) => void;
       sendFrameToWorkArea: (imageUrl: string) => void;
+      setWindowTitle: (title: string) => void;
       onGenerateThumbnailSpriteResponse: (
         callback: (
           event: Electron.IpcRendererEvent,
@@ -62,6 +63,20 @@ declare global {
           newTheme: string,
         ) => Electron.IpcRenderer,
       ) => void;
+      saveProjectAs: (projectData: Partial<IProjectData>) => void;
+      newProject: (projectData: Partial<IProjectData>) => void;
+      onRequestNewProject: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onRequestLoadProject: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onRequestSaveProject: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onRequestSaveProjectAs: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
     };
     electron: typeof electronAPI;
   }
@@ -69,6 +84,7 @@ declare global {
 import { electronAPI } from "@electron-toolkit/preload";
 import { contextBridge, ipcRenderer } from "electron";
 import type { IVideoMetadata } from "src/types";
+import type { IProjectData } from "./components/types";
 
 // Custom APIs for renderer
 const api = {
@@ -77,15 +93,20 @@ const api = {
     ipcRenderer.send("export-canvas", { format, dataString }),
   loadImage: (): void => ipcRenderer.send("load-image"),
   loadVideo: (): void => ipcRenderer.send("load-video"),
-  loadProject: (): void => ipcRenderer.send("load-project"),
+  loadProject: (): void => ipcRenderer.send("request-load-project"),
   generateThumbnailSprite: (metadata: IVideoMetadata): void =>
     ipcRenderer.send("generate-thumbnail-sprite", metadata),
   processVideoFrame: (filePath: string, timeInSeconds: number): void =>
     ipcRenderer.send("process-video-frame", filePath, timeInSeconds),
-  saveProject: (dataString: string): void =>
-    ipcRenderer.send("save-project", { dataString }),
+  saveProject: (projectData: Partial<IProjectData>): void =>
+    ipcRenderer.send("request-save-project", projectData),
+  saveProjectAs: (projectData: Partial<IProjectData>): void =>
+    ipcRenderer.send("request-save-project-as", projectData),
+  newProject: (projectData: Partial<IProjectData>): void =>
+    ipcRenderer.send("request-new-project", projectData),
   sendFrameToWorkArea: (imageUrl: string): void =>
     ipcRenderer.send("send-frame-to-work-area", imageUrl),
+  setWindowTitle: (title: string): void => ipcRenderer.send("set-window-title", title),
   onGenerateThumbnailSpriteResponse: (
     callback: (
       event: Electron.IpcRendererEvent,
@@ -134,6 +155,19 @@ const api = {
   ): void => {
     ipcRenderer.on("theme-update", callback);
   },
+  onRequestNewProject: (
+    callback: (event: Electron.IpcRendererEvent) => void,
+  ): Electron.IpcRenderer => ipcRenderer.on("request-new-project", callback),
+  onRequestLoadProject: (
+    callback: (event: Electron.IpcRendererEvent) => void,
+  ): Electron.IpcRenderer => ipcRenderer.on("request-load-project", callback),
+  onRequestSaveProject: (
+    callback: (event: Electron.IpcRendererEvent) => void,
+  ): Electron.IpcRenderer => ipcRenderer.on("request-save-project", callback),
+  onRequestSaveProjectAs: (
+    callback: (event: Electron.IpcRendererEvent) => void,
+  ): Electron.IpcRenderer =>
+    ipcRenderer.on("request-save-project-as", callback),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

@@ -86,7 +86,7 @@ export default function createSliderControl(
     sliderEl.disabled = false;
     sliderEl.addEventListener("input", handleSliderChange);
     inputFieldEl.disabled = false;
-    inputFieldEl.addEventListener("input", handleInputChange);
+    inputFieldEl.addEventListener("change", handleInputChange);
     labelEl.addEventListener("mousedown", handleMouseDown);
   };
   const unlinkEvents = () => {
@@ -95,7 +95,7 @@ export default function createSliderControl(
     sliderEl.removeEventListener("input", handleSliderChange);
     inputFieldEl.disabled = true;
     inputFieldEl.value = "0";
-    inputFieldEl.removeEventListener("input", handleInputChange);
+    inputFieldEl.removeEventListener("change", handleInputChange);
     labelEl.removeEventListener("mousedown", handleMouseDown);
   };
 

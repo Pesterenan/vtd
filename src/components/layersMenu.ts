@@ -403,14 +403,9 @@ export class LayersMenu {
   }
 
   private handleDeleteElement({ elementId }: DeleteElementPayload): void {
-    console.log(`Attempting to delete element with ID: ${elementId}`);
     const layerToDelete = getElementById<HTMLLIElement>(`layer-${elementId}`);
     if (layerToDelete) {
-      console.log(`Found element: ${layerToDelete.id}`);
       layerToDelete.parentElement?.removeChild(layerToDelete);
-      console.log(`Removed element: ${layerToDelete.id}`);
-    } else {
-      console.log(`Element with ID: ${elementId} not found.`);
     }
     this.emitGenerateLayerHierarchy();
   }

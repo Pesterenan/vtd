@@ -5,17 +5,20 @@ import { WorkArea } from "src/components/workArea";
 import exampleProject from "src/exampleProject.json";
 import { EventBus } from "src/utils/eventBus";
 import { Alerts } from "./components/alerts/alerts";
+import type { IProjectData } from "./components/types";
 
 const initializeVTD = (): void => {
   window.addEventListener("DOMContentLoaded", () => {
     const alertEventBus = new EventBus();
     const uiEventBus = new EventBus();
-    uiEventBus.on("alert:add", (payload) => alertEventBus.emit("alert:add", payload));
+    uiEventBus.on("alert:add", (payload) =>
+      alertEventBus.emit("alert:add", payload),
+    );
     new Alerts(alertEventBus);
     ToolMenu.getInstance(uiEventBus);
     const workArea = WorkArea.getInstance(uiEventBus);
     SideMenu.getInstance(uiEventBus);
-    workArea.loadProject(JSON.stringify(exampleProject));
+    workArea.loadProject(exampleProject as IProjectData);
   });
 };
 
