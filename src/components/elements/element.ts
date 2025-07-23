@@ -75,7 +75,11 @@ export abstract class Element<T extends Partial<IElementData>> {
   }
   public set filters(value: Filter[]) {
     this.properties.set("filters", value);
+    this.beforeFilters = value.filter((f) => f.applies === "before");
+    this.afterFilters = value.filter((f) => f.applies === "after");
   }
+  protected beforeFilters: Array<Filter> = [];
+  protected afterFilters: Array<Filter> = [];
 
   protected constructor(position: Position, size: Size, z: number) {
     this.position = position;
@@ -95,13 +99,9 @@ export abstract class Element<T extends Partial<IElementData>> {
     for (const key of Object.keys(data) as Array<keyof T>) {
       if (!this.properties.has(key)) continue;
       if (key === "filters" && Array.isArray(data.filters)) {
-        const filters = data.filters.map((filterData) =>
-          createFilter(filterData),
-        );
-        this.properties.set(
-          key,
-          filters.filter((f) => f !== null),
-        );
+        const filters =
+          data.filters?.map(createFilter).filter((f) => f !== null) || [];
+        this.filters = filters;
         continue;
       }
       this.properties.set(key, data[key]);
