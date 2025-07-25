@@ -6,6 +6,13 @@ export type FilterProperty = string | number | undefined;
 
 export abstract class Filter {
   protected properties: Map<string, FilterProperty> = new Map();
+  private _priority = 0;
+  public get priority(): number {
+    return this._priority;
+  }
+  private set priority(value: number) {
+    this._priority = value;
+  }
   public get id(): string {
     return this.properties.get("id") as string;
   }
@@ -25,11 +32,17 @@ export abstract class Filter {
   private filterControls: HTMLDivElement | null = null;
   private opacityControl: ISliderControl | null = null;
 
-  constructor(id: string, label: string, applies: "before" | "after") {
+  constructor(
+    id: string,
+    label: string,
+    applies: "before" | "after",
+    priority: number,
+  ) {
     this.properties.set("id", id);
     this.properties.set("label", label);
     this.properties.set("applies", applies);
     this.globalAlpha = 1.0;
+    this.priority = priority;
   }
 
   public deserialize(data: Partial<Filter>): void {

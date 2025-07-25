@@ -171,12 +171,10 @@ export class DialogElementFilters extends Dialog {
     if (isChecked) {
       const exists = this.activeElement.filters.some((f) => f.id === filter.id);
       if (!exists) {
-        const defaultFilter = this.defaultFilters.find(
-          (f) => f.id === filter.id,
-        );
+        const defaultFilter = this.defaultFilters.find(df => df.id === filter.id);
         if (defaultFilter) {
-          const currentFilters = this.activeElement.filters;
-          this.activeElement.filters = [...currentFilters, defaultFilter];
+          this.activeElement.filters.push(defaultFilter);
+          this.activeElement.filters.sort((a, b) => a.priority - b.priority);
           this.selectFilter(defaultFilter);
         }
       } else {

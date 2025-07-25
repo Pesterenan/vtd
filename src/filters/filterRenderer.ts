@@ -39,9 +39,9 @@ export class FilterRenderer {
       mainContext.drawImage(FilterRenderer.effectsCanvas, 0, 0);
       FilterRenderer.effectsContext.restore();
     }
-    // if (elementFilters.every((f) => f.applies === "before")) {
-    //   elementToDraw(mainContext);
-    // }
+    if (elementFilters.every((f) => f.applies === "before")) {
+      elementToDraw(mainContext);
+    }
   };
 
   /**

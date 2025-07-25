@@ -99,9 +99,10 @@ export abstract class Element<T extends Partial<IElementData>> {
     for (const key of Object.keys(data) as Array<keyof T>) {
       if (!this.properties.has(key)) continue;
       if (key === "filters" && Array.isArray(data.filters)) {
-        const filters =
-          data.filters?.map(createFilter).filter((f) => f !== null) || [];
-        this.filters = filters;
+        const filters = data.filters
+          .map(createFilter)
+          .filter((f) => f !== null);
+        this.properties.set(key, filters);
         continue;
       }
       this.properties.set(key, data[key]);

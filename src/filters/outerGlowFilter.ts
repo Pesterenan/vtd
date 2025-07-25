@@ -23,7 +23,7 @@ export class OuterGlowFilter extends Filter {
   private colorControl: IColorControl | null = null;
 
   constructor() {
-    super("outer-glow", "Luz Brilhante (Fora)", "before");
+    super("outer-glow", "Luz Brilhante (Fora)", "before", 2);
     this.blur = 10;
     this.color = "#FFFAAA";
   }

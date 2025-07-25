@@ -30,7 +30,7 @@ export class CompositeFilter extends Filter {
   }
 
   constructor() {
-    super("composite", "Composição", "after");
+    super("composite", "Composição", "after", 3);
     this.composite = "source-over";
   }
 

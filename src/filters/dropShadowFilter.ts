@@ -38,7 +38,7 @@ export class DropShadowFilter extends Filter {
   private colorControl: IColorControl | null = null;
 
   constructor() {
-    super("drop-shadow", "Sombra", "before");
+    super("drop-shadow", "Sombra", "before", 1);
     this.angle = 45;
     this.distance = 20;
     this.blur = 10;

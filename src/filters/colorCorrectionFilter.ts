@@ -42,7 +42,7 @@ export class ColorCorrectionFilter extends Filter {
   }
 
   constructor() {
-    super("color-correction", "Correção de Cor", "after");
+    super("color-correction", "Correção de Cor", "after", 4);
     this.brightness = 100;
     this.contrast = 100;
     this.grayscale = 0;
