@@ -28,6 +28,7 @@ export default function createSelectInput(
     optionEl.innerText = option.label;
     selectInputEl.append(optionEl);
   }
+  selectInputEl.value = options.optionValues[0].value;
 
   const updateValues = (newValue: string) => {
     selectInputEl.value = newValue;

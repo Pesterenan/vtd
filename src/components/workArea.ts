@@ -30,6 +30,7 @@ import type { EventBus } from "src/utils/eventBus";
 import getElementById from "src/utils/getElementById";
 import { ElementGroup } from "./elements/elementGroup";
 import { ToolManager } from "./tools/toolManager";
+import { FilterRenderer } from "src/filters/filterRenderer";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -134,6 +135,8 @@ export class WorkArea {
       context: workAreaContext,
       offset: workAreaOffset,
     };
+
+    FilterRenderer.getInstance(workAreaCanvas);
 
     if (mainWindow) {
       mainWindow.appendChild(this.mainCanvas);
@@ -571,6 +574,7 @@ export class WorkArea {
           elData.zDepth,
         );
         newElement.deserialize(elData);
+        requestAnimationFrame(() => requestAnimationFrame(() => this.update()));
         requestAnimationFrame(() => requestAnimationFrame(() => this.update()));
         break;
       case "text":

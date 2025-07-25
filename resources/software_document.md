@@ -67,7 +67,7 @@ plataforma escolhida para a criação do app redistribuível.
 &#9746; - Implementar criação de WorkArea de tamanhos arbitrários\
 &#9746; - Implementar centramento automático da workarea ao redimensionar a janela do app\
 &#9746; - Implementar menus de opções de Arquivo\
-&#9746; - Implementar filtro de composição (globalComposite)
+&#9746; - Implementar modo de composição para cada filtro (globalCompositeOperation)
 
 &#9744; - Implementar menus de contexto para as camadas com ações de cópia, por exemplo\
 &#9744; - Implementar corte de elementos (cropping)\

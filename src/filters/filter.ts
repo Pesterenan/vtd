@@ -45,13 +45,11 @@ export abstract class Filter {
   }
 
   public apply(
-    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-    source: CanvasImageSource,
+    mainContext: CanvasRenderingContext2D,
+    drawElementOn?: (context: CanvasRenderingContext2D) => void,
   ): void {
-    context.save();
-    context.globalAlpha = this.globalAlpha;
-    this.filterEffects(context, source);
-    context.restore();
+    mainContext.globalAlpha = this.globalAlpha;
+    this.filterEffects(mainContext, drawElementOn);
   }
 
   public setupFilterControls(onChange: () => void): HTMLDivElement {
@@ -84,8 +82,8 @@ export abstract class Filter {
   protected onChange(): void {}
 
   protected abstract filterEffects(
-    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-    canvas: CanvasImageSource,
+    context: CanvasRenderingContext2D,
+    drawElementOn?: (context: CanvasRenderingContext2D) => void,
   ): void;
 
   protected abstract appendFilterControls(container: HTMLDivElement): void;
