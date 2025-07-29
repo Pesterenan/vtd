@@ -1,3 +1,5 @@
+import type { ISelectOption } from "../types";
+
 export interface ISelectInput {
   element: HTMLDivElement;
   updateValues: (newValue: string) => void;
@@ -8,7 +10,7 @@ export interface ISelectInput {
 export default function createSelectInput(
   id: string,
   label: string,
-  options: { optionValues: Array<{ label: string; value: string}> },
+  options: { optionValues: Array<ISelectOption>; value: ISelectOption['value'] },
   onChange: (newValue: string) => void,
 ): ISelectInput {
   const container = document.createElement("div");
@@ -28,7 +30,7 @@ export default function createSelectInput(
     optionEl.innerText = option.label;
     selectInputEl.append(optionEl);
   }
-  selectInputEl.value = options.optionValues[0].value;
+  selectInputEl.value = options.value;
 
   const updateValues = (newValue: string) => {
     selectInputEl.value = newValue;

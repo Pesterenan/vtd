@@ -1,5 +1,6 @@
 import { Element } from "src/components/elements/element";
 import type { ITextElementData, Position, Size } from "src/components/types";
+import { FilterRenderer } from "src/filters/filterRenderer";
 import { BoundingBox } from "src/utils/boundingBox";
 import { toRadians } from "src/utils/transforms";
 
@@ -104,8 +105,8 @@ export class TextElement extends Element<ITextElementData> {
   private boundingBox: BoundingBox;
   private needsCacheUpdate = true;
   private needsCenterRecalc = true;
-  private cacheCanvas: OffscreenCanvas;
-  private cacheContext: OffscreenCanvasRenderingContext2D | null = null;
+  private cacheCanvas: HTMLCanvasElement;
+  private cacheContext: CanvasRenderingContext2D | null = null;
 
   constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
@@ -124,7 +125,9 @@ export class TextElement extends Element<ITextElementData> {
     this.textAlign = "center";
 
     this.lineVerticalSpacing = this.fontSize * this.lineHeight;
-    this.cacheCanvas = new OffscreenCanvas(this.size.width, this.size.height);
+    this.cacheCanvas = document.createElement('canvas');
+    this.cacheCanvas.width = this.size.width;
+    this.cacheCanvas.height = this.size.height;
     if (this.cacheCanvas) {
       this.cacheContext = this.cacheCanvas.getContext("2d");
     }
@@ -136,28 +139,28 @@ export class TextElement extends Element<ITextElementData> {
     this.updateCache();
   }
 
-  private updateCache(): void {
+  private updateCache = (): void => {
     if (!this.needsCacheUpdate) return;
     const ctx = this.cacheContext;
     if (!ctx) return;
-    const { width: w, height: h } = this.size;
-    this.cacheCanvas.width = w;
-    this.cacheCanvas.height = h;
-    ctx.clearRect(0, 0, w, h);
+    const { width, height } = this.size;
+    this.cacheCanvas.width = width;
+    this.cacheCanvas.height = height;
+    ctx.clearRect(0, 0, width, height);
     let originX: number;
     switch (this.textAlign) {
       case "left":
         originX = this.strokeWidth;
         break;
       case "right":
-        originX = w - this.strokeWidth;
+        originX = width - this.strokeWidth;
         break;
       default:
-        originX = w / 2;
+        originX = width / 2;
         break;
     }
     ctx.save();
-    ctx.translate(originX, h / 2);
+    ctx.translate(originX, height / 2);
     this.drawText(ctx);
     ctx.restore();
     this.needsCacheUpdate = false;
@@ -224,43 +227,31 @@ export class TextElement extends Element<ITextElementData> {
     this.needsCacheUpdate = true;
   }
 
-  public draw(context: CanvasRenderingContext2D): void {
-    if (!this.isVisible) return;
+  public draw = (context: CanvasRenderingContext2D): void => {
+    if (!this.isVisible || !this.cacheCanvas || !this.cacheContext) return;
     if (this.needsCacheUpdate) this.refreshCache();
-    context.save();
-    context.translate(this.position.x, this.position.y);
-    context.rotate(toRadians(this.rotation));
-    context.scale(this.scale.x, this.scale.y);
-    // Apply 'before' filters
-    for (const filter of this.filters) {
-      if (filter.applies === "before" && this.cacheCanvas) {
-        filter.apply(context, this.cacheCanvas);
-      }
+    context.globalAlpha = this.opacity;
+    if (this.filters.length > 0) {
+      FilterRenderer.applyFilters(context, this.filters, this.drawCache);
+    } else {
+      this.drawCache(context);
     }
-    // Draw text
-    this.drawCache(context);
-    // Apply 'after' filters
-    for (const filter of this.filters) {
-      if (filter.applies === "after" && this.cacheCanvas) {
-        filter.apply(context, this.cacheCanvas);
-      }
-    }
-    context.restore();
   }
 
-  private drawCache(
-    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-  ): void {
+  private drawCache = (context: CanvasRenderingContext2D): void => {
     if (this.cacheCanvas) {
+      context.save();
+      context.translate(this.position.x, this.position.y);
+      context.rotate(toRadians(this.rotation));
+      context.scale(this.scale.x, this.scale.y);
       const w = this.cacheCanvas.width;
       const h = this.cacheCanvas.height;
-      context.drawImage(this.cacheCanvas, -w / 2, -h / 2);
+      context.drawImage(this.cacheCanvas, -w * 0.5, -h * 0.5);
+      context.restore();
     }
   }
 
-  private drawText(
-    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-  ): void {
+  private drawText = (context: CanvasRenderingContext2D): void => {
     const weight = this.fontWeight === "normal" ? "" : this.fontWeight;
     context.font = `${weight} ${this.fontSize}px ${this.font}`;
     context.textAlign = this.textAlign as CanvasTextAlign;

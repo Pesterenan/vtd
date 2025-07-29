@@ -149,3 +149,8 @@ export interface DeleteElementPayload {
 export interface ReorganizeLayersPayload {
   hierarchy: Layer[];
 }
+
+export interface ISelectOption {
+  label: string; 
+  value: string; 
+}

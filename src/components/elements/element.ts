@@ -75,11 +75,7 @@ export abstract class Element<T extends Partial<IElementData>> {
   }
   public set filters(value: Filter[]) {
     this.properties.set("filters", value);
-    this.beforeFilters = value.filter((f) => f.applies === "before");
-    this.afterFilters = value.filter((f) => f.applies === "after");
   }
-  protected beforeFilters: Array<Filter> = [];
-  protected afterFilters: Array<Filter> = [];
 
   protected constructor(position: Position, size: Size, z: number) {
     this.position = position;

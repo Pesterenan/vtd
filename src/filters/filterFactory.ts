@@ -2,7 +2,7 @@ import type { Filter } from "src/filters/filter";
 import { ColorCorrectionFilter } from "src/filters/colorCorrectionFilter";
 import { DropShadowFilter } from "src/filters/dropShadowFilter";
 import { OuterGlowFilter } from "src/filters/outerGlowFilter";
-import { CompositeFilter } from "./compositeFilter";
+
 
 export function createFilter(filterData: Partial<Filter>): Filter | null {
   let filter = null;
@@ -18,10 +18,7 @@ export function createFilter(filterData: Partial<Filter>): Filter | null {
     filter = new ColorCorrectionFilter();
     filter.deserialize(filterData);
   }
-  if (filterData.id === "composite") {
-    filter = new CompositeFilter();
-    filter.deserialize(filterData);
-  }
+  
 
   if (!filter) {
     console.warn(`Could not deserialize filter ${filterData.id}`);

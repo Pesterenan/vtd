@@ -46,14 +46,38 @@ export class DropShadowFilter extends Filter {
   }
 
   protected filterEffects(
-    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-    source: OffscreenCanvas | HTMLImageElement,
+    writeContext: CanvasRenderingContext2D,
+    readContext: CanvasRenderingContext2D,
+    elementToDraw: (ctx: CanvasRenderingContext2D) => void,
   ): void {
-    context.shadowColor = this.color;
-    context.shadowBlur = this.blur;
-    context.shadowOffsetX = this.distance * Math.sin(toRadians(this.angle));
-    context.shadowOffsetY = this.distance * Math.cos(toRadians(this.angle));
-    context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
+    if (!writeContext) return;
+
+    // Desenha a imagem anterior (read) no contexto de escrita (write)
+    writeContext.drawImage(readContext.canvas, 0, 0);
+
+    // Aplica a sombra
+    writeContext.shadowColor = this.color;
+    writeContext.shadowBlur = this.blur;
+    writeContext.shadowOffsetX =
+      this.distance * Math.sin(toRadians(this.angle));
+    writeContext.shadowOffsetY =
+      this.distance * Math.cos(toRadians(this.angle));
+
+    // Desenha o elemento para criar a sombra
+    elementToDraw(writeContext);
+
+    // Remove a forma do elemento, deixando apenas a sombra
+    writeContext.globalCompositeOperation = "destination-out";
+    elementToDraw(writeContext);
+
+    // Restaura o composite para desenhar a imagem original por cima
+    writeContext.globalCompositeOperation = "source-over";
+    writeContext.shadowBlur = 0;
+    writeContext.shadowOffsetX = 0;
+    writeContext.shadowOffsetY = 0;
+
+    // Desenha a imagem original (do passo anterior) por cima da sombra
+    writeContext.drawImage(readContext.canvas, 0, 0);
   }
 
   protected appendFilterControls(container: HTMLDivElement): void {

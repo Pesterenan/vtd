@@ -6,7 +6,6 @@ import type { Filter } from "src/filters/filter";
 import { OuterGlowFilter } from "src/filters/outerGlowFilter";
 import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
-import { CompositeFilter } from "src/filters/compositeFilter";
 
 export class DialogElementFilters extends Dialog {
   private activeElement: Element<TElementData> | null = null;
@@ -75,7 +74,6 @@ export class DialogElementFilters extends Dialog {
 
   protected override onOpen(): void {
     this.defaultFilters = [
-      new CompositeFilter(),
       new ColorCorrectionFilter(),
       new DropShadowFilter(),
       new OuterGlowFilter(),

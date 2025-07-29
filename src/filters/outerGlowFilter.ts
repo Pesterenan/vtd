@@ -28,15 +28,33 @@ export class OuterGlowFilter extends Filter {
     this.color = "#FFFAAA";
   }
 
-  protected filterEffects(
-    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-    source: OffscreenCanvas | HTMLImageElement,
-  ): void {
-    context.shadowColor = this.color;
-    context.shadowBlur = this.blur;
-    context.shadowOffsetX = 0;
-    context.shadowOffsetY = 0;
-    context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
+  protected filterEffects = (
+    writeContext: CanvasRenderingContext2D,
+    readContext: CanvasRenderingContext2D,
+    elementToDraw: (ctx: CanvasRenderingContext2D) => void,
+  ): void => {
+    if (!writeContext) return;
+
+    // 1. Desenha a imagem do passo anterior no contexto de escrita
+    writeContext.drawImage(readContext.canvas, 0, 0);
+
+    // 2. Configura o efeito de brilho
+    writeContext.shadowColor = this.color;
+    writeContext.shadowBlur = this.blur;
+    writeContext.shadowOffsetX = 0;
+    writeContext.shadowOffsetY = 0;
+
+    // 3. Desenha o elemento para criar a forma do brilho
+    elementToDraw(writeContext);
+
+    // 4. Remove a forma do elemento, deixando apenas o brilho
+    writeContext.globalCompositeOperation = "destination-out";
+    elementToDraw(writeContext);
+
+    // 5. Restaura o composite e desenha a imagem original por cima
+    writeContext.globalCompositeOperation = "source-over";
+    writeContext.shadowBlur = 0;
+    writeContext.drawImage(readContext.canvas, 0, 0);
   }
 
   protected appendFilterControls(container: HTMLDivElement): void {

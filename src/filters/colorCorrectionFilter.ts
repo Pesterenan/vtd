@@ -50,15 +50,24 @@ export class ColorCorrectionFilter extends Filter {
     this.saturation = 100;
   }
 
-  protected filterEffects(
-    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-    source: OffscreenCanvas | HTMLImageElement,
-  ): void {
-    context.filter = `grayscale(${this.grayscale}%) hue-rotate(${this.hue}deg) saturate(${this.saturation}%) brightness(${this.brightness}%) contrast(${this.contrast}%)`;
-    context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
-  }
+  protected filterEffects = (
+    writeContext: CanvasRenderingContext2D,
+    readContext: CanvasRenderingContext2D,
+  ): void => {
+    if (!writeContext) return;
 
-  protected appendFilterControls(container: HTMLDivElement): void {
+    // Aplica o filtro de correção de cor na imagem do passo anterior
+    writeContext.filter = `grayscale(${this.grayscale}%) hue-rotate(${this.hue}deg) saturate(${this.saturation}%) brightness(${this.brightness}%) contrast(${this.contrast}%)`;
+
+    // Desenha a imagem do passo anterior (readContext) no contexto de escrita (writeContext)
+    // O filtro de CSS será aplicado a tudo que for desenhado
+    writeContext.drawImage(readContext.canvas, 0, 0);
+
+    // Reseta o filtro para não afetar outras operações de desenho
+    writeContext.filter = 'none';
+  };
+
+  protected appendFilterControls = (container: HTMLDivElement): void => {
     this.brightnessControl = createSliderControl(
       `${this.id}-brightness`,
       "Brilho",
