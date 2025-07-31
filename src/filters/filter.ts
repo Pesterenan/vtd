@@ -28,12 +28,8 @@ export const COMPOSITE_OPTIONS: Array<ISelectOption> = [
 
 export abstract class Filter {
   protected properties: Map<string, FilterProperty> = new Map();
-  private _priority = 0;
   public get priority(): number {
-    return this._priority;
-  }
-  private set priority(value: number) {
-    this._priority = value;
+    return this.properties.get("priority") as number;
   }
   public get id(): string {
     return this.properties.get("id") as string;
@@ -70,9 +66,9 @@ export abstract class Filter {
     this.properties.set("id", id);
     this.properties.set("label", label);
     this.properties.set("applies", applies);
+    this.properties.set("priority", priority);
     this.globalAlpha = 1.0;
-    this.composite = 'source-over';
-    this.priority = priority;
+    this.composite = "source-over";
   }
 
   public deserialize(data: Partial<Filter>): void {
@@ -88,11 +84,10 @@ export abstract class Filter {
   }
 
   public apply(
-    writeContext: CanvasRenderingContext2D,
-    readContext: CanvasRenderingContext2D,
+    context: CanvasRenderingContext2D,
     elementToDraw: (context: CanvasRenderingContext2D) => void,
   ): void {
-    this.filterEffects(writeContext, readContext, elementToDraw);
+    this.filterEffects(context, elementToDraw);
   }
 
   public setupFilterControls(onChange: () => void): HTMLDivElement {
@@ -137,13 +132,11 @@ export abstract class Filter {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  protected onChange(): void {}
-
+  protected onChange: () => void = () => {};
   protected abstract filterEffects(
-    writeContext: CanvasRenderingContext2D,
-    readContext: CanvasRenderingContext2D,
+    context: CanvasRenderingContext2D,
     elementToDraw: (context: CanvasRenderingContext2D) => void,
   ): void;
-
   protected abstract appendFilterControls(container: HTMLDivElement): void;
 }
+

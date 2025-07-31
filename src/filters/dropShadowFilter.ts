@@ -46,38 +46,21 @@ export class DropShadowFilter extends Filter {
   }
 
   protected filterEffects(
-    writeContext: CanvasRenderingContext2D,
-    readContext: CanvasRenderingContext2D,
+    context: CanvasRenderingContext2D,
     elementToDraw: (ctx: CanvasRenderingContext2D) => void,
   ): void {
-    if (!writeContext) return;
-
-    // Desenha a imagem anterior (read) no contexto de escrita (write)
-    writeContext.drawImage(readContext.canvas, 0, 0);
-
-    // Aplica a sombra
-    writeContext.shadowColor = this.color;
-    writeContext.shadowBlur = this.blur;
-    writeContext.shadowOffsetX =
-      this.distance * Math.sin(toRadians(this.angle));
-    writeContext.shadowOffsetY =
-      this.distance * Math.cos(toRadians(this.angle));
-
-    // Desenha o elemento para criar a sombra
-    elementToDraw(writeContext);
-
-    // Remove a forma do elemento, deixando apenas a sombra
-    writeContext.globalCompositeOperation = "destination-out";
-    elementToDraw(writeContext);
-
-    // Restaura o composite para desenhar a imagem original por cima
-    writeContext.globalCompositeOperation = "source-over";
-    writeContext.shadowBlur = 0;
-    writeContext.shadowOffsetX = 0;
-    writeContext.shadowOffsetY = 0;
-
-    // Desenha a imagem original (do passo anterior) por cima da sombra
-    writeContext.drawImage(readContext.canvas, 0, 0);
+    // Desenha o elemento com sombra
+    context.shadowColor = this.color;
+    context.shadowBlur = this.blur;
+    context.shadowOffsetX = this.distance * Math.sin(toRadians(this.angle));
+    context.shadowOffsetY = this.distance * Math.cos(toRadians(this.angle));
+    elementToDraw(context);
+    // Reseta a sombra e apaga o elemento, deixando apenas a sombra
+    context.shadowBlur = 0;
+    context.shadowOffsetX = 0;
+    context.shadowOffsetY = 0;
+    context.globalCompositeOperation = "destination-out";
+    elementToDraw(context);
   }
 
   protected appendFilterControls(container: HTMLDivElement): void {
@@ -122,30 +105,20 @@ export class DropShadowFilter extends Filter {
   }
 
   private handleAngleControlChange = (newValue: number): void => {
-    if (this.angleControl) {
-      this.angle = Number(newValue);
-      this.onChange();
-    }
+    this.angle = Number(newValue);
+    this.onChange();
   };
-
   private handleDistanceControlChange = (newValue: number): void => {
-    if (this.distanceControl) {
-      this.distance = Number(newValue);
-      this.onChange();
-    }
+    this.distance = Number(newValue);
+    this.onChange();
   };
-
   private handleBlurControlChange = (newValue: number): void => {
-    if (this.blurControl) {
-      this.blur = Number(newValue);
-      this.onChange();
-    }
+    this.blur = Number(newValue);
+    this.onChange();
   };
-
   private handleColorControlChange = (newValue: string): void => {
-    if (this.colorControl) {
-      this.color = newValue;
-      this.onChange();
-    }
+    this.color = newValue;
+    this.onChange();
   };
 }
+
