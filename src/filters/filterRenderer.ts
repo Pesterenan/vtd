@@ -37,12 +37,12 @@ export class FilterRenderer {
   ): void => {
     const { effectsContext, scratchContext } = FilterRenderer;
     if (!effectsContext || !scratchContext) return;
+  mainContext.save();
 
     const sortedFilters = elementFilters.sort(
       (a, b) => a.priority - b.priority,
     );
 
-    // Limpa os canvases de trabalho
     this.clearContext(scratchContext);
     this.clearContext(effectsContext);
 
@@ -53,7 +53,7 @@ export class FilterRenderer {
       scratchContext.restore();
 
       effectsContext.save();
-      effectsContext.globalCompositeOperation = 'destination-over';
+      effectsContext.globalCompositeOperation = 'destination-atop';
       effectsContext.drawImage(mainContext.canvas, 0, 0);
       effectsContext.globalCompositeOperation =
         filter.composite as GlobalCompositeOperation;
@@ -69,6 +69,7 @@ export class FilterRenderer {
     }
 
     mainContext.drawImage(effectsContext.canvas, 0, 0);
+    mainContext.restore();
   };
 
   private static clearContext(context: CanvasRenderingContext2D): void {

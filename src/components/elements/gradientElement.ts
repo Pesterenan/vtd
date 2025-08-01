@@ -5,6 +5,7 @@ import type {
   Position,
   Size,
 } from "src/components/types";
+import { FilterRenderer } from "src/filters/filterRenderer";
 import { BoundingBox } from "src/utils/boundingBox";
 import { rotatePoint } from "src/utils/transforms";
 import { Vector } from "src/utils/vector";
@@ -98,6 +99,15 @@ export class GradientElement extends Element<IGradientElementData> {
 
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return;
+    context.globalAlpha = this.opacity;
+    if (this.filters.length) {
+      FilterRenderer.applyFilters(context, this.filters, this.drawGradient);
+    } else {
+      this.drawGradient(context);
+    }
+  }
+
+  private drawGradient = (context: CanvasRenderingContext2D): void => {
     context.save();
     let gradient: CanvasGradient | null = null;
     switch (this.gradientFormat) {
@@ -141,7 +151,7 @@ export class GradientElement extends Element<IGradientElementData> {
     }
     context.fillRect(0, 0, this.size.width, this.size.height);
     context.restore();
-  }
+  };
 
   public getBoundingBox(): BoundingBox {
     this.boundingBox.update(this.position, this.size, this.rotation);

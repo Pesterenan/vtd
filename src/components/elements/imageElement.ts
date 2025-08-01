@@ -49,19 +49,6 @@ export class ImageElement extends Element<IImageElementData> {
 
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible || !this.isImageLoaded || !this.image) return;
-
-    // TODO: Implement background draw
-    // if (this.backgroundOpacity > 0) {
-    //   context.globalAlpha = this.backgroundOpacity;
-    //   context.fillStyle = this.backgroundColor;
-    //   context.fillRect(
-    //     -this.size.width * 0.5,
-    //     -this.size.height * 0.5,
-    //     this.size.width,
-    //     this.size.height,
-    //   );
-    // }
-
     context.globalAlpha = this.opacity;
     if (this.filters.length > 0) {
       FilterRenderer.applyFilters(context, this.filters, this.drawImage);
