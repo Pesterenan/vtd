@@ -1,19 +1,19 @@
-import type { Element } from "src/components/elements/element";
-import type { IElementData } from "src/components/types";
+import type { Filter } from "./filter";
 
 export class FilterRenderer {
   private static instance: FilterRenderer | null = null;
-  // Usaremos dois canvases que trocam de papel (leitura/escrita)
-  private static canvasA: HTMLCanvasElement;
-  private static contextA: CanvasRenderingContext2D | null = null;
-  private static canvasB: HTMLCanvasElement;
-  private static contextB: CanvasRenderingContext2D | null = null;
+  private static effectsCanvas: HTMLCanvasElement;
+  private static effectsContext: CanvasRenderingContext2D | null = null;
+  private static scratchCanvas: HTMLCanvasElement;
+  private static scratchContext: CanvasRenderingContext2D | null = null;
 
   constructor({ width, height }: HTMLCanvasElement) {
-    FilterRenderer.canvasA = this.createCanvas(width, height);
-    FilterRenderer.contextA = FilterRenderer.canvasA.getContext("2d");
-    FilterRenderer.canvasB = this.createCanvas(width, height);
-    FilterRenderer.contextB = FilterRenderer.canvasB.getContext("2d");
+    FilterRenderer.effectsCanvas = this.createCanvas(width, height);
+    FilterRenderer.effectsContext =
+      FilterRenderer.effectsCanvas.getContext("2d");
+    FilterRenderer.scratchCanvas = this.createCanvas(width, height);
+    FilterRenderer.scratchContext =
+      FilterRenderer.scratchCanvas.getContext("2d");
   }
 
   private createCanvas(width: number, height: number): HTMLCanvasElement {
@@ -30,48 +30,45 @@ export class FilterRenderer {
     return FilterRenderer.instance;
   }
 
-  public static applyFiltersInPipeline = (
+  public static applyFilters = (
     mainContext: CanvasRenderingContext2D,
-    element: Element<IElementData>,
+    elementFilters: Array<Filter>,
     elementToDraw: (ctx: CanvasRenderingContext2D) => void,
   ): void => {
-    if (!FilterRenderer.contextA || !FilterRenderer.contextB) return;
+    const { effectsContext, scratchContext } = FilterRenderer;
+    if (!effectsContext || !scratchContext) return;
 
-    const filters = [...element.filters].sort((a, b) => a.priority - b.priority);
+    const sortedFilters = elementFilters.sort(
+      (a, b) => a.priority - b.priority,
+    );
 
-    if (filters.length === 0) {
-      elementToDraw(mainContext);
-      return;
+    // Limpa os canvases de trabalho
+    this.clearContext(scratchContext);
+    this.clearContext(effectsContext);
+
+    for (const filter of sortedFilters) {
+      this.clearContext(scratchContext);
+      scratchContext.save();
+      filter.apply(scratchContext, elementToDraw);
+      scratchContext.restore();
+
+      effectsContext.save();
+      effectsContext.globalCompositeOperation = 'destination-over';
+      effectsContext.drawImage(mainContext.canvas, 0, 0);
+      effectsContext.globalCompositeOperation =
+        filter.composite as GlobalCompositeOperation;
+      effectsContext.drawImage(this.scratchCanvas, 0, 0);
+      effectsContext.restore();
     }
 
-    // Configuração inicial do pipeline
-    let readContext = FilterRenderer.contextA;
-    let writeContext = FilterRenderer.contextB;
-    this.clearContext(readContext);
-    this.clearContext(writeContext);
-
-    // Passo 0: Desenha o elemento original como o estado inicial do pipeline
-    elementToDraw(writeContext);
-
-    // Passo 1: Executa o pipeline de filtros
-    for (const filter of filters) {
-      // Troca os buffers: a saída anterior é a entrada atual
-      [readContext, writeContext] = [writeContext, readContext];
-      this.clearContext(writeContext);
-
-      // O filtro aplica seu efeito, lendo de 'readContext' e escrevendo em 'writeContext'
-      filter.apply(writeContext, readContext, elementToDraw);
+    const colorCorrectionFilter = sortedFilters.find(
+      (f) => f.id === "color-correction",
+    );
+    if (!colorCorrectionFilter) {
+      elementToDraw(effectsContext);
     }
 
-    // Passo 2: Composição Final
-    // O último contexto de escrita ('writeContext') contém a imagem final.
-    // O último filtro na lista dita como a composição final é feita.
-    const finalFilter = filters[filters.length - 1];
-    mainContext.save();
-    mainContext.globalAlpha = finalFilter.globalAlpha;
-    mainContext.globalCompositeOperation = finalFilter.composite as GlobalCompositeOperation;
-    mainContext.drawImage(writeContext.canvas, 0, 0);
-    mainContext.restore();
+    mainContext.drawImage(effectsContext.canvas, 0, 0);
   };
 
   private static clearContext(context: CanvasRenderingContext2D): void {

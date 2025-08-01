@@ -175,17 +175,14 @@ export class DialogElementFilters extends Dialog {
   private toggleFilter(filter: Filter, isChecked: boolean): void {
     if (!this.activeElement) return;
     this.clearFilterControls();
-    const existingFilter = this.currentFilters.find((f) => f.id === filter.id);
-    const defaultFilter = this.defaultFilters.find((f) => f.id === filter.id);
     if (isChecked) {
-      if (existingFilter) {
-        this.activeElement.filters.push(existingFilter);
+      const existingFilter = this.currentFilters.find((f) => f.id === filter.id);
+      const defaultFilter = this.defaultFilters.find((f) => f.id === filter.id);
+      const filterToAdd = existingFilter || defaultFilter;
+      if (filterToAdd) {
+        this.activeElement.filters.push(filterToAdd);
         this.activeElement.filters.sort((a, b) => a.priority - b.priority);
-        this.selectFilter(existingFilter);
-      } else if (defaultFilter) {
-        this.activeElement.filters.push(defaultFilter);
-        this.activeElement.filters.sort((a, b) => a.priority - b.priority);
-        this.selectFilter(defaultFilter);
+        this.selectFilter(filterToAdd);
       }
     } else {
       this.activeElement.filters = this.activeElement.filters.filter(
