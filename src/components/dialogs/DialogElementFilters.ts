@@ -6,6 +6,7 @@ import type { Filter } from "src/filters/filter";
 import { OuterGlowFilter } from "src/filters/outerGlowFilter";
 import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
+import { GradientElement } from "../elements/gradientElement";
 
 export class DialogElementFilters extends Dialog {
   private activeElement: Element<TElementData> | null = null;
@@ -87,10 +88,13 @@ export class DialogElementFilters extends Dialog {
   }
 
   protected override onOpen(): void {
+    const isActiveElementGradient =
+      this.activeElement instanceof GradientElement;
     this.defaultFilters = [
       new ColorCorrectionFilter(),
-      new DropShadowFilter(),
-      new OuterGlowFilter(),
+      ...(!isActiveElementGradient
+        ? [new DropShadowFilter(), new OuterGlowFilter()]
+        : []),
     ];
     this.populateFilters();
   }
@@ -176,7 +180,9 @@ export class DialogElementFilters extends Dialog {
     if (!this.activeElement) return;
     this.clearFilterControls();
     if (isChecked) {
-      const existingFilter = this.currentFilters.find((f) => f.id === filter.id);
+      const existingFilter = this.currentFilters.find(
+        (f) => f.id === filter.id,
+      );
       const defaultFilter = this.defaultFilters.find((f) => f.id === filter.id);
       const filterToAdd = existingFilter || defaultFilter;
       if (filterToAdd) {
