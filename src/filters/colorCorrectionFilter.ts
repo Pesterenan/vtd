@@ -42,7 +42,7 @@ export class ColorCorrectionFilter extends Filter {
   }
 
   constructor() {
-    super("color-correction", "Correção de Cor", "after");
+    super("color-correction", "Correção de Cor", "after", 4);
     this.brightness = 100;
     this.contrast = 100;
     this.grayscale = 0;
@@ -50,15 +50,16 @@ export class ColorCorrectionFilter extends Filter {
     this.saturation = 100;
   }
 
-  protected filterEffects(
-    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-    source: OffscreenCanvas | HTMLImageElement,
-  ): void {
+  protected filterEffects = (
+    context: CanvasRenderingContext2D,
+    elementToDraw: (ctx: CanvasRenderingContext2D) => void,
+  ): void => {
     context.filter = `grayscale(${this.grayscale}%) hue-rotate(${this.hue}deg) saturate(${this.saturation}%) brightness(${this.brightness}%) contrast(${this.contrast}%)`;
-    context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
-  }
+    context.globalAlpha = this.globalAlpha;
+    elementToDraw(context);
+  };
 
-  protected appendFilterControls(container: HTMLDivElement): void {
+  protected appendFilterControls = (container: HTMLDivElement): void => {
     this.brightnessControl = createSliderControl(
       `${this.id}-brightness`,
       "Brilho",
@@ -102,7 +103,7 @@ export class ColorCorrectionFilter extends Filter {
       this.hueControl.element,
       this.saturationControl.element,
     );
-  }
+  };
 
   private handleBrightnessControlChange = (newValue: number): void => {
     this.brightness = Number(newValue);
@@ -125,3 +126,4 @@ export class ColorCorrectionFilter extends Filter {
     this.onChange();
   };
 }
+

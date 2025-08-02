@@ -1,5 +1,6 @@
 import { Element } from "src/components/elements/element";
 import type { IImageElementData, Position, Size } from "src/components/types";
+import { FilterRenderer } from "src/filters/filterRenderer";
 import { BoundingBox } from "src/utils/boundingBox";
 import { clamp } from "src/utils/easing";
 import { toRadians } from "src/utils/transforms";
@@ -47,43 +48,23 @@ export class ImageElement extends Element<IImageElementData> {
   }
 
   public draw(context: CanvasRenderingContext2D): void {
-    if (!this.isVisible) return;
-    const angleInRadians = toRadians(this.rotation);
-    context.save();
-    context.translate(this.position.x, this.position.y);
-    context.rotate(angleInRadians);
-    context.scale(this.scale.x, this.scale.y);
-    // Draw main background for image
-    if (this.backgroundOpacity > 0) {
-      context.globalAlpha = this.backgroundOpacity;
-      context.fillStyle = this.backgroundColor;
-      context.fillRect(
-        -this.size.width * 0.5,
-        -this.size.height * 0.5,
-        this.size.width,
-        this.size.height,
-      );
-    }
+    if (!this.isVisible || !this.isImageLoaded || !this.image) return;
     context.globalAlpha = this.opacity;
-    // Apply 'before' filters
-    for (const filter of this.filters) {
-      if (filter.applies === "before" && this.image) {
-        filter.apply(context, this.image);
-      }
+    if (this.filters.length > 0) {
+      FilterRenderer.applyFilters(context, this.filters, this.drawImage);
+    } else {
+      this.drawImage(context);
     }
-    // Draw image
-    this.drawImage(context);
-    // Apply 'after' filters
-    for (const filter of this.filters) {
-      if (filter.applies === "after" && this.image) {
-        filter.apply(context, this.image);
-      }
-    }
-    context.restore();
   }
 
-  private drawImage(context: CanvasRenderingContext2D): void {
+  private drawImage = (
+    context: CanvasRenderingContext2D,
+  ): void => {
     if (this.isImageLoaded && this.image) {
+      context.save();
+      context.translate(this.position.x, this.position.y);
+      context.rotate(toRadians(this.rotation));
+      context.scale(this.scale.x, this.scale.y);
       context.drawImage(
         this.image,
         -this.size.width * 0.5,
@@ -91,8 +72,9 @@ export class ImageElement extends Element<IImageElementData> {
         this.size.width,
         this.size.height,
       );
+      context.restore();
     }
-  }
+  };
 
   public loadImage(encodedImage: string): void {
     this.properties.set("encodedImage", encodedImage);

@@ -30,6 +30,8 @@ import type { EventBus } from "src/utils/eventBus";
 import getElementById from "src/utils/getElementById";
 import { ElementGroup } from "./elements/elementGroup";
 import { ToolManager } from "./tools/toolManager";
+import { FilterRenderer } from "src/filters/filterRenderer";
+import { remap } from "src/utils/easing";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -46,7 +48,7 @@ export class WorkArea {
   public mainContext: CanvasRenderingContext2D | null = null;
   private elements: Element<TElementData>[] = [];
   private _transformBox: TransformBox | null = null;
-  private _zoomLevel = 0.3;
+  private _zoomLevel = 1;
   private workArea: IWorkAreaProperties | Record<string, never> = {};
   private tools: { [key in TOOL]: Tool };
   public currentTool: TOOL = TOOL.SELECT;
@@ -99,6 +101,7 @@ export class WorkArea {
     new DialogExportImage(eventBus);
     new DialogNewProject(eventBus);
 
+    this.handleResize();
     this.update();
   }
 
@@ -134,6 +137,8 @@ export class WorkArea {
       context: workAreaContext,
       offset: workAreaOffset,
     };
+
+    FilterRenderer.getInstance(workAreaCanvas);
 
     if (mainWindow) {
       mainWindow.appendChild(this.mainCanvas);
@@ -572,6 +577,7 @@ export class WorkArea {
         );
         newElement.deserialize(elData);
         requestAnimationFrame(() => requestAnimationFrame(() => this.update()));
+        requestAnimationFrame(() => requestAnimationFrame(() => this.update()));
         break;
       case "text":
         newElement = new TextElement(
@@ -774,8 +780,12 @@ export class WorkArea {
   private centerWorkArea(): void {
     if (this.workArea && this.mainCanvas) {
       const workAreaOffset = {
-        x: this.mainCanvas.width * 0.5 - this.workArea.canvas.width * this.zoomLevel * 0.5,
-        y: this.mainCanvas.height * 0.5 - this.workArea.canvas.height * this.zoomLevel * 0.5,
+        x:
+          this.mainCanvas.width * 0.5 -
+          this.workArea.canvas.width * this.zoomLevel * 0.5,
+        y:
+          this.mainCanvas.height * 0.5 -
+          this.workArea.canvas.height * this.zoomLevel * 0.5,
       };
       this.workArea.offset = workAreaOffset;
     }
@@ -786,9 +796,22 @@ export class WorkArea {
       this.mainCanvas.width =
         window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
       this.mainCanvas.height = window.innerHeight;
+      this.handleRezoom(this.mainCanvas.width);
       this.centerWorkArea();
       this.update();
     }
+  }
+
+  private handleRezoom(width: number) {
+    const newZoomLevel = remap(
+      0,
+      this.workArea.canvas.width,
+      0,
+      0.95,
+      width,
+      true,
+    );
+    this.zoomLevel = newZoomLevel;
   }
 
   private update(): void {
@@ -796,6 +819,16 @@ export class WorkArea {
       throw new Error("Canvas context is not available");
     }
     this.clearCanvas();
+    // FIX: AJUSTAR COMO A IMAGEM É EXPORTADA SE FOR PNG.
+    this.workArea.context.fillStyle = 'white';
+      this.workArea.context.fillRect(
+        0,
+        0,
+        this.workArea.canvas.width,
+        this.workArea.canvas.height,
+      );
+    // FIX: 
+
     for (const element of this.elements) {
       element.draw(this.workArea.context);
     }

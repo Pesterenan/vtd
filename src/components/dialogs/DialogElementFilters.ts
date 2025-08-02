@@ -6,10 +6,11 @@ import type { Filter } from "src/filters/filter";
 import { OuterGlowFilter } from "src/filters/outerGlowFilter";
 import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
+import { GradientElement } from "../elements/gradientElement";
 
 export class DialogElementFilters extends Dialog {
   private activeElement: Element<TElementData> | null = null;
-  private activeElementId = -1;
+  private currentFilterData: Partial<Filter>[] = [];
   private currentFilters: Filter[] = [];
   private defaultFilters: Filter[] = [];
   private eventBus: EventBus;
@@ -18,16 +19,27 @@ export class DialogElementFilters extends Dialog {
     super({ id: "filters", title: "Filtros de Elemento", isDraggable: true });
     this.eventBus = eventBus;
     this.eventBus.on("dialog:elementFilters:open", ({ layerId }) => {
-      this.activeElementId = layerId;
+      this.eventBus.emit("workarea:selectById", {
+        elementsId: new Set([layerId]),
+      });
+      const [selectedElements] = this.eventBus.request("workarea:selected:get");
+      if (!selectedElements.length) return;
+      this.activeElement = selectedElements[0];
+      this.currentFilters = [...this.activeElement.filters];
+      for (const filter of this.currentFilters) {
+        this.currentFilterData.push(filter.serialize());
+      }
       this.open();
     });
   }
 
   protected appendDialogContent(container: HTMLDivElement): void {
-    container.innerHTML = `
-<div id="filter-list" class="container column"></div>
-<div id="filter-controls"></div>
-`;
+    const filterList = document.createElement("div");
+    filterList.id = "filter-list";
+    filterList.className = "container column";
+    const filterControls = document.createElement("div");
+    filterControls.id = "filter-controls";
+    container.append(filterList, filterControls);
   }
 
   protected appendDialogActions(menu: HTMLMenuElement): void {
@@ -36,11 +48,7 @@ export class DialogElementFilters extends Dialog {
     btnAccept.className = "btn-common-wide";
     btnAccept.textContent = "Aplicar";
     btnAccept.type = "button";
-    btnAccept.addEventListener("click", () => {
-      this.activeElementId = -1;
-      this.clearFilterControls();
-      this.close();
-    });
+    btnAccept.addEventListener("click", () => this.close());
 
     const btnCancel = document.createElement("button");
     btnCancel.id = "btn_cancel-filters";
@@ -48,11 +56,17 @@ export class DialogElementFilters extends Dialog {
     btnCancel.textContent = "Cancelar";
     btnCancel.type = "button";
     btnCancel.addEventListener("click", () => {
-      if (!this.activeElement) return;
-      this.activeElement.filters = this.currentFilters;
-      this.activeElement = null;
-      this.activeElementId = -1;
-      this.clearFilterControls();
+      for (const filterData of this.currentFilterData) {
+        const currentFilter = this.currentFilters.find(
+          (f) => f.id === filterData.id,
+        );
+        if (currentFilter) {
+          currentFilter.deserialize(filterData);
+        }
+      }
+      if (this.activeElement) {
+        this.activeElement.filters = [...this.currentFilters];
+      }
       this.close();
     });
 
@@ -62,8 +76,9 @@ export class DialogElementFilters extends Dialog {
     btnReset.textContent = "Redefinir";
     btnReset.type = "button";
     btnReset.addEventListener("click", () => {
-      if (!this.activeElement) return;
-      this.activeElement.filters = [];
+      if (this.activeElement) {
+        this.activeElement.filters = [];
+      }
       this.populateFilters();
       this.eventBus.emit("workarea:update");
     });
@@ -73,24 +88,22 @@ export class DialogElementFilters extends Dialog {
   }
 
   protected override onOpen(): void {
+    const isActiveElementGradient =
+      this.activeElement instanceof GradientElement;
     this.defaultFilters = [
       new ColorCorrectionFilter(),
-      new DropShadowFilter(),
-      new OuterGlowFilter(),
+      ...(!isActiveElementGradient
+        ? [new DropShadowFilter(), new OuterGlowFilter()]
+        : []),
     ];
-    this.eventBus.emit("workarea:selectById", {
-      elementsId: new Set([this.activeElementId]),
-    });
-    const [selectedElements] = this.eventBus.request("workarea:selected:get");
-    if (!selectedElements) return;
-    this.activeElement = selectedElements[0];
-    this.currentFilters = [...this.activeElement.filters];
     this.populateFilters();
   }
 
   protected override onClose(): void {
     this.activeElement = null;
-    this.activeElementId = -1;
+    this.currentFilterData = [];
+    this.clearFilterList();
+    this.clearFilterControls();
     this.eventBus.emit("workarea:update");
   }
 
@@ -131,53 +144,51 @@ export class DialogElementFilters extends Dialog {
     for (const filter of this.defaultFilters) {
       mergedFilters.set(filter.id, filter);
     }
-    for (const filter of this.activeElement.filters) {
+    for (const filter of this.currentFilters) {
       mergedFilters.set(filter.id, filter);
     }
-
-    mergedFilters.forEach((filter, key) => {
+    for (const [key, filter] of mergedFilters.entries()) {
       const isChecked =
         this.activeElement?.filters.some((f) => f.id === key) ?? false;
       const filterItem = document.createElement("li");
       filterItem.id = `filter-item-${key}`;
       filterItem.className = "container ai-c jc-sb g-05 li_layer-item pad-05";
-      filterItem.innerHTML = `
-<input type="checkbox" id="chk_filter-${key}" ${isChecked ? "checked" : ""} />
-<label>${filter.label}</label>
-`;
+      const filterCheckbox = document.createElement(
+        "input",
+      ) as HTMLInputElement;
+      filterCheckbox.type = "checkbox";
+      filterCheckbox.id = `chk_filter-${key}`;
+      filterCheckbox.checked = isChecked;
+      filterCheckbox.addEventListener("change", () => {
+        this.toggleFilter(filter, filterCheckbox.checked);
+        this.eventBus.emit("workarea:update");
+      });
+      const filterLabel = document.createElement("label") as HTMLLabelElement;
+      filterLabel.innerText = filter.label;
+      filterItem.append(filterCheckbox, filterLabel);
+
       filterItem.addEventListener("click", () => {
         this.clearFilterControls();
         this.selectFilter(filter);
         this.eventBus.emit("workarea:update");
       });
-      const checkbox = filterItem.querySelector<HTMLInputElement>(
-        `#chk_filter-${key}`,
-      );
-      if (checkbox) {
-        checkbox.addEventListener("change", () => {
-          this.toggleFilter(filter, checkbox.checked);
-          this.eventBus.emit("workarea:update");
-        });
-      }
       this.appendToFilterList(filterItem);
-    });
+    }
   }
 
   private toggleFilter(filter: Filter, isChecked: boolean): void {
-    if (!this.activeElement || !this.defaultFilters) return;
+    if (!this.activeElement) return;
     this.clearFilterControls();
     if (isChecked) {
-      const exists = this.activeElement.filters.some((f) => f.id === filter.id);
-      if (!exists) {
-        const defaultFilter = this.defaultFilters.find(
-          (f) => f.id === filter.id,
-        );
-        if (defaultFilter) {
-          this.activeElement.filters.push(defaultFilter);
-          this.selectFilter(defaultFilter);
-        }
-      } else {
-        this.selectFilter(filter);
+      const existingFilter = this.currentFilters.find(
+        (f) => f.id === filter.id,
+      );
+      const defaultFilter = this.defaultFilters.find((f) => f.id === filter.id);
+      const filterToAdd = existingFilter || defaultFilter;
+      if (filterToAdd) {
+        this.activeElement.filters.push(filterToAdd);
+        this.activeElement.filters.sort((a, b) => a.priority - b.priority);
+        this.selectFilter(filterToAdd);
       }
     } else {
       this.activeElement.filters = this.activeElement.filters.filter(

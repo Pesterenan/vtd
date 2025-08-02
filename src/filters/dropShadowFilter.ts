@@ -38,7 +38,7 @@ export class DropShadowFilter extends Filter {
   private colorControl: IColorControl | null = null;
 
   constructor() {
-    super("drop-shadow", "Sombra", "before");
+    super("drop-shadow", "Sombra", "before", 1);
     this.angle = 45;
     this.distance = 20;
     this.blur = 10;
@@ -46,14 +46,16 @@ export class DropShadowFilter extends Filter {
   }
 
   protected filterEffects(
-    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-    source: OffscreenCanvas | HTMLImageElement,
+    context: CanvasRenderingContext2D,
+    elementToDraw: (ctx: CanvasRenderingContext2D) => void,
   ): void {
+    // Desenha o elemento com sombra
     context.shadowColor = this.color;
     context.shadowBlur = this.blur;
     context.shadowOffsetX = this.distance * Math.sin(toRadians(this.angle));
     context.shadowOffsetY = this.distance * Math.cos(toRadians(this.angle));
-    context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
+    context.globalAlpha = this.globalAlpha;
+    elementToDraw(context);
   }
 
   protected appendFilterControls(container: HTMLDivElement): void {
@@ -98,30 +100,20 @@ export class DropShadowFilter extends Filter {
   }
 
   private handleAngleControlChange = (newValue: number): void => {
-    if (this.angleControl) {
-      this.angle = Number(newValue);
-      this.onChange();
-    }
+    this.angle = Number(newValue);
+    this.onChange();
   };
-
   private handleDistanceControlChange = (newValue: number): void => {
-    if (this.distanceControl) {
-      this.distance = Number(newValue);
-      this.onChange();
-    }
+    this.distance = Number(newValue);
+    this.onChange();
   };
-
   private handleBlurControlChange = (newValue: number): void => {
-    if (this.blurControl) {
-      this.blur = Number(newValue);
-      this.onChange();
-    }
+    this.blur = Number(newValue);
+    this.onChange();
   };
-
   private handleColorControlChange = (newValue: string): void => {
-    if (this.colorControl) {
-      this.color = newValue;
-      this.onChange();
-    }
+    this.color = newValue;
+    this.onChange();
   };
 }
+

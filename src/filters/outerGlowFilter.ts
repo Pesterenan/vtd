@@ -23,21 +23,23 @@ export class OuterGlowFilter extends Filter {
   private colorControl: IColorControl | null = null;
 
   constructor() {
-    super("outer-glow", "Luz Brilhante (Fora)", "before");
+    super("outer-glow", "Luz Brilhante (Fora)", "before", 2);
     this.blur = 10;
     this.color = "#FFFAAA";
   }
 
-  protected filterEffects(
-    context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-    source: OffscreenCanvas | HTMLImageElement,
-  ): void {
+  protected filterEffects = (
+    context: CanvasRenderingContext2D,
+    elementToDraw: (ctx: CanvasRenderingContext2D) => void,
+  ): void => {
+    // Desenha o elemento com brilho
     context.shadowColor = this.color;
     context.shadowBlur = this.blur;
     context.shadowOffsetX = 0;
     context.shadowOffsetY = 0;
-    context.drawImage(source, -source.width * 0.5, -source.height * 0.5);
-  }
+    context.globalAlpha = this.globalAlpha;
+    elementToDraw(context);
+  };
 
   protected appendFilterControls(container: HTMLDivElement): void {
     this.blurControl = createSliderControl(
