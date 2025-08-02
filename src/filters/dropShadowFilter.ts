@@ -54,12 +54,7 @@ export class DropShadowFilter extends Filter {
     context.shadowBlur = this.blur;
     context.shadowOffsetX = this.distance * Math.sin(toRadians(this.angle));
     context.shadowOffsetY = this.distance * Math.cos(toRadians(this.angle));
-    elementToDraw(context);
-    // Reseta a sombra e apaga o elemento, deixando apenas a sombra
-    context.shadowBlur = 0;
-    context.shadowOffsetX = 0;
-    context.shadowOffsetY = 0;
-    context.globalCompositeOperation = "destination-out";
+    context.globalAlpha = this.globalAlpha;
     elementToDraw(context);
   }
 

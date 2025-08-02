@@ -819,6 +819,16 @@ export class WorkArea {
       throw new Error("Canvas context is not available");
     }
     this.clearCanvas();
+    // FIX: AJUSTAR COMO A IMAGEM É EXPORTADA SE FOR PNG.
+    this.workArea.context.fillStyle = 'white';
+      this.workArea.context.fillRect(
+        0,
+        0,
+        this.workArea.canvas.width,
+        this.workArea.canvas.height,
+      );
+    // FIX: 
+
     for (const element of this.elements) {
       element.draw(this.workArea.context);
     }

@@ -37,11 +37,7 @@ export class OuterGlowFilter extends Filter {
     context.shadowBlur = this.blur;
     context.shadowOffsetX = 0;
     context.shadowOffsetY = 0;
-    elementToDraw(context);
-
-    // Reseta o brilho e apaga o elemento, deixando apenas o brilho
-    context.shadowBlur = 0;
-    context.globalCompositeOperation = "destination-out";
+    context.globalAlpha = this.globalAlpha;
     elementToDraw(context);
   };
 

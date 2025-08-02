@@ -147,9 +147,9 @@ export class GradientTool extends Tool {
 
     // Hovering Points Logic
     if (this.startPosition && this.endPosition) {
-      this.isHoveringEnd = mousePosition.distance(this.endPosition) < 10;
+      this.isHoveringEnd = mousePosition.distance(this.endPosition) < 30;
       this.isHoveringStart =
-        !this.isHoveringEnd && mousePosition.distance(this.startPosition) < 10;
+        !this.isHoveringEnd && mousePosition.distance(this.startPosition) < 30;
 
       if (this.colorsStops) {
         for (let i = 1; i < this.colorsStops.length - 1; i++) {

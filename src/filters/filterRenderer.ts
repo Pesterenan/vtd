@@ -2,12 +2,17 @@ import type { Filter } from "./filter";
 
 export class FilterRenderer {
   private static instance: FilterRenderer | null = null;
+  private static copyCanvas: HTMLCanvasElement;
+  private static copyContext: CanvasRenderingContext2D | null = null;
   private static effectsCanvas: HTMLCanvasElement;
   private static effectsContext: CanvasRenderingContext2D | null = null;
   private static scratchCanvas: HTMLCanvasElement;
   private static scratchContext: CanvasRenderingContext2D | null = null;
 
   constructor({ width, height }: HTMLCanvasElement) {
+    FilterRenderer.copyCanvas = this.createCanvas(width, height);
+    FilterRenderer.copyContext =
+      FilterRenderer.copyCanvas.getContext("2d");
     FilterRenderer.effectsCanvas = this.createCanvas(width, height);
     FilterRenderer.effectsContext =
       FilterRenderer.effectsCanvas.getContext("2d");
@@ -35,36 +40,62 @@ export class FilterRenderer {
     elementFilters: Array<Filter>,
     elementToDraw: (ctx: CanvasRenderingContext2D) => void,
   ): void => {
-    const { effectsContext, scratchContext } = FilterRenderer;
-    if (!effectsContext || !scratchContext) return;
-  mainContext.save();
+    const { copyContext, effectsContext, scratchContext } = FilterRenderer;
+    if (!copyContext || !effectsContext || !scratchContext) return;
 
-    const sortedFilters = elementFilters.sort(
-      (a, b) => a.priority - b.priority,
-    );
+    mainContext.save();
+
+    // Se não houver filtros para aplicar, apenas desenha no mainContext e retorna.
+    const sortedFilters = elementFilters.sort((a, b) => a.priority - b.priority);
+    if (!sortedFilters.length) {
+      elementToDraw(mainContext);
+      mainContext.restore();
+      return;
+    }
+
+    const beforeFilters = sortedFilters.filter((f) => f.applies === "before");
+    const afterFilters = sortedFilters.filter((f) => f.applies === "after");
 
     this.clearContext(scratchContext);
     this.clearContext(effectsContext);
+    this.clearContext(copyContext);
 
-    for (const filter of sortedFilters) {
+    copyContext.drawImage(mainContext.canvas, 0, 0);
+    effectsContext.drawImage(copyContext.canvas, 0,0);
+
+    for (const filter of beforeFilters) {
+      // O filtro desenha seu efeito isolado no scratchContext.
       this.clearContext(scratchContext);
       scratchContext.save();
       filter.apply(scratchContext, elementToDraw);
       scratchContext.restore();
-
+      // Depois é aplicado no effectsContext.
       effectsContext.save();
-      effectsContext.globalCompositeOperation = 'destination-atop';
-      effectsContext.drawImage(mainContext.canvas, 0, 0);
-      effectsContext.globalCompositeOperation =
-        filter.composite as GlobalCompositeOperation;
-      effectsContext.drawImage(this.scratchCanvas, 0, 0);
+      effectsContext.globalAlpha = filter.globalAlpha;
+      effectsContext.globalCompositeOperation = filter.composite as GlobalCompositeOperation;
+      effectsContext.drawImage(scratchContext.canvas, 0, 0);
       effectsContext.restore();
     }
 
-    const colorCorrectionFilter = sortedFilters.find(
-      (f) => f.id === "color-correction",
-    );
-    if (!colorCorrectionFilter) {
+    if (afterFilters.length > 0) {
+      for (const filter of afterFilters) {
+        this.clearContext(scratchContext);
+        scratchContext.save();
+        filter.apply(scratchContext, elementToDraw);
+        scratchContext.restore();
+
+        effectsContext.save();
+        effectsContext.globalCompositeOperation = 'destination-out';
+        effectsContext.drawImage(scratchContext.canvas, 0, 0);
+        effectsContext.globalCompositeOperation = 'destination-over';
+        effectsContext.drawImage(copyContext.canvas, 0, 0);
+
+        effectsContext.globalAlpha = filter.globalAlpha;
+        effectsContext.globalCompositeOperation = filter.composite as GlobalCompositeOperation;
+        effectsContext.drawImage(scratchContext.canvas, 0, 0);
+        effectsContext.restore();
+      }
+    } else {
       elementToDraw(effectsContext);
     }
 
@@ -77,3 +108,4 @@ export class FilterRenderer {
     context.clearRect(0, 0, context.canvas.width, context.canvas.height);
   }
 }
+
