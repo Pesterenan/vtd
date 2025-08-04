@@ -32,6 +32,7 @@ import { ElementGroup } from "./elements/elementGroup";
 import { ToolManager } from "./tools/toolManager";
 import { FilterRenderer } from "src/filters/filterRenderer";
 import { remap } from "src/utils/easing";
+import { BoundingBox } from "src/utils/boundingBox";
 
 const WORK_AREA_WIDTH = 1920;
 const WORK_AREA_HEIGHT = 1080;
@@ -54,6 +55,7 @@ export class WorkArea {
   public currentTool: TOOL = TOOL.SELECT;
   public lastTool: TOOL | null = TOOL.SELECT;
   private projectTitle = "";
+  private copiedElements: TElementData[] = [];
 
   public get offset(): Position {
     return this.workArea.offset;
@@ -412,18 +414,59 @@ export class WorkArea {
     this.update();
   }
 
-  public copyCanvasToClipboard(): void {
-    if (!this.workArea.canvas) return;
-    this.workArea.canvas.toBlob((blob) => {
-      if (blob) {
-        const item = new ClipboardItem({ "image/png": blob });
-        navigator.clipboard.write([item]);
-        this.eventBus.emit("alert:add", {
-          message: "Área de Trabalho copiada para a área de transferência",
-          type: "success",
-        });
+  private handleCopyCommand(): void {
+    const [selectedElements] = this.eventBus.request("workarea:selected:get");
+    if (!selectedElements.length) {
+      if (!this.workArea.canvas) return;
+      this.workArea.canvas.toBlob((blob) => {
+        if (blob) {
+          const item = new ClipboardItem({ "image/png": blob });
+          navigator.clipboard.write([item]);
+          this.eventBus.emit("alert:add", {
+            message: "Área de Trabalho copiada para a área de transferência",
+            type: "success",
+          });
+        }
+      }, "image/png");
+    } else {
+      this.copiedElements = selectedElements.map((el) => el.serialize());
+      this.eventBus.emit("alert:add", {
+        message: "Elementos copiados para a área de transferência",
+        type: "success",
+      });
+    }
+  }
+
+  private handlePasteCommand(): void {
+    if (this.copiedElements.length > 0) {
+      const newElementsIds: number[] = [];
+      let zDepth = this.elements.length;
+      for (const elementData of this.copiedElements) {
+        elementData.position.x += 25;
+        elementData.position.y += 25;
+        elementData.zDepth = ++zDepth;
+        elementData.layerName += " cópia";
+        const newElement = this.createElementFromData(elementData);
+        if (newElement) {
+          this.elements.push(newElement);
+          newElementsIds.push(zDepth);
+        }
       }
-    }, "image/png");
+      this.eventBus.emit("workarea:selectById", {
+        elementsId: new Set(newElementsIds),
+      });
+      this.update();
+    }
+  }
+
+  private handleDeleteCommand() {
+    const [selectedElements] = this.eventBus.request("workarea:selected:get");
+    if (selectedElements.length) {
+      const elementIds = selectedElements.map((el) => el.elementId);
+      for (const id of elementIds) {
+        this.eventBus.emit("workarea:deleteElement", { elementId: id });
+      }
+    }
   }
 
   private handleDropItems(evt: DragEvent | ClipboardEvent): void {
@@ -513,7 +556,13 @@ export class WorkArea {
 
     if (!evt.repeat) {
       if (evt.ctrlKey && evt.code === "KeyC") {
-        this.copyCanvasToClipboard();
+        this.handleCopyCommand();
+      }
+      if (evt.ctrlKey && evt.code === "KeyV") {
+        this.handlePasteCommand();
+      }
+      if (evt.code === "Delete") {
+        this.handleDeleteCommand();
       }
 
       let tool: TOOL | null = null;
@@ -821,14 +870,14 @@ export class WorkArea {
     }
     this.clearCanvas();
     // FIX: AJUSTAR COMO A IMAGEM É EXPORTADA SE FOR PNG.
-    this.workArea.context.fillStyle = 'white';
-      this.workArea.context.fillRect(
-        0,
-        0,
-        this.workArea.canvas.width,
-        this.workArea.canvas.height,
-      );
-    // FIX: 
+    this.workArea.context.fillStyle = "white";
+    this.workArea.context.fillRect(
+      0,
+      0,
+      this.workArea.canvas.width,
+      this.workArea.canvas.height,
+    );
+    // FIX:
 
     for (const element of this.elements) {
       element.draw(this.workArea.context);
@@ -975,5 +1024,71 @@ export class WorkArea {
       type: "group",
     });
     this.update();
+  }
+
+  private copyLayerToClipboard({
+    layerId,
+    transparent,
+  }: {
+    layerId: number;
+    transparent: boolean;
+  }): void {
+    const element = this.getFlatElements(this.elements).find(
+      (el) => el.elementId === layerId,
+    );
+    if (!element) {
+      this.eventBus.emit("alert:add", {
+        message: "Elemento não encontrado",
+        type: "error",
+      });
+      return;
+    }
+
+    const tempCanvas = document.createElement("canvas");
+    const tempContext = tempCanvas.getContext("2d");
+    if (!tempContext) {
+      this.eventBus.emit("alert:add", {
+        message: "Erro ao criar o contexto do canvas",
+        type: "error",
+      });
+      return;
+    }
+
+    const bounds = BoundingBox.calculateBoundingBox([element]);
+    tempCanvas.width = bounds.size.width;
+    tempCanvas.height = bounds.size.height;
+
+    if (!transparent) {
+      tempContext.drawImage(
+        this.workArea.canvas,
+        bounds.position.x - bounds.size.width / 2,
+        bounds.position.y - bounds.size.height / 2,
+        bounds.size.width,
+        bounds.size.height,
+        0,
+        0,
+        bounds.size.width,
+        bounds.size.height,
+      );
+    }
+
+    tempContext.translate(bounds.position.x, bounds.position.y);
+    element.draw(tempContext);
+
+    tempCanvas.toBlob((blob) => {
+      if (blob) {
+        const item = new ClipboardItem({ "image/png": blob });
+        navigator.clipboard.write([item]);
+        this.eventBus.emit("alert:add", {
+          message: "Camada copiada para a área de transferência",
+          type: "success",
+        });
+      } else {
+        this.eventBus.emit("alert:add", {
+          message: "Erro ao copiar a camada",
+          type: "error",
+        });
+      }
+    }, "image/png");
   }
 }
