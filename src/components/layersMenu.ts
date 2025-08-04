@@ -160,6 +160,10 @@ export class LayersMenu {
   }
 
   private attachCommonEvents(li: HTMLLIElement, layer: Layer): HTMLLIElement {
+    li.addEventListener("contextmenu", (event) => {
+      this.showContextMenu(event, layer);
+    });
+
     // Select Layer Event
     li.addEventListener("click", (evt: MouseEvent): void => {
       if (
@@ -485,5 +489,46 @@ export class LayersMenu {
       </span>
     </div>
   `;
+  }
+
+  private showContextMenu(event: MouseEvent, layer: Layer): void {
+    event.preventDefault();
+    const contextMenu = document.createElement("div");
+    contextMenu.id = "context-menu";
+    contextMenu.className = "context-menu";
+    contextMenu.style.top = `${event.pageY}px`;
+    contextMenu.style.left = `${event.pageX}px`;
+    contextMenu.style.position = 'fixed';
+
+    const copyTransparentBtn = document.createElement("button");
+    copyTransparentBtn.textContent = "Copiar (fundo transparente)";
+    copyTransparentBtn.addEventListener("click", () => {
+      this.copyLayer(layer, true);
+      contextMenu.remove();
+    });
+
+    const copyWithBackgroundBtn = document.createElement("button");
+    copyWithBackgroundBtn.textContent = "Copiar (com fundo)";
+    copyWithBackgroundBtn.addEventListener("click", () => {
+      this.copyLayer(layer, false);
+      contextMenu.remove();
+    });
+
+    contextMenu.appendChild(copyTransparentBtn);
+    contextMenu.appendChild(copyWithBackgroundBtn);
+
+    document.body.appendChild(contextMenu);
+
+    const clickOutsideHandler = (e: MouseEvent) => {
+      if (!contextMenu.contains(e.target as Node)) {
+        contextMenu.remove();
+        document.removeEventListener("click", clickOutsideHandler);
+      }
+    };
+    document.addEventListener("click", clickOutsideHandler);
+  }
+
+  private copyLayer(layer: Layer, transparent: boolean): void {
+    this.eventBus.emit("layer:copy", { layerId: layer.id, transparent });
   }
 }

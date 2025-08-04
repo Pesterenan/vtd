@@ -280,6 +280,7 @@ export class WorkArea {
       this.eventBus.on("workarea:createNewProject", ({ projectData }) =>
         this.createNewProject(projectData),
       );
+      this.eventBus.on("layer:copy", this.copyLayerToClipboard.bind(this));
       this.mainCanvas.addEventListener("dragover", (evt) => {
         evt.preventDefault();
       });
