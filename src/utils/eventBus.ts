@@ -56,6 +56,10 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "layer:export": {
+    payload: { layerId: number; transparent: boolean };
+    result: unknown;
+  };
   "layer:generateHierarchy": {
     payload: ReorganizeLayersPayload;
     result: unknown;

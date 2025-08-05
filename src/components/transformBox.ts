@@ -164,37 +164,9 @@ export class TransformBox {
       this.size = scaledSize;
       this.anchorPoint = { ...element.position };
     } else {
-      let minX = Number.POSITIVE_INFINITY;
-      let minY = Number.POSITIVE_INFINITY;
-      let maxX = Number.NEGATIVE_INFINITY;
-      let maxY = Number.NEGATIVE_INFINITY;
-
-      for (const element of this.selectedElements) {
-        const boundingBox = element.getBoundingBox();
-
-        // Considerando os quatro pontos da BoundingBox
-        const corners = [
-          boundingBox.topLeft,
-          boundingBox.topRight,
-          boundingBox.bottomLeft,
-          boundingBox.bottomRight,
-        ];
-
-        // Atualizando os limites da bounding box que vai circundar todos os elementos
-        for (const corner of corners) {
-          if (corner.x < minX) minX = corner.x;
-          if (corner.y < minY) minY = corner.y;
-          if (corner.x > maxX) maxX = corner.x;
-          if (corner.y > maxY) maxY = corner.y;
-        }
-      }
-
-      // Calcula a posição e tamanho da TransformBox em torno de todos os elementos
-      const width = maxX - minX;
-      const height = maxY - minY;
-
-      this.position = { x: minX + width / 2, y: minY + height / 2 };
-      this.size = { width, height };
+      const bounds = BoundingBox.calculateBoundingBox(this.selectedElements);
+      this.position = bounds.position;
+      this.size = bounds.size;
     }
     // Atualiza o boundingBox da TransformBox
     this.boundingBox = new BoundingBox(this.position, this.size, this.rotation);

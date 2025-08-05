@@ -21,6 +21,9 @@ export class TransformMenu {
     this.eventBus.on("workarea:selectAt", () => {
       this.handleSelectElement();
     });
+    this.eventBus.on("workarea:deleteElement", () => {
+      this.unlinkDOMElements();
+    });
     this.eventBus.on(
       "transformBox:properties:change",
       this.handleRecalculateTransformBox.bind(this),
