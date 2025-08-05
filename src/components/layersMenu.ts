@@ -24,6 +24,7 @@ export class LayersMenu {
   private layersList: HTMLUListElement;
   private layersSection: HTMLElement;
   private selectedLayersId: Set<number> = new Set();
+  private contextMenu: HTMLDivElement | null = null;
 
   private constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
@@ -126,9 +127,15 @@ export class LayersMenu {
       ? this.groupTemplate(layer)
       : this.layerTemplate(layer);
 
-    const layerNameSpan = li.querySelector<HTMLSpanElement>(`#spn_layer-${layer.id}`);
+    const layerNameSpan = li.querySelector<HTMLSpanElement>(
+      `#spn_layer-${layer.id}`,
+    );
     if (layerNameSpan) {
-      layerNameSpan.innerText = layer.name ? layer.name : (isGroup ? `Grupo ${layer.id}` : `Camada ${layer.id}`);
+      layerNameSpan.innerText = layer.name
+        ? layer.name
+        : isGroup
+          ? `Grupo ${layer.id}`
+          : `Camada ${layer.id}`;
     }
 
     this.attachCommonEvents(li, layer);
@@ -369,7 +376,9 @@ export class LayersMenu {
         if (childrenUL) {
           children = this.generateLayerHierarchy(childrenUL);
         }
-        const name = li.querySelector<HTMLSpanElement>(`#spn_layer-${id}`)?.innerText;
+        const name = li.querySelector<HTMLSpanElement>(
+          `#spn_layer-${id}`,
+        )?.innerText;
         hierarchy.push({ children, id, isLocked, isVisible, name });
       }
     }
@@ -493,42 +502,69 @@ export class LayersMenu {
 
   private showContextMenu(event: MouseEvent, layer: Layer): void {
     event.preventDefault();
-    const contextMenu = document.createElement("div");
-    contextMenu.id = "context-menu";
-    contextMenu.className = "context-menu";
-    contextMenu.style.top = `${event.pageY}px`;
-    contextMenu.style.left = `${event.pageX}px`;
-    contextMenu.style.position = 'fixed';
+    this.contextMenu?.remove();
+    console.log(layer.isVisible, 'vis');
+    const li = (event.currentTarget as HTMLLIElement);
+    const rect = li.getBoundingClientRect();
+    this.contextMenu = document.createElement("div");
+    this.contextMenu.id = `layer-${layer.id}-context-menu`;
+    this.contextMenu.className = "context-menu";
+    this.contextMenu.style.top = `${rect.bottom}px`;
+    this.contextMenu.style.left = `${rect.left}px`;
+
+    const openFiltersDialogBtn = document.createElement("button");
+    openFiltersDialogBtn.textContent = 'Editar Filtros do Elemento';
+    openFiltersDialogBtn.addEventListener("click", () => {
+      this.eventBus.emit("dialog:elementFilters:open", { layerId: layer.id });
+      this.contextMenu?.remove();
+    });
 
     const copyTransparentBtn = document.createElement("button");
-    copyTransparentBtn.textContent = "Copiar (fundo transparente)";
+    copyTransparentBtn.textContent = "Exportar Camada (fundo transparente)";
     copyTransparentBtn.addEventListener("click", () => {
-      this.copyLayer(layer, true);
-      contextMenu.remove();
+      this.exportLayer(layer, true);
+      this.contextMenu?.remove();
     });
 
     const copyWithBackgroundBtn = document.createElement("button");
-    copyWithBackgroundBtn.textContent = "Copiar (com fundo)";
+    copyWithBackgroundBtn.textContent = "Exportar Camada (fundo opaco)";
     copyWithBackgroundBtn.addEventListener("click", () => {
-      this.copyLayer(layer, false);
-      contextMenu.remove();
+      this.exportLayer(layer, false);
+      this.contextMenu?.remove();
     });
 
-    contextMenu.appendChild(copyTransparentBtn);
-    contextMenu.appendChild(copyWithBackgroundBtn);
+    const listSeparator = () =>  {
+      const separator = document.createElement("div");
+      separator.className = "separator";
+      return separator;
+    }
 
-    document.body.appendChild(contextMenu);
+    const deleteElementBtn = document.createElement("button");
+    deleteElementBtn.textContent = "Apagar Elemento";
+    deleteElementBtn.addEventListener("click", () => {
+      this.eventBus.emit("workarea:deleteElement", { elementId: layer.id });
+      this.contextMenu?.remove();
+    });
+
+    this.contextMenu.appendChild(openFiltersDialogBtn);
+    this.contextMenu.appendChild(listSeparator());
+    this.contextMenu.appendChild(copyTransparentBtn);
+    this.contextMenu.appendChild(copyWithBackgroundBtn);
+    this.contextMenu.appendChild(listSeparator());
+    this.contextMenu.appendChild(deleteElementBtn);
+
+    document.body.appendChild(this.contextMenu);
 
     const clickOutsideHandler = (e: MouseEvent) => {
-      if (!contextMenu.contains(e.target as Node)) {
-        contextMenu.remove();
+      if (this.contextMenu && !this.contextMenu.contains(e.target as Node)) {
+        this.contextMenu.remove();
         document.removeEventListener("click", clickOutsideHandler);
       }
     };
     document.addEventListener("click", clickOutsideHandler);
   }
 
-  private copyLayer(layer: Layer, transparent: boolean): void {
-    this.eventBus.emit("layer:copy", { layerId: layer.id, transparent });
+  private exportLayer(layer: Layer, transparent: boolean): void {
+    this.eventBus.emit("layer:export", { layerId: layer.id, transparent });
   }
 }

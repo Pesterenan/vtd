@@ -282,12 +282,13 @@ export class WorkArea {
       this.eventBus.on("workarea:createNewProject", ({ projectData }) =>
         this.createNewProject(projectData),
       );
-      this.eventBus.on("layer:copy", this.copyLayerToClipboard.bind(this));
+      this.eventBus.on("layer:export", this.exportLayerToClipboard.bind(this));
       this.mainCanvas.addEventListener("dragover", (evt) => {
         evt.preventDefault();
       });
+      window.addEventListener("copy", this.handleCopyCommand.bind(this));
+      window.addEventListener("paste", this.handlePasteCommand.bind(this));
       this.mainCanvas.addEventListener("drop", this.handleDropItems.bind(this));
-      window.addEventListener("paste", this.handleDropItems.bind(this));
       this.eventBus.emit("tool:change", TOOL.SELECT);
       window.api.onRequestNewProject(() => {
         this.eventBus.emit("dialog:newProject:open");
@@ -437,17 +438,19 @@ export class WorkArea {
     }
   }
 
-  private handlePasteCommand(): void {
+  public async handlePasteCommand(): Promise<void> {
+    // Se estiver copiando elementos internos
     if (this.copiedElements.length > 0) {
       const newElementsIds: number[] = [];
       let zDepth = this.elements.length;
       for (const elementData of this.copiedElements) {
-        elementData.position.x += 25;
-        elementData.position.y += 25;
-        elementData.zDepth = ++zDepth;
-        elementData.layerName += " cópia";
         const newElement = this.createElementFromData(elementData);
         if (newElement) {
+          // FIX: Entender porque a referencia está afetando os novos objetos
+          // newElement.position.x += 25;
+          // newElement.position.y += 25;
+          newElement.zDepth = ++zDepth;
+          newElement.layerName += " cópia";
           this.elements.push(newElement);
           newElementsIds.push(zDepth);
         }
@@ -455,8 +458,69 @@ export class WorkArea {
       this.eventBus.emit("workarea:selectById", {
         elementsId: new Set(newElementsIds),
       });
-      this.update();
+      this.eventBus.emit("alert:add", {
+        message: "Elementos copiados da área de transferência.",
+        type: "success",
+      });
+      this.copiedElements.length = 0;
+    } else {
+      // Se estiver colando da área de transferência
+      try {
+        const clipboardItems = await navigator.clipboard.read();
+        for (const item of clipboardItems) {
+          // Tratamento de texto copiado
+          if (item.types.includes("text/plain")) {
+            const blob = await item.getType("text/plain");
+            const text = await blob.text();
+            const [selected] = this.eventBus.request("workarea:selected:get");
+            // Se estiver com algum TextElement selecionado, troca o conteúdo pelo texto colado
+            if (selected.length === 1 && selected[0] instanceof TextElement) {
+              selected[0].content = [text];
+            } else {
+              // Senão, cria um elemento com esse texto
+              const newElement = this.addTextElement();
+              if (newElement) {
+                newElement.content = [text];
+                this.eventBus.emit("workarea:selectById", {
+                  elementsId: new Set([newElement.elementId]),
+                });
+                this.eventBus.emit("alert:add", {
+                  message: "Texto copiado da área de transferência.",
+                  type: "success",
+                });
+              }
+            }
+          } else if (item.types.some((type) => type.startsWith("image/"))) {
+            // Tratamento de imagem copiada
+            const imageType = item.types.find((type) =>
+              type.startsWith("image/"),
+            );
+            if (imageType) {
+              const blob = await item.getType(imageType);
+              const reader = new FileReader();
+              reader.onload = (evt) => {
+                const imageDataUrl = evt.target?.result as string;
+                const newElement = this.addImageElement(imageDataUrl);
+                this.eventBus.emit("workarea:selectById", {
+                  elementsId: new Set([newElement.elementId]),
+                });
+                this.eventBus.emit("alert:add", {
+                  message: "Imagem copiada da área de transferência.",
+                  type: "success",
+                });
+              };
+              reader.readAsDataURL(blob);
+            }
+          }
+        }
+      } catch (err) {
+        this.eventBus.emit("alert:add", {
+          message: "Não foi possível colar da área de transferência.",
+          type: "error",
+        });
+      }
     }
+    this.update();
   }
 
   private handleDeleteCommand() {
@@ -555,12 +619,6 @@ export class WorkArea {
     if (isTyping) return;
 
     if (!evt.repeat) {
-      if (evt.ctrlKey && evt.code === "KeyC") {
-        this.handleCopyCommand();
-      }
-      if (evt.ctrlKey && evt.code === "KeyV") {
-        this.handlePasteCommand();
-      }
       if (evt.code === "Delete") {
         this.handleDeleteCommand();
       }
@@ -959,7 +1017,7 @@ export class WorkArea {
     this.update();
   }
 
-  public addTextElement(position?: Position): void {
+  public addTextElement(position?: Position): TextElement {
     const width = 10;
     const height = 10;
     let adjustedPosition = null;
@@ -985,9 +1043,11 @@ export class WorkArea {
       type: "text",
     });
     this.update();
+
+    return newElement;
   }
 
-  public addImageElement(encodedImage: string): void {
+  public addImageElement(encodedImage: string): ImageElement {
     const x = this.workArea.canvas.width * 0.5;
     const y = this.workArea.canvas.height * 0.5;
     const newElement = new ImageElement(
@@ -1005,6 +1065,8 @@ export class WorkArea {
       type: "image",
     });
     this.update();
+
+    return newElement;
   }
 
   public addGroupElement(): void {
@@ -1026,7 +1088,7 @@ export class WorkArea {
     this.update();
   }
 
-  private copyLayerToClipboard({
+  private exportLayerToClipboard({
     layerId,
     transparent,
   }: {
@@ -1054,26 +1116,29 @@ export class WorkArea {
       return;
     }
 
-    const bounds = BoundingBox.calculateBoundingBox([element]);
-    tempCanvas.width = bounds.size.width;
-    tempCanvas.height = bounds.size.height;
+    const { position, size } = BoundingBox.calculateBoundingBox([element]);
+    tempCanvas.width = size.width;
+    tempCanvas.height = size.height;
 
     if (!transparent) {
       tempContext.drawImage(
         this.workArea.canvas,
-        bounds.position.x - bounds.size.width / 2,
-        bounds.position.y - bounds.size.height / 2,
-        bounds.size.width,
-        bounds.size.height,
+        position.x - size.width / 2,
+        position.y - size.height / 2,
+        size.width,
+        size.height,
         0,
         0,
-        bounds.size.width,
-        bounds.size.height,
+        size.width,
+        size.height,
       );
+    } else {
+      tempContext.translate(
+        -position.x + size.width * 0.5,
+        -position.y + size.height * 0.5,
+      );
+      element.draw(tempContext);
     }
-
-    tempContext.translate(bounds.position.x, bounds.position.y);
-    element.draw(tempContext);
 
     tempCanvas.toBlob((blob) => {
       if (blob) {

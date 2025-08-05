@@ -56,7 +56,7 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
-  "layer:copy": {
+  "layer:export": {
     payload: { layerId: number; transparent: boolean };
     result: unknown;
   };
