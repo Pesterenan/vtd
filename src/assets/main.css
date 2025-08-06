@@ -442,7 +442,7 @@ body {
   cursor: pointer;
   display: flex;
   font-size: var(--font-small);
-  padding: 0.5rem 1rem;
+  padding: 0.25rem 1rem;
   text-align: left;
   text-decoration: none;
   transition: var(--background-transition);
@@ -462,6 +462,6 @@ body {
 .context-menu .separator {
   background-color: var(--background-700);
   height: 1px;
-  margin: 0.5rem 0.5rem;
+  margin: 0.25rem 0.5rem;
   pointer-events: none;
 }

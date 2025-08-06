@@ -503,7 +503,6 @@ export class LayersMenu {
   private showContextMenu(event: MouseEvent, layer: Layer): void {
     event.preventDefault();
     this.contextMenu?.remove();
-    console.log(layer.isVisible, 'vis');
     const li = (event.currentTarget as HTMLLIElement);
     const rect = li.getBoundingClientRect();
     this.contextMenu = document.createElement("div");
@@ -527,7 +526,7 @@ export class LayersMenu {
     });
 
     const copyWithBackgroundBtn = document.createElement("button");
-    copyWithBackgroundBtn.textContent = "Exportar Camada (fundo opaco)";
+    copyWithBackgroundBtn.textContent = "Exportar Camada (com canvas)";
     copyWithBackgroundBtn.addEventListener("click", () => {
       this.exportLayer(layer, false);
       this.contextMenu?.remove();
