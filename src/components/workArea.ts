@@ -122,7 +122,7 @@ export class WorkArea {
     }
   };
 
-  private createTransformBox(): void {
+  private createTransformBox = (): void => {
     this.removeTransformBox();
     const selectedElements = this.getSelectedElements();
     if (selectedElements.length) {
@@ -130,7 +130,7 @@ export class WorkArea {
     }
   }
 
-  private removeTransformBox(): void {
+  private removeTransformBox = (): void => {
     this.transformBox?.removeEvents();
     this.transformBox = null;
   }

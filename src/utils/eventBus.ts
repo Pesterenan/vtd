@@ -66,6 +66,11 @@ export type DeltaPayload = {
     delta: number;
 };
 
+export type UpdateScalePayload = {
+  delta: Scale;
+  anchor?: Position;
+}
+
 export type PositionPayload = {
     position: Position;
 };

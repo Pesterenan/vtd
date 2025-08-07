@@ -5,6 +5,7 @@ import type {
   DeltaPayload,
   EventBus,
   PositionPayload,
+  UpdateScalePayload,
 } from "src/utils/eventBus";
 import { rotatePoint, toRadians } from "src/utils/transforms";
 import { Vector } from "src/utils/vector";
@@ -128,7 +129,7 @@ export class TransformBox {
     }
   };
 
-  private calculateBoundingBox(): void {
+  private calculateBoundingBox = (): void => {
     if (this.selectedElements.length === 1) {
       const element = this.selectedElements[0];
       this.boundingBox = element.getBoundingBox();
@@ -152,7 +153,7 @@ export class TransformBox {
     // Recalcula os handles
     this.generateHandles();
     this.updateHandles();
-  }
+  };
 
   private generateHandles(): void {
     if (this.boundingBox) {
@@ -251,10 +252,7 @@ export class TransformBox {
   public updateScale = ({
     delta,
     anchor = this.anchorPoint,
-  }: {
-    delta: Scale;
-    anchor?: Position;
-  }): void => {
+  }: UpdateScalePayload): void => {
     const scaleElement = (element: Element<TElementData>) => {
       const offset = {
         x: element.position.x - anchor.x,

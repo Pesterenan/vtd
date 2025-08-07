@@ -188,6 +188,11 @@ export class MainWindow {
     this.eventBus.on("workarea:adjustForScreen", ({ position }) =>
       this.adjustForScreen(position),
     );
+    this.canvas?.addEventListener("dblclick", () => {
+      if (!this.workArea) {
+        this.eventBus.emit("dialog:newProject:open");
+      }
+    });
   }
 
   private handleCopyCommand = (): void => {
