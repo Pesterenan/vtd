@@ -241,13 +241,4 @@ export class TransformMenu {
     this.rotationControl?.unlinkEvents();
     this.opacityControl?.unlinkEvents();
   }
-
-  public destroy(): void {
-    this.eventBus.off("selection:changed", this.handleSelectElement);
-    this.eventBus.off("workarea:deleteElement", this.unlinkDOMElements);
-    this.eventBus.off(
-      "transformBox:properties:change",
-      this.handleRecalculateTransformBox.bind(this),
-    );
-  }
 }
