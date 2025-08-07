@@ -35,7 +35,7 @@ export class TextTool extends Tool {
   }
 
   public onKeyDown(evt: KeyboardEvent): void {
-    if (evt.shiftKey && evt.key === "Enter")  {
+    if (evt.shiftKey && evt.key === "Enter") {
       evt.preventDefault();
       this.eventBus.emit("edit:acceptTextChange");
     }

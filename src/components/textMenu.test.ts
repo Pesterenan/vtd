@@ -98,7 +98,7 @@ describe("TextMenu", () => {
 
     it("should disable controls when no TextElement is selected", () => {
       requestSpy.mockReturnValue([[]]);
-      eventBus.emit("workarea:selectById", { elementsId: new Set([]) });
+      eventBus.emit("selection:changed", { selectedElements: [] });
 
       expect(textInput.value).toBe("");
       expect(fillCheckbox.checked).toBe(false);

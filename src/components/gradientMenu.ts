@@ -1,12 +1,12 @@
 import errorElement from "src/components/elements/errorElement";
+import type { IGradientElementData } from "src/components/types";
 import { GradientElement } from "src/components/elements/gradientElement";
-import type { EventBus } from "src/utils/eventBus";
+import type { EventBus, SelectionChangedPayload } from "src/utils/eventBus";
 import getElementById from "src/utils/getElementById";
 import type { IColorControl } from "./helpers/createColorControl";
 import createColorControl from "./helpers/createColorControl";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import createSliderControl from "./helpers/createSliderControl";
-import type { IGradientElementData } from "./types";
 import { MOUSE_BUTTONS } from "./types";
 import {
   linearColorInterpolation,
@@ -31,9 +31,7 @@ export class GradientMenu {
 
   private constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
-    this.eventBus.on("edit:gradient", this.handleSelectElement);
-    this.eventBus.on("workarea:selectById", this.handleSelectElement);
-    this.eventBus.on("workarea:selectAt", this.handleSelectElement);
+    this.eventBus.on("selection:changed", this.handleSelectElement);
     this.eventBus.on("edit:gradientUpdateColorStops", this.updateGradientBar);
     this.createDOMElements();
   }
@@ -46,10 +44,9 @@ export class GradientMenu {
   }
 
   public getMenu(): HTMLElement {
-    if (this.gradientSection) {
-      return this.gradientSection;
-    }
-    return errorElement("Menu não instanciado");
+    return (
+      this.gradientSection || errorElement("Menu de Gradiente não instanciado")
+    );
   }
 
   private createDOMElements = (): void => {
@@ -105,8 +102,9 @@ export class GradientMenu {
     this.gradientSection.append(this.alphaControl.element);
   };
 
-  private handleSelectElement = (): void => {
-    const [selectedElements] = this.eventBus.request("workarea:selected:get");
+  private handleSelectElement = ({
+    selectedElements,
+  }: SelectionChangedPayload): void => {
     this.unlinkDOMElements();
     if (
       selectedElements.length === 1 &&
@@ -399,4 +397,3 @@ export class GradientMenu {
     }
   };
 }
-

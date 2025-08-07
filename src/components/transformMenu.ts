@@ -1,5 +1,5 @@
 import errorElement from "src/components/elements/errorElement";
-import type { EventBus } from "src/utils/eventBus";
+import type { EventBus, SelectionChangedPayload } from "src/utils/eventBus";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import createSliderControl from "./helpers/createSliderControl";
 import type { Position, Size } from "./types";
@@ -13,14 +13,10 @@ export class TransformMenu {
   private heightControl: ISliderControl | null = null;
   private rotationControl: ISliderControl | null = null;
   private opacityControl: ISliderControl | null = null;
-  private eventBus: EventBus;
 
-  private constructor(eventBus: EventBus) {
-    this.eventBus = eventBus;
+  private constructor(private eventBus: EventBus) {
     this.createDOMElements();
-    this.eventBus.on("workarea:selectAt", () => {
-      this.handleSelectElement();
-    });
+    this.eventBus.on("selection:changed", this.handleSelectElement);
     this.eventBus.on("workarea:deleteElement", () => {
       this.unlinkDOMElements();
     });
@@ -30,8 +26,7 @@ export class TransformMenu {
     );
   }
 
-  private handleSelectElement = (): void => {
-    const [selectedElements] = this.eventBus.request("workarea:selected:get");
+  private handleSelectElement = ({ selectedElements }: SelectionChangedPayload): void => {
     if (selectedElements.length) {
       this.linkDOMElements();
     } else {
@@ -177,14 +172,14 @@ export class TransformMenu {
   private handleXPosChange = (newValue: number): void => {
     const [properties] = this.eventBus.request("transformBox:properties:get");
     this.eventBus.emit("transformBox:updatePosition", {
-      delta: { x: newValue, y: properties.position.y },
+      position: { x: newValue, y: properties.position.y },
     });
   };
 
   private handleYPosChange = (newValue: number): void => {
     const [properties] = this.eventBus.request("transformBox:properties:get");
     this.eventBus.emit("transformBox:updatePosition", {
-      delta: { x: properties.position.x, y: newValue },
+      position: { x: properties.position.x, y: newValue },
     });
   };
 
@@ -245,5 +240,14 @@ export class TransformMenu {
     this.heightControl?.unlinkEvents();
     this.rotationControl?.unlinkEvents();
     this.opacityControl?.unlinkEvents();
+  }
+
+  public destroy(): void {
+    this.eventBus.off("selection:changed", this.handleSelectElement);
+    this.eventBus.off("workarea:deleteElement", this.unlinkDOMElements);
+    this.eventBus.off(
+      "transformBox:properties:change",
+      this.handleRecalculateTransformBox.bind(this),
+    );
   }
 }

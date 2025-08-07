@@ -63,15 +63,14 @@ describe('TransformMenu', () => {
   });
 
   it('should link DOM elements when elements are selected', () => {
-    jest.spyOn(eventBus, 'request').mockReturnValueOnce([['someElement']]);
-    jest.spyOn(eventBus, 'request').mockReturnValueOnce([{
+    jest.spyOn(eventBus, 'request').mockReturnValue([{
       position: { x: 10, y: 20 },
       size: { width: 100, height: 200 },
       rotation: 45,
       opacity: 0.8,
     }]);
 
-    transformMenu['handleSelectElement']();
+    transformMenu['handleSelectElement']([{} as any]);
 
     expect(mockSliderControl.linkEvents).toHaveBeenCalledTimes(6);
     expect(mockSliderControl.updateValues).toHaveBeenCalledTimes(6);
@@ -84,8 +83,7 @@ describe('TransformMenu', () => {
   });
 
   it('should unlink DOM elements when no elements are selected', () => {
-    jest.spyOn(eventBus, 'request').mockReturnValueOnce([[]]);
-    transformMenu['handleSelectElement']();
+    transformMenu['handleSelectElement']([]);
     expect(mockSliderControl.unlinkEvents).toHaveBeenCalledTimes(6);
   });
 
@@ -155,8 +153,8 @@ describe('TransformMenu', () => {
     expect(eventBus.emit).toHaveBeenCalledWith('transformBox:updateRotation', { delta: 90 });
   });
 
-  it('should emit transformBox:updateOpacity on opacity change', () => {
-    transformMenu['handleOpacityChange'](0.5);
-    expect(eventBus.emit).toHaveBeenCalledWith('transformBox:updateOpacity', { delta: 0.5 });
+  afterEach(() => {
+    transformMenu.destroy();
+    jest.clearAllMocks();
   });
 });

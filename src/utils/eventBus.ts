@@ -6,7 +6,6 @@ import type {
   IProjectData,
   Layer,
   Position,
-  ReorganizeLayersPayload,
   Scale,
   Size,
   TElementData,
@@ -15,13 +14,70 @@ import type {
 
 export type Callback<P = unknown, R = unknown> = (payload: P) => R;
 
+export type AddAlertPayload = {
+  message: string;
+  title?: string;
+  type: "success" | "error";
+};
+
+export type AddElementPayload = {
+  elementId: number;
+  layerName: Layer["name"];
+  isVisible: boolean;
+  isLocked: boolean;
+  type: ElementType;
+  children?: Array<Layer>;
+};
+
+export type UpdateElementPayload = {
+  elementId: number;
+  layerName?: Layer["name"];
+  isVisible?: boolean;
+  isLocked?: boolean;
+};
+
+export type SelectElementsByIdPayload = {
+  elementsId: Set<number>;
+};
+
+export type DeleteElementPayload = {
+  elementId: number;
+};
+
+export type ReorganizeLayersPayload = {
+  hierarchy: Layer[];
+};
+
+export type ExportLayerToClipBoardPayload = {
+  layerId: number;
+  transparent: boolean;
+};
+
+export type SelectionChangedPayload = {
+  selectedElements: Element<TElementData>[];
+};
+
+export type ExportCanvasToStringPayload = {
+  format: string;
+  quality: string;
+};
+
+export type DeltaPayload = {
+    delta: number;
+};
+
+export type PositionPayload = {
+    position: Position;
+};
+
+export type SelectElementsAtPayload = {
+    firstPoint?: Position | null;
+    secondPoint?: Position | null;
+};
+
 export interface EventBusMap {
   "alert:add": {
-    payload: {
-      message: string;
-      title?: string;
-      type: "success" | "error";
-    };
+    payload: AddAlertPayload;
     result: unknown;
   };
   "dialog:elementFilters:open": {
@@ -37,7 +93,7 @@ export interface EventBusMap {
     result: unknown;
   };
   "edit:gradient": {
-    payload: { position: Position };
+    payload: PositionPayload;
     result: unknown;
   };
   "edit:gradientUpdateColorStops": {
@@ -45,7 +101,7 @@ export interface EventBusMap {
     result: unknown;
   };
   "edit:text": {
-    payload: { position: Position };
+    payload: PositionPayload;
     result: unknown;
   };
   "edit:acceptTextChange": {
@@ -57,7 +113,7 @@ export interface EventBusMap {
     result: unknown;
   };
   "layer:export": {
-    payload: { layerId: number; transparent: boolean };
+    payload: ExportLayerToClipBoardPayload;
     result: unknown;
   };
   "layer:generateHierarchy": {
@@ -85,7 +141,7 @@ export interface EventBusMap {
     result: unknown;
   };
   "transformBox:hoverHandle": {
-    payload: { position: Position };
+    payload: PositionPayload;
     result: unknown;
   };
   "transformBox:selectHandle": {
@@ -101,7 +157,7 @@ export interface EventBusMap {
     };
   };
   "transformBox:anchorPoint:change": {
-    payload: { position: Position };
+    payload: PositionPayload;
     result: unknown;
   };
   "transformBox:anchorPoint:get": {
@@ -135,15 +191,15 @@ export interface EventBusMap {
     result: number;
   };
   "transformBox:updateOpacity": {
-    payload: { delta: number };
+    payload: DeltaPayload;
     result: unknown;
   };
   "transformBox:updatePosition": {
-    payload: { delta: Position };
+    payload: PositionPayload;
     result: unknown;
   };
   "transformBox:updateRotation": {
-    payload: { delta: number };
+    payload: DeltaPayload;
     result: unknown;
   };
   "transformBox:updateScale": {
@@ -170,11 +226,11 @@ export interface EventBusMap {
     result: unknown;
   };
   "workarea:adjustForCanvas": {
-    payload: { position: Position };
+    payload: PositionPayload;
     result: Position;
   };
   "workarea:adjustForScreen": {
-    payload: { position: Position };
+    payload: PositionPayload;
     result: Position;
   };
   "workarea:clear": {
@@ -190,11 +246,11 @@ export interface EventBusMap {
     result: unknown;
   };
   "workarea:exportCanvas": {
-    payload: { format: string; quality: string };
+    payload: ExportCanvasToStringPayload;
     result: string;
   };
   "workarea:offset:change": {
-    payload: { delta: Position };
+    payload: PositionPayload;
     result: unknown;
   };
   "workarea:offset:get": {
@@ -206,16 +262,20 @@ export interface EventBusMap {
     result: Partial<IProjectData>;
   };
   "workarea:selectAt": {
-    payload: { firstPoint: Position | null; secondPoint?: Position | null };
+    payload: SelectElementsAtPayload;
     result: unknown;
   };
   "workarea:selectById": {
-    payload: { elementsId: Set<number> };
+    payload: SelectElementsByIdPayload;
     result: unknown;
   };
   "workarea:selected:get": {
     payload: unknown;
     result: Element<TElementData>[];
+  };
+  "selection:changed": {
+    payload: SelectionChangedPayload;
+    result: unknown;
   };
   "workarea:update": {
     payload: unknown;

@@ -69,10 +69,10 @@ plataforma escolhida para a criação do app redistribuível.
 &#9746; - Implementar menus de opções de Arquivo\
 &#9746; - Implementar modo de composição para cada filtro (globalCompositeOperation)\
 &#9746; - Implementar menus de contexto para as camadas com ações de cópia, por exemplo\
+&#9746; - Separar o WorkArea do mainWindow\
 
 &#9744; - Consertar o Drop de imagens no mainCanvas\
 &#9744; - Criar Filtros de elemento só ao abrir o DialogElementFilters\
-&#9744; - Separar o WorkArea do mainWindow\
 &#9744; - Implementar corte de elementos (cropping)\
 &#9744; - Implementar menus de opções (Editar, Filtros, Ajuda... etc)\
 &#9744; - Implementar efeito de chroma/color key\

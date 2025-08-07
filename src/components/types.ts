@@ -122,34 +122,6 @@ export enum TOOL {
   ZOOM = "zoom-tool",
 }
 
-export interface AddElementPayload {
-  elementId: number;
-  layerName: Layer["name"];
-  isVisible: boolean;
-  isLocked: boolean;
-  type: ElementType;
-  children?: Array<Layer>;
-}
-
-export interface UpdateElementPayload {
-  elementId: number;
-  layerName?: Layer["name"];
-  isVisible?: boolean;
-  isLocked?: boolean;
-}
-
-export interface SelectElementPayload {
-  elementsId: Set<number>;
-}
-
-export interface DeleteElementPayload {
-  elementId: number;
-}
-
-export interface ReorganizeLayersPayload {
-  hierarchy: Layer[];
-}
-
 export interface ISelectOption {
   label: string; 
   value: string; 
