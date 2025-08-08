@@ -34,6 +34,7 @@ const createMainWindow = (): void => {
     height: 768,
     show: false,
     width: 1024,
+    icon: 'resources/icon.png',
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       nodeIntegration: true,

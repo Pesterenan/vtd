@@ -10,10 +10,14 @@
   <div id="vfe_main-container" class="container column ai-jc-c">
     <div class="container ai-c jc-sb">
       <div class="ai-c pad-1">
-        <button id="btn_extract-frame" class="btn-common-wide" type="button">Extract Frame</button>
+        <tooltip title="Extrai o quadro para o projeto atual">
+          <button id=" btn_extract-frame" class="btn-common-wide" type="button">Extrair Quadro</button>
+        </tooltip>
       </div>
       <div class="ai-c pad-1">
-        <button id="btn_copy-to-clipboard" class="btn-common-wide" type="button">Copy Frame to Clipboard</button>
+        <tooltip title="Copia o quadro para a área de transferência (CTRL+C/V)">
+          <button id="btn_copy-to-clipboard" class="btn-common-wide" type="button">Copiar Quadro</button>
+        </tooltip>
       </div>
     </div>
     <canvas height="320" width="800" id="video-canvas" style="background-color: var(--background-300);"> </canvas>
