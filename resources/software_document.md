@@ -72,6 +72,7 @@ plataforma escolhida para a criação do app redistribuível.
 &#9746; - Separar o WorkArea do mainWindow\
 
 &#9744; - Consertar o Drop de imagens no mainCanvas\
+
 &#9744; - Criar Filtros de elemento só ao abrir o DialogElementFilters\
 &#9744; - Implementar corte de elementos (cropping)\
 &#9744; - Implementar menus de opções (Editar, Filtros, Ajuda... etc)\

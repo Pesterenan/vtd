@@ -8,7 +8,7 @@ export interface ITextInput {
 export default function createTextInput(
   id: string,
   label: string,
-  options: { min: number; max: number },
+  options: { min: number; max: number; style?: { width: string } },
   onChange: (newValue: string) => void,
 ): ITextInput {
   const container = document.createElement("div");
@@ -23,7 +23,7 @@ export default function createTextInput(
   inputFieldEl.type = "text";
   inputFieldEl.minLength = options.min;
   inputFieldEl.maxLength = options.max;
-  inputFieldEl.style.width = "4rem";
+  inputFieldEl.style.width = options.style?.width ?? "4rem";
 
   const updateValues = (newValue: string) => {
     inputFieldEl.value = newValue;

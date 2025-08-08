@@ -188,11 +188,43 @@ export class MainWindow {
     this.eventBus.on("workarea:adjustForScreen", ({ position }) =>
       this.adjustForScreen(position),
     );
-    this.canvas?.addEventListener("dblclick", () => {
-      if (!this.workArea) {
-        this.eventBus.emit("dialog:newProject:open");
+    if (this.canvas)  {
+      this.canvas.addEventListener("dblclick", () => {
+        if (!this.workArea) {
+          this.eventBus.emit("dialog:newProject:open");
+        }
+      });
+      this.canvas.addEventListener("dragover", this.handleDragOverEvent);
+      this.canvas.addEventListener("drop", this.handleDropItems);
+    }
+  }
+
+  private handleDragOverEvent = (evt: DragEvent) => {
+    evt.preventDefault();
+  }
+
+  private handleDropItems = (evt: DragEvent | ClipboardEvent): void => {
+    evt.preventDefault();
+    let droppedItems = null;
+    if (evt instanceof DragEvent) {
+      droppedItems = evt.dataTransfer?.items;
+    } else {
+      droppedItems = evt.clipboardData?.items;
+    }
+    if (!droppedItems) return;
+    for (const item of droppedItems) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            const imageDataUrl = evt.target?.result as string;
+            console.log(imageDataUrl);
+          };
+          reader.readAsDataURL(file);
+        }
       }
-    });
+    }
   }
 
   private handleCopyCommand = (): void => {

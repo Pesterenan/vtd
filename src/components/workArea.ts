@@ -18,9 +18,6 @@ import { FilterRenderer } from "src/filters/filterRenderer";
 import { BoundingBox } from "src/utils/boundingBox";
 import { TransformBox } from "./transformBox";
 
-const WORK_AREA_WIDTH = 1920;
-const WORK_AREA_HEIGHT = 1080;
-
 export class WorkArea {
   public canvas: HTMLCanvasElement | null = null;
   private context: CanvasRenderingContext2D | null = null;
@@ -39,8 +36,6 @@ export class WorkArea {
 
   private createDOMElements(): void {
     const workAreaCanvas = document.createElement("canvas");
-    workAreaCanvas.width = WORK_AREA_WIDTH;
-    workAreaCanvas.height = WORK_AREA_HEIGHT;
     workAreaCanvas.style.backgroundColor = "white";
     const workAreaContext = workAreaCanvas.getContext("2d");
     if (!workAreaContext) {
@@ -63,10 +58,6 @@ export class WorkArea {
     this.eventBus.on("workarea:updateElement", this.handleUpdateElement);
     this.eventBus.on("layer:export", this.exportLayerToClipboard);
     this.eventBus.on("workarea:deleteElement", this.handleDeleteElement);
-    if (this.canvas) {
-      this.canvas.addEventListener("dragover", this.handleDragOverEvent);
-      this.canvas.addEventListener("drop", this.handleDropItems);
-    }
   }
 
   public removeEvents(): void {
@@ -81,16 +72,12 @@ export class WorkArea {
     this.eventBus.off("workarea:updateElement", this.handleUpdateElement);
     this.eventBus.off("layer:export", this.exportLayerToClipboard);
     this.eventBus.off("workarea:deleteElement", this.handleDeleteElement);
-    if (this.canvas) {
-      this.canvas.removeEventListener("dragover", this.handleDragOverEvent);
-      this.canvas.removeEventListener("drop", this.handleDropItems);
-    }
   }
 
   public setWorkAreaSize(workAreaSize?: Size) {
-    if (this.canvas) {
-      this.canvas.width = workAreaSize?.width ?? 1920;
-      this.canvas.height = workAreaSize?.height ?? 1080;
+    if (this.canvas && workAreaSize) {
+      this.canvas.width = workAreaSize.width;
+      this.canvas.height = workAreaSize.height;
     }
   }
 
@@ -99,10 +86,6 @@ export class WorkArea {
       elementsData
         ?.map((el) => this.createElementFromData(el))
         .filter((el) => el !== null) ?? [];
-  }
-
-  private handleDragOverEvent = (evt: DragEvent) => {
-    evt.preventDefault();
   }
 
   private handleEditGradient = ({ position }: PositionPayload): void => {
@@ -246,30 +229,6 @@ export class WorkArea {
     this.selectElementsAt({});
     this.eventBus.emit("workarea:update");
   };
-
-  private handleDropItems = (evt: DragEvent | ClipboardEvent): void => {
-    evt.preventDefault();
-    let droppedItems = null;
-    if (evt instanceof DragEvent) {
-      droppedItems = evt.dataTransfer?.items;
-    } else {
-      droppedItems = evt.clipboardData?.items;
-    }
-    if (!droppedItems) return;
-    for (const item of droppedItems) {
-      if (item.type.startsWith("image/")) {
-        const file = item.getAsFile();
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (evt) => {
-            const imageDataUrl = evt.target?.result as string;
-            this.addImageElement(imageDataUrl);
-          };
-          reader.readAsDataURL(file);
-        }
-      }
-    }
-  }
 
   public createElementFromData(
     elData: TElementData,
