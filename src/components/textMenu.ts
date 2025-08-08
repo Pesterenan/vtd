@@ -4,7 +4,7 @@ import type { IColorControl } from "./helpers/createColorControl";
 import createColorControl from "./helpers/createColorControl";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import createSliderControl from "./helpers/createSliderControl";
-import type { ITextElementData } from "./types";
+import type { ITextElementData, TElementData } from "./types";
 
 import IconAlignCenter from "../assets/icons/alignCenter.svg";
 import IconAlignLeft from "../assets/icons/alignLeft.svg";
@@ -21,6 +21,7 @@ import IconFontWeightItalic from "../assets/icons/fontWeightItalic.svg";
 
 import type { EventBus } from "src/utils/eventBus";
 import createIconRadioButton from "./helpers/createIconRadioButton";
+import type { Element } from "./elements/element";
 
 export class TextMenu {
   private static instance: TextMenu | null = null;
@@ -54,23 +55,28 @@ export class TextMenu {
   private textAlignRadios: HTMLInputElement[] | null = null;
   private textInput: HTMLTextAreaElement | null = null;
   private textMenuSection: HTMLElement;
-  private eventBus: EventBus;
-  private onSelectElement: () => void;
   private isTextSelected = false;
 
-  constructor(eventBus: EventBus) {
-    this.eventBus = eventBus;
-    this.onSelectElement = this.handleSelectElement.bind(this);
+  constructor(private eventBus: EventBus) {
     this.eventBus.on("edit:acceptTextChange", this.handleAcceptTextChange);
     this.eventBus.on("edit:declineTextChange", this.handleDeclineTextChange);
     this.eventBus.on("edit:text", () => {
       this.isTextSelected = true;
-      this.onSelectElement();
+      const [selectedElements] = this.eventBus.request("workarea:selected:get");
+      this.handleSelectElement(selectedElements);
     });
-    this.eventBus.on("workarea:selectById", this.onSelectElement);
-    this.eventBus.on("workarea:selectAt", this.onSelectElement);
+    this.eventBus.on("selection:changed", ({ selectedElements: elements }) => {
+      this.handleSelectElement(elements);
+    });
     this.textMenuSection = document.createElement("section");
     this.createDOMElements();
+    this.unlinkDOMElements();
+    this.eventBus.on("workarea:initialized", () => {
+      this.textMenuSection?.removeAttribute("disabled");
+    });
+    this.eventBus.on("workarea:clear", () => {
+      this.textMenuSection?.setAttribute("disabled", "true");
+    });
   }
 
   public static getInstance(eventBus: EventBus): TextMenu {
@@ -87,6 +93,7 @@ export class TextMenu {
   private createDOMElements(): void {
     this.textMenuSection.id = "sec_text-menu";
     this.textMenuSection.className = "sec_menu-style";
+    this.textMenuSection.setAttribute("disabled", "true");
     this.textMenuSection.innerHTML = `
 <div class='container ai-jc-c'>
   <h5 style="align-self: flex-start;">Texto:</h5>
@@ -461,11 +468,10 @@ export class TextMenu {
     this.strokeWidthControl?.unlinkEvents();
   }
 
-  private handleSelectElement(): void {
-    const [selectedElements] = this.eventBus.request("workarea:selected:get");
+  private handleSelectElement(selectedElements: Element<TElementData>[]): void {
     this.unlinkDOMElements();
     if (
-      selectedElements.length === 1 &&
+      selectedElements?.length === 1 &&
       selectedElements[0] instanceof TextElement
     ) {
       this.activeTextElement = selectedElements[0];

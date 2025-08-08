@@ -1,11 +1,9 @@
 import "src/assets/main.css";
 import { SideMenu } from "src/components/sideMenu";
 import { ToolMenu } from "src/components/toolMenu";
-import { WorkArea } from "src/components/workArea";
-import exampleProject from "src/exampleProject.json";
 import { EventBus } from "src/utils/eventBus";
 import { Alerts } from "./components/alerts/alerts";
-import type { IProjectData } from "./components/types";
+import { MainWindow } from "./components/mainWindow";
 
 const initializeVTD = (): void => {
   window.addEventListener("DOMContentLoaded", () => {
@@ -16,9 +14,8 @@ const initializeVTD = (): void => {
     );
     new Alerts(alertEventBus);
     ToolMenu.getInstance(uiEventBus);
-    const workArea = WorkArea.getInstance(uiEventBus);
+    MainWindow.getInstance(uiEventBus);
     SideMenu.getInstance(uiEventBus);
-    workArea.loadProject(exampleProject as IProjectData);
   });
 };
 

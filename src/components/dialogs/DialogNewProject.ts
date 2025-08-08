@@ -6,6 +6,9 @@ import createSliderControl from "../helpers/createSliderControl";
 import type { ITextInput } from "../helpers/createTextInput";
 import createTextInput from "../helpers/createTextInput";
 
+const WORK_AREA_WIDTH = 1920;
+const WORK_AREA_HEIGHT = 1080;
+
 export class DialogNewProject extends Dialog {
   private eventBus: EventBus;
   private projectData: IProjectData | null = null;
@@ -25,7 +28,7 @@ export class DialogNewProject extends Dialog {
       modifyDate: "",
       title: "Sem título",
       version: "0.0.1",
-      workAreaSize: { width: 640, height: 480 },
+      workAreaSize: { width: WORK_AREA_WIDTH, height: WORK_AREA_HEIGHT },
     };
     this.eventBus = eventBus;
     this.eventBus.on("dialog:newProject:open", () => this.open());
@@ -55,20 +58,20 @@ export class DialogNewProject extends Dialog {
     this.projectNameInput = createTextInput(
       "project-name-input",
       "Nome do Projeto",
-      { min: 0, max: 75 },
+      { min: 0, max: 75, style: { width: 'auto' }, value: "Sem título"},
       this.handleNameInput.bind(this),
     );
     this.workAreaWidthInput = createSliderControl(
       "inp_workarea-width",
       "Largura",
-      { min: 16, max: 4096, step: 1, value: 1920 },
+      { min: 16, max: 4096, step: 1, value: WORK_AREA_WIDTH },
       this.handleWidthInput.bind(this),
       false,
     );
     this.workAreaHeightInput = createSliderControl(
       "inp_workarea-width",
       "Altura",
-      { min: 16, max: 4096, step: 1, value: 1080 },
+      { min: 16, max: 4096, step: 1, value: WORK_AREA_HEIGHT },
       this.handleHeightInput.bind(this),
       false,
     );
@@ -115,10 +118,10 @@ export class DialogNewProject extends Dialog {
       const now = new Date().toISOString();
       this.projectData.createDate = now;
       this.projectData.modifyDate = now;
-      window.api.setWindowTitle(this.projectData.title);
     }
     this.eventBus.emit("workarea:createNewProject", {
       projectData: this.projectData as IProjectData,
     });
+    this.eventBus.emit("workarea:initialized");
   }
 }

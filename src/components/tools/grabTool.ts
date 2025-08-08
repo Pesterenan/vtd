@@ -87,7 +87,7 @@ export class GrabTool extends Tool {
         x: mousePos.x - this.startPosition.x,
         y: mousePos.y - this.startPosition.y,
       };
-      this.eventBus.emit("transformBox:updatePosition", { delta });
+      this.eventBus.emit("transformBox:updatePosition", { position: delta });
     }
   }
 

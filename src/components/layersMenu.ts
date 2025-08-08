@@ -7,31 +7,36 @@ import OpenEyeIcon from "src/assets/icons/open-eye.svg";
 import TrashIcon from "src/assets/icons/trash.svg";
 import UnlockedIcon from "src/assets/icons/unlock.svg";
 import errorElement from "src/components/elements/errorElement";
-import type { EventBus } from "src/utils/eventBus";
-import getElementById from "src/utils/getElementById";
-import createIconButton from "./helpers/createIconButton";
 import type {
   AddElementPayload,
   DeleteElementPayload,
-  Layer,
-  SelectElementPayload,
-} from "./types";
+  EventBus,
+  SelectElementsByIdPayload,
+} from "src/utils/eventBus";
+import getElementById from "src/utils/getElementById";
+import createIconButton from "./helpers/createIconButton";
+import type { Layer } from "./types";
 
 export class LayersMenu {
   private static instance: LayersMenu | null = null;
-  private eventBus: EventBus;
   private draggedLayerLI: HTMLLIElement | null = null;
   private layersList: HTMLUListElement;
   private layersSection: HTMLElement;
   private selectedLayersId: Set<number> = new Set();
   private contextMenu: HTMLDivElement | null = null;
 
-  private constructor(eventBus: EventBus) {
-    this.eventBus = eventBus;
+  private constructor(private eventBus: EventBus) {
     this.layersSection = document.createElement("section");
     this.layersList = document.createElement("ul");
     this.createDOMElements();
     this.attachGlobalEvents();
+
+    this.eventBus.on("workarea:initialized", () => {
+      this.layersSection?.removeAttribute("disabled");
+    });
+    this.eventBus.on("workarea:clear", () => {
+      this.layersSection?.setAttribute("disabled", "true");
+    });
   }
 
   public static getInstance(eventBus: EventBus): LayersMenu {
@@ -41,10 +46,6 @@ export class LayersMenu {
     return LayersMenu.instance;
   }
 
-  public static resetInstance(): void {
-    LayersMenu.instance = null;
-  }
-
   public getMenu(): HTMLElement {
     return this.layersSection || errorElement("Menu não instanciado");
   }
@@ -52,6 +53,7 @@ export class LayersMenu {
   private createDOMElements(): void {
     this.layersSection.id = "sec_layers-menu";
     this.layersSection.className = "sec_menu-style";
+    this.layersSection.setAttribute("disabled", "true");
     this.layersSection.innerHTML = `
 <h5 style="align-self: flex-start;">Camadas:</h5>
 <ul id="ul_layers-list"></ul>
@@ -62,14 +64,14 @@ export class LayersMenu {
       "btn_add-group",
       "Adicionar Grupo",
       GroupIcon,
-      this.handleAddNewGroup.bind(this),
+      this.handleAddNewGroup,
     );
 
     const deleteLayerBtn = createIconButton(
       "btn_delete-layer",
       "Deletar Camada",
       TrashIcon,
-      this.handleDeleteLayer.bind(this),
+      this.handleDeleteLayer,
     );
 
     const btnContainer = this.layersSection.querySelector(
@@ -86,19 +88,10 @@ export class LayersMenu {
   }
 
   private attachGlobalEvents(): void {
-    this.eventBus.on("workarea:clear", () => {
-      this.layersList.innerHTML = "";
-    });
-    this.eventBus.on("workarea:addElement", (payload) => {
-      this.handleAddElement(payload);
-    });
-    this.eventBus.on("workarea:deleteElement", (payload) => {
-      this.handleDeleteElement(payload);
-    });
-    this.eventBus.on(
-      "workarea:selectById",
-      this.handleSelectElement.bind(this),
-    );
+    this.eventBus.on("workarea:clear", this.clearLayersList);
+    this.eventBus.on("workarea:addElement", this.handleAddElement);
+    this.eventBus.on("workarea:deleteElement", this.handleDeleteElement);
+    this.eventBus.on("workarea:selectById", this.handleSelectElement);
 
     this.layersList.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -113,6 +106,10 @@ export class LayersMenu {
       }
     });
   }
+
+  private clearLayersList = (): void => {
+      this.layersList.innerHTML = "";
+  };
 
   private createLayerItem(layer: Layer, isGroup: boolean): HTMLLIElement {
     const li = document.createElement("li") as HTMLLIElement;
@@ -392,7 +389,7 @@ export class LayersMenu {
   }
 
   /** Gets the current selected layers and sends an event to delete them */
-  private handleDeleteLayer(): void {
+  private handleDeleteLayer = (): void => {
     const selectedLayers =
       this.layersList.querySelectorAll<HTMLLIElement>("li.selected");
     const selectedLayersId = Array.from(selectedLayers).map((li) =>
@@ -401,9 +398,11 @@ export class LayersMenu {
     for (const layerId of selectedLayersId) {
       this.eventBus.emit("workarea:deleteElement", { elementId: layerId });
     }
-  }
+  };
 
-  private handleSelectElement({ elementsId }: SelectElementPayload): void {
+  private handleSelectElement = ({
+    elementsId,
+  }: SelectElementsByIdPayload): void => {
     this.selectedLayersId = elementsId;
     for (const li of this.layersList.querySelectorAll("li")) {
       const liId = Number(li.dataset.id);
@@ -413,24 +412,24 @@ export class LayersMenu {
         li.classList.remove("selected");
       }
     }
-  }
+  };
 
-  private handleDeleteElement({ elementId }: DeleteElementPayload): void {
+  private handleDeleteElement = ({ elementId }: DeleteElementPayload): void => {
     const layerToDelete = getElementById<HTMLLIElement>(`layer-${elementId}`);
     if (layerToDelete) {
       layerToDelete.parentElement?.removeChild(layerToDelete);
     }
     this.emitGenerateLayerHierarchy();
-  }
+  };
 
-  private handleAddElement({
+  private handleAddElement = ({
     elementId,
     layerName,
     isVisible,
     isLocked,
     type,
     children,
-  }: AddElementPayload): void {
+  }: AddElementPayload): void => {
     if (this.layersList.querySelector(`#layer-${elementId}`)) return;
 
     const isGroup = type === "group";
@@ -445,11 +444,11 @@ export class LayersMenu {
       isGroup,
     );
     this.layersList.appendChild(layerLI);
-  }
+  };
 
-  private handleAddNewGroup(): void {
+  private handleAddNewGroup = (): void => {
     this.eventBus.emit("workarea:addGroupElement");
-  }
+  };
 
   private groupTemplate(layer: Layer): string {
     return `
@@ -503,7 +502,7 @@ export class LayersMenu {
   private showContextMenu(event: MouseEvent, layer: Layer): void {
     event.preventDefault();
     this.contextMenu?.remove();
-    const li = (event.currentTarget as HTMLLIElement);
+    const li = event.currentTarget as HTMLLIElement;
     const rect = li.getBoundingClientRect();
     this.contextMenu = document.createElement("div");
     this.contextMenu.id = `layer-${layer.id}-context-menu`;
@@ -512,7 +511,7 @@ export class LayersMenu {
     this.contextMenu.style.left = `${rect.left}px`;
 
     const openFiltersDialogBtn = document.createElement("button");
-    openFiltersDialogBtn.textContent = 'Editar Filtros do Elemento';
+    openFiltersDialogBtn.textContent = "Editar Filtros do Elemento";
     openFiltersDialogBtn.addEventListener("click", () => {
       this.eventBus.emit("dialog:elementFilters:open", { layerId: layer.id });
       this.contextMenu?.remove();
@@ -532,11 +531,11 @@ export class LayersMenu {
       this.contextMenu?.remove();
     });
 
-    const listSeparator = () =>  {
+    const listSeparator = () => {
       const separator = document.createElement("div");
       separator.className = "separator";
       return separator;
-    }
+    };
 
     const deleteElementBtn = document.createElement("button");
     deleteElementBtn.textContent = "Apagar Elemento";

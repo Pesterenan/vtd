@@ -66,9 +66,9 @@ export class ToolMenu {
 </button>
 `;
 
-    const mainWindow = getElementById<HTMLDivElement>("main-window");
-    if (mainWindow) {
-      mainWindow.appendChild(this.toolMenu);
+    const appWindow = getElementById<HTMLDivElement>("app-window");
+    if (appWindow) {
+      appWindow.appendChild(this.toolMenu);
     }
   }
 
@@ -89,10 +89,10 @@ export class ToolMenu {
         );
       });
     }
-    this.eventBus.on("tool:change", this.setActiveTool.bind(this));
+    this.eventBus.on("tool:change", this.setActiveTool);
   }
 
-  private setActiveTool(tool: TOOL): void {
+  private setActiveTool = (tool: TOOL): void => {
     if (this.activeToolId) {
       const previousTool = this.toolMenu.querySelector(
         `[data-tool="${this.activeToolId}"]`,

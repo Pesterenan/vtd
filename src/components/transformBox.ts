@@ -1,7 +1,12 @@
 import type { Element } from "src/components/elements/element";
 import type { Position, Scale, Size, TElementData } from "src/components/types";
 import { BoundingBox } from "src/utils/boundingBox";
-import type { EventBus } from "src/utils/eventBus";
+import type {
+  DeltaPayload,
+  EventBus,
+  PositionPayload,
+  UpdateScalePayload,
+} from "src/utils/eventBus";
 import { rotatePoint, toRadians } from "src/utils/transforms";
 import { Vector } from "src/utils/vector";
 import { ElementGroup } from "./elements/elementGroup";
@@ -29,26 +34,6 @@ export class TransformBox {
   public boundingBox: BoundingBox | null = null;
   public handles: Record<TransformBoxHandleKeys, Position> | null = null;
   private eventBus: EventBus;
-  private onUpdateOpacity: (payload: { delta: number }) => void;
-  private onUpdatePosition: (payload: { delta: Position }) => void;
-  private onUpdateRotation: (payload: { delta: number }) => void;
-  private onUpdateScale: (payload: { delta: Scale, anchor?: Position }) => void;
-  private getAnchorPoint: () => Position;
-  private getSignAndAnchor: () => {
-  anchor: Position;
-    xSign: 1 | 0 | -1;
-    ySign: 1 | 0 | -1;}
-  private getProperties: () => {
-    position: Position;
-    size: Size;
-    opacity: number;
-    rotation: number;
-  };
-  private getPosition: () => Position;
-  private getRotation: () => number;
-  private onChangeAnchorPoint: (payload: { position: Position }) => void;
-  private onHoverHandle: (payload: { position: Position }) => void;
-  private onSelectHandle: () => boolean;
   public hoveredHandle: TransformBoxHandleKeys | null = null;
   public selectedHandle: TransformBoxHandleKeys | null = null;
 
@@ -58,35 +43,6 @@ export class TransformBox {
   ) {
     this.eventBus = eventBus;
     this.selectedElements = selectedElements;
-    this.onUpdateOpacity = ({ delta }) => {
-      this.updateOpacity(delta);
-    };
-    this.onUpdatePosition = ({ delta }) => {
-      this.updatePosition(delta);
-    };
-    this.onUpdateRotation = ({ delta }) => {
-      this.updateRotation(delta);
-    };
-    this.onUpdateScale = ({ delta, anchor }) => {
-      this.updateScale(delta, anchor);
-    };
-    this.onChangeAnchorPoint = ({ position }) => {
-      this.anchorPoint = position;
-    };
-    this.onHoverHandle = ({ position }) => this.hoverHandle(position);
-    this.onSelectHandle = () => this.selectHandle();
-    this.getAnchorPoint = () => this.anchorPoint;
-    this.getPosition = () => this.position;
-    this.getRotation = () => this.rotation;
-    this.getProperties = () => {
-      return {
-        position: this.position,
-        rotation: this.rotation,
-        opacity: this.opacity,
-        size: this.size,
-      };
-    };
-    this.getSignAndAnchor = () => this.calculateSignAndAnchor();
 
     if (this.selectedElements.length > 0) {
       this.calculateBoundingBox();
@@ -95,47 +51,70 @@ export class TransformBox {
   }
 
   private addEvents() {
-    this.eventBus.on("transformBox:updateOpacity", this.onUpdateOpacity);
-    this.eventBus.on("transformBox:updatePosition", this.onUpdatePosition);
-    this.eventBus.on("transformBox:updateRotation", this.onUpdateRotation);
-    this.eventBus.on("transformBox:updateScale", this.onUpdateScale);
-    this.eventBus.on(
-      "transformBox:anchorPoint:change",
-      this.onChangeAnchorPoint,
-    );
+    this.eventBus.on("transformBox:anchorPoint:change", this.changeAnchorPoint);
     this.eventBus.on("transformBox:anchorPoint:get", this.getAnchorPoint);
-    this.eventBus.on("transformBox:properties:get", this.getProperties);
+    this.eventBus.on(
+      "transformBox:getSignAndAnchor",
+      this.calculateSignAndAnchor,
+    );
+    this.eventBus.on("transformBox:hoverHandle", this.hoverHandle);
     this.eventBus.on("transformBox:position", this.getPosition);
+    this.eventBus.on("transformBox:properties:get", this.getProperties);
     this.eventBus.on("transformBox:rotation", this.getRotation);
-    this.eventBus.on("transformBox:hoverHandle", this.onHoverHandle);
-    this.eventBus.on("transformBox:selectHandle", this.onSelectHandle);
-    this.eventBus.on("transformBox:getSignAndAnchor", this.getSignAndAnchor);
+    this.eventBus.on("transformBox:selectHandle", this.selectHandle);
+    this.eventBus.on("transformBox:updateOpacity", this.updateOpacity);
+    this.eventBus.on("transformBox:updatePosition", this.updatePosition);
+    this.eventBus.on("transformBox:updateRotation", this.updateRotation);
+    this.eventBus.on("transformBox:updateScale", this.updateScale);
   }
 
   public removeEvents() {
-    this.eventBus.off("transformBox:updateOpacity", this.onUpdateOpacity);
-    this.eventBus.off("transformBox:updatePosition", this.onUpdatePosition);
-    this.eventBus.off("transformBox:updateRotation", this.onUpdateRotation);
-    this.eventBus.off("transformBox:updateScale", this.onUpdateScale);
+    this.eventBus.off("transformBox:anchorPoint:get", this.getAnchorPoint);
     this.eventBus.off(
       "transformBox:anchorPoint:change",
-      this.onChangeAnchorPoint,
+      this.changeAnchorPoint,
     );
-    this.eventBus.off("transformBox:anchorPoint:get", this.getAnchorPoint);
-    this.eventBus.off("transformBox:properties:get", this.getProperties);
+    this.eventBus.off(
+      "transformBox:getSignAndAnchor",
+      this.calculateSignAndAnchor,
+    );
+    this.eventBus.off("transformBox:hoverHandle", this.hoverHandle);
     this.eventBus.off("transformBox:position", this.getPosition);
+    this.eventBus.off("transformBox:properties:get", this.getProperties);
     this.eventBus.off("transformBox:rotation", this.getRotation);
-    this.eventBus.off("transformBox:hoverHandle", this.onHoverHandle);
-    this.eventBus.off("transformBox:selectHandle", this.onSelectHandle);
-    this.eventBus.off("transformBox:getSignAndAnchor", this.getSignAndAnchor);
+    this.eventBus.off("transformBox:selectHandle", this.selectHandle);
+    this.eventBus.off("transformBox:updateOpacity", this.updateOpacity);
+    this.eventBus.off("transformBox:updatePosition", this.updatePosition);
+    this.eventBus.off("transformBox:updateRotation", this.updateRotation);
+    this.eventBus.off("transformBox:updateScale", this.updateScale);
   }
 
-  public selectHandle(): boolean {
+  public selectHandle = (): boolean => {
     this.selectedHandle = this.hoveredHandle;
     return !!this.hoveredHandle;
-  }
+  };
+  private getPosition = (): Position => this.position;
+  private getRotation = (): number => this.rotation;
+  private getAnchorPoint = (): Position => this.anchorPoint;
+  private getProperties = (): {
+    position: Position;
+    size: Size;
+    opacity: number;
+    rotation: number;
+  } => {
+    return {
+      position: this.position,
+      rotation: this.rotation,
+      opacity: this.opacity,
+      size: this.size,
+    };
+  };
 
-  public hoverHandle(position: Position): void {
+  private changeAnchorPoint = ({ position }: PositionPayload): void => {
+    this.anchorPoint = position;
+  };
+
+  public hoverHandle = ({ position }: PositionPayload): void => {
     if (this.handles) {
       const hitHandle = (
         Object.keys(this.handles) as TransformBoxHandleKeys[]
@@ -148,9 +127,9 @@ export class TransformBox {
       });
       this.hoveredHandle = hitHandle || null;
     }
-  }
+  };
 
-  private calculateBoundingBox(): void {
+  private calculateBoundingBox = (): void => {
     if (this.selectedElements.length === 1) {
       const element = this.selectedElements[0];
       this.boundingBox = element.getBoundingBox();
@@ -174,7 +153,7 @@ export class TransformBox {
     // Recalcula os handles
     this.generateHandles();
     this.updateHandles();
-  }
+  };
 
   private generateHandles(): void {
     if (this.boundingBox) {
@@ -208,15 +187,15 @@ export class TransformBox {
     this.eventBus.emit("workarea:update");
   }
 
-  public updateOpacity(opacity: number): void {
+  public updateOpacity = ({ delta: opacity }: { delta: number }): void => {
     for (const element of this.selectedElements) {
       element.opacity = opacity;
     }
     this.opacity = opacity;
     this.updateHandles();
-  }
+  };
 
-  public updatePosition({ x, y }: Position): void {
+  public updatePosition = ({ position: { x, y } }: PositionPayload): void => {
     const delta = { x: x - this.position.x, y: y - this.position.y };
     const moveElement = (element: Element<TElementData>) => {
       element.position = {
@@ -235,9 +214,9 @@ export class TransformBox {
     }
     this.position = { x, y };
     this.updateHandles();
-  }
+  };
 
-  public updateRotation(angle: number): void {
+  public updateRotation = ({ delta: angle }: DeltaPayload): void => {
     const deltaAngle = angle - this.rotation;
     const deltaPos = rotatePoint(this.position, this.anchorPoint, deltaAngle);
     const angleInRadians = toRadians(deltaAngle);
@@ -268,22 +247,33 @@ export class TransformBox {
     this.position = deltaPos;
     this.rotation = angle;
     this.updateHandles();
-  }
+  };
 
-  public updateScale(delta: Scale, anchor: Position = this.anchorPoint): void {
+  public updateScale = ({
+    delta,
+    anchor = this.anchorPoint,
+  }: UpdateScalePayload): void => {
     const scaleElement = (element: Element<TElementData>) => {
       const offset = {
         x: element.position.x - anchor.x,
         y: element.position.y - anchor.y,
       };
-      const offsetUnrotated = rotatePoint(offset, {x:0, y:0}, -this.rotation);
+      const offsetUnrotated = rotatePoint(
+        offset,
+        { x: 0, y: 0 },
+        -this.rotation,
+      );
 
       offsetUnrotated.x *= delta.x;
       offsetUnrotated.y *= delta.y;
       element.scale.x *= delta.x;
       element.scale.y *= delta.y;
 
-      const offsetRotated = rotatePoint(offsetUnrotated, {x:0, y:0}, this.rotation);
+      const offsetRotated = rotatePoint(
+        offsetUnrotated,
+        { x: 0, y: 0 },
+        this.rotation,
+      );
 
       element.position.x = anchor.x + offsetRotated.x;
       element.position.y = anchor.y + offsetRotated.y;
@@ -303,30 +293,34 @@ export class TransformBox {
       x: this.position.x - anchor.x,
       y: this.position.y - anchor.y,
     };
-    const offsetUnrotated = rotatePoint(offset, {x:0, y:0}, -this.rotation);
+    const offsetUnrotated = rotatePoint(offset, { x: 0, y: 0 }, -this.rotation);
 
     offsetUnrotated.x *= delta.x;
     offsetUnrotated.y *= delta.y;
     this.size.width *= delta.x;
     this.size.height *= delta.y;
 
-    const offsetRotated = rotatePoint(offsetUnrotated, {x:0, y:0}, this.rotation);
+    const offsetRotated = rotatePoint(
+      offsetUnrotated,
+      { x: 0, y: 0 },
+      this.rotation,
+    );
 
     this.position.x = anchor.x + offsetRotated.x;
     this.position.y = anchor.y + offsetRotated.y;
 
     this.updateHandles();
-  }
+  };
 
   public contains(element: Element<TElementData>): boolean {
     return !!this.selectedElements.find((el) => el.zDepth === element.zDepth);
   }
 
-  public calculateSignAndAnchor(): {
+  public calculateSignAndAnchor = (): {
     anchor: Position;
     xSign: 1 | 0 | -1;
     ySign: 1 | 0 | -1;
-  } {
+  } => {
     let anchor = this.anchorPoint;
     let xSign: 1 | 0 | -1 = 1;
     let ySign: 1 | 0 | -1 = 1;
@@ -381,7 +375,7 @@ export class TransformBox {
         break;
     }
     return { anchor, xSign, ySign };
-  }
+  };
 
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.boundingBox) return;

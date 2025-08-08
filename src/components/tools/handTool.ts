@@ -28,7 +28,7 @@ export class HandTool extends Tool {
     if (this.lastPosition) {
       const x = offsetX - this.lastPosition.x;
       const y = offsetY - this.lastPosition.y;
-      this.eventBus.emit("workarea:offset:change", { delta: { x, y } });
+      this.eventBus.emit("workarea:offset:change", { position: { x, y } });
       this.lastPosition = { x: offsetX, y: offsetY };
     }
   }

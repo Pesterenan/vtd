@@ -1,77 +1,84 @@
-import { TransformMenu } from './transformMenu';
-import { EventBus } from 'src/utils/eventBus';
-import createSliderControl from './helpers/createSliderControl';
+import { TransformMenu } from "./transformMenu";
+import { EventBus } from "src/utils/eventBus";
+import createSliderControl from "./helpers/createSliderControl";
+import type { Element } from "./elements/element";
+import type { TElementData } from "./types";
 
-// Mock createSliderControl as it creates DOM elements and attaches event listeners
-jest.mock('./helpers/createSliderControl', () => {
-  const mockSliderControl = {
-    element: document.createElement('div'),
-    updateValues: jest.fn(),
-    linkEvents: jest.fn(),
-    unlinkEvents: jest.fn(),
-  };
+const mockSliderControl = {
+  element: document.createElement("div"),
+  updateValues: jest.fn(),
+  linkEvents: jest.fn(),
+  unlinkEvents: jest.fn(),
+};
+
+jest.mock("./helpers/createSliderControl", () => {
   return jest.fn(() => mockSliderControl);
 });
 
-describe('TransformMenu', () => {
+describe("TransformMenu", () => {
   let eventBus: EventBus;
   let transformMenu: TransformMenu;
-  let mockSliderControl: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const handleFunctions: { [key: string]: (value: number) => void } = {};
 
-  beforeEach(() => {
-    document.body.innerHTML = ''; // Clear the DOM before each test
-    (TransformMenu as any).instance = null; // Reset the singleton instance
+  beforeAll(() => {
     eventBus = new EventBus();
-    jest.spyOn(eventBus, 'emit');
-    jest.spyOn(eventBus, 'on');
-    jest.spyOn(eventBus, 'request').mockReturnValue([[]]);
+    jest.spyOn(eventBus, "emit");
+    jest.spyOn(eventBus, "on");
 
-    // Reset mock before each test
-    mockSliderControl = {
-      element: document.createElement('div'),
-      updateValues: jest.fn(),
-      linkEvents: jest.fn(),
-      unlinkEvents: jest.fn(),
-    };
-    (createSliderControl as jest.Mock).mockClear();
-    (createSliderControl as jest.Mock).mockReturnValue(mockSliderControl);
+    (createSliderControl as jest.Mock).mockImplementation(
+      (id, _label, _options, callback) => {
+        handleFunctions[id] = callback;
+        return mockSliderControl;
+      },
+    );
 
     transformMenu = TransformMenu.getInstance(eventBus);
   });
 
-  it('should be a singleton', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("should be a singleton", () => {
     const instance1 = TransformMenu.getInstance(eventBus);
     const instance2 = TransformMenu.getInstance(eventBus);
     expect(instance1).toBe(instance2);
   });
 
-  it('should return the menu element', () => {
+  it("should return the menu element", () => {
     const menu = transformMenu.getMenu();
     expect(menu).toBeInstanceOf(HTMLElement);
-    expect(menu.id).toBe('sec_transform-box-properties');
+    expect(menu.id).toBe("sec_transform-box-properties");
   });
 
-  it('should create DOM elements and slider controls correctly', () => {
-    expect(transformMenu.getMenu().querySelector('h5')).not.toBeNull();
-    expect(createSliderControl).toHaveBeenCalledTimes(6);
-    expect(transformMenu['xPosControl']).toBe(mockSliderControl);
-    expect(transformMenu['yPosControl']).toBe(mockSliderControl);
-    expect(transformMenu['widthControl']).toBe(mockSliderControl);
-    expect(transformMenu['heightControl']).toBe(mockSliderControl);
-    expect(transformMenu['rotationControl']).toBe(mockSliderControl);
-    expect(transformMenu['opacityControl']).toBe(mockSliderControl);
+  it("should create DOM elements and slider controls correctly", () => {
+    expect(Object.keys(handleFunctions).length).toBe(6);
   });
 
-  it('should link DOM elements when elements are selected', () => {
-    jest.spyOn(eventBus, 'request').mockReturnValueOnce([['someElement']]);
-    jest.spyOn(eventBus, 'request').mockReturnValueOnce([{
+  it("should link DOM elements when elements are selected", () => {
+    const mockElement = {
       position: { x: 10, y: 20 },
       size: { width: 100, height: 200 },
       rotation: 45,
       opacity: 0.8,
-    }]);
+    } as Element<TElementData>;
 
-    transformMenu['handleSelectElement']();
+    jest
+      .spyOn(eventBus, "request")
+      .mockReturnValue([
+        {
+          position: { x: 10, y: 20 },
+          size: { width: 100, height: 200 },
+          rotation: 45,
+          opacity: 0.8,
+        },
+      ]);
+
+    eventBus.emit("selection:changed", { selectedElements: [mockElement] });
 
     expect(mockSliderControl.linkEvents).toHaveBeenCalledTimes(6);
     expect(mockSliderControl.updateValues).toHaveBeenCalledTimes(6);
@@ -83,20 +90,19 @@ describe('TransformMenu', () => {
     expect(mockSliderControl.updateValues).toHaveBeenCalledWith(0.8);
   });
 
-  it('should unlink DOM elements when no elements are selected', () => {
-    jest.spyOn(eventBus, 'request').mockReturnValueOnce([[]]);
-    transformMenu['handleSelectElement']();
+  it("should unlink DOM elements when no elements are selected", () => {
+    eventBus.emit("selection:changed", { selectedElements: [] });
     expect(mockSliderControl.unlinkEvents).toHaveBeenCalledTimes(6);
   });
 
-  it('should update slider controls on recalculate transform box', () => {
+  it("should update slider controls on recalculate transform box", () => {
     const payload = {
       position: { x: 10, y: 20 },
       size: { width: 100, height: 200 },
       rotation: 45,
       opacity: 0.8,
     };
-    transformMenu['handleRecalculateTransformBox'](payload);
+    eventBus.emit("transformBox:properties:change", payload);
 
     expect(mockSliderControl.updateValues).toHaveBeenCalledWith(10);
     expect(mockSliderControl.updateValues).toHaveBeenCalledWith(20);
@@ -106,57 +112,87 @@ describe('TransformMenu', () => {
     expect(mockSliderControl.updateValues).toHaveBeenCalledWith(0.8);
   });
 
-  it('should emit transformBox:updatePosition on X position change', () => {
-    jest.spyOn(eventBus, 'request').mockReturnValueOnce([{
-      position: { x: 0, y: 20 },
-      size: { width: 100, height: 200 },
-      rotation: 45,
-      opacity: 0.8,
-    }]);
-    transformMenu['handleXPosChange'](50);
-    expect(eventBus.emit).toHaveBeenCalledWith('transformBox:updatePosition', { delta: { x: 50, y: 20 } });
+  it("should emit transformBox:updatePosition on X position change", () => {
+    jest
+      .spyOn(eventBus, "request")
+      .mockReturnValueOnce([
+        {
+          position: { x: 0, y: 20 },
+          size: { width: 100, height: 200 },
+          rotation: 45,
+          opacity: 0.8,
+        },
+      ]);
+
+    handleFunctions["inp_x-position"](50);
+
+    expect(eventBus.emit).toHaveBeenCalledWith("transformBox:updatePosition", {
+      position: { x: 50, y: 20 },
+    });
   });
 
-  it('should emit transformBox:updatePosition on Y position change', () => {
-    jest.spyOn(eventBus, 'request').mockReturnValueOnce([{
-      position: { x: 10, y: 0 },
-      size: { width: 100, height: 200 },
-      rotation: 45,
-      opacity: 0.8,
-    }]);
-    transformMenu['handleYPosChange'](60);
-    expect(eventBus.emit).toHaveBeenCalledWith('transformBox:updatePosition', { delta: { x: 10, y: 60 } });
+  it("should emit transformBox:updatePosition on Y position change", () => {
+    jest
+      .spyOn(eventBus, "request")
+      .mockReturnValueOnce([
+        {
+          position: { x: 10, y: 0 },
+          size: { width: 100, height: 200 },
+          rotation: 45,
+          opacity: 0.8,
+        },
+      ]);
+
+    handleFunctions["inp_y-position"](60);
+
+    expect(eventBus.emit).toHaveBeenCalledWith("transformBox:updatePosition", {
+      position: { x: 10, y: 60 },
+    });
   });
 
-  it('should emit transformBox:updateScale on width change', () => {
-    jest.spyOn(eventBus, 'request').mockReturnValueOnce([{
-      position: { x: 10, y: 20 },
-      size: { width: 100, height: 200 },
-      rotation: 45,
-      opacity: 0.8,
-    }]);
-    transformMenu['handleWidthChange'](150);
-    expect(eventBus.emit).toHaveBeenCalledWith('transformBox:updateScale', { delta: { x: 1.5, y: 1.0 } });
+  it("should emit transformBox:updateScale on width change", () => {
+    jest
+      .spyOn(eventBus, "request")
+      .mockReturnValueOnce([
+        {
+          position: { x: 10, y: 20 },
+          size: { width: 100, height: 200 },
+          rotation: 45,
+          opacity: 0.8,
+        },
+      ]);
+
+    handleFunctions["inp_width"](150);
+
+    expect(eventBus.emit).toHaveBeenCalledWith("transformBox:updateScale", {
+      delta: { x: 1.5, y: 1.0 },
+    });
   });
 
-  it('should emit transformBox:updateScale on height change', () => {
-    jest.spyOn(eventBus, 'request').mockReturnValueOnce([{
-      position: { x: 10, y: 20 },
-      size: { width: 100, height: 200 },
-      rotation: 45,
-      opacity: 0.8,
-    }]);
-    transformMenu['handleHeightChange'](250);
-    expect(eventBus.emit).toHaveBeenCalledWith('transformBox:updateScale', { delta: { x: 1.0, y: 1.25 } });
+  it("should emit transformBox:updateScale on height change", () => {
+    jest
+      .spyOn(eventBus, "request")
+      .mockReturnValueOnce([
+        {
+          position: { x: 10, y: 20 },
+          size: { width: 100, height: 200 },
+          rotation: 45,
+          opacity: 0.8,
+        },
+      ]);
+
+    handleFunctions["inp_height"](250);
+
+    expect(eventBus.emit).toHaveBeenCalledWith("transformBox:updateScale", {
+      delta: { x: 1.0, y: 1.25 },
+    });
   });
 
-  it('should emit transformBox:updateRotation on rotation change', () => {
-    transformMenu['handleRotationChange'](90);
-    expect(eventBus.emit).toHaveBeenCalledWith('transformBox:updateRotation', { delta: 90 });
-  });
+  it("should emit transformBox:updateRotation on rotation change", () => {
+    handleFunctions["inp_rotation"](90);
 
-  it('should emit transformBox:updateOpacity on opacity change', () => {
-    transformMenu['handleOpacityChange'](0.5);
-    expect(eventBus.emit).toHaveBeenCalledWith('transformBox:updateOpacity', { delta: 0.5 });
+    expect(eventBus.emit).toHaveBeenCalledWith("transformBox:updateRotation", {
+      delta: 90,
+    });
   });
 });

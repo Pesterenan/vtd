@@ -27,9 +27,9 @@ describe("TextTool", () => {
   });
 
   it("onMouseDown emits edit:text with correct payload", () => {
-    const mouseDownEvent = new MouseEvent('mousedown') as MouseEvent & { offsetX: number; offsetY: number };
-    Object.defineProperty(mouseDownEvent, 'offsetX', { value: 15 });
-    Object.defineProperty(mouseDownEvent, 'offsetY', { value: 25 });
+    const mouseDownEvent = new MouseEvent("mousedown", { clientX: 15, clientY: 25 }) as MouseEvent & { offsetX: number; offsetY: number };
+    Object.defineProperty(mouseDownEvent, "offsetX", { value: 15 });
+    Object.defineProperty(mouseDownEvent, "offsetY", { value: 25 });
     tool.onMouseDown(mouseDownEvent);
     expect(bus.emit).toHaveBeenCalledWith("edit:text", {
       position: { x: 15, y: 25 },
@@ -37,11 +37,10 @@ describe("TextTool", () => {
   });
 
   it("onMouseMove updates lastPosition and emits workarea:update", () => {
-    const mouseMoveEvent = new MouseEvent('mousemove') as MouseEvent & { offsetX: number; offsetY: number };
-    Object.defineProperty(mouseMoveEvent, 'offsetX', { value: 30 });
-    Object.defineProperty(mouseMoveEvent, 'offsetY', { value: 45 });
+    const mouseMoveEvent = new MouseEvent("mousemove", { clientX: 30, clientY: 45 }) as MouseEvent & { offsetX: number; offsetY: number };
+    Object.defineProperty(mouseMoveEvent, "offsetX", { value: 30 });
+    Object.defineProperty(mouseMoveEvent, "offsetY", { value: 45 });
     tool.onMouseMove(mouseMoveEvent);
-    expect((tool as any).lastPosition).toEqual({ x: 30, y: 45 });
     expect(bus.emit).toHaveBeenCalledWith("workarea:update");
   });
 
@@ -50,7 +49,6 @@ describe("TextTool", () => {
     const fillTextSpy = jest.spyOn(context, "fillText");
     const strokeTextSpy = jest.spyOn(context, "strokeText");
 
-    (tool as any).lastPosition = null;
     tool.draw();
     expect(saveSpy).not.toHaveBeenCalled();
     expect(fillTextSpy).not.toHaveBeenCalled();
@@ -63,7 +61,11 @@ describe("TextTool", () => {
     const strokeTextSpy = jest.spyOn(context, "strokeText");
     const restoreSpy = jest.spyOn(context, "restore");
 
-    (tool as any).lastPosition = { x: 100, y: 200 };
+    const mouseMoveEvent = new MouseEvent("mousemove", { clientX: 100, clientY: 200 }) as MouseEvent & { offsetX: number; offsetY: number };
+    Object.defineProperty(mouseMoveEvent, "offsetX", { value: 100 });
+    Object.defineProperty(mouseMoveEvent, "offsetY", { value: 200 });
+    tool.onMouseMove(mouseMoveEvent);
+
     tool.draw();
     expect(saveSpy).toHaveBeenCalled();
     expect(strokeTextSpy).toHaveBeenCalledWith("T|", 100, 200);
@@ -73,8 +75,8 @@ describe("TextTool", () => {
 
   it("onKeyDown prevents default and emits edit:acceptTextChange on Shift+Enter", () => {
     const preventDefaultSpy = jest.fn();
-    const keyboardEvent = new KeyboardEvent('keydown', { shiftKey: true, key: "Enter" });
-    Object.defineProperty(keyboardEvent, 'preventDefault', { value: preventDefaultSpy });
+    const keyboardEvent = new KeyboardEvent("keydown", { shiftKey: true, key: "Enter" });
+    Object.defineProperty(keyboardEvent, "preventDefault", { value: preventDefaultSpy });
 
     tool.onKeyDown(keyboardEvent);
     expect(preventDefaultSpy).toHaveBeenCalled();
@@ -83,8 +85,8 @@ describe("TextTool", () => {
 
   it("onKeyDown prevents default and emits edit:declineTextChange on Escape", () => {
     const preventDefaultSpy = jest.fn();
-    const keyboardEvent = new KeyboardEvent('keydown', { key: "Escape" });
-    Object.defineProperty(keyboardEvent, 'preventDefault', { value: preventDefaultSpy });
+    const keyboardEvent = new KeyboardEvent("keydown", { key: "Escape" });
+    Object.defineProperty(keyboardEvent, "preventDefault", { value: preventDefaultSpy });
 
     tool.onKeyDown(keyboardEvent);
     expect(preventDefaultSpy).toHaveBeenCalled();

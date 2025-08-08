@@ -19,10 +19,8 @@ export class SideMenu {
   private gradientMenu: HTMLElement;
   private textMenu: HTMLElement;
   private transformMenu: HTMLElement;
-  private eventBus: EventBus;
 
-  constructor(eventBus: EventBus) {
-    this.eventBus = eventBus;
+  constructor(private eventBus: EventBus) {
     this.sideMenu = document.createElement("menu");
     this.transformMenu = TransformMenu.getInstance(eventBus).getMenu();
     this.layersMenu = LayersMenu.getInstance(eventBus).getMenu();
@@ -93,9 +91,9 @@ export class SideMenu {
     // APPEND ELEMENTS TO SIDE MENU:
     this.sideMenu.append(...domElements);
 
-    const mainWindow = getElementById<HTMLDivElement>("main-window");
-    if (mainWindow) {
-      mainWindow.appendChild(this.sideMenu);
+    const appWindow = getElementById<HTMLDivElement>("app-window");
+    if (appWindow) {
+      appWindow.appendChild(this.sideMenu);
     }
   }
 
