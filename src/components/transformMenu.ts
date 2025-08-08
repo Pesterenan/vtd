@@ -16,6 +16,7 @@ export class TransformMenu {
 
   private constructor(private eventBus: EventBus) {
     this.createDOMElements();
+    this.unlinkDOMElements();
     this.eventBus.on("selection:changed", this.handleSelectElement);
     this.eventBus.on("workarea:deleteElement", () => {
       this.unlinkDOMElements();
@@ -24,6 +25,12 @@ export class TransformMenu {
       "transformBox:properties:change",
       this.handleRecalculateTransformBox.bind(this),
     );
+    this.eventBus.on("workarea:initialized", () => {
+      this.transformSection?.removeAttribute("disabled");
+    });
+    this.eventBus.on("workarea:clear", () => {
+      this.transformSection?.setAttribute("disabled", "true");
+    });
   }
 
   private handleSelectElement = ({ selectedElements }: SelectionChangedPayload): void => {
@@ -76,6 +83,7 @@ export class TransformMenu {
     this.transformSection = document.createElement("section");
     this.transformSection.id = "sec_transform-box-properties";
     this.transformSection.className = "sec_menu-style";
+    this.transformSection.setAttribute("disabled", "true");
     this.transformSection.innerHTML = `
       <h5 style="align-self: flex-start;">Caixa de Transformação:</h5>
       <div class="container jc-sb">

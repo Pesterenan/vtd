@@ -30,6 +30,13 @@ export class LayersMenu {
     this.layersList = document.createElement("ul");
     this.createDOMElements();
     this.attachGlobalEvents();
+
+    this.eventBus.on("workarea:initialized", () => {
+      this.layersSection?.removeAttribute("disabled");
+    });
+    this.eventBus.on("workarea:clear", () => {
+      this.layersSection?.setAttribute("disabled", "true");
+    });
   }
 
   public static getInstance(eventBus: EventBus): LayersMenu {
@@ -39,10 +46,6 @@ export class LayersMenu {
     return LayersMenu.instance;
   }
 
-  public static resetInstance(): void {
-    LayersMenu.instance = null;
-  }
-
   public getMenu(): HTMLElement {
     return this.layersSection || errorElement("Menu não instanciado");
   }
@@ -50,6 +53,7 @@ export class LayersMenu {
   private createDOMElements(): void {
     this.layersSection.id = "sec_layers-menu";
     this.layersSection.className = "sec_menu-style";
+    this.layersSection.setAttribute("disabled", "true");
     this.layersSection.innerHTML = `
 <h5 style="align-self: flex-start;">Camadas:</h5>
 <ul id="ul_layers-list"></ul>

@@ -34,6 +34,13 @@ export class GradientMenu {
     this.eventBus.on("selection:changed", this.handleSelectElement);
     this.eventBus.on("edit:gradientUpdateColorStops", this.updateGradientBar);
     this.createDOMElements();
+    this.unlinkDOMElements();
+    this.eventBus.on("workarea:initialized", () => {
+      this.gradientSection?.removeAttribute("disabled");
+    });
+    this.eventBus.on("workarea:clear", () => {
+      this.gradientSection?.setAttribute("disabled", "true");
+    });
   }
 
   public static getInstance(eventBus: EventBus): GradientMenu {
@@ -53,6 +60,7 @@ export class GradientMenu {
     this.gradientSection = document.createElement("section");
     this.gradientSection.id = "sec_gradient-menu";
     this.gradientSection.className = "sec_menu-style";
+    this.gradientSection.setAttribute("disabled", "true");
     this.gradientSection.innerHTML = `
       <h5 style="align-self: flex-start;">Gradiente:</h5>
       <div class='container column jc-sb g-05 pad-i-05'></div>
@@ -107,7 +115,7 @@ export class GradientMenu {
   }: SelectionChangedPayload): void => {
     this.unlinkDOMElements();
     if (
-      selectedElements.length === 1 &&
+      selectedElements?.length === 1 &&
       selectedElements[0] instanceof GradientElement
     ) {
       this.activeGradientElement = selectedElements[0];

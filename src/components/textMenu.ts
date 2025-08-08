@@ -70,6 +70,13 @@ export class TextMenu {
     });
     this.textMenuSection = document.createElement("section");
     this.createDOMElements();
+    this.unlinkDOMElements();
+    this.eventBus.on("workarea:initialized", () => {
+      this.textMenuSection?.removeAttribute("disabled");
+    });
+    this.eventBus.on("workarea:clear", () => {
+      this.textMenuSection?.setAttribute("disabled", "true");
+    });
   }
 
   public static getInstance(eventBus: EventBus): TextMenu {
@@ -86,6 +93,7 @@ export class TextMenu {
   private createDOMElements(): void {
     this.textMenuSection.id = "sec_text-menu";
     this.textMenuSection.className = "sec_menu-style";
+    this.textMenuSection.setAttribute("disabled", "true");
     this.textMenuSection.innerHTML = `
 <div class='container ai-jc-c'>
   <h5 style="align-self: flex-start;">Texto:</h5>
@@ -463,7 +471,7 @@ export class TextMenu {
   private handleSelectElement(selectedElements: Element<TElementData>[]): void {
     this.unlinkDOMElements();
     if (
-      selectedElements.length === 1 &&
+      selectedElements?.length === 1 &&
       selectedElements[0] instanceof TextElement
     ) {
       this.activeTextElement = selectedElements[0];

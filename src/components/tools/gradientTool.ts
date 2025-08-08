@@ -231,7 +231,7 @@ export class GradientTool extends Tool {
   private selectActiveGradient = (): void => {
     const [selectedElements] = this.eventBus.request("workarea:selected:get");
     if (
-      selectedElements.length === 1 &&
+      selectedElements?.length === 1 &&
       selectedElements[0] instanceof GradientElement
     ) {
       this.activeGradientElement = selectedElements[0];

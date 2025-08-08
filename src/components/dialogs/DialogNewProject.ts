@@ -58,7 +58,7 @@ export class DialogNewProject extends Dialog {
     this.projectNameInput = createTextInput(
       "project-name-input",
       "Nome do Projeto",
-      { min: 0, max: 75, style: { width: 'auto' }},
+      { min: 0, max: 75, style: { width: 'auto' }, value: "Sem título"},
       this.handleNameInput.bind(this),
     );
     this.workAreaWidthInput = createSliderControl(
@@ -118,10 +118,10 @@ export class DialogNewProject extends Dialog {
       const now = new Date().toISOString();
       this.projectData.createDate = now;
       this.projectData.modifyDate = now;
-      window.api.setWindowTitle(this.projectData.title);
     }
     this.eventBus.emit("workarea:createNewProject", {
       projectData: this.projectData as IProjectData,
     });
+    this.eventBus.emit("workarea:initialized");
   }
 }

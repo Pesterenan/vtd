@@ -238,6 +238,10 @@ export interface EventBusMap {
     payload: PositionPayload;
     result: Position;
   };
+  "workarea:initialized": {
+    payload: unknown;
+    result: unknown;
+  };
   "workarea:clear": {
     payload: unknown;
     result: unknown;

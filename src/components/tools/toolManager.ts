@@ -5,6 +5,7 @@ export type ToolEventHandler = "onMouseDown" | "onMouseMove" | "onMouseUp" | "on
 
 export class ToolManager {
   private current: Tool | null = null;
+  private isWorkAreaActive = false;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -19,6 +20,13 @@ export class ToolManager {
     canvas.addEventListener("mouseup", (e) => this.delegate("onMouseUp", e));
     window.addEventListener("keydown", (e) => this.delegate("onKeyDown", e));
     window.addEventListener("keyup", (e) => this.delegate("onKeyUp", e));
+
+    this.eventBus.on("workarea:initialized", () => {
+      this.isWorkAreaActive = true;
+    });
+    this.eventBus.on("workarea:clear", () => {
+      this.isWorkAreaActive = false;
+    });
   }
 
   public use(tool: Tool) {
@@ -28,7 +36,7 @@ export class ToolManager {
   }
 
   private delegate(method: ToolEventHandler, evt: MouseEvent | KeyboardEvent) {
-    if (!this.current) return;
+    if (!this.current || !this.isWorkAreaActive) return;
     const handler = this.current[method] as (e: typeof evt) => void;
     handler.call(this.current, evt);
     this.eventBus.emit("tool:event", {

@@ -120,7 +120,7 @@ export class MainWindow {
         type: response.success ? "success" : "error",
       });
       if (response.success) {
-        this.loadProject(response.data as Partial<IProjectData>);
+        this.loadOrCreateNewProject(response.data as Partial<IProjectData>);
       }
     });
 
@@ -164,6 +164,7 @@ export class MainWindow {
     this.eventBus.on("workarea:offset:get", () => this.offset);
     this.eventBus.on("workarea:project:save", () => this.saveProject());
     this.eventBus.on("workarea:clear", () => {
+      window.api.setWindowTitle("");
       this.workArea?.removeEvents();
       this.workArea = new WorkArea(this.eventBus);
       this.eventBus.emit("tool:change", TOOL.SELECT);
@@ -179,7 +180,7 @@ export class MainWindow {
     });
     this.eventBus.on("zoomLevel:get", () => this.zoomLevel);
     this.eventBus.on("workarea:createNewProject", ({ projectData }) =>
-      this.createNewProject(projectData),
+      this.loadOrCreateNewProject(projectData),
     );
     this.eventBus.on("workarea:update", this.update);
     this.eventBus.on("workarea:adjustForCanvas", ({ position }) =>
@@ -188,7 +189,7 @@ export class MainWindow {
     this.eventBus.on("workarea:adjustForScreen", ({ position }) =>
       this.adjustForScreen(position),
     );
-    if (this.canvas)  {
+    if (this.canvas) {
       this.canvas.addEventListener("dblclick", () => {
         if (!this.workArea) {
           this.eventBus.emit("dialog:newProject:open");
@@ -201,7 +202,7 @@ export class MainWindow {
 
   private handleDragOverEvent = (evt: DragEvent) => {
     evt.preventDefault();
-  }
+  };
 
   private handleDropItems = (evt: DragEvent): void => {
     evt.preventDefault();
@@ -209,16 +210,19 @@ export class MainWindow {
     if (!droppedItems) return;
 
     /** Adds the image to the workarea, or creates a new workarea if it doesn't exist yet */
-    const loadImage = (imageEl: HTMLImageElement): void  => {
+    const loadImage = (imageEl: HTMLImageElement): void => {
       if (this.workArea) {
         this.workArea.addImageElement(imageEl.src);
       } else {
         this.workArea = new WorkArea(this.eventBus);
-        this.workArea.setWorkAreaSize({ width: imageEl.width, height: imageEl.height });
+        this.workArea.setWorkAreaSize({
+          width: imageEl.width,
+          height: imageEl.height,
+        });
         this.workArea.addImageElement(imageEl.src);
         this.handleResizeWindow();
       }
-    }
+    };
     for (const item of droppedItems) {
       if (item.type.startsWith("image/")) {
         const file = item.getAsFile();
@@ -235,11 +239,11 @@ export class MainWindow {
         }
       }
     }
-  }
+  };
 
   private handleCopyCommand = (): void => {
     const [selectedElements] = this.eventBus.request("workarea:selected:get");
-    if (!selectedElements.length) {
+    if (!selectedElements?.length) {
       if (!this.workArea?.canvas) return;
       this.workArea.canvas.toBlob((blob) => {
         if (blob) {
@@ -433,25 +437,19 @@ export class MainWindow {
     }
   };
 
-  private createNewProject = (projectData: IProjectData): void => {
+  private loadOrCreateNewProject = (
+    projectData: Partial<IProjectData>,
+  ): void => {
     this.eventBus.emit("workarea:clear");
     if (this.workArea) {
-      this.projectTitle = projectData.title || "";
+      this.projectTitle = projectData?.title || "Sem título";
       this.workArea.setWorkAreaSize(projectData.workAreaSize);
-      this.workArea.loadElements();
+      this.workArea.loadElements(projectData?.elements);
+      window.api.setWindowTitle(this.projectTitle);
       this.handleResizeWindow();
+      this.eventBus.emit("workarea:initialized");
     }
   };
-
-  public loadProject(data: Partial<IProjectData>): void {
-    this.eventBus.emit("workarea:clear");
-    if (this.workArea) {
-      this.projectTitle = data.title ?? "Sem título";
-      this.workArea.setWorkAreaSize(data.workAreaSize);
-      this.workArea.loadElements(data.elements);
-      this.handleResizeWindow();
-    }
-  }
 
   public saveProject(): Partial<IProjectData> {
     if (this.workArea?.canvas && this.workArea?.elements) {
@@ -559,7 +557,7 @@ export class MainWindow {
 
   private handleDeleteCommand = (): void => {
     const [selectedElements] = this.eventBus.request("workarea:selected:get");
-    if (selectedElements.length) {
+    if (selectedElements?.length) {
       const elementIds = selectedElements.map((el) => el.elementId);
       for (const id of elementIds) {
         this.eventBus.emit("workarea:deleteElement", { elementId: id });
