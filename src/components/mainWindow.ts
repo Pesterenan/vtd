@@ -203,23 +203,33 @@ export class MainWindow {
     evt.preventDefault();
   }
 
-  private handleDropItems = (evt: DragEvent | ClipboardEvent): void => {
+  private handleDropItems = (evt: DragEvent): void => {
     evt.preventDefault();
-    let droppedItems = null;
-    if (evt instanceof DragEvent) {
-      droppedItems = evt.dataTransfer?.items;
-    } else {
-      droppedItems = evt.clipboardData?.items;
-    }
+    const droppedItems = evt.dataTransfer?.items;
     if (!droppedItems) return;
+
+    /** Adds the image to the workarea, or creates a new workarea if it doesn't exist yet */
+    const loadImage = (imageEl: HTMLImageElement): void  => {
+      if (this.workArea) {
+        this.workArea.addImageElement(imageEl.src);
+      } else {
+        this.workArea = new WorkArea(this.eventBus);
+        this.workArea.setWorkAreaSize({ width: imageEl.width, height: imageEl.height });
+        this.workArea.addImageElement(imageEl.src);
+        this.handleResizeWindow();
+      }
+    }
     for (const item of droppedItems) {
       if (item.type.startsWith("image/")) {
         const file = item.getAsFile();
         if (file) {
           const reader = new FileReader();
           reader.onload = (evt) => {
-            const imageDataUrl = evt.target?.result as string;
-            console.log(imageDataUrl);
+            const image = new Image();
+            image.src = evt.target?.result as string;
+            image.onload = (): void => {
+              loadImage(image);
+            };
           };
           reader.readAsDataURL(file);
         }

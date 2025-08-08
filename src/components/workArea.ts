@@ -74,10 +74,11 @@ export class WorkArea {
     this.eventBus.off("workarea:deleteElement", this.handleDeleteElement);
   }
 
-  public setWorkAreaSize(workAreaSize?: Size) {
-    if (this.canvas && workAreaSize) {
-      this.canvas.width = workAreaSize.width;
-      this.canvas.height = workAreaSize.height;
+  public setWorkAreaSize(newSize?: Size) {
+    if (this.canvas && newSize) {
+      this.canvas.width = newSize.width;
+      this.canvas.height = newSize.height;
+      FilterRenderer.updateSize(newSize);
     }
   }
 
