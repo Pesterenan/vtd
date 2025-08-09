@@ -25,6 +25,7 @@ describe("ToolManager", () => {
     eventBus = new EventBus();
     toolManager = new ToolManager(canvas, eventBus);
     mockTool = new MockTool(canvas, eventBus);
+    eventBus.emit("workarea:initialized");
   });
 
   it("should equip the first tool used", () => {

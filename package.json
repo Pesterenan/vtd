@@ -1,7 +1,7 @@
 {
   "name": "vtd",
   "version": "0.0.1",
-  "description": "Editor de miniaturas de videos para o YouTube.",
+  "description": "Editor de miniaturas de videos.",
   "productName": "vtd",
   "main": ".webpack/main",
   "scripts": {

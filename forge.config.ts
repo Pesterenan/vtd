@@ -68,4 +68,3 @@ const config: ForgeConfig = {
 };
 
 export default config;
-
