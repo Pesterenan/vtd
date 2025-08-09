@@ -21,8 +21,8 @@ describe("TransformBox", () => {
       { width: 185.47, height: 96.8 },
       0,
     );
-    text.content = ["TEXT"];
-    text.font = "sans-serif";
+    text.content = ["VTD"];
+    text.font = "monospace";
     elements = [text as Element<TElementData>];
 
     jest.spyOn(bus, "on");
@@ -57,7 +57,7 @@ describe("TransformBox", () => {
   it("should create the transformBox containing the elements", () => {
     expect(transformBox.position).toEqual({ x: 200, y: 200 });
     expect(transformBox.size.height).toBeCloseTo(97, 0);
-    expect(transformBox.size.width).toBeCloseTo(167, 0);
+    expect(transformBox.size.width).toBeCloseTo(134, 0);
   });
 
   it("should not create the transformBox if no selected elements are present", () => {
