@@ -221,6 +221,7 @@ export class MainWindow {
         });
         this.workArea.addImageElement(imageEl.src);
         this.handleResizeWindow();
+        this.eventBus.emit("workarea:initialized");
       }
     };
     for (const item of droppedItems) {
