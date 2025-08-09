@@ -48,7 +48,7 @@ jobs:
 
       - name: Get app version
         id: get_version
-        run: echo "APP_VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_ENV
+        run: echo "APP_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
         shell: bash
 
       - name: Build application
