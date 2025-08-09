@@ -1,5 +1,8 @@
 name: Release a new VTD app version
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
