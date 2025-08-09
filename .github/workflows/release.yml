@@ -2,8 +2,6 @@ name: Release a new VTD app version
 
 permissions:
   contents: write
-  issues: write
-  pull-requests: write
 
 on:
   push:
@@ -33,7 +31,7 @@ jobs:
     needs: create_release
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -48,6 +46,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Get app version
+        id: get_version
+        run: echo "APP_VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_ENV
+        shell: bash
+
       - name: Build application
         run: npm run make
 
@@ -58,8 +61,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: "out/make/squirrel.windows/x64/vtd-${{ github.ref_name }} Setup.exe"
-          asset_name: vtd-setup-${{ github.ref_name }}.exe
+          asset_path: "out/make/squirrel.windows/x64/vtd-${{ env.APP_VERSION }} Setup.exe"
+          asset_name: vtd-setup-${{ env.APP_VERSION }}.exe
           asset_content_type: application/octet-stream
 
       - name: Upload Release Asset (Linux DEB)
@@ -70,7 +73,7 @@ jobs:
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
           asset_path: out/make/deb/x64/*.deb
-          asset_name: vtd-linux-amd64.deb
+          asset_name: vtd-linux-amd64-${{ env.APP_VERSION }}.deb
           asset_content_type: application/vnd.debian.binary-package
 
       - name: Upload Release Asset (Linux RPM)
@@ -81,5 +84,5 @@ jobs:
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
           asset_path: out/make/rpm/x64/*.rpm
-          asset_name: vtd-linux-x86_64.rpm
+          asset_name: vtd-linux-x86_64-${{ env.APP_VERSION }}.rpm
           asset_content_type: application/x-rpm

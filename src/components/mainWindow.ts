@@ -458,7 +458,7 @@ export class MainWindow {
       const projectData = {
         modifyDate: now,
         title: this.projectTitle,
-        version: "v0.0.1",
+        version: "0.0.1",
         workAreaSize: {
           width: this.workArea.canvas.width,
           height: this.workArea.canvas.height,
