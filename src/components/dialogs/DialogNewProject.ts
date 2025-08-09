@@ -27,7 +27,7 @@ export class DialogNewProject extends Dialog {
       elements: [],
       modifyDate: "",
       title: "Sem título",
-      version: "0.0.1",
+      version: "v0.0.1",
       workAreaSize: { width: WORK_AREA_WIDTH, height: WORK_AREA_HEIGHT },
     };
     this.eventBus = eventBus;
