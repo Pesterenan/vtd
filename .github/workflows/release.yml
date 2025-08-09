@@ -33,7 +33,7 @@ jobs:
     needs: create_release
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
