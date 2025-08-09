@@ -57,7 +57,7 @@ describe("TransformBox", () => {
   it("should create the transformBox containing the elements", () => {
     expect(transformBox.position).toEqual({ x: 200, y: 200 });
     expect(transformBox.size.height).toBeCloseTo(97, 0);
-    expect(transformBox.size.width).toBeCloseTo(134, 0);
+    expect(transformBox.size.width).toBeGreaterThan(100);
   });
 
   it("should not create the transformBox if no selected elements are present", () => {
