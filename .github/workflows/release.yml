@@ -52,12 +52,7 @@ jobs:
         run: npm run make
 
       - name: List output files
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            dir /s out
-          else
-            ls -R out
-          fi
+        run: ls -R out
         shell: bash
 
       - name: Upload Release Asset (Windows)
