@@ -2,6 +2,8 @@ name: Release a new VTD app version
 
 permissions:
   contents: write
+  issues: write
+  pull-requests: write
 
 on:
   push:
