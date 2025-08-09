@@ -51,10 +51,6 @@ jobs:
       - name: Build application
         run: npm run make
 
-      - name: List output files
-        run: ls -R out
-        shell: bash
-
       - name: Upload Release Asset (Windows)
         if: matrix.os == 'windows-latest'
         uses: actions/upload-release-asset@v1
@@ -62,8 +58,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: out/make/squirrel.windows/x64/*.exe
-          asset_name: vtd-setup-win-x64.exe
+          asset_path: "out/make/squirrel.windows/x64/vtd-${{ github.ref_name }} Setup.exe"
+          asset_name: vtd-setup-${{ github.ref_name }}.exe
           asset_content_type: application/octet-stream
 
       - name: Upload Release Asset (Linux DEB)
