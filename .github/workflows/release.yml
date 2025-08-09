@@ -33,7 +33,7 @@ jobs:
     needs: create_release
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -50,6 +50,15 @@ jobs:
 
       - name: Build application
         run: npm run make
+
+      - name: List output files
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            dir /s out
+          else
+            ls -R out
+          fi
+        shell: bash
 
       - name: Upload Release Asset (Windows)
         if: matrix.os == 'windows-latest'
