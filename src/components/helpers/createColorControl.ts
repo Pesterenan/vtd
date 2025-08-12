@@ -32,12 +32,12 @@ export default function createColorControl(
   const linkEvents = () => {
     inputFieldEl.disabled = false;
     inputFieldEl.addEventListener("input", handleInputChange);
-  }
+  };
   const unlinkEvents = () => {
     inputFieldEl.disabled = true;
-    inputFieldEl.value = "";
+    inputFieldEl.value = "#000000";
     inputFieldEl.removeEventListener("input", handleInputChange);
-  }
+  };
 
   container.append(labelEl, inputFieldEl);
 
