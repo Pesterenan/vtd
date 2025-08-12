@@ -140,6 +140,7 @@ export class GradientMenu {
         this.handleGradientFormatChange,
       );
       this.updateGradientBar();
+      this.selectColorStop(0);
     }
   };
 
@@ -278,7 +279,9 @@ export class GradientMenu {
 
     this.activeGradientElement.colorStops.push(newStop);
     this.activeGradientElement.sortColorStops();
+    const indexOfNewColorStop = this.activeGradientElement.colorStops.indexOf(newStop);
     this.updateGradientBar();
+    this.selectColorStop(indexOfNewColorStop);
     this.eventBus.emit("edit:gradientUpdateColorStops");
     this.eventBus.emit("workarea:update");
   };
