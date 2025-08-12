@@ -84,17 +84,17 @@ export class MainWindow {
       });
     });
 
-    // FIX: TRATAR CARREGAMENTO DE IMAGEM SEM WORKAREA
     window.api.onLoadImageResponse((_, response) => {
       this.eventBus.emit("alert:add", {
         message: response.message,
         type: response.success ? "success" : "error",
       });
-      if (response.success && this.workArea) {
-        this.workArea.addImageElement(response.data as string);
-        this.update();
+      if (response.success) {
+        this.loadImageOnWorkArea(response.data as string);
       }
     });
+
+    // TODO: Maybe dead code, verify.
     window.api.onProcessVideoFrameResponse((_, response) => {
       if (response.success) {
         const uint8Array = new Uint8Array(response.data as Uint8Array);
@@ -200,6 +200,39 @@ export class MainWindow {
     }
   }
 
+  /** Adds the image to the workarea, and creates a new workarea if it doesn't exist yet */
+  private loadImageOnWorkArea = (imgString: string): void => {
+    if (!imgString) return;
+    let newElement;
+    if (!this.workArea) {
+      this.workArea = new WorkArea(this.eventBus);
+      const imageEl = new Image();
+      imageEl.src = imgString;
+      imageEl.onload = () => {
+        if (this.workArea) {
+          this.workArea.setWorkAreaSize({
+            width: imageEl.width,
+            height: imageEl.height,
+          });
+          newElement = this.workArea.addImageElement(imgString);
+          this.handleResizeWindow();
+          this.eventBus.emit("workarea:initialized");
+          this.eventBus.emit("workarea:update");
+          this.eventBus.emit("workarea:selectById", {
+            elementsId: new Set([newElement.elementId]),
+          });
+        }
+      };
+    } else {
+      newElement = this.workArea.addImageElement(imgString);
+      this.handleResizeWindow();
+      this.eventBus.emit("workarea:update");
+      this.eventBus.emit("workarea:selectById", {
+        elementsId: new Set([newElement.elementId]),
+      });
+    }
+  };
+
   private handleDragOverEvent = (evt: DragEvent) => {
     evt.preventDefault();
   };
@@ -209,32 +242,13 @@ export class MainWindow {
     const droppedItems = evt.dataTransfer?.items;
     if (!droppedItems) return;
 
-    /** Adds the image to the workarea, or creates a new workarea if it doesn't exist yet */
-    const loadImage = (imageEl: HTMLImageElement): void => {
-      if (this.workArea) {
-        this.workArea.addImageElement(imageEl.src);
-      } else {
-        this.workArea = new WorkArea(this.eventBus);
-        this.workArea.setWorkAreaSize({
-          width: imageEl.width,
-          height: imageEl.height,
-        });
-        this.workArea.addImageElement(imageEl.src);
-        this.handleResizeWindow();
-        this.eventBus.emit("workarea:initialized");
-      }
-    };
     for (const item of droppedItems) {
       if (item.type.startsWith("image/")) {
         const file = item.getAsFile();
         if (file) {
           const reader = new FileReader();
           reader.onload = (evt) => {
-            const image = new Image();
-            image.src = evt.target?.result as string;
-            image.onload = (): void => {
-              loadImage(image);
-            };
+            this.loadImageOnWorkArea(evt.target?.result as string);
           };
           reader.readAsDataURL(file);
         }
@@ -317,7 +331,7 @@ export class MainWindow {
                 });
               }
             }
-          } else if (item.types.some((type) => type.startsWith("image/"))) {
+          } else {
             // Tratamento de imagem copiada
             const imageType = item.types.find((type) =>
               type.startsWith("image/"),
@@ -326,13 +340,7 @@ export class MainWindow {
               const blob = await item.getType(imageType);
               const reader = new FileReader();
               reader.onload = (evt) => {
-                const imageDataUrl = evt.target?.result as string;
-                const newElement = this.workArea?.addImageElement(imageDataUrl);
-                if (newElement) {
-                  this.eventBus.emit("workarea:selectById", {
-                    elementsId: new Set([newElement.elementId]),
-                  });
-                }
+                this.loadImageOnWorkArea(evt.target?.result as string);
                 this.eventBus.emit("alert:add", {
                   message: "Imagem copiada da área de transferência.",
                   type: "success",
