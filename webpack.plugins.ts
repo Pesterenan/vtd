@@ -1,10 +1,13 @@
-import type IForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
+import { DefinePlugin } from "webpack";
+import packageJson from "./package.json";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const forkTsCheckerWebpackPlugin: typeof IForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+import forkTsCheckerWebpackPlugin from "fork-ts-checker-webpack-plugin";
 
 export const plugins = [
   new forkTsCheckerWebpackPlugin({
-    logger: 'webpack-infrastructure',
+    logger: "webpack-infrastructure",
+  }),
+  new DefinePlugin({
+    APP_VERSION: JSON.stringify(packageJson.version),
   }),
 ];

@@ -7,6 +7,7 @@ import { MainWindow } from "./components/mainWindow";
 
 const initializeVTD = (): void => {
   window.addEventListener("DOMContentLoaded", () => {
+    console.log(`VTD Version: ${APP_VERSION}`);
     const alertEventBus = new EventBus();
     const uiEventBus = new EventBus();
     uiEventBus.on("alert:add", (payload) =>
