@@ -1,18 +1,15 @@
 import type { Element } from "src/components/elements/element";
+import { GradientElement } from "src/components/elements/gradientElement";
 import type { TElementData } from "src/components/types";
-import { ColorCorrectionFilter } from "src/filters/colorCorrectionFilter";
-import { DropShadowFilter } from "src/filters/dropShadowFilter";
-import type { Filter } from "src/filters/filter";
-import { OuterGlowFilter } from "src/filters/outerGlowFilter";
+import { Filter, type FilterProperties } from "src/filters/filter";
+import { FilterManager } from "src/filters/filterManager";
 import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
-import { GradientElement } from "../elements/gradientElement";
 
 export class DialogElementFilters extends Dialog {
   private activeElement: Element<TElementData> | null = null;
-  private currentFilterData: Partial<Filter>[] = [];
-  private currentFilters: Filter[] = [];
-  private defaultFilters: Filter[] = [];
+  private initialFilterProperties: FilterProperties[] = [];
+  private propertyCache: Map<string, FilterProperties> = new Map();
   private eventBus: EventBus;
 
   constructor(eventBus: EventBus) {
@@ -25,10 +22,10 @@ export class DialogElementFilters extends Dialog {
       const [selectedElements] = this.eventBus.request("workarea:selected:get");
       if (!selectedElements.length) return;
       this.activeElement = selectedElements[0];
-      this.currentFilters = [...this.activeElement.filters];
-      for (const filter of this.currentFilters) {
-        this.currentFilterData.push(filter.serialize());
-      }
+      // Deep copy for cancellation
+      this.initialFilterProperties = JSON.parse(
+        JSON.stringify(this.activeElement.filters),
+      );
       this.open();
     });
   }
@@ -56,16 +53,9 @@ export class DialogElementFilters extends Dialog {
     btnCancel.textContent = "Cancelar";
     btnCancel.type = "button";
     btnCancel.addEventListener("click", () => {
-      for (const filterData of this.currentFilterData) {
-        const currentFilter = this.currentFilters.find(
-          (f) => f.id === filterData.id,
-        );
-        if (currentFilter) {
-          currentFilter.deserialize(filterData);
-        }
-      }
       if (this.activeElement) {
-        this.activeElement.filters = [...this.currentFilters];
+        // Restore original properties
+        this.activeElement.filters = this.initialFilterProperties;
       }
       this.close();
     });
@@ -88,32 +78,49 @@ export class DialogElementFilters extends Dialog {
   }
 
   protected override onOpen(): void {
-    const isActiveElementGradient =
-      this.activeElement instanceof GradientElement;
-    this.defaultFilters = [
-      new ColorCorrectionFilter(),
-      ...(!isActiveElementGradient
-        ? [new DropShadowFilter(), new OuterGlowFilter()]
-        : []),
-    ];
+    this.propertyCache.clear();
     this.populateFilters();
   }
 
   protected override onClose(): void {
     this.activeElement = null;
-    this.currentFilterData = [];
+    this.initialFilterProperties = [];
+    this.propertyCache.clear();
     this.clearFilterList();
     this.clearFilterControls();
     this.eventBus.emit("workarea:update");
   }
 
   private selectFilter(filter: Filter): void {
+    if (!this.activeElement) return;
     const filterControls =
       this.dialogContent?.querySelector("#filter-controls");
     if (!filterControls) return;
-    filterControls.appendChild(
-      filter.setupFilterControls(() => this.eventBus.emit("workarea:update")),
+
+    const properties = this.activeElement.filters.find(
+      (f) => f.id === filter.id,
     );
+    if (!properties) return;
+
+    filterControls.appendChild(
+      filter.setupFilterControls(properties, (newProperties) => {
+        this.handleFilterChange(filter.id, newProperties);
+      }),
+    );
+  }
+
+  private handleFilterChange(
+    filterId: string,
+    newProperties: Partial<FilterProperties>,
+  ): void {
+    if (!this.activeElement) return;
+    const filterProperties = this.activeElement.filters.find(
+      (f) => f.id === filterId,
+    );
+    if (filterProperties) {
+      Object.assign(filterProperties, newProperties);
+      this.eventBus.emit("workarea:update");
+    }
   }
 
   private appendToFilterList(filterItem: HTMLLIElement): void {
@@ -140,24 +147,30 @@ export class DialogElementFilters extends Dialog {
     this.clearFilterList();
     this.clearFilterControls();
 
-    const mergedFilters = new Map<string, Filter>();
-    for (const filter of this.defaultFilters) {
-      mergedFilters.set(filter.id, filter);
-    }
-    for (const filter of this.currentFilters) {
-      mergedFilters.set(filter.id, filter);
-    }
-    for (const [key, filter] of mergedFilters.entries()) {
+    const filterManager = FilterManager.getInstance();
+    const availableFilters = filterManager.getAvailableFilters();
+    const isActiveElementGradient =
+      this.activeElement instanceof GradientElement;
+
+    for (const filter of availableFilters) {
+      if (
+        isActiveElementGradient &&
+        (filter.id === "drop-shadow" || filter.id === "outer-glow")
+      ) {
+        continue;
+      }
+
       const isChecked =
-        this.activeElement?.filters.some((f) => f.id === key) ?? false;
+        this.activeElement.filters.some((f) => f.id === filter.id) ?? false;
+
       const filterItem = document.createElement("li");
-      filterItem.id = `filter-item-${key}`;
+      filterItem.id = `filter-item-${filter.id}`;
       filterItem.className = "container ai-c jc-sb g-05 li_layer-item pad-05";
       const filterCheckbox = document.createElement(
         "input",
       ) as HTMLInputElement;
       filterCheckbox.type = "checkbox";
-      filterCheckbox.id = `chk_filter-${key}`;
+      filterCheckbox.id = `chk_filter-${filter.id}`;
       filterCheckbox.checked = isChecked;
       filterCheckbox.addEventListener("change", () => {
         this.toggleFilter(filter, filterCheckbox.checked);
@@ -167,10 +180,11 @@ export class DialogElementFilters extends Dialog {
       filterLabel.innerText = filter.label;
       filterItem.append(filterCheckbox, filterLabel);
 
-      filterItem.addEventListener("click", () => {
-        this.clearFilterControls();
-        this.selectFilter(filter);
-        this.eventBus.emit("workarea:update");
+      filterItem.addEventListener("click", (e) => {
+        if (e.target !== filterCheckbox) {
+          filterCheckbox.checked = !filterCheckbox.checked;
+          filterCheckbox.dispatchEvent(new Event("change"));
+        }
       });
       this.appendToFilterList(filterItem);
     }
@@ -179,22 +193,30 @@ export class DialogElementFilters extends Dialog {
   private toggleFilter(filter: Filter, isChecked: boolean): void {
     if (!this.activeElement) return;
     this.clearFilterControls();
+
     if (isChecked) {
-      const existingFilter = this.currentFilters.find(
+      const cachedProps = this.propertyCache.get(filter.id);
+      if (cachedProps) {
+        this.activeElement.filters.push(cachedProps);
+        this.propertyCache.delete(filter.id);
+      } else {
+        const defaultProps = filter.createDefaultProperties();
+        this.activeElement.filters.push(defaultProps);
+      }
+      this.activeElement.filters.sort((a, b) => a.priority - b.priority);
+      this.selectFilter(filter);
+    } else {
+      const propertiesToCache = this.activeElement.filters.find(
         (f) => f.id === filter.id,
       );
-      const defaultFilter = this.defaultFilters.find((f) => f.id === filter.id);
-      const filterToAdd = existingFilter || defaultFilter;
-      if (filterToAdd) {
-        this.activeElement.filters.push(filterToAdd);
-        this.activeElement.filters.sort((a, b) => a.priority - b.priority);
-        this.selectFilter(filterToAdd);
+      if (propertiesToCache) {
+        this.propertyCache.set(filter.id, propertiesToCache);
+        this.activeElement.filters = this.activeElement.filters.filter(
+          (f) => f.id !== filter.id,
+        );
       }
-    } else {
-      this.activeElement.filters = this.activeElement.filters.filter(
-        (f) => f.id !== filter.id,
-      );
       this.clearFilterControls();
     }
   }
 }
+

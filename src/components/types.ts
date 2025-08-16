@@ -1,4 +1,4 @@
-import type { Filter } from "../filters/filter";
+import type { FilterProperties } from "../filters/filter";
 
 export interface IElementData {
   type: ElementType;
@@ -11,7 +11,7 @@ export interface IElementData {
   isLocked: boolean;
   isVisible: boolean;
   layerName: string;
-  filters: Filter[];
+  filters: FilterProperties[];
 }
 export type ElementType = "text" | "image" | "gradient" | "group";
 

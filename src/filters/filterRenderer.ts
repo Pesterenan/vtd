@@ -1,5 +1,6 @@
 import type { Size } from "src/components/types";
-import type { Filter } from "./filter";
+import type { FilterProperties } from "./filter";
+import { FilterManager } from "./filterManager";
 
 export class FilterRenderer {
   private static instance: FilterRenderer | null = null;
@@ -53,7 +54,7 @@ export class FilterRenderer {
 
   public static applyFilters = (
     mainContext: CanvasRenderingContext2D,
-    elementFilters: Array<Filter>,
+    elementFilters: Array<FilterProperties>,
     elementToDraw: (ctx: CanvasRenderingContext2D) => void,
   ): void => {
     const { copyContext, effectsContext, scratchContext } = FilterRenderer;
@@ -62,15 +63,15 @@ export class FilterRenderer {
     mainContext.save();
 
     // Se não houver filtros para aplicar, apenas desenha no mainContext e retorna.
-    const sortedFilters = elementFilters.sort(
-      (a, b) => a.priority - b.priority,
-    );
-    if (!sortedFilters.length) {
+    if (!elementFilters.length) {
       elementToDraw(mainContext);
       mainContext.restore();
       return;
     }
 
+    const sortedFilters = elementFilters.sort(
+      (a, b) => a.priority - b.priority,
+    );
     const beforeFilters = sortedFilters.filter((f) => f.applies === "before");
     const afterFilters = sortedFilters.filter((f) => f.applies === "after");
 
@@ -81,26 +82,33 @@ export class FilterRenderer {
     copyContext.drawImage(mainContext.canvas, 0, 0);
     effectsContext.drawImage(copyContext.canvas, 0, 0);
 
-    for (const filter of beforeFilters) {
+    const filterManager = FilterManager.getInstance();
+
+    for (const filterProperties of beforeFilters) {
+      const filterInstance = filterManager.getFilterById(filterProperties.id);
+      if (!filterInstance) continue;
       // O filtro desenha seu efeito isolado no scratchContext.
       this.clearContext(scratchContext);
       scratchContext.save();
-      filter.apply(scratchContext, elementToDraw);
+      filterInstance.apply(scratchContext, filterProperties, elementToDraw);
       scratchContext.restore();
       // Depois é aplicado no effectsContext.
       effectsContext.save();
-      effectsContext.globalAlpha = filter.globalAlpha;
+      effectsContext.globalAlpha = filterProperties.globalAlpha;
       effectsContext.globalCompositeOperation =
-        filter.composite as GlobalCompositeOperation;
+        filterProperties.composite as GlobalCompositeOperation;
       effectsContext.drawImage(scratchContext.canvas, 0, 0);
       effectsContext.restore();
     }
 
     if (afterFilters.length > 0) {
-      for (const filter of afterFilters) {
+      for (const filterProperties of afterFilters) {
+        const filterInstance = filterManager.getFilterById(filterProperties.id);
+        if (!filterInstance) continue;
+
         this.clearContext(scratchContext);
         scratchContext.save();
-        filter.apply(scratchContext, elementToDraw);
+        filterInstance.apply(scratchContext, filterProperties, elementToDraw);
         scratchContext.restore();
 
         effectsContext.save();
@@ -109,9 +117,9 @@ export class FilterRenderer {
         effectsContext.globalCompositeOperation = "destination-over";
         effectsContext.drawImage(copyContext.canvas, 0, 0);
 
-        effectsContext.globalAlpha = filter.globalAlpha;
+        effectsContext.globalAlpha = filterProperties.globalAlpha;
         effectsContext.globalCompositeOperation =
-          filter.composite as GlobalCompositeOperation;
+          filterProperties.composite as GlobalCompositeOperation;
         effectsContext.drawImage(scratchContext.canvas, 0, 0);
         effectsContext.restore();
       }

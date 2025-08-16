@@ -1,119 +1,91 @@
-import type { IColorControl } from "src/components/helpers/createColorControl";
 import createColorControl from "src/components/helpers/createColorControl";
-import type { ISliderControl } from "src/components/helpers/createSliderControl";
 import createSliderControl from "src/components/helpers/createSliderControl";
+import type { FilterProperties } from "src/filters/filter";
 import { Filter } from "src/filters/filter";
-import { clamp } from "src/utils/easing";
 import { toRadians } from "src/utils/transforms";
 
 export class DropShadowFilter extends Filter {
-  public set angle(value: number) {
-    this.properties.set("angle", clamp(value, 0, 360));
-  }
-  public get angle(): number {
-    return this.properties.get("angle") as number;
-  }
-  public set distance(value: number) {
-    this.properties.set("distance", clamp(value, 0, 100));
-  }
-  public get distance(): number {
-    return this.properties.get("distance") as number;
-  }
-  public set blur(value: number) {
-    this.properties.set("blur", clamp(value, 0, 100));
-  }
-  public get blur(): number {
-    return this.properties.get("blur") as number;
-  }
-  public set color(value: string) {
-    this.properties.set("color", value ? (value as string) : "#000000");
-  }
-  public get color(): string {
-    return this.properties.get("color") as string;
-  }
-
-  private angleControl: ISliderControl | null = null;
-  private distanceControl: ISliderControl | null = null;
-  private blurControl: ISliderControl | null = null;
-  private colorControl: IColorControl | null = null;
-
   constructor() {
     super("drop-shadow", "Sombra", "before", 1);
-    this.angle = 45;
-    this.distance = 20;
-    this.blur = 10;
-    this.color = "#000000";
   }
 
+  public createDefaultProperties(): FilterProperties {
+    return DropShadowFilter.createDefaultProperties();
+  }
+
+  public static createDefaultProperties(): FilterProperties {
+    return {
+      id: "drop-shadow",
+      label: "Sombra",
+      applies: "before",
+      priority: 1,
+      composite: "source-over",
+      globalAlpha: 1.0,
+      angle: 45,
+      distance: 20,
+      blur: 10,
+      color: "#000000",
+    };
+  }
+
+  /** Utiliza a propriedade 'shadow' do canvas para criar uma sombra embaixo do elemento */
   protected filterEffects(
     context: CanvasRenderingContext2D,
+    properties: FilterProperties,
     elementToDraw: (ctx: CanvasRenderingContext2D) => void,
   ): void {
-    // Desenha o elemento com sombra
-    context.shadowColor = this.color;
-    context.shadowBlur = this.blur;
-    context.shadowOffsetX = this.distance * Math.sin(toRadians(this.angle));
-    context.shadowOffsetY = this.distance * Math.cos(toRadians(this.angle));
-    context.globalAlpha = this.globalAlpha;
+    const { color, blur, distance, angle, globalAlpha } = properties;
+    context.shadowColor = color as string;
+    context.shadowBlur = blur as number;
+    context.shadowOffsetX =
+      (distance as number) * Math.sin(toRadians(angle as number));
+    context.shadowOffsetY =
+      (distance as number) * Math.cos(toRadians(angle as number));
+    context.globalAlpha = globalAlpha;
     elementToDraw(context);
   }
 
-  protected appendFilterControls(container: HTMLDivElement): void {
-    this.angleControl = createSliderControl(
+  /** Adiciona quatro controles, ângulo, distância, desfoque e cor, para controlar o efeito */
+  protected appendFilterControls(
+    container: HTMLDivElement,
+    properties: FilterProperties,
+    onChange: (newProperties: Partial<FilterProperties>) => void,
+  ): void {
+    const angleControl = createSliderControl(
       `${this.id}-angle`,
       "Ângulo",
-      { min: 0, max: 360, step: 1, value: this.angle },
-      this.handleAngleControlChange,
+      { min: 0, max: 360, step: 1, value: properties.angle as number },
+      (newValue) => onChange({ angle: Number(newValue) }),
     );
-
-    this.distanceControl = createSliderControl(
+    const distanceControl = createSliderControl(
       `${this.id}-distance`,
       "Distância",
-      { min: 0, max: 100, step: 1, value: this.distance },
-      this.handleDistanceControlChange,
+      { min: 0, max: 100, step: 1, value: properties.distance as number },
+      (newValue) => onChange({ distance: Number(newValue) }),
     );
-
-    this.blurControl = createSliderControl(
+    const blurControl = createSliderControl(
       `${this.id}-blur`,
       "Desfoque",
-      { min: 0, max: 100, step: 1, value: this.blur },
-      this.handleBlurControlChange,
+      { min: 0, max: 100, step: 1, value: properties.blur as number },
+      (newValue) => onChange({ blur: Number(newValue) }),
     );
-
-    this.colorControl = createColorControl(
+    const colorControl = createColorControl(
       `${this.id}-color`,
       "Cor da Sombra",
-      { value: this.color },
-      this.handleColorControlChange,
+      { value: properties.color as string },
+      (newValue) => onChange({ color: newValue }),
     );
-
-    this.angleControl.linkEvents();
-    this.distanceControl.linkEvents();
-    this.blurControl.linkEvents();
-    this.colorControl.linkEvents();
+    angleControl.linkEvents();
+    distanceControl.linkEvents();
+    blurControl.linkEvents();
+    colorControl.linkEvents();
     container.append(
-      this.angleControl.element,
-      this.distanceControl.element,
-      this.blurControl.element,
-      this.colorControl.element,
+      angleControl.element,
+      distanceControl.element,
+      blurControl.element,
+      colorControl.element,
     );
   }
-
-  private handleAngleControlChange = (newValue: number): void => {
-    this.angle = Number(newValue);
-    this.onChange();
-  };
-  private handleDistanceControlChange = (newValue: number): void => {
-    this.distance = Number(newValue);
-    this.onChange();
-  };
-  private handleBlurControlChange = (newValue: number): void => {
-    this.blur = Number(newValue);
-    this.onChange();
-  };
-  private handleColorControlChange = (newValue: string): void => {
-    this.color = newValue;
-    this.onChange();
-  };
 }
+
 
