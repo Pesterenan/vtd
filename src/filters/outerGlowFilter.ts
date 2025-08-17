@@ -15,9 +15,6 @@ export class OuterGlowFilter extends Filter {
   public static createDefaultProperties(): FilterProperties {
     return {
       id: "outer-glow",
-      label: "Luz Brilhante (Fora)",
-      applies: "before",
-      priority: 2,
       composite: "source-over",
       globalAlpha: 1.0,
       blur: 10,

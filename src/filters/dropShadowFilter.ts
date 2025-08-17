@@ -16,9 +16,6 @@ export class DropShadowFilter extends Filter {
   public static createDefaultProperties(): FilterProperties {
     return {
       id: "drop-shadow",
-      label: "Sombra",
-      applies: "before",
-      priority: 1,
       composite: "source-over",
       globalAlpha: 1.0,
       angle: 45,

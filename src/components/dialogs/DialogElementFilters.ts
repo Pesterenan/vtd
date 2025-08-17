@@ -1,7 +1,7 @@
 import type { Element } from "src/components/elements/element";
 import { GradientElement } from "src/components/elements/gradientElement";
 import type { TElementData } from "src/components/types";
-import { Filter, type FilterProperties } from "src/filters/filter";
+import type { Filter, FilterProperties } from "src/filters/filter";
 import { FilterManager } from "src/filters/filterManager";
 import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
@@ -203,7 +203,6 @@ export class DialogElementFilters extends Dialog {
         const defaultProps = filter.createDefaultProperties();
         this.activeElement.filters.push(defaultProps);
       }
-      this.activeElement.filters.sort((a, b) => a.priority - b.priority);
       this.selectFilter(filter);
     } else {
       const propertiesToCache = this.activeElement.filters.find(

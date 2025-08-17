@@ -14,9 +14,6 @@ export class ColorCorrectionFilter extends Filter {
   public static createDefaultProperties(): FilterProperties {
     return {
       id: "color-correction",
-      label: "Correção de Cor",
-      applies: "after",
-      priority: 4,
       composite: "source-over",
       globalAlpha: 1.0,
       brightness: 100,
@@ -49,13 +46,13 @@ export class ColorCorrectionFilter extends Filter {
     const brightnessControl = createSliderControl(
       `${this.id}-brightness`,
       "Brilho",
-      { min: 0, max: 150, step: 5, value: properties.brightness as number },
+      { min: 0, max: 150, step: 1, value: properties.brightness as number },
       (newValue) => onChange({ brightness: Number(newValue) }),
     );
     const contrastControl = createSliderControl(
       `${this.id}-contrast`,
       "Contraste",
-      { min: 0, max: 150, step: 5, value: properties.contrast as number },
+      { min: 0, max: 150, step: 1, value: properties.contrast as number },
       (newValue) => onChange({ contrast: Number(newValue) }),
     );
     const grayScaleControl = createSliderControl(

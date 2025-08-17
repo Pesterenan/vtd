@@ -25,9 +25,6 @@ export const COMPOSITE_OPTIONS: Array<ISelectOption> = [
 
 export type FilterProperties = {
   id: string;
-  label: string;
-  applies: "before" | "after";
-  priority: number;
   composite: string;
   globalAlpha: number;
   [key: string]: string | number | boolean | undefined;
