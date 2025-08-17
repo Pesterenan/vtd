@@ -1,5 +1,6 @@
 import type { Size } from "src/components/types";
-import type { Filter } from "./filter";
+import type { Filter, FilterProperties } from "./filter";
+import { FilterManager } from "./filterManager";
 
 export class FilterRenderer {
   private static instance: FilterRenderer | null = null;
@@ -10,6 +11,8 @@ export class FilterRenderer {
   private static scratchCanvas: HTMLCanvasElement;
   private static scratchContext: CanvasRenderingContext2D | null = null;
 
+  /** Utiliza a largura e altura do WorkArea atual para criar 3 canvas para renderizar
+  * os efeitos aplicados aos elementos */
   constructor({ width, height }: HTMLCanvasElement) {
     FilterRenderer.copyCanvas = this.createCanvas(width, height);
     FilterRenderer.copyContext = FilterRenderer.copyCanvas.getContext("2d");
@@ -21,6 +24,14 @@ export class FilterRenderer {
       FilterRenderer.scratchCanvas.getContext("2d");
   }
 
+  public static getInstance(mainCanvas: HTMLCanvasElement): FilterRenderer {
+    if (FilterRenderer.instance === null) {
+      FilterRenderer.instance = new FilterRenderer(mainCanvas);
+    }
+    return FilterRenderer.instance;
+  }
+
+  /** Função auxiliar para criar um novo elemento de canvas com largura e altura */
   private createCanvas(width: number, height: number): HTMLCanvasElement {
     const canvas = document.createElement("canvas");
     canvas.width = width;
@@ -28,6 +39,7 @@ export class FilterRenderer {
     return canvas;
   }
 
+  /** Atualiza o tamanho dos 3 canvas internos de acordo com o novo tamanho do WorkArea */
   public static updateSize(newSize?: Size) {
     if (
       this.copyCanvas &&
@@ -44,16 +56,10 @@ export class FilterRenderer {
     }
   }
 
-  public static getInstance(mainCanvas: HTMLCanvasElement): FilterRenderer {
-    if (FilterRenderer.instance === null) {
-      FilterRenderer.instance = new FilterRenderer(mainCanvas);
-    }
-    return FilterRenderer.instance;
-  }
-
+  /** Aplica as propriedades de filtro do elemento para desenhar no WorkArea */
   public static applyFilters = (
     mainContext: CanvasRenderingContext2D,
-    elementFilters: Array<Filter>,
+    elementFilters: Array<FilterProperties>,
     elementToDraw: (ctx: CanvasRenderingContext2D) => void,
   ): void => {
     const { copyContext, effectsContext, scratchContext } = FilterRenderer;
@@ -61,68 +67,98 @@ export class FilterRenderer {
 
     mainContext.save();
 
-    // Se não houver filtros para aplicar, apenas desenha no mainContext e retorna.
-    const sortedFilters = elementFilters.sort(
-      (a, b) => a.priority - b.priority,
-    );
-    if (!sortedFilters.length) {
+    // Caso não haja filtros, apenas desenha o elemento e retorna.
+    if (!elementFilters.length) {
       elementToDraw(mainContext);
       mainContext.restore();
       return;
     }
 
-    const beforeFilters = sortedFilters.filter((f) => f.applies === "before");
-    const afterFilters = sortedFilters.filter((f) => f.applies === "after");
+    const filterManager = FilterManager.getInstance();
+
+    // Separa os filtros em os que são aplicados antes do elemento (embaixo) e depois (em cima)
+    const { beforeFilters, afterFilters } = elementFilters.reduce(
+      (acc, props) => {
+        const instance = filterManager.getFilterById(props.id);
+        if (instance) {
+          const hydratedFilter = { props, instance };
+          if (instance.applies === "before") {
+            acc.beforeFilters.push(hydratedFilter);
+          } else {
+            acc.afterFilters.push(hydratedFilter);
+          }
+        }
+        return acc;
+      },
+      { beforeFilters: [], afterFilters: [] } as {
+        beforeFilters: { props: FilterProperties; instance: Filter }[];
+        afterFilters: { props: FilterProperties; instance: Filter }[];
+      },
+    );
+
+    beforeFilters.sort((a, b) => a.instance.priority - b.instance.priority);
+    afterFilters.sort((a, b) => a.instance.priority - b.instance.priority);
 
     this.clearContext(scratchContext);
     this.clearContext(effectsContext);
     this.clearContext(copyContext);
 
+    // Faz uma cópia do estado anterior do canvas principal antes de começar a aplicar
     copyContext.drawImage(mainContext.canvas, 0, 0);
+    // Desenha essa cópia no fundo do effectsContext para composição
     effectsContext.drawImage(copyContext.canvas, 0, 0);
 
-    for (const filter of beforeFilters) {
-      // O filtro desenha seu efeito isolado no scratchContext.
+    for (const { props, instance } of beforeFilters) {
       this.clearContext(scratchContext);
       scratchContext.save();
-      filter.apply(scratchContext, elementToDraw);
+      // Desenha o efeito no scratchCanvas
+      instance.apply(scratchContext, props, elementToDraw);
       scratchContext.restore();
-      // Depois é aplicado no effectsContext.
+
       effectsContext.save();
-      effectsContext.globalAlpha = filter.globalAlpha;
+      effectsContext.globalAlpha = props.globalAlpha;
       effectsContext.globalCompositeOperation =
-        filter.composite as GlobalCompositeOperation;
+        props.composite as GlobalCompositeOperation;
+      // Agora com a composição correta, e com o effects já tendo a cópia do estado anterior
+      // desenha o efeito por cima do effectsCanvas
       effectsContext.drawImage(scratchContext.canvas, 0, 0);
       effectsContext.restore();
     }
 
     if (afterFilters.length > 0) {
-      for (const filter of afterFilters) {
+      for (const { props, instance } of afterFilters) {
         this.clearContext(scratchContext);
         scratchContext.save();
-        filter.apply(scratchContext, elementToDraw);
+        // Aplica os efeitos de filtro no scratchContext
+        instance.apply(scratchContext, props, elementToDraw);
         scratchContext.restore();
 
         effectsContext.save();
         effectsContext.globalCompositeOperation = "destination-out";
+        // Desenha o scratchContext 'por fora' do effectsContext
         effectsContext.drawImage(scratchContext.canvas, 0, 0);
         effectsContext.globalCompositeOperation = "destination-over";
+        // Depois a cópia do estado anterior 'por dentro' do effectsContext
         effectsContext.drawImage(copyContext.canvas, 0, 0);
 
-        effectsContext.globalAlpha = filter.globalAlpha;
+        effectsContext.globalAlpha = props.globalAlpha;
         effectsContext.globalCompositeOperation =
-          filter.composite as GlobalCompositeOperation;
+          props.composite as GlobalCompositeOperation;
+        // E então desenha o elemento com a composição correta por cima da cópia
         effectsContext.drawImage(scratchContext.canvas, 0, 0);
         effectsContext.restore();
       }
     } else {
+      // Caso não tenha filtros 'after' apenas desenha o elemento em cima
       elementToDraw(effectsContext);
     }
 
+    // Finalmente, desenha toda a aplicação de efeitos de volta ao WorkArea
     mainContext.drawImage(effectsContext.canvas, 0, 0);
     mainContext.restore();
   };
 
+  /** Função auxiliar para limpar um canvas */
   private static clearContext(context: CanvasRenderingContext2D): void {
     if (!context) return;
     context.clearRect(0, 0, context.canvas.width, context.canvas.height);

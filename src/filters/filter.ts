@@ -1,9 +1,6 @@
-import type { ISelectInput } from "src/components/helpers/createSelectInput";
 import createSelectInput from "src/components/helpers/createSelectInput";
-import type { ISliderControl } from "src/components/helpers/createSliderControl";
 import createSliderControl from "src/components/helpers/createSliderControl";
 import type { ISelectOption } from "src/components/types";
-import { clamp } from "src/utils/easing";
 
 export type FilterProperty = string | number | undefined;
 export const COMPOSITE_OPTIONS: Array<ISelectOption> = [
@@ -26,117 +23,91 @@ export const COMPOSITE_OPTIONS: Array<ISelectOption> = [
   { label: "Tela", value: "screen" },
 ] as const;
 
+export type FilterProperties = {
+  id: string;
+  composite: string;
+  globalAlpha: number;
+  [key: string]: string | number | boolean | undefined;
+};
+
 export abstract class Filter {
-  protected properties: Map<string, FilterProperty> = new Map();
-  public get priority(): number {
-    return this.properties.get("priority") as number;
-  }
-  public get id(): string {
-    return this.properties.get("id") as string;
-  }
-  public get label(): string {
-    return this.properties.get("label") as string;
-  }
-  public get applies(): "before" | "after" {
-    return this.properties.get("applies") as "before" | "after";
-  }
-  public set composite(value: string) {
-    this.properties.set("composite", value);
-  }
-  public get composite(): string {
-    return this.properties.get("composite") as string;
-  }
-  public set globalAlpha(value: number) {
-    this.properties.set("globalAlpha", clamp(value, 0, 1.0));
-  }
-  public get globalAlpha(): number {
-    return this.properties.get("globalAlpha") as number;
-  }
+  public readonly id: string;
+  public readonly label: string;
+  public readonly applies: "before" | "after";
+  public readonly priority: number;
 
-  private filterControls: HTMLDivElement | null = null;
-  private opacityControl: ISliderControl | null = null;
-  private compositeControl: ISelectInput | null = null;
-
+  // The constructor now only sets the readonly, stateless properties.
   constructor(
     id: string,
     label: string,
     applies: "before" | "after",
     priority: number,
   ) {
-    this.properties.set("id", id);
-    this.properties.set("label", label);
-    this.properties.set("applies", applies);
-    this.properties.set("priority", priority);
-    this.globalAlpha = 1.0;
-    this.composite = "source-over";
+    this.id = id;
+    this.label = label;
+    this.applies = applies;
+    this.priority = priority;
   }
 
-  public deserialize(data: Partial<Filter>): void {
-    for (const [key, value] of Object.entries(data)) {
-      if (this.properties.has(key)) {
-        this.properties.set(key, value as FilterProperty);
-      }
-    }
-  }
+  public abstract createDefaultProperties(): FilterProperties;
 
-  public serialize(): Partial<Filter> {
-    return Object.fromEntries(this.properties);
-  }
-
+  // The 'apply' method now receives the properties from the element.
   public apply(
     context: CanvasRenderingContext2D,
+    properties: FilterProperties,
     elementToDraw: (context: CanvasRenderingContext2D) => void,
   ): void {
-    this.filterEffects(context, elementToDraw);
+    // The specific filter effects are now passed the properties.
+    this.filterEffects(context, properties, elementToDraw);
   }
 
-  public setupFilterControls(onChange: () => void): HTMLDivElement {
-    if (this.filterControls) return this.filterControls;
-    this.onChange = onChange;
+  // 'setupFilterControls' now receives properties to populate the UI.
+  public setupFilterControls(
+    properties: FilterProperties,
+    onChange: (newProperties: Partial<FilterProperties>) => void,
+  ): HTMLDivElement {
+    // Note: In a stateless world, we might want to recreate controls each time
+    // or be very careful about updating them. For now, we'll clear and recreate.
+    const filterControls = document.createElement("div");
+    filterControls.className = "sec_menu-style pad-05";
+    filterControls.id = `${this.id}-filter-controls`;
 
-    this.filterControls = document.createElement("div");
-    this.filterControls.className = "sec_menu-style pad-05";
-    this.filterControls.id = `${this.id}-filter-controls`;
-    this.compositeControl = createSelectInput(
+    const compositeControl = createSelectInput(
       `${this.id}-composite-select`,
       "Composição",
-      { optionValues: COMPOSITE_OPTIONS, value: this.composite },
-      this.handleCompositeChange,
+      { optionValues: COMPOSITE_OPTIONS, value: properties.composite },
+      (newValue) => onChange({ composite: newValue }),
     );
-    this.opacityControl = createSliderControl(
+
+    const opacityControl = createSliderControl(
       `${this.id}-opacity`,
       "Opacidade",
-      { min: 0, max: 1, step: 0.01, value: this.globalAlpha },
-      this.handleOpacityChange.bind(this),
+      { min: 0, max: 1, step: 0.01, value: properties.globalAlpha },
+      (newValue) => onChange({ globalAlpha: Number(newValue) }),
     );
-    this.compositeControl.linkEvents();
-    this.opacityControl.linkEvents();
-    this.filterControls.append(this.compositeControl.element);
-    this.filterControls.append(this.opacityControl.element);
-    this.appendFilterControls(this.filterControls);
-    return this.filterControls;
+
+    compositeControl.linkEvents();
+    opacityControl.linkEvents();
+    filterControls.append(compositeControl.element);
+    filterControls.append(opacityControl.element);
+
+    // The subclass will append its own specific controls.
+    this.appendFilterControls(filterControls, properties, onChange);
+
+    return filterControls;
   }
 
-  private handleCompositeChange = (newValue: string) => {
-    if (this.compositeControl) {
-      this.composite = newValue;
-      this.onChange();
-    }
-  };
-
-  private handleOpacityChange(newValue: number): void {
-    if (this.opacityControl) {
-      this.globalAlpha = Number(newValue);
-      this.onChange();
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  protected onChange: () => void = () => {};
+  // Abstract methods are updated to receive the properties object.
   protected abstract filterEffects(
     context: CanvasRenderingContext2D,
+    properties: FilterProperties,
     elementToDraw: (context: CanvasRenderingContext2D) => void,
   ): void;
-  protected abstract appendFilterControls(container: HTMLDivElement): void;
+
+  protected abstract appendFilterControls(
+    container: HTMLDivElement,
+    properties: FilterProperties,
+    onChange: (newProperties: Partial<FilterProperties>) => void,
+  ): void;
 }
 

@@ -1,6 +1,5 @@
 import type { IElementData, Position, Scale, Size } from "components/types";
-import type { Filter } from "src/filters/filter";
-import { createFilter } from "src/filters/filterFactory";
+import type { FilterProperties } from "src/filters/filter";
 import type { BoundingBox } from "src/utils/boundingBox";
 
 export abstract class Element<T extends Partial<IElementData>> {
@@ -70,10 +69,10 @@ export abstract class Element<T extends Partial<IElementData>> {
   public set layerName(value: string) {
     this.properties.set("layerName", value);
   }
-  public get filters(): Filter[] {
-    return this.properties.get("filters") as Filter[];
+  public get filters(): FilterProperties[] {
+    return this.properties.get("filters") as FilterProperties[];
   }
-  public set filters(value: Filter[]) {
+  public set filters(value: FilterProperties[]) {
     this.properties.set("filters", value);
   }
 
@@ -95,10 +94,7 @@ export abstract class Element<T extends Partial<IElementData>> {
     for (const key of Object.keys(data) as Array<keyof T>) {
       if (!this.properties.has(key)) continue;
       if (key === "filters" && Array.isArray(data.filters)) {
-        const filters = data.filters
-          .map(createFilter)
-          .filter((f) => f !== null);
-        this.properties.set(key, filters);
+        this.properties.set(key, data.filters);
         continue;
       }
       this.properties.set(key, data[key]);
@@ -106,16 +102,10 @@ export abstract class Element<T extends Partial<IElementData>> {
   }
 
   public serialize(): T {
-    const serialized = Object.fromEntries(this.properties) as T;
-    if (this.properties.has("filters")) {
-      const filters = (this.properties.get("filters") as Filter[]).map(
-        (filter) => filter.serialize(),
-      );
-      serialized.filters = filters as Filter[];
-    }
-    return serialized;
+    return Object.fromEntries(this.properties) as T;
   }
 
   public abstract draw(context: CanvasRenderingContext2D): void;
   public abstract getBoundingBox(): BoundingBox;
 }
+

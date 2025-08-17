@@ -1,73 +1,62 @@
-import type { IColorControl } from "src/components/helpers/createColorControl";
 import createColorControl from "src/components/helpers/createColorControl";
-import type { ISliderControl } from "src/components/helpers/createSliderControl";
 import createSliderControl from "src/components/helpers/createSliderControl";
+import type { FilterProperties } from "src/filters/filter";
 import { Filter } from "src/filters/filter";
-import { clamp } from "src/utils/easing";
 
 export class OuterGlowFilter extends Filter {
-  public set blur(value: number) {
-    this.properties.set("blur", clamp(value, 0, 100));
-  }
-  public get blur(): number {
-    return this.properties.get("blur") as number;
-  }
-  public set color(value: string) {
-    this.properties.set("color", value ? (value as string) : "#AAAAAA");
-  }
-  public get color(): string {
-    return this.properties.get("color") as string;
-  }
-
-  private blurControl: ISliderControl | null = null;
-  private colorControl: IColorControl | null = null;
-
   constructor() {
     super("outer-glow", "Luz Brilhante (Fora)", "before", 2);
-    this.blur = 10;
-    this.color = "#FFFAAA";
   }
 
+  public createDefaultProperties(): FilterProperties {
+    return OuterGlowFilter.createDefaultProperties();
+  }
+
+  public static createDefaultProperties(): FilterProperties {
+    return {
+      id: "outer-glow",
+      composite: "source-over",
+      globalAlpha: 1.0,
+      blur: 10,
+      color: "#FFFAAA",
+    };
+  }
+
+  /** Utiliza a propriedade 'shadow' do canvas para criar um brilho em volta do elemento */
   protected filterEffects = (
     context: CanvasRenderingContext2D,
+    properties: FilterProperties,
     elementToDraw: (ctx: CanvasRenderingContext2D) => void,
   ): void => {
-    // Desenha o elemento com brilho
-    context.shadowColor = this.color;
-    context.shadowBlur = this.blur;
+    const { color, blur, globalAlpha } = properties;
+    context.shadowColor = color as string;
+    context.shadowBlur = blur as number;
     context.shadowOffsetX = 0;
     context.shadowOffsetY = 0;
-    context.globalAlpha = this.globalAlpha;
+    context.globalAlpha = globalAlpha;
     elementToDraw(context);
   };
 
-  protected appendFilterControls(container: HTMLDivElement): void {
-    this.blurControl = createSliderControl(
+  /** Adiciona dois controles, desfoque e seletor de cor para controlar o efeito */
+  protected appendFilterControls(
+    container: HTMLDivElement,
+    properties: FilterProperties,
+    onChange: (newProperties: Partial<FilterProperties>) => void,
+  ): void {
+    const blurControl = createSliderControl(
       `${this.id}-blur`,
       "Desfoque",
-      { min: 0, max: 100, step: 1, value: this.blur },
-      this.handleBlurControlChange,
+      { min: 0, max: 100, step: 1, value: properties.blur as number },
+      (newValue) => onChange({ blur: Number(newValue) }),
     );
-
-    this.colorControl = createColorControl(
+    const colorControl = createColorControl(
       `${this.id}-color`,
       "Cor",
-      { value: this.color },
-      this.handleColorControlChange,
+      { value: properties.color as string },
+      (newValue) => onChange({ color: newValue }),
     );
-
-    this.blurControl.linkEvents();
-    this.colorControl.linkEvents();
-    container.append(this.blurControl.element, this.colorControl.element);
+    blurControl.linkEvents();
+    colorControl.linkEvents();
+    container.append(blurControl.element, colorControl.element);
   }
-
-  private handleBlurControlChange = (newValue: number): void => {
-    this.blur = Number(newValue);
-    this.onChange();
-  };
-
-  private handleColorControlChange = (newValue: string): void => {
-    this.color = newValue;
-    this.onChange();
-  };
 }
