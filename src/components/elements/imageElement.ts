@@ -2,6 +2,7 @@ import { Element } from "src/components/elements/element";
 import type { IImageElementData, Position, Size } from "src/components/types";
 import { FilterRenderer } from "src/filters/filterRenderer";
 import { BoundingBox } from "src/utils/boundingBox";
+import { CroppingBox } from "src/utils/croppingBox";
 import { clamp } from "src/utils/easing";
 import { toRadians } from "src/utils/transforms";
 
@@ -20,6 +21,7 @@ export class ImageElement extends Element<IImageElementData> {
   }
 
   private boundingBox: BoundingBox;
+  private croppingBox: CroppingBox;
   public image: HTMLImageElement | null = null;
   private isImageLoaded = false;
 
@@ -67,10 +69,14 @@ export class ImageElement extends Element<IImageElementData> {
       context.scale(this.scale.x, this.scale.y);
       context.drawImage(
         this.image,
-        -this.size.width * 0.5,
-        -this.size.height * 0.5,
-        this.size.width,
-        this.size.height,
+        this.croppingBox.left,
+        this.croppingBox.top,
+        this.croppingBox.right,
+        this.croppingBox.bottom,
+        this.croppingBox.left + (-this.size.width * 0.5),
+        this.croppingBox.top + (-this.size.height * 0.5),
+        this.croppingBox.right,
+        this.croppingBox.bottom,
       );
       context.restore();
     }
@@ -80,11 +86,12 @@ export class ImageElement extends Element<IImageElementData> {
     this.properties.set("encodedImage", encodedImage);
     this.image = new Image();
     this.image.src = encodedImage;
+    this.size = { width: this.image.width, height: this.image.height };
+    this.croppingBox = new CroppingBox(this.size);
+    this.boundingBox.update(this.position, this.size, this.rotation);
     this.image.onload = (): void => {
       if (this.image) {
         this.isImageLoaded = true;
-        this.size = { width: this.image.width, height: this.image.height };
-        this.boundingBox.update(this.position, this.size, this.rotation);
       }
     };
   }
