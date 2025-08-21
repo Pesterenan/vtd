@@ -32,6 +32,7 @@ export class ImageElement extends Element<IImageElementData> {
     this.backgroundColor = "#00FF00";
     this.backgroundOpacity = 0;
     this.boundingBox = new BoundingBox(position, size, this.rotation);
+    this.croppingBox = new CroppingBox(size);
   }
 
   public deserialize(data: IImageElementData): void {
@@ -86,11 +87,11 @@ export class ImageElement extends Element<IImageElementData> {
     this.properties.set("encodedImage", encodedImage);
     this.image = new Image();
     this.image.src = encodedImage;
-    this.size = { width: this.image.width, height: this.image.height };
-    this.croppingBox = new CroppingBox(this.size);
-    this.boundingBox.update(this.position, this.size, this.rotation);
     this.image.onload = (): void => {
       if (this.image) {
+        this.size = { width: this.image.width, height: this.image.height };
+        this.boundingBox.update(this.position, this.size, this.rotation);
+        this.croppingBox.updateSize(this.size);
         this.isImageLoaded = true;
       }
     };

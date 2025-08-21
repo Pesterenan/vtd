@@ -13,9 +13,9 @@ export class CroppingBox {
     this.bottom = size.height;
   }
 
-  private updateSides(size: Size): void {
-    this.top = -size.height * 0.5;
-    this.left = -size.width * 0.5;
+  public updateSize(size: Size): void {
+    this.top = 0;
+    this.left = 0;
     this.right = size.width;
     this.bottom = size.height;
   }

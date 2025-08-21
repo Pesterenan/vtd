@@ -21,6 +21,7 @@ export class ScaleTool extends Tool {
   }
 
   public unequip(): void {
+    this.resetTool();
     super.unequip();
   }
 
@@ -126,7 +127,6 @@ export class ScaleTool extends Tool {
     this.startPosition = mousePos;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   public onKeyDown(evt: KeyboardEvent): void {
     if (evt.altKey) {
       evt.preventDefault();
