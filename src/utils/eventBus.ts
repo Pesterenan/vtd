@@ -125,6 +125,10 @@ export interface EventBusMap {
     payload: ReorganizeLayersPayload;
     result: unknown;
   };
+  "selectTool:isCroppingBoxVisible": {
+    payload: boolean;
+    result: unknown;
+  }
   "tool:change": {
     payload: TOOL;
     result: unknown;

@@ -37,6 +37,7 @@ export class TransformBox {
   private eventBus: EventBus;
   public hoveredHandle: TransformBoxHandleKeys | null = null;
   public selectedHandle: TransformBoxHandleKeys | null = null;
+  private isCroppingBoxVisible = false;
 
   public constructor(
     selectedElements: Element<TElementData>[],
@@ -68,6 +69,10 @@ export class TransformBox {
     this.eventBus.on("transformBox:updateRotation", this.updateRotation);
     this.eventBus.on("transformBox:updateScale", this.updateScale);
     this.eventBus.on("transformBox:updateCropping", this.updateCropping);
+    this.eventBus.on(
+      "selectTool:isCroppingBoxVisible",
+      this.setCroppingBoxVisibility,
+    );
   }
 
   public removeEvents() {
@@ -90,11 +95,20 @@ export class TransformBox {
     this.eventBus.off("transformBox:updateRotation", this.updateRotation);
     this.eventBus.off("transformBox:updateScale", this.updateScale);
     this.eventBus.off("transformBox:updateCropping", this.updateCropping);
+    this.eventBus.off(
+      "selectTool:isCroppingBoxVisible",
+      this.setCroppingBoxVisibility,
+    );
   }
 
   public selectHandle = (): boolean => {
     this.selectedHandle = this.hoveredHandle;
     return !!this.hoveredHandle;
+  };
+
+  private setCroppingBoxVisibility = (isVisible: boolean): void => {
+    this.isCroppingBoxVisible = isVisible;
+    this.eventBus.emit("workarea:update");
   };
   private getPosition = (): Position => this.position;
   private getRotation = (): number => this.rotation;
@@ -344,11 +358,7 @@ export class TransformBox {
         );
       } else {
         croppingBox.left += unscaledDelta.x;
-        croppingBox.left = clamp(
-          croppingBox.left,
-          0,
-          croppingBox.right - 1,
-        );
+        croppingBox.left = clamp(croppingBox.left, 0, croppingBox.right - 1);
       }
     }
     if (ySign !== 0) {
@@ -466,7 +476,9 @@ export class TransformBox {
     }
     context.restore();
     // Desenhar CroppingBox em volta do elemento
-    this.drawCroppingBox(context);
+    if (this.isCroppingBoxVisible) {
+      this.drawCroppingBox(context);
+    }
   }
 
   private drawCroppingBox(context: CanvasRenderingContext2D): void {

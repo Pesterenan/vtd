@@ -87,10 +87,16 @@ export class SelectTool extends Tool {
   }
 
   public onKeyDown(evt: KeyboardEvent): void {
-    if (evt.altKey) {
+    if (evt.key === "Alt") {
       evt.preventDefault();
+      this.eventBus.emit("selectTool:isCroppingBoxVisible", true);
     }
   }
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public onKeyUp(): void {}
+
+  public onKeyUp(evt: KeyboardEvent): void {
+    if (evt.key === "Alt") {
+      evt.preventDefault();
+      this.eventBus.emit("selectTool:isCroppingBoxVisible", false);
+    }
+  }
 }
