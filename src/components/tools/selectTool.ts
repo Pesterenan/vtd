@@ -39,12 +39,16 @@ export class SelectTool extends Tool {
 
   public onMouseDown({ altKey, offsetX, offsetY }: MouseEvent): void {
     this.firstPoint = { x: offsetX, y: offsetY };
-    if (altKey) {
+    const [isHandleSelected] = this.eventBus.request(
+      "transformBox:selectHandle",
+    );
+
+    if (altKey && isHandleSelected) {
       this.isCropping = true;
     }
   }
 
-  public onMouseMove({ offsetX, offsetY }: MouseEvent): void {
+  public onMouseMove({ offsetX, offsetY, movementX, movementY }: MouseEvent): void {
     const [mousePos] = this.eventBus.request("workarea:adjustForCanvas", {
       position: {
         x: offsetX,
@@ -54,25 +58,30 @@ export class SelectTool extends Tool {
     this.eventBus.emit("transformBox:hoverHandle", { position: mousePos });
 
     if (this.firstPoint) {
-      const distance = Math.hypot(
-        offsetX - this.firstPoint.x,
-        offsetY - this.firstPoint.y,
-      );
       if (this.isCropping) {
-        // TODO: HANDLE CROPPING IN TRANSFORMBOX
-      }
-      if (distance > Tool.DRAGGING_DISTANCE) {
-        this.secondPoint = { x: offsetX, y: offsetY };
+        this.eventBus.emit("transformBox:updateCropping", {
+          position: { x: movementX, y: movementY },
+        });
+      } else {
+        const distance = Math.hypot(
+          offsetX - this.firstPoint.x,
+          offsetY - this.firstPoint.y,
+        );
+        if (distance > Tool.DRAGGING_DISTANCE) {
+          this.secondPoint = { x: offsetX, y: offsetY };
+        }
       }
     }
     this.eventBus.emit("workarea:update");
   }
 
   public onMouseUp(): void {
-    this.eventBus.emit("workarea:selectAt", {
-      firstPoint: this.firstPoint,
-      secondPoint: this.secondPoint,
-    });
+    if (!this.isCropping) {
+      this.eventBus.emit("workarea:selectAt", {
+        firstPoint: this.firstPoint,
+        secondPoint: this.secondPoint,
+      });
+    }
     this.resetTool();
     this.eventBus.emit("workarea:update");
   }

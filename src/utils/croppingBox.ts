@@ -5,12 +5,14 @@ export class CroppingBox {
   public bottom: number;
   public left: number;
   public right: number;
+  private originalSize: Size;
 
   constructor(size: Size) {
     this.top = 0;
     this.left = 0;
     this.right = size.width;
     this.bottom = size.height;
+    this.originalSize = { ...size };
   }
 
   public updateSize(size: Size): void {
@@ -18,5 +20,15 @@ export class CroppingBox {
     this.left = 0;
     this.right = size.width;
     this.bottom = size.height;
+    this.originalSize = { ...size };
+  }
+
+  public isCropped(): boolean {
+    return (
+      this.top !== 0 ||
+      this.left !== 0 ||
+      this.right !== this.originalSize.width ||
+      this.bottom !== this.originalSize.height
+    );
   }
 }

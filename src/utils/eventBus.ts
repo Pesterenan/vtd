@@ -63,21 +63,21 @@ export type ExportCanvasToStringPayload = {
 };
 
 export type DeltaPayload = {
-    delta: number;
+  delta: number;
 };
 
 export type UpdateScalePayload = {
   delta: Scale;
   anchor?: Position;
-}
+};
 
 export type PositionPayload = {
-    position: Position;
+  position: Position;
 };
 
 export type SelectElementsAtPayload = {
-    firstPoint?: Position | null;
-    secondPoint?: Position | null;
+  firstPoint?: Position | null;
+  secondPoint?: Position | null;
 };
 
 export interface EventBusMap {
@@ -194,6 +194,10 @@ export interface EventBusMap {
   "transformBox:rotation": {
     payload: unknown;
     result: number;
+  };
+  "transformBox:updateCropping": {
+    payload: PositionPayload;
+    result: unknown;
   };
   "transformBox:updateOpacity": {
     payload: DeltaPayload;

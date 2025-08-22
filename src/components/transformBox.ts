@@ -1,6 +1,7 @@
 import type { Element } from "src/components/elements/element";
 import type { Position, Scale, Size, TElementData } from "src/components/types";
 import { BoundingBox } from "src/utils/boundingBox";
+import { clamp } from "src/utils/easing";
 import type {
   DeltaPayload,
   EventBus,
@@ -66,6 +67,7 @@ export class TransformBox {
     this.eventBus.on("transformBox:updatePosition", this.updatePosition);
     this.eventBus.on("transformBox:updateRotation", this.updateRotation);
     this.eventBus.on("transformBox:updateScale", this.updateScale);
+    this.eventBus.on("transformBox:updateCropping", this.updateCropping);
   }
 
   public removeEvents() {
@@ -87,6 +89,7 @@ export class TransformBox {
     this.eventBus.off("transformBox:updatePosition", this.updatePosition);
     this.eventBus.off("transformBox:updateRotation", this.updateRotation);
     this.eventBus.off("transformBox:updateScale", this.updateScale);
+    this.eventBus.off("transformBox:updateCropping", this.updateCropping);
   }
 
   public selectHandle = (): boolean => {
@@ -312,6 +315,58 @@ export class TransformBox {
     this.updateHandles();
   };
 
+  private updateCropping = ({ position }: PositionPayload): void => {
+    if (this.selectedElements.length !== 1) return;
+    const element = this.selectedElements[0];
+    const croppingBox = element.getCroppingBox();
+    if (!croppingBox) return;
+
+    const [zoomLevel] = this.eventBus.request("zoomLevel:get");
+    const [{ xSign, ySign }] = this.eventBus.request(
+      "transformBox:getSignAndAnchor",
+    );
+    const unrotatedDelta = rotatePoint(
+      { x: position.x / zoomLevel, y: position.y / zoomLevel },
+      { x: 0, y: 0 },
+      -element.rotation,
+    );
+    const unscaledDelta = {
+      x: unrotatedDelta.x / element.scale.x,
+      y: unrotatedDelta.y / element.scale.y,
+    };
+    if (xSign !== 0) {
+      if (xSign > 0) {
+        croppingBox.right += unscaledDelta.x;
+        croppingBox.right = clamp(
+          croppingBox.right,
+          croppingBox.left + 1,
+          element.size.width,
+        );
+      } else {
+        croppingBox.left += unscaledDelta.x;
+        croppingBox.left = clamp(
+          croppingBox.left,
+          0,
+          croppingBox.right - 1,
+        );
+      }
+    }
+    if (ySign !== 0) {
+      if (ySign > 0) {
+        croppingBox.bottom += unscaledDelta.y;
+        croppingBox.bottom = clamp(
+          croppingBox.bottom,
+          croppingBox.top + 1,
+          element.size.height,
+        );
+      } else {
+        croppingBox.top += unscaledDelta.y;
+        croppingBox.top = clamp(croppingBox.top, 0, croppingBox.bottom - 1);
+      }
+    }
+    this.eventBus.emit("workarea:update");
+  };
+
   public contains(element: Element<TElementData>): boolean {
     return !!this.selectedElements.find((el) => el.zDepth === element.zDepth);
   }
@@ -409,6 +464,43 @@ export class TransformBox {
         context.fill();
       }
     }
+    context.restore();
+    // Desenhar CroppingBox em volta do elemento
+    this.drawCroppingBox(context);
+  }
+
+  private drawCroppingBox(context: CanvasRenderingContext2D): void {
+    if (this.selectedElements.length !== 1) return;
+
+    const element = this.selectedElements[0];
+    const croppingBox = element.getCroppingBox();
+
+    if (!croppingBox || !croppingBox.isCropped()) return;
+
+    const [zoomLevel] = this.eventBus.request("zoomLevel:get");
+    const [workAreaOffset] = this.eventBus.request("workarea:offset:get");
+
+    const { width, height } = element.size;
+    const { scale, rotation, position } = element;
+
+    const cropWidth = croppingBox.right - croppingBox.left;
+    const cropHeight = croppingBox.bottom - croppingBox.top;
+
+    const offsetX = -width / 2 + croppingBox.left;
+    const offsetY = -height / 2 + croppingBox.top;
+
+    context.save();
+    context.translate(workAreaOffset.x, workAreaOffset.y);
+    context.scale(zoomLevel, zoomLevel);
+    context.translate(position.x, position.y);
+    context.rotate(toRadians(rotation));
+    context.scale(scale.x, scale.y);
+
+    context.strokeStyle = "green";
+    context.setLineDash([]);
+    context.lineWidth = 2 / (zoomLevel * Math.max(scale.x, scale.y));
+    context.strokeRect(offsetX, offsetY, cropWidth, cropHeight);
+
     context.restore();
   }
 }

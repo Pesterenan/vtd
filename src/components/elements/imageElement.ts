@@ -68,16 +68,22 @@ export class ImageElement extends Element<IImageElementData> {
       context.translate(this.position.x, this.position.y);
       context.rotate(toRadians(this.rotation));
       context.scale(this.scale.x, this.scale.y);
+      const sourceWidth = this.croppingBox.right - this.croppingBox.left;
+      const sourceHeight = this.croppingBox.bottom - this.croppingBox.top;
+      const destWidth = sourceWidth;
+      const destHeight = sourceHeight;
+      const destX = -this.size.width / 2 + this.croppingBox.left;
+      const destY = -this.size.height / 2 + this.croppingBox.top;
       context.drawImage(
         this.image,
         this.croppingBox.left,
         this.croppingBox.top,
-        this.croppingBox.right,
-        this.croppingBox.bottom,
-        this.croppingBox.left + (-this.size.width * 0.5),
-        this.croppingBox.top + (-this.size.height * 0.5),
-        this.croppingBox.right,
-        this.croppingBox.bottom,
+        sourceWidth,
+        sourceHeight,
+        destX,
+        destY,
+        destWidth,
+        destHeight
       );
       context.restore();
     }
@@ -104,5 +110,9 @@ export class ImageElement extends Element<IImageElementData> {
     };
     this.boundingBox.update(this.position, scaledSize, this.rotation);
     return this.boundingBox;
+  }
+
+  public getCroppingBox(): CroppingBox {
+    return this.croppingBox;
   }
 }
