@@ -11,6 +11,7 @@ import type {
 import { rotatePoint, toRadians } from "src/utils/transforms";
 import { Vector } from "src/utils/vector";
 import { ElementGroup } from "./elements/elementGroup";
+import type { CroppingBox } from "src/utils/croppingBox";
 
 export type TransformBoxHandleKeys =
   | "BOTTOM"
@@ -73,6 +74,8 @@ export class TransformBox {
       "selectTool:isCroppingBoxVisible",
       this.setCroppingBoxVisibility,
     );
+    this.eventBus.on("transformBox:cropping:get", this.getCropping);
+    this.eventBus.on("transformMenu:cropping:update", this.updateCroppingFromMenu);
   }
 
   public removeEvents() {
@@ -99,6 +102,11 @@ export class TransformBox {
       "selectTool:isCroppingBoxVisible",
       this.setCroppingBoxVisibility,
     );
+    this.eventBus.off("transformBox:cropping:get", this.getCropping);
+    this.eventBus.off(
+      "transformMenu:cropping:update",
+      this.updateCroppingFromMenu,
+    );
   }
 
   public selectHandle = (): boolean => {
@@ -110,6 +118,44 @@ export class TransformBox {
     this.isCroppingBoxVisible = isVisible;
     this.eventBus.emit("workarea:update");
   };
+
+  private getCropping = (): CroppingBox | null => {
+    if (this.selectedElements.length === 1) {
+      const element = this.selectedElements[0];
+      if ("getCroppingBox" in element) {
+        return element.getCroppingBox();
+      }
+    }
+    return null;
+  };
+
+  private updateCroppingFromMenu = (payload: {
+    property: "top" | "left" | "right" | "bottom";
+    value: number;
+  }): void => {
+    if (this.selectedElements.length !== 1) return;
+    const element = this.selectedElements[0];
+    if ("getCroppingBox" in element) {
+      const croppingBox = element.getCroppingBox();
+      if (croppingBox) {
+        const { width, height } = element.size;
+        const { property, value } = payload;
+
+          if (property === "top") {
+            croppingBox.top = clamp(value, 0, croppingBox.bottom - 1);
+          } else if (property === "left") {
+            croppingBox.left = clamp(value, 0, croppingBox.right - 1);
+          } else if (property === "right") {
+            croppingBox.right = clamp(value, croppingBox.left + 1, width);
+          } else if (property === "bottom") {
+            croppingBox.bottom = clamp(value, croppingBox.top + 1, height);
+          }
+          this.eventBus.emit("workarea:update");
+          this.eventBus.emit("transformBox:cropping:changed", croppingBox);
+      }
+    }
+  };
+
   private getPosition = (): Position => this.position;
   private getRotation = (): number => this.rotation;
   private getAnchorPoint = (): Position => this.anchorPoint;
@@ -118,13 +164,24 @@ export class TransformBox {
     size: Size;
     opacity: number;
     rotation: number;
+    unscaledSize?: Size;
   } => {
-    return {
+    const props: {
+      position: Position;
+      size: Size;
+      opacity: number;
+      rotation: number;
+      unscaledSize?: Size;
+    } = {
       position: this.position,
       rotation: this.rotation,
       opacity: this.opacity,
       size: this.size,
     };
+    if (this.selectedElements.length === 1) {
+      props.unscaledSize = this.selectedElements[0].size;
+    }
+    return props;
   };
 
   private changeAnchorPoint = ({ position }: PositionPayload): void => {
@@ -374,6 +431,7 @@ export class TransformBox {
         croppingBox.top = clamp(croppingBox.top, 0, croppingBox.bottom - 1);
       }
     }
+    this.eventBus.emit("transformBox:cropping:changed", croppingBox);
     this.eventBus.emit("workarea:update");
   };
 

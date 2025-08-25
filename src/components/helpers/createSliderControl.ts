@@ -3,6 +3,7 @@ import { clamp } from "src/utils/easing";
 export interface ISliderControl {
   element: HTMLDivElement;
   updateValues: (newValue: string | number) => void;
+  updateOptions: (newOptions: { min?: number; max?: number; step?: number }) => void;
   linkEvents: () => void;
   unlinkEvents: () => void;
 }
@@ -10,10 +11,11 @@ export interface ISliderControl {
 export default function createSliderControl(
   id: string,
   label: string,
-  options: { min: number; max: number; step: number; value: number },
+  initialOptions: { min: number; max: number; step: number; value: number },
   onChange: (newValue: number) => void,
   includeSlider = true,
 ): ISliderControl {
+  let options = { ...initialOptions };
   const decimalPlaces = options.step.toString().split(".")[1]?.length || 0;
   const clamped = (value: number | string): string =>
     clamp(Number(value), options.min, options.max).toFixed(decimalPlaces);
@@ -46,6 +48,14 @@ export default function createSliderControl(
     inputFieldEl.value = clamped(newValue);
   };
 
+  const updateOptions = (newOptions: { min?: number; max?: number; step?: number }) => {
+    options = { ...options, ...newOptions };
+    sliderEl.min = options.min.toString();
+    sliderEl.max = options.max.toString();
+    inputFieldEl.min = options.min.toString();
+    inputFieldEl.max = options.max.toString();
+  };
+
   const handleSliderChange = () => {
     updateValues(sliderEl.value);
     onChange(Number(clamped(sliderEl.value)));
@@ -60,6 +70,7 @@ export default function createSliderControl(
   let startValue = 0;
 
   const handleMouseDown = (evt: MouseEvent) => {
+    evt.stopPropagation();
     isDragging = true;
     startX = evt.clientX;
     startValue = Number(sliderEl.value);
@@ -76,10 +87,13 @@ export default function createSliderControl(
     }
   };
 
-  const handleMouseUp = () => {
-    isDragging = false;
-    window.removeEventListener("mousemove", handleMouseMove);
-    window.removeEventListener("mouseup", handleMouseUp);
+  const handleMouseUp = (evt: MouseEvent) => {
+    evt.stopPropagation();
+    if (isDragging) {
+      isDragging = false;
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    }
   };
 
   const linkEvents = () => {
@@ -106,6 +120,7 @@ export default function createSliderControl(
   return {
     element: container,
     updateValues,
+    updateOptions,
     linkEvents,
     unlinkEvents,
   };

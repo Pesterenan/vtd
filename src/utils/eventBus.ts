@@ -11,6 +11,7 @@ import type {
   TElementData,
   TOOL,
 } from "src/components/types";
+import type { CroppingBox } from "./croppingBox";
 
 export type Callback<P = unknown, R = unknown> = (payload: P) => R;
 
@@ -128,7 +129,7 @@ export interface EventBusMap {
   "selectTool:isCroppingBoxVisible": {
     payload: boolean;
     result: unknown;
-  }
+  };
   "tool:change": {
     payload: TOOL;
     result: unknown;
@@ -147,6 +148,18 @@ export interface EventBusMap {
   };
   "tool:unequipped": {
     payload: Tool;
+    result: unknown;
+  };
+  "transformBox:cropping:changed": {
+    payload: CroppingBox;
+    result: unknown;
+  };
+  "transformBox:cropping:get": {
+    payload: unknown;
+    result: CroppingBox | null;
+  };
+  "transformMenu:cropping:update": {
+    payload: { property: "top" | "left" | "right" | "bottom"; value: number };
     result: unknown;
   };
   "transformBox:hoverHandle": {
@@ -189,6 +202,7 @@ export interface EventBusMap {
       size: Size;
       rotation: number;
       opacity: number;
+      unscaledSize?: Size;
     };
   };
   "transformBox:position": {

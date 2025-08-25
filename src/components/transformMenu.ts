@@ -3,6 +3,7 @@ import type { EventBus, SelectionChangedPayload } from "src/utils/eventBus";
 import type { ISliderControl } from "./helpers/createSliderControl";
 import createSliderControl from "./helpers/createSliderControl";
 import type { Position, Size } from "./types";
+import type { CroppingBox } from "src/utils/croppingBox";
 
 export class TransformMenu {
   private static instance: TransformMenu | null = null;
@@ -13,6 +14,11 @@ export class TransformMenu {
   private heightControl: ISliderControl | null = null;
   private rotationControl: ISliderControl | null = null;
   private opacityControl: ISliderControl | null = null;
+  private cropAccordion: HTMLDetailsElement | null = null;
+  private cropTopControl: ISliderControl | null = null;
+  private cropLeftControl: ISliderControl | null = null;
+  private cropRightControl: ISliderControl | null = null;
+  private cropBottomControl: ISliderControl | null = null;
 
   private constructor(private eventBus: EventBus) {
     this.createDOMElements();
@@ -24,6 +30,10 @@ export class TransformMenu {
     this.eventBus.on(
       "transformBox:properties:change",
       this.handleRecalculateTransformBox.bind(this),
+    );
+    this.eventBus.on(
+      "transformBox:cropping:changed",
+      this.handleCroppingChanged,
     );
     this.eventBus.on("workarea:initialized", () => {
       this.transformSection?.removeAttribute("disabled");
@@ -175,6 +185,41 @@ export class TransformMenu {
       ?.append(this.widthControl.element, this.heightControl.element);
     this.transformSection.append(this.rotationControl.element);
     this.transformSection.append(this.opacityControl.element);
+    this.cropAccordion = document.createElement("details");
+    this.cropAccordion.innerHTML = `<summary>Recorte</summary>`;
+    this.cropTopControl = createSliderControl(
+      "inp_crop-top",
+      "Cima",
+      { min: 0, max: 100, step: 1, value: 0 },
+      this.handleCropTopChange,
+      false,
+    );
+    this.cropLeftControl = createSliderControl(
+      "inp_crop-left",
+      "Esquerda",
+      { min: 0, max: 100, step: 1, value: 0 },
+      this.handleCropLeftChange,
+      false,
+    );
+    this.cropRightControl = createSliderControl(
+      "inp_crop-right",
+      "Direita",
+      { min: 0, max: 100, step: 1, value: 0 },
+      this.handleCropRightChange,
+      false,
+    );
+    this.cropBottomControl = createSliderControl(
+      "inp_crop-bottom",
+      "Baixo",
+      { min: 0, max: 100, step: 1, value: 0 },
+      this.handleCropBottomChange,
+      false,
+    );
+    this.cropAccordion.append(this.cropTopControl.element);
+    this.cropAccordion.append(this.cropLeftControl.element);
+    this.cropAccordion.append(this.cropRightControl.element);
+    this.cropAccordion.append(this.cropBottomControl.element);
+    this.transformSection.append(this.cropAccordion);
   }
 
   private handleXPosChange = (newValue: number): void => {
@@ -225,6 +270,43 @@ export class TransformMenu {
     this.eventBus.emit("transformBox:updateOpacity", { delta: newValue });
   };
 
+  private handleCropTopChange = (newValue: number): void => {
+    this.eventBus.emit("transformMenu:cropping:update", {
+      property: "top",
+      value: newValue,
+    });
+  };
+
+  private handleCropLeftChange = (newValue: number): void => {
+    this.eventBus.emit("transformMenu:cropping:update", {
+      property: "left",
+      value: newValue,
+    });
+  };
+
+  private handleCropRightChange = (newValue: number): void => {
+    this.eventBus.emit("transformMenu:cropping:update", {
+      property: "right",
+      value: newValue,
+    });
+  };
+
+  private handleCropBottomChange = (newValue: number): void => {
+    this.eventBus.emit("transformMenu:cropping:update", {
+      property: "bottom",
+      value: newValue,
+    });
+  };
+
+  private handleCroppingChanged = (croppingBox: CroppingBox): void => {
+    if (croppingBox) {
+      this.cropTopControl?.updateValues(croppingBox.top);
+      this.cropLeftControl?.updateValues(croppingBox.left);
+      this.cropRightControl?.updateValues(croppingBox.right);
+      this.cropBottomControl?.updateValues(croppingBox.bottom);
+    }
+  };
+
   private linkDOMElements(): void {
     const [properties] = this.eventBus.request("transformBox:properties:get");
     this.xPosControl?.linkEvents();
@@ -239,6 +321,35 @@ export class TransformMenu {
     this.heightControl?.updateValues(properties.size.height);
     this.rotationControl?.updateValues(properties.rotation);
     this.opacityControl?.updateValues(properties.opacity);
+
+    const [croppingBox] = this.eventBus.request("transformBox:cropping:get");
+
+    if (croppingBox && this.cropAccordion) {
+      this.cropAccordion.removeAttribute("disabled");
+
+      const sizeToUse = properties.unscaledSize || properties.size;
+      this.cropTopControl?.updateOptions({ max: sizeToUse.height });
+      this.cropLeftControl?.updateOptions({ max: sizeToUse.width });
+      this.cropRightControl?.updateOptions({ max: sizeToUse.width });
+      this.cropBottomControl?.updateOptions({ max: sizeToUse.height });
+
+      this.cropTopControl?.linkEvents();
+      this.cropLeftControl?.linkEvents();
+      this.cropRightControl?.linkEvents();
+      this.cropBottomControl?.linkEvents();
+
+      this.cropTopControl?.updateValues(croppingBox.top);
+      this.cropLeftControl?.updateValues(croppingBox.left);
+      this.cropRightControl?.updateValues(croppingBox.right);
+      this.cropBottomControl?.updateValues(croppingBox.bottom);
+    } else if (this.cropAccordion) {
+      this.cropAccordion.setAttribute("disabled", "true");
+      this.cropAccordion.open = false;
+      this.cropTopControl?.unlinkEvents();
+      this.cropLeftControl?.unlinkEvents();
+      this.cropRightControl?.unlinkEvents();
+      this.cropBottomControl?.unlinkEvents();
+    }
   }
 
   private unlinkDOMElements(): void {
@@ -248,5 +359,13 @@ export class TransformMenu {
     this.heightControl?.unlinkEvents();
     this.rotationControl?.unlinkEvents();
     this.opacityControl?.unlinkEvents();
+    this.cropTopControl?.unlinkEvents();
+    this.cropLeftControl?.unlinkEvents();
+    this.cropRightControl?.unlinkEvents();
+    this.cropBottomControl?.unlinkEvents();
+    if (this.cropAccordion) {
+      this.cropAccordion.setAttribute("disabled", "true");
+      this.cropAccordion.open = false;
+    }
   }
 }
