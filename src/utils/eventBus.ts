@@ -86,6 +86,10 @@ export interface EventBusMap {
     payload: AddAlertPayload;
     result: unknown;
   };
+  "dialog:applyCrop:open": {
+    payload: { layerId: number };
+    result: unknown;
+  };
   "dialog:elementFilters:open": {
     payload: { layerId: number };
     result: unknown;
@@ -116,6 +120,14 @@ export interface EventBusMap {
   };
   "edit:declineTextChange": {
     payload: unknown;
+    result: unknown;
+  };
+  "layer:applyCrop": {
+    payload: {
+      layerId: number;
+      keepOriginal: boolean;
+      smoothingEnabled: boolean;
+    };
     result: unknown;
   };
   "layer:export": {
@@ -279,6 +291,10 @@ export interface EventBusMap {
   "workarea:exportCanvas": {
     payload: ExportCanvasToStringPayload;
     result: string;
+  };
+  "workarea:getElement:get": {
+    payload: { elementId: number };
+    result: Element<TElementData> | undefined;
   };
   "workarea:offset:change": {
     payload: PositionPayload;

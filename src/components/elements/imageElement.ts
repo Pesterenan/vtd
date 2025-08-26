@@ -115,4 +115,33 @@ export class ImageElement extends Element<IImageElementData> {
   public getCroppingBox(): CroppingBox {
     return this.croppingBox;
   }
+
+  public getCroppedImageDataUrl(smoothingEnabled: boolean): string {
+    const { left, top, right, bottom } = this.croppingBox;
+    const width = right - left;
+    const height = bottom - top;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (this.image && context) {
+      context.imageSmoothingEnabled = smoothingEnabled;
+      context.imageSmoothingQuality = smoothingEnabled ? 'high' : 'low';
+      context.drawImage(
+        this.image,
+        left,
+        top,
+        width,
+        height,
+        0,
+        0,
+        width,
+        height,
+      );
+      return canvas.toDataURL();
+    }
+
+    return "";
+  }
 }

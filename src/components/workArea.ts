@@ -58,6 +58,8 @@ export class WorkArea {
     this.eventBus.on("workarea:updateElement", this.handleUpdateElement);
     this.eventBus.on("layer:export", this.exportLayerToClipboard);
     this.eventBus.on("workarea:deleteElement", this.handleDeleteElement);
+    this.eventBus.on("workarea:getElement:get", this.getElement);
+    this.eventBus.on("layer:applyCrop", this.handleApplyCrop);
   }
 
   public removeEvents(): void {
@@ -72,6 +74,8 @@ export class WorkArea {
     this.eventBus.off("workarea:updateElement", this.handleUpdateElement);
     this.eventBus.off("layer:export", this.exportLayerToClipboard);
     this.eventBus.off("workarea:deleteElement", this.handleDeleteElement);
+    this.eventBus.off("workarea:getElement:get", this.getElement);
+    this.eventBus.off("layer:applyCrop", this.handleApplyCrop);
   }
 
   public setWorkAreaSize(newSize?: Size) {
@@ -112,12 +116,12 @@ export class WorkArea {
     if (selectedElements.length) {
       this.transformBox = new TransformBox(selectedElements, this.eventBus);
     }
-  }
+  };
 
   private removeTransformBox = (): void => {
     this.transformBox?.removeEvents();
     this.transformBox = null;
-  }
+  };
 
   private handleDeleteElement = (): void => {
     this.removeTransformBox();
@@ -334,7 +338,7 @@ export class WorkArea {
       }
     }
     return selectedElements;
-  }
+  };
 
   public selectElementsAt = ({
     firstPoint,
@@ -531,7 +535,49 @@ export class WorkArea {
       type: "group",
     });
     this.eventBus.emit("workarea:update");
-  }
+  };
+
+  private getElement = ({
+    elementId,
+  }: {
+    elementId: number;
+  }): Element<TElementData> | undefined => {
+    return this.getFlatElements(this.elements).find(
+      (el) => el.elementId === elementId,
+    );
+  };
+
+  private handleApplyCrop = ({
+    layerId,
+    keepOriginal,
+    smoothingEnabled,
+  }: {
+    layerId: number;
+    keepOriginal: boolean;
+    smoothingEnabled: boolean;
+  }): void => {
+    const originalElement = this.getElement({ elementId: layerId });
+
+    if (originalElement && originalElement instanceof ImageElement) {
+      const newImageData =
+        originalElement.getCroppedImageDataUrl(smoothingEnabled);
+      if (newImageData) {
+        const newElement = this.addImageElement(newImageData);
+        newElement.position = {
+          x: this.canvas ? this.canvas.width * 0.5 : originalElement.position.x,
+          y: this.canvas
+            ? this.canvas.height * 0.5
+            : originalElement.position.y,
+        };
+        newElement.rotation = originalElement.rotation;
+        newElement.scale = { ...originalElement.scale };
+
+        if (!keepOriginal) {
+          this.eventBus.emit("workarea:deleteElement", { elementId: layerId });
+        }
+      }
+    }
+  };
 
   private exportLayerToClipboard = ({
     layerId,

@@ -31,4 +31,11 @@ export class CroppingBox {
       this.bottom !== this.originalSize.height
     );
   }
+
+  public reset(): void {
+    this.top = 0;
+    this.left = 0;
+    this.right = this.originalSize.width;
+    this.bottom = this.originalSize.height;
+  }
 }
