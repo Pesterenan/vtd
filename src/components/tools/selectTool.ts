@@ -62,6 +62,7 @@ export class SelectTool extends Tool {
         this.eventBus.emit("transformBox:updateCropping", {
           position: { x: movementX, y: movementY },
         });
+        this.eventBus.emit("workarea:update");
       } else {
         const distance = Math.hypot(
           offsetX - this.firstPoint.x,
@@ -69,10 +70,10 @@ export class SelectTool extends Tool {
         );
         if (distance > Tool.DRAGGING_DISTANCE) {
           this.secondPoint = { x: offsetX, y: offsetY };
+          this.eventBus.emit("workarea:update");
         }
       }
     }
-    this.eventBus.emit("workarea:update");
   }
 
   public onMouseUp(): void {
