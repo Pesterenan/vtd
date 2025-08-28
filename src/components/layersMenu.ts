@@ -16,6 +16,7 @@ import type {
 import getElementById from "src/utils/getElementById";
 import createIconButton from "./helpers/createIconButton";
 import type { Layer } from "./types";
+import { ImageElement } from "./elements/imageElement";
 
 export class LayersMenu {
   private static instance: LayersMenu | null = null;
@@ -548,6 +549,19 @@ export class LayersMenu {
     this.contextMenu.appendChild(listSeparator());
     this.contextMenu.appendChild(copyTransparentBtn);
     this.contextMenu.appendChild(copyWithBackgroundBtn);
+
+    const [element] = this.eventBus.request("workarea:getElement:get", { elementId: layer.id });
+    if (element && element instanceof ImageElement && element.getCroppingBox()?.isCropped()) {
+      const applyCropBtn = document.createElement("button");
+      applyCropBtn.textContent = "Aplicar Recorte";
+      applyCropBtn.addEventListener("click", () => {
+        this.eventBus.emit("dialog:applyCrop:open", { layerId: layer.id });
+        this.contextMenu?.remove();
+      });
+      this.contextMenu.appendChild(listSeparator());
+      this.contextMenu.appendChild(applyCropBtn);
+    }
+
     this.contextMenu.appendChild(listSeparator());
     this.contextMenu.appendChild(deleteElementBtn);
 

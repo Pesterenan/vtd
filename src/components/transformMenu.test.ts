@@ -7,6 +7,7 @@ import type { TElementData } from "./types";
 const mockSliderControl = {
   element: document.createElement("div"),
   updateValues: jest.fn(),
+  updateOptions: jest.fn(),
   linkEvents: jest.fn(),
   unlinkEvents: jest.fn(),
 };
@@ -56,7 +57,7 @@ describe("TransformMenu", () => {
   });
 
   it("should create DOM elements and slider controls correctly", () => {
-    expect(Object.keys(handleFunctions).length).toBe(6);
+    expect(Object.keys(handleFunctions).length).toBe(10);
   });
 
   it("should link DOM elements when elements are selected", () => {
@@ -69,30 +70,42 @@ describe("TransformMenu", () => {
 
     jest
       .spyOn(eventBus, "request")
-      .mockReturnValue([
+      .mockReturnValueOnce([
         {
           position: { x: 10, y: 20 },
           size: { width: 100, height: 200 },
           rotation: 45,
           opacity: 0.8,
         },
+      ])
+      .mockReturnValueOnce([
+        {
+          top: 1,
+          left: 2,
+          right: 3,
+          bottom: 4,
+        },
       ]);
 
     eventBus.emit("selection:changed", { selectedElements: [mockElement] });
 
-    expect(mockSliderControl.linkEvents).toHaveBeenCalledTimes(6);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledTimes(6);
+    expect(mockSliderControl.linkEvents).toHaveBeenCalledTimes(10);
+    expect(mockSliderControl.updateValues).toHaveBeenCalledTimes(10);
     expect(mockSliderControl.updateValues).toHaveBeenCalledWith(10);
     expect(mockSliderControl.updateValues).toHaveBeenCalledWith(20);
     expect(mockSliderControl.updateValues).toHaveBeenCalledWith(100);
     expect(mockSliderControl.updateValues).toHaveBeenCalledWith(200);
     expect(mockSliderControl.updateValues).toHaveBeenCalledWith(45);
     expect(mockSliderControl.updateValues).toHaveBeenCalledWith(0.8);
+    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(1);
+    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(2);
+    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(3);
+    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(4);
   });
 
   it("should unlink DOM elements when no elements are selected", () => {
     eventBus.emit("selection:changed", { selectedElements: [] });
-    expect(mockSliderControl.unlinkEvents).toHaveBeenCalledTimes(6);
+    expect(mockSliderControl.unlinkEvents).toHaveBeenCalledTimes(10);
   });
 
   it("should update slider controls on recalculate transform box", () => {

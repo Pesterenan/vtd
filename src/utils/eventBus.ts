@@ -11,6 +11,7 @@ import type {
   TElementData,
   TOOL,
 } from "src/components/types";
+import type { CroppingBox } from "./croppingBox";
 
 export type Callback<P = unknown, R = unknown> = (payload: P) => R;
 
@@ -63,26 +64,30 @@ export type ExportCanvasToStringPayload = {
 };
 
 export type DeltaPayload = {
-    delta: number;
+  delta: number;
 };
 
 export type UpdateScalePayload = {
   delta: Scale;
   anchor?: Position;
-}
+};
 
 export type PositionPayload = {
-    position: Position;
+  position: Position;
 };
 
 export type SelectElementsAtPayload = {
-    firstPoint?: Position | null;
-    secondPoint?: Position | null;
+  firstPoint?: Position | null;
+  secondPoint?: Position | null;
 };
 
 export interface EventBusMap {
   "alert:add": {
     payload: AddAlertPayload;
+    result: unknown;
+  };
+  "dialog:applyCrop:open": {
+    payload: { layerId: number };
     result: unknown;
   };
   "dialog:elementFilters:open": {
@@ -117,12 +122,24 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "layer:applyCrop": {
+    payload: {
+      layerId: number;
+      keepOriginal: boolean;
+      smoothingEnabled: boolean;
+    };
+    result: unknown;
+  };
   "layer:export": {
     payload: ExportLayerToClipBoardPayload;
     result: unknown;
   };
   "layer:generateHierarchy": {
     payload: ReorganizeLayersPayload;
+    result: unknown;
+  };
+  "selectTool:isCroppingBoxVisible": {
+    payload: boolean;
     result: unknown;
   };
   "tool:change": {
@@ -143,6 +160,18 @@ export interface EventBusMap {
   };
   "tool:unequipped": {
     payload: Tool;
+    result: unknown;
+  };
+  "transformBox:cropping:changed": {
+    payload: CroppingBox;
+    result: unknown;
+  };
+  "transformBox:cropping:get": {
+    payload: unknown;
+    result: CroppingBox | null;
+  };
+  "transformMenu:cropping:update": {
+    payload: { property: "top" | "left" | "right" | "bottom"; value: number };
     result: unknown;
   };
   "transformBox:hoverHandle": {
@@ -185,6 +214,7 @@ export interface EventBusMap {
       size: Size;
       rotation: number;
       opacity: number;
+      unscaledSize?: Size;
     };
   };
   "transformBox:position": {
@@ -194,6 +224,10 @@ export interface EventBusMap {
   "transformBox:rotation": {
     payload: unknown;
     result: number;
+  };
+  "transformBox:updateCropping": {
+    payload: PositionPayload;
+    result: unknown;
   };
   "transformBox:updateOpacity": {
     payload: DeltaPayload;
@@ -257,6 +291,10 @@ export interface EventBusMap {
   "workarea:exportCanvas": {
     payload: ExportCanvasToStringPayload;
     result: string;
+  };
+  "workarea:getElement:get": {
+    payload: { elementId: number };
+    result: Element<TElementData> | undefined;
   };
   "workarea:offset:change": {
     payload: PositionPayload;

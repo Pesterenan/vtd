@@ -1,6 +1,7 @@
 import type { IElementData, Position, Scale, Size } from "components/types";
 import type { FilterProperties } from "src/filters/filter";
 import type { BoundingBox } from "src/utils/boundingBox";
+import type { CroppingBox } from "src/utils/croppingBox";
 
 export abstract class Element<T extends Partial<IElementData>> {
   public static elementIds = 0;
@@ -107,5 +108,10 @@ export abstract class Element<T extends Partial<IElementData>> {
 
   public abstract draw(context: CanvasRenderingContext2D): void;
   public abstract getBoundingBox(): BoundingBox;
+
+  public getCroppingBox(): CroppingBox | null {
+    return null;
+  }
 }
+
 

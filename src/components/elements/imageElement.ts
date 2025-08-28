@@ -2,6 +2,7 @@ import { Element } from "src/components/elements/element";
 import type { IImageElementData, Position, Size } from "src/components/types";
 import { FilterRenderer } from "src/filters/filterRenderer";
 import { BoundingBox } from "src/utils/boundingBox";
+import { CroppingBox } from "src/utils/croppingBox";
 import { clamp } from "src/utils/easing";
 import { toRadians } from "src/utils/transforms";
 
@@ -20,6 +21,7 @@ export class ImageElement extends Element<IImageElementData> {
   }
 
   private boundingBox: BoundingBox;
+  private croppingBox: CroppingBox;
   public image: HTMLImageElement | null = null;
   private isImageLoaded = false;
 
@@ -30,6 +32,7 @@ export class ImageElement extends Element<IImageElementData> {
     this.backgroundColor = "#00FF00";
     this.backgroundOpacity = 0;
     this.boundingBox = new BoundingBox(position, size, this.rotation);
+    this.croppingBox = new CroppingBox(size);
   }
 
   public deserialize(data: IImageElementData): void {
@@ -65,12 +68,22 @@ export class ImageElement extends Element<IImageElementData> {
       context.translate(this.position.x, this.position.y);
       context.rotate(toRadians(this.rotation));
       context.scale(this.scale.x, this.scale.y);
+      const sourceWidth = this.croppingBox.right - this.croppingBox.left;
+      const sourceHeight = this.croppingBox.bottom - this.croppingBox.top;
+      const destWidth = sourceWidth;
+      const destHeight = sourceHeight;
+      const destX = -this.size.width / 2 + this.croppingBox.left;
+      const destY = -this.size.height / 2 + this.croppingBox.top;
       context.drawImage(
         this.image,
-        -this.size.width * 0.5,
-        -this.size.height * 0.5,
-        this.size.width,
-        this.size.height,
+        this.croppingBox.left,
+        this.croppingBox.top,
+        sourceWidth,
+        sourceHeight,
+        destX,
+        destY,
+        destWidth,
+        destHeight
       );
       context.restore();
     }
@@ -82,9 +95,10 @@ export class ImageElement extends Element<IImageElementData> {
     this.image.src = encodedImage;
     this.image.onload = (): void => {
       if (this.image) {
-        this.isImageLoaded = true;
         this.size = { width: this.image.width, height: this.image.height };
         this.boundingBox.update(this.position, this.size, this.rotation);
+        this.croppingBox.updateSize(this.size);
+        this.isImageLoaded = true;
       }
     };
   }
@@ -96,5 +110,38 @@ export class ImageElement extends Element<IImageElementData> {
     };
     this.boundingBox.update(this.position, scaledSize, this.rotation);
     return this.boundingBox;
+  }
+
+  public getCroppingBox(): CroppingBox {
+    return this.croppingBox;
+  }
+
+  public getCroppedImageDataUrl(smoothingEnabled: boolean): string {
+    const { left, top, right, bottom } = this.croppingBox;
+    const width = right - left;
+    const height = bottom - top;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (this.image && context) {
+      context.imageSmoothingEnabled = smoothingEnabled;
+      context.imageSmoothingQuality = smoothingEnabled ? 'high' : 'low';
+      context.drawImage(
+        this.image,
+        left,
+        top,
+        width,
+        height,
+        0,
+        0,
+        width,
+        height,
+      );
+      return canvas.toDataURL();
+    }
+
+    return "";
   }
 }

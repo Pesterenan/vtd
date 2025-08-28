@@ -1,3 +1,4 @@
+import createCheckboxControl from "../helpers/createCheckboxControl";
 import type { Element } from "src/components/elements/element";
 import { GradientElement } from "src/components/elements/gradientElement";
 import type { TElementData } from "src/components/types";
@@ -165,27 +166,20 @@ export class DialogElementFilters extends Dialog {
 
       const filterItem = document.createElement("li");
       filterItem.id = `filter-item-${filter.id}`;
-      filterItem.className = "container ai-c jc-sb g-05 li_layer-item pad-05";
-      const filterCheckbox = document.createElement(
-        "input",
-      ) as HTMLInputElement;
-      filterCheckbox.type = "checkbox";
-      filterCheckbox.id = `chk_filter-${filter.id}`;
-      filterCheckbox.checked = isChecked;
-      filterCheckbox.addEventListener("change", () => {
-        this.toggleFilter(filter, filterCheckbox.checked);
-        this.eventBus.emit("workarea:update");
-      });
-      const filterLabel = document.createElement("label") as HTMLLabelElement;
-      filterLabel.innerText = filter.label;
-      filterItem.append(filterCheckbox, filterLabel);
+      filterItem.className = "li_layer-item pad-05";
 
-      filterItem.addEventListener("click", (e) => {
-        if (e.target !== filterCheckbox) {
-          filterCheckbox.checked = !filterCheckbox.checked;
-          filterCheckbox.dispatchEvent(new Event("change"));
-        }
-      });
+      const checkboxControl = createCheckboxControl(
+        `filter-${filter.id}`,
+        filter.label,
+        { value: isChecked, tooltip: filter.label },
+        (newValue) => {
+          this.toggleFilter(filter, newValue);
+          this.eventBus.emit("workarea:update");
+        },
+      );
+      checkboxControl.linkEvents();
+
+      filterItem.append(checkboxControl.element);
       this.appendToFilterList(filterItem);
     }
   }
@@ -218,4 +212,3 @@ export class DialogElementFilters extends Dialog {
     }
   }
 }
-

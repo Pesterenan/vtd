@@ -6,6 +6,7 @@ import type { IProjectData, Position, TElementData } from "./types";
 import { TOOL } from "./types";
 import type { Tool } from "./tools/abstractTool";
 import { ToolManager } from "./tools/toolManager";
+import { DialogApplyCrop } from "./dialogs/DialogApplyCrop";
 import { DialogElementFilters } from "./dialogs/DialogElementFilters";
 import { DialogExportImage } from "./dialogs/DialogExportImage";
 import { DialogNewProject } from "./dialogs/DialogNewProject";
@@ -42,6 +43,7 @@ export class MainWindow {
   private constructor(private eventBus: EventBus) {
     this.createDOMElements();
     this.createEventListeners();
+    new DialogApplyCrop(eventBus);
     new DialogElementFilters(eventBus);
     new DialogExportImage(eventBus);
     new DialogNewProject(eventBus);
