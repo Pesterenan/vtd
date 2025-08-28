@@ -1,11 +1,15 @@
 import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
+import type { ICheckboxControl } from "../helpers/createCheckboxControl";
+import createCheckboxControl from "../helpers/createCheckboxControl";
 
 export class DialogApplyCrop extends Dialog {
   private eventBus: EventBus;
-  private keepOriginalCheckbox: HTMLInputElement | null = null;
+  private keepOriginalControl: ICheckboxControl | null = null;
+  private smoothingControl: ICheckboxControl | null = null;
+  private keepOriginal = false;
+  private smoothingEnabled = true;
   private layerId: number | null = null;
-  private smoothingCheckbox: HTMLInputElement | null = null;
 
   constructor(eventBus: EventBus) {
     super({
@@ -22,31 +26,42 @@ export class DialogApplyCrop extends Dialog {
 
   protected appendDialogContent(container: HTMLDivElement): void {
     container.className = "container column g-1";
-    const message = document.createElement("p");
-    message.textContent =
-      "Deseja realmente recortar a imagem? Esta ação não pode ser desfeita.";
-    const checkboxContainer = document.createElement("div");
-    checkboxContainer.className = "container ai-c g-05";
-
-    this.keepOriginalCheckbox = document.createElement("input");
-    this.keepOriginalCheckbox.type = "checkbox";
-    this.keepOriginalCheckbox.id = "keep-original-checkbox";
-    this.keepOriginalCheckbox.checked = false;
-    const keepOriginalLabel = document.createElement("label");
-    keepOriginalLabel.textContent = "Manter o elemento original";
-    keepOriginalLabel.htmlFor = "keep-original-checkbox";
-
-    this.smoothingCheckbox = document.createElement("input");
-    this.smoothingCheckbox.type = "checkbox";
-    this.smoothingCheckbox.id = "smoothing-checkbox";
-    this.smoothingCheckbox.checked = true;
-    const smoothingLabel = document.createElement("label");
-    smoothingLabel.textContent = "Suavizar imagem do elemento recortado";
-    smoothingLabel.htmlFor = "smoothing-checkbox";
-
-    checkboxContainer.append(this.keepOriginalCheckbox, keepOriginalLabel);
-    checkboxContainer.append(this.smoothingCheckbox, smoothingLabel);
-    container.append(message, checkboxContainer);
+    const messageContainer = document.createElement("div");
+    messageContainer.innerHTML =
+      "<p>Deseja realmente recortar a imagem?</p><p>Esta ação não pode ser desfeita.</p>";
+    const optionsContainer = document.createElement("div");
+    optionsContainer.className = "container column";
+    this.keepOriginalControl = createCheckboxControl(
+      "keep-original",
+      "Manter o elemento original",
+      {
+        value: this.keepOriginal,
+        tooltip:
+          "Mantém o elemento original com o recorte após criar o novo elemento",
+      },
+      (newValue) => {
+        this.keepOriginal = newValue;
+      },
+    );
+    this.smoothingControl = createCheckboxControl(
+      "smoothing",
+      "Suavizar imagem do elemento recortado",
+      {
+        value: this.smoothingEnabled,
+        tooltip:
+          "Ao recortar um elemento que foi escalonado ou rotacionado, aplica uma suavização nos pixels resultantes",
+      },
+      (newValue) => {
+        this.smoothingEnabled = newValue;
+      },
+    );
+    this.keepOriginalControl.linkEvents();
+    this.smoothingControl.linkEvents();
+    optionsContainer.append(
+      this.keepOriginalControl.element,
+      this.smoothingControl.element,
+    );
+    container.append(messageContainer, optionsContainer);
   }
 
   protected appendDialogActions(menu: HTMLMenuElement): void {
@@ -55,22 +70,14 @@ export class DialogApplyCrop extends Dialog {
     btnAccept.textContent = "OK";
     btnAccept.type = "button";
     btnAccept.addEventListener("click", () => {
-      this.keepOriginalCheckbox =
-        this.dialogContent?.querySelector("#keep-original-checkbox") || null;
-      this.smoothingCheckbox =
-        this.dialogContent?.querySelector("#smoothing-checkbox") || null;
-      if (
-        this.layerId !== null &&
-        this.keepOriginalCheckbox &&
-        this.smoothingCheckbox
-      ) {
+      if (this.layerId !== null) {
         this.eventBus.emit("layer:applyCrop", {
           layerId: this.layerId,
-          keepOriginal: this.keepOriginalCheckbox?.checked,
-          smoothingEnabled: this.smoothingCheckbox?.checked,
+          keepOriginal: this.keepOriginal,
+          smoothingEnabled: this.smoothingEnabled,
         });
         this.eventBus.emit("alert:add", {
-          message: 'Elemento recortado com sucesso.',
+          message: "Elemento recortado com sucesso.",
           type: "success",
         });
       }
@@ -86,6 +93,13 @@ export class DialogApplyCrop extends Dialog {
     });
     menu.appendChild(btnAccept);
     menu.appendChild(btnCancel);
+  }
+
+  protected onOpen(): void {
+    this.keepOriginal = false;
+    this.smoothingEnabled = true;
+    this.keepOriginalControl?.updateValue(this.keepOriginal);
+    this.smoothingControl?.updateValue(this.smoothingEnabled);
   }
 
   protected onClose(): void {
