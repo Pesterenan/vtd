@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { BrowserWindow, app, dialog, ipcMain, Menu } from "electron";
+import { BrowserWindow, app, dialog, ipcMain, Menu, shell } from "electron";
 import type { IVideoMetadata } from "src/types";
 import {
   generateThumbnailSprite,
@@ -26,6 +26,9 @@ let frameExtractorWindow: BrowserWindow | null = null;
 let currentTheme = "dark";
 let currentProjectTitle = "";
 let currentFilePath = "";
+let isProjectOpen = false;
+let canCopy = false;
+let canPaste = false;
 
 const createMainWindow = (): void => {
   // Create the browser window.
@@ -123,8 +126,88 @@ app.on("window-all-closed", () => {
 });
 
 function registerIPCHandlers(mainWindow: BrowserWindow): void {
+  function buildMenu() {
+    const template: Array<Electron.MenuItemConstructorOptions> = [
+      {
+        label: "&Arquivo",
+        submenu: [
+          {
+            label: "&Novo projeto",
+            click: () => mainWindow.webContents.send("request-new-project"),
+          },
+          {
+            type: "separator",
+          },
+          {
+            label: "Carregar projet&o",
+            click: () => mainWindow.webContents.send("request-load-project"),
+          },
+          {
+            label: "&Salvar projeto",
+            enabled: isProjectOpen,
+            click: () => mainWindow.webContents.send("request-save-project"),
+          },
+          {
+            label: "Salv&ar projeto como...",
+            enabled: isProjectOpen,
+            click: () =>
+              mainWindow.webContents.send("request-save-project-as"),
+          },
+          {
+            type: "separator",
+          },
+          {
+            label: "&Fechar projeto",
+            enabled: isProjectOpen,
+            click: () => mainWindow.webContents.send("request-close-project"),
+          },
+          {
+            type: "separator",
+          },
+          {
+            label: "Sair",
+            click: () => app.quit(),
+          },
+        ],
+      },
+      {
+        label: "&Editar",
+        submenu: [
+          {
+            label: "Copiar",
+            accelerator: "Ctrl+C",
+            enabled: canCopy,
+            click: () => mainWindow.webContents.send("copy-to-clipboard"),
+          },
+          {
+            label: "Colar",
+            accelerator: "Ctrl+V",
+            enabled: canPaste,
+            click: () => mainWindow.webContents.send("paste-from-clipboard"),
+          },
+        ],
+      },
+      {
+        label: "&Ajuda",
+        submenu: [
+          {
+            label: "Sobre",
+            click: () =>
+              mainWindow.webContents.send("request-show-about-dialog"),
+          },
+        ],
+      },
+    ];
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+  }
+
   // IPC test
   ipcMain.on("ping", () => console.log("pong"));
+
+  ipcMain.on("open-external-link", (_, url) => {
+    shell.openExternal(url);
+  });
 
   // Change Theme on all windows
   ipcMain.on("change-theme", (_, newTheme: string) => {
@@ -435,45 +518,24 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
   ipcMain.on("set-window-title", (_, title) => {
     if (mainWindow) {
       if (title) {
+        isProjectOpen = true;
         mainWindow.setTitle(`Video Thumbnail Designer - ${title}`);
       } else {
+        isProjectOpen = false;
         mainWindow.setTitle(`Video Thumbnail Designer`);
       }
+      buildMenu();
     }
   });
 
-  const menu = Menu.buildFromTemplate([
-    {
-      label: "&Arquivo",
-      submenu: [
-        {
-          label: "&Novo projeto",
-          click: () => mainWindow.webContents.send("request-new-project"),
-        },
-        {
-          type: "separator",
-        },
-        {
-          label: "Carregar projet&o",
-          click: () => mainWindow.webContents.send("request-load-project"),
-        },
-        {
-          label: "&Salvar projeto",
-          click: () => mainWindow.webContents.send("request-save-project"),
-        },
-        {
-          label: "Salv&ar projeto como...",
-          click: () => mainWindow.webContents.send("request-save-project-as"),
-        },
-        {
-          type: "separator",
-        },
-        {
-          label: "Sair",
-          click: () => app.quit(),
-        },
-      ],
-    },
-  ]);
-  Menu.setApplicationMenu(menu);
+  ipcMain.on("selection-changed", (_, hasSelection) => {
+    canCopy = hasSelection;
+    buildMenu();
+  });
+
+  ipcMain.on("clipboard-changed", (_, hasContent) => {
+    canPaste = hasContent;
+    buildMenu();
+  });
+  buildMenu();
 }

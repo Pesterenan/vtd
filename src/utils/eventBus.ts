@@ -86,6 +86,10 @@ export interface EventBusMap {
     payload: AddAlertPayload;
     result: unknown;
   };
+  "dialog:about:open": {
+    payload: unknown;
+    result: unknown;
+  };
   "dialog:applyCrop:open": {
     payload: { layerId: number };
     result: unknown;

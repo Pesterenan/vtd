@@ -22,7 +22,7 @@ export abstract class Dialog {
     if (options.isDraggable) this.enableDrag();
   }
 
-  public createDOMElements(options: IDialogOptions): void {
+  private createDOMElements(options: IDialogOptions): void {
     this.dialogEl = document.createElement("dialog");
     this.dialogEl.id = `dialog-${options.id}`;
     this.dialogEl.className = "dialog-common";
