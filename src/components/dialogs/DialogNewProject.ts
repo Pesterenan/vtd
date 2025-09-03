@@ -53,7 +53,7 @@ export class DialogNewProject extends Dialog {
   }
 
   protected appendDialogContent(container: HTMLDivElement): void {
-    container.className = "container column ai-c-jc g-05";
+    container.className = "container column jc-c g-05";
 
     this.projectNameInput = createTextInput(
       "project-name-input",

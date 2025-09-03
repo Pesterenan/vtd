@@ -17,6 +17,9 @@ declare global {
       saveProject: (projectData: Partial<IProjectData>) => void;
       sendFrameToWorkArea: (imageUrl: string) => void;
       setWindowTitle: (title: string) => void;
+      selectionChanged: (hasSelection: boolean) => void;
+      clipboardChanged: (hasContent: boolean) => void;
+      openExternalLink: (url: string) => void;
       onGenerateThumbnailSpriteResponse: (
         callback: (
           event: Electron.IpcRendererEvent,
@@ -77,6 +80,18 @@ declare global {
       onRequestSaveProjectAs: (
         callback: (event: Electron.IpcRendererEvent) => void,
       ) => Electron.IpcRenderer;
+      onCopyToClipboard: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onPasteFromClipboard: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onRequestCloseProject: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onRequestShowAboutDialog: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
     };
     electron: typeof electronAPI;
   }
@@ -107,6 +122,12 @@ const api = {
   sendFrameToWorkArea: (imageUrl: string): void =>
     ipcRenderer.send("send-frame-to-work-area", imageUrl),
   setWindowTitle: (title: string): void => ipcRenderer.send("set-window-title", title),
+  selectionChanged: (hasSelection: boolean): void =>
+    ipcRenderer.send("selection-changed", hasSelection),
+  clipboardChanged: (hasContent: boolean): void =>
+    ipcRenderer.send("clipboard-changed", hasContent),
+  openExternalLink: (url: string): void =>
+    ipcRenderer.send("open-external-link", url),
   onGenerateThumbnailSpriteResponse: (
     callback: (
       event: Electron.IpcRendererEvent,
@@ -168,6 +189,19 @@ const api = {
     callback: (event: Electron.IpcRendererEvent) => void,
   ): Electron.IpcRenderer =>
     ipcRenderer.on("request-save-project-as", callback),
+  onCopyToClipboard: (
+    callback: (event: Electron.IpcRendererEvent) => void,
+  ): Electron.IpcRenderer => ipcRenderer.on("copy-to-clipboard", callback),
+  onPasteFromClipboard: (
+    callback: (event: Electron.IpcRendererEvent) => void,
+  ): Electron.IpcRenderer => ipcRenderer.on("paste-from-clipboard", callback),
+  onRequestCloseProject: (
+    callback: (event: Electron.IpcRendererEvent) => void,
+  ): Electron.IpcRenderer => ipcRenderer.on("request-close-project", callback),
+  onRequestShowAboutDialog: (
+    callback: (event: Electron.IpcRendererEvent) => void,
+  ): Electron.IpcRenderer =>
+    ipcRenderer.on("request-show-about-dialog", callback),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

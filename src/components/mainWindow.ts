@@ -20,6 +20,7 @@ import { RotateTool } from "./tools/rotateTool";
 import { TextTool } from "./tools/textTool";
 import { remap } from "src/utils/easing";
 import { TextElement } from "./elements/textElement";
+import { DialogAbout } from "./dialogs/DialogAbout";
 
 export class MainWindow {
   private static instance: MainWindow | null = null;
@@ -47,6 +48,7 @@ export class MainWindow {
     new DialogElementFilters(eventBus);
     new DialogExportImage(eventBus);
     new DialogNewProject(eventBus);
+    new DialogAbout(eventBus);
     if (this.canvas) {
       this.toolManager = new ToolManager(this.canvas, this.eventBus);
       this.tools = {
@@ -146,12 +148,23 @@ export class MainWindow {
       const projectData = this.saveProject();
       window.api.saveProjectAs(projectData);
     });
+    window.api.onRequestCloseProject(() => {
+      this.eventBus.emit("workarea:clear");
+    });
+    window.api.onRequestShowAboutDialog(() => {
+      this.eventBus.emit("dialog:about:open");
+    });
+
+    window.api.onCopyToClipboard(this.handleCopyCommand);
+    window.api.onPasteFromClipboard(this.handlePasteCommand);
+
     window.addEventListener("copy", this.handleCopyCommand);
     window.addEventListener("paste", this.handlePasteCommand);
     window.addEventListener("resize", this.handleResizeWindow);
     window.addEventListener("keypress", this.handleKeyPress);
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
+    window.addEventListener("focus", this.handleWindowFocus);
 
     this.eventBus.on("tool:change", (tool: TOOL) => {
       if (this.toolManager && this.tools) {
@@ -191,6 +204,10 @@ export class MainWindow {
     this.eventBus.on("workarea:adjustForScreen", ({ position }) =>
       this.adjustForScreen(position),
     );
+    this.eventBus.on("selection:changed", ({ selectedElements }) => {
+      window.api.selectionChanged(selectedElements.length > 0);
+    });
+
     if (this.canvas) {
       this.canvas.addEventListener("dblclick", () => {
         if (!this.workArea) {
@@ -217,6 +234,8 @@ export class MainWindow {
             height: imageEl.height,
           });
           newElement = this.workArea.addImageElement(imgString);
+          this.projectTitle = "Sem título";
+          window.api.setWindowTitle(this.projectTitle);
           this.handleResizeWindow();
           this.eventBus.emit("workarea:initialized");
           this.eventBus.emit("workarea:update");
@@ -274,6 +293,7 @@ export class MainWindow {
       }, "image/png");
     } else {
       this.copiedElements = selectedElements.map((el) => el.serialize());
+      window.api.clipboardChanged(this.copiedElements.length > 0);
       this.eventBus.emit("alert:add", {
         message: "Elementos copiados para a área de transferência",
         type: "success",
@@ -306,6 +326,7 @@ export class MainWindow {
         type: "success",
       });
       this.copiedElements.length = 0;
+      window.api.clipboardChanged(false);
     } else {
       // Se estiver colando da área de transferência
       try {
@@ -360,6 +381,25 @@ export class MainWindow {
       }
     }
     this.update();
+  };
+
+  private handleWindowFocus = async (): Promise<void> => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      let canPaste = false;
+      for (const item of clipboardItems) {
+        if (
+          item.types.includes("text/plain") ||
+          item.types.some((type) => type.startsWith("image/"))
+        ) {
+          canPaste = true;
+          break;
+        }
+      }
+      window.api.clipboardChanged(this.copiedElements.length > 0 || canPaste);
+    } catch (err) {
+      window.api.clipboardChanged(this.copiedElements.length > 0);
+    }
   };
 
   private handleResizeWindow = (): void => {
