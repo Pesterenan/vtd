@@ -355,6 +355,11 @@ export class VideoFrameExtractor {
           }, "image/png");
         } else {
           const imageUrl = this.extract.canvas.toDataURL("image/png");
+              this.eventBus.emit("alert:add", {
+                message: "Quadro do vídeo extraído para o Projeto",
+                title: "Quadro Extraído",
+                type: "success",
+              });
           window.api.sendFrameToWorkArea(imageUrl);
         }
       }

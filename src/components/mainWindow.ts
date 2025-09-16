@@ -81,6 +81,12 @@ export class MainWindow {
   }
 
   private createEventListeners() {
+    window.api.onExportCanvasResponse((_, response) => {
+      this.eventBus.emit("alert:add", {
+        type: response.success ? "success" : "error",
+        message: response.message,
+      });
+    });
     window.api.onLoadVideoResponse((_, response) => {
       this.eventBus.emit("alert:add", {
         message: response.message,
