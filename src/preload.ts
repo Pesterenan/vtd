@@ -20,6 +20,12 @@ declare global {
       selectionChanged: (hasSelection: boolean) => void;
       clipboardChanged: (hasContent: boolean) => void;
       openExternalLink: (url: string) => void;
+      onExportCanvasResponse: (
+        callback: (
+          event: Electron.IpcRendererEvent,
+          response: EventResponse,
+        ) => void,
+      ) => Electron.IpcRenderer;
       onGenerateThumbnailSpriteResponse: (
         callback: (
           event: Electron.IpcRendererEvent,
@@ -121,13 +127,20 @@ const api = {
     ipcRenderer.send("request-new-project", projectData),
   sendFrameToWorkArea: (imageUrl: string): void =>
     ipcRenderer.send("send-frame-to-work-area", imageUrl),
-  setWindowTitle: (title: string): void => ipcRenderer.send("set-window-title", title),
+  setWindowTitle: (title: string): void =>
+    ipcRenderer.send("set-window-title", title),
   selectionChanged: (hasSelection: boolean): void =>
     ipcRenderer.send("selection-changed", hasSelection),
   clipboardChanged: (hasContent: boolean): void =>
     ipcRenderer.send("clipboard-changed", hasContent),
   openExternalLink: (url: string): void =>
     ipcRenderer.send("open-external-link", url),
+  onExportCanvasResponse: (
+    callback: (
+      event: Electron.IpcRendererEvent,
+      response: EventResponse,
+    ) => void,
+  ): Electron.IpcRenderer => ipcRenderer.on("export-canvas-response", callback),
   onGenerateThumbnailSpriteResponse: (
     callback: (
       event: Electron.IpcRendererEvent,
