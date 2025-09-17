@@ -144,11 +144,13 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
           },
           {
             label: "&Salvar projeto",
+            accelerator: "Ctrl+S",
             enabled: isProjectOpen,
             click: () => mainWindow.webContents.send("request-save-project"),
           },
           {
             label: "Salv&ar projeto como...",
+            accelerator: "Ctrl+Shift+S",
             enabled: isProjectOpen,
             click: () =>
               mainWindow.webContents.send("request-save-project-as"),

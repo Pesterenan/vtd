@@ -50,7 +50,7 @@ export class WorkArea {
     this.eventBus.on("edit:gradient", this.handleEditGradient);
     this.eventBus.on("edit:text", this.handleEditText);
     this.eventBus.on("workarea:addGroupElement", this.handleAddGroupElement);
-    this.eventBus.on("workarea:exportCanvas", this.convertCanvasToString);
+    this.eventBus.on("workarea:canvas:getBlob", this.handleRequestCanvasBlob);
     this.eventBus.on("workarea:selectAt", this.selectElementsAt);
     this.eventBus.on("workarea:selectById", this.selectElementsById);
     this.eventBus.on("workarea:selected:get", this.getSelectedElements);
@@ -66,7 +66,7 @@ export class WorkArea {
     this.eventBus.off("edit:gradient", this.handleEditGradient);
     this.eventBus.off("edit:text", this.handleEditText);
     this.eventBus.off("workarea:addGroupElement", this.handleAddGroupElement);
-    this.eventBus.off("workarea:exportCanvas", this.convertCanvasToString);
+    this.eventBus.off("workarea:canvas:getBlob", this.handleRequestCanvasBlob);
     this.eventBus.off("workarea:selectAt", this.selectElementsAt);
     this.eventBus.off("workarea:selectById", this.selectElementsById);
     this.eventBus.off("workarea:selected:get", this.getSelectedElements);
@@ -308,16 +308,36 @@ export class WorkArea {
     return newElement as Element<TElementData>;
   }
 
-  private convertCanvasToString = ({
+  private handleRequestCanvasBlob = ({
     format,
     quality,
-  }: ExportCanvasToStringPayload): string => {
-    if (!this.canvas) {
-      console.error("Canvas not found");
-      return "";
-    }
-    const parsedQuality = (Number.parseInt(quality, 10) || 100) / 100;
-    return this.canvas.toDataURL(`image/${format}`, parsedQuality);
+  }: ExportCanvasToStringPayload): Promise<{ blob: Blob; dataURL: string } | undefined> => {
+    return new Promise((resolve) => {
+      if (!this.canvas) {
+        console.error("Canvas not found");
+        return resolve(undefined);
+      }
+
+      const parsedQuality = (Number.parseInt(quality, 10) || 100) / 100;
+      this.canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const reader = new FileReader();
+            reader.onload = () => {
+              resolve({
+                blob,
+                dataURL: reader.result as string,
+              });
+            };
+            reader.readAsDataURL(blob);
+          } else {
+            resolve(undefined);
+          }
+        },
+        `image/${format}`,
+        parsedQuality,
+      );
+    });
   };
 
   private getSelectedElements = (): Element<TElementData>[] => {
