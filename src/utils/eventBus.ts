@@ -280,6 +280,10 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "workarea:canvas:getBlob": {
+    payload: { format: string, quality: string };
+    result: Promise<{ blob: Blob, dataURL: string } | undefined>;
+  };
   "workarea:clear": {
     payload: unknown;
     result: unknown;

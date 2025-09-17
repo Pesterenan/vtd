@@ -527,6 +527,9 @@ export class MainWindow {
   }
 
   private handleKeyPress = (evt: KeyboardEvent): void => {
+    if (evt.ctrlKey || evt.altKey || evt.metaKey) {
+      return;
+    }
     let tool: TOOL | null = null;
     switch (evt.code) {
       case "KeyV":
