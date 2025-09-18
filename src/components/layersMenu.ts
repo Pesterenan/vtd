@@ -93,6 +93,7 @@ export class LayersMenu {
     this.eventBus.on("workarea:addElement", this.handleAddElement);
     this.eventBus.on("workarea:deleteElement", this.handleDeleteElement);
     this.eventBus.on("workarea:selectById", this.handleSelectElement);
+    this.eventBus.on("layer:setHierarchy", this.handleSetHierarchy);
 
     this.layersList.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -579,4 +580,13 @@ export class LayersMenu {
   private exportLayer(layer: Layer, transparent: boolean): void {
     this.eventBus.emit("layer:export", { layerId: layer.id, transparent });
   }
+
+  private handleSetHierarchy = ({ hierarchy }: { hierarchy: Layer[] }): void => {
+    this.clearLayersList();
+    for (const layer of hierarchy) {
+      const isGroup = layer.children !== undefined;
+      const layerLI = this.createLayerItem(layer, isGroup);
+      this.layersList.appendChild(layerLI);
+    }
+  };
 }

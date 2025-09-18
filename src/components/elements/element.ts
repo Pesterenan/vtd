@@ -1,15 +1,15 @@
-import type { IElementData, Position, Scale, Size } from "components/types";
+import type { Position, Scale, Size, IElementData } from "components/types";
 import type { FilterProperties } from "src/filters/filter";
 import type { BoundingBox } from "src/utils/boundingBox";
 import type { CroppingBox } from "src/utils/croppingBox";
 
-export abstract class Element<T extends Partial<IElementData>> {
+export abstract class Element<T extends IElementData> {
   public static elementIds = 0;
   protected _elementId = 0;
   public selected = false;
 
   protected properties: Map<
-    keyof (IElementData & T),
+    keyof T,
     IElementData[keyof IElementData] | T[keyof T]
   > = new Map();
 
@@ -103,7 +103,7 @@ export abstract class Element<T extends Partial<IElementData>> {
   }
 
   public serialize(): T {
-    return Object.fromEntries(this.properties) as T;
+    return Object.fromEntries(this.properties) as unknown as T;
   }
 
   public abstract draw(context: CanvasRenderingContext2D): void;

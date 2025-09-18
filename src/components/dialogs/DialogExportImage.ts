@@ -7,7 +7,9 @@ function formatBytes(bytes: number, decimals = 2) {
   const dm = decimals < 0 ? 0 : decimals;
   const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+  return (
+    Number.parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i]
+  );
 }
 
 export class DialogExportImage extends Dialog {
@@ -29,14 +31,23 @@ export class DialogExportImage extends Dialog {
 
   private updateEstimatedSize = async () => {
     if (this.dialogContent) {
-      const formatSelector = this.dialogContent.querySelector<HTMLSelectElement>("#select_export-format");
-      const qualitySlider = this.dialogContent.querySelector<HTMLInputElement>("#jpeg_range_quality");
-      const imageSize = this.dialogContent?.querySelector<HTMLElement>("#image_size");
+      const formatSelector =
+        this.dialogContent.querySelector<HTMLSelectElement>(
+          "#select_export-format",
+        );
+      const qualitySlider = this.dialogContent.querySelector<HTMLInputElement>(
+        "#jpeg_range_quality",
+      );
+      const imageSize =
+        this.dialogContent?.querySelector<HTMLElement>("#image_size");
 
       if (formatSelector && qualitySlider && imageSize) {
         const format = formatSelector.value;
         const quality = qualitySlider.value;
-        const [canvasBlobPromise] = this.eventBus.request("workarea:canvas:getBlob", { format, quality });
+        const [canvasBlobPromise] = this.eventBus.request(
+          "workarea:canvas:getBlob",
+          { format, quality },
+        );
         if (canvasBlobPromise) {
           const canvasBlob = await canvasBlobPromise;
           if (canvasBlob) {
@@ -44,12 +55,12 @@ export class DialogExportImage extends Dialog {
             imageSize.textContent = formatBytes(canvasBlob.blob.size);
           } else {
             this.latestDataURL = null;
-            imageSize.textContent = '-- KB';
+            imageSize.textContent = "-- KB";
             console.error("Failed to get canvas blob.");
           }
         } else {
           this.latestDataURL = null;
-          imageSize.textContent = '-- KB';
+          imageSize.textContent = "-- KB";
           console.error("No promise returned for canvas blob request.");
         }
       }
@@ -78,14 +89,27 @@ export class DialogExportImage extends Dialog {
     </div>
 `;
 
-    const exportFormatSelector = container.querySelector<HTMLSelectElement>("#select_export-format");
-    const jpegQualityContainer = container.querySelector<HTMLDivElement>("#jpeg_quality_container");
-    const jpegRangeQuality = container.querySelector<HTMLInputElement>("#jpeg_range_quality");
-    const outputQuality = container.querySelector<HTMLLabelElement>("#output_quality");
+    const exportFormatSelector = container.querySelector<HTMLSelectElement>(
+      "#select_export-format",
+    );
+    const jpegQualityContainer = container.querySelector<HTMLDivElement>(
+      "#jpeg_quality_container",
+    );
+    const jpegRangeQuality = container.querySelector<HTMLInputElement>(
+      "#jpeg_range_quality",
+    );
+    const outputQuality =
+      container.querySelector<HTMLLabelElement>("#output_quality");
 
-    if (exportFormatSelector && jpegQualityContainer && jpegRangeQuality && outputQuality) {
+    if (
+      exportFormatSelector &&
+      jpegQualityContainer &&
+      jpegRangeQuality &&
+      outputQuality
+    ) {
       const handleOptionsChange = () => {
-        jpegQualityContainer.style.visibility = exportFormatSelector.value !== "png" ? "visible" : "hidden";
+        jpegQualityContainer.style.visibility =
+          exportFormatSelector.value !== "png" ? "visible" : "hidden";
         outputQuality.textContent = jpegRangeQuality.value;
         this.updateEstimatedSize();
       };
@@ -99,13 +123,19 @@ export class DialogExportImage extends Dialog {
 <button id="btn_confirm-export-image" class="btn-common-wide">Exportar</button>
 <button id="btn_close-export-image-dialog" class="btn-common-wide">Cancelar</button>
 `;
-    const exportButton = menu.querySelector<HTMLButtonElement>("#btn_confirm-export-image");
-    const closeButton = menu.querySelector<HTMLButtonElement>("#btn_close-export-image-dialog");
+    const exportButton = menu.querySelector<HTMLButtonElement>(
+      "#btn_confirm-export-image",
+    );
+    const closeButton = menu.querySelector<HTMLButtonElement>(
+      "#btn_close-export-image-dialog",
+    );
 
     if (exportButton && closeButton) {
       exportButton.addEventListener("click", () => {
         if (this.dialogContent && this.latestDataURL) {
-          const exportFormatSelector = this.dialogContent.querySelector("#select_export-format") as HTMLSelectElement;
+          const exportFormatSelector = this.dialogContent.querySelector(
+            "#select_export-format",
+          ) as HTMLSelectElement;
           const format = exportFormatSelector.value;
           window.api.exportCanvas(format, this.latestDataURL);
         }

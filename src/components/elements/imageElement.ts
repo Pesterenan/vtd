@@ -35,10 +35,10 @@ export class ImageElement extends Element<IImageElementData> {
     this.croppingBox = new CroppingBox(size);
   }
 
-  public deserialize(data: IImageElementData): void {
+  public deserialize = async (data: IImageElementData): Promise<void> => {
     super.deserialize(data);
     if (data.encodedImage) {
-      this.loadImage(data.encodedImage);
+      await this.loadImage(data.encodedImage);
     }
   }
 
@@ -89,18 +89,21 @@ export class ImageElement extends Element<IImageElementData> {
     }
   };
 
-  public loadImage(encodedImage: string): void {
+  public loadImage = (encodedImage: string): Promise<void> => {
     this.properties.set("encodedImage", encodedImage);
-    this.image = new Image();
-    this.image.src = encodedImage;
-    this.image.onload = (): void => {
-      if (this.image) {
-        this.size = { width: this.image.width, height: this.image.height };
-        this.boundingBox.update(this.position, this.size, this.rotation);
-        this.croppingBox.updateSize(this.size);
-        this.isImageLoaded = true;
-      }
-    };
+    return new Promise<void>((resolve) => {
+      this.image = new Image();
+      this.image.src = encodedImage;
+      this.image.onload = (): void => {
+        if (this.image) {
+          this.size = { width: this.image.width, height: this.image.height };
+          this.boundingBox.update(this.position, this.size, this.rotation);
+          this.croppingBox.updateSize(this.size);
+          this.isImageLoaded = true;
+          resolve();
+        }
+      };
+    });
   }
 
   public getBoundingBox(): BoundingBox {
