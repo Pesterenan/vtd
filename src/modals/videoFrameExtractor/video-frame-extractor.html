@@ -22,10 +22,36 @@
     </div>
     <canvas height="320" width="800" id="video-canvas" style="background-color: var(--background-300);"> </canvas>
     <div id="sld_video-controls" class="container ai-c jc-sb">
-      <div class="container pad-05" style="flex: 1 1 85%;">
+      <div class="container pad-05" style="width: fit-content;">
+        <tooltip title="(CTRL+SHIFT+E) retrocede para o começo">
+          <button class='btn-common' data-seek="start">|◀</button>
+        </tooltip>
+        <tooltip title="(CTRL+E) retrocede 5 segundos">
+          <button class='btn-common' data-seek="-5s">◀5</button>
+        </tooltip>
+        <tooltip title="(SHIFT+E) retrocede 1 segundo">
+          <button class='btn-common' data-seek="-1s">◀1</button>
+        </tooltip>
+        <tooltip title="(E) retrocede 1 quadro">
+          <button class='btn-common' data-seek="-1">◀</button>
+        </tooltip>
+        <tooltip title="(R) avança 1 quadro">
+          <button class='btn-common' data-seek="+1">▶</button>
+        </tooltip>
+        <tooltip title="(SHIFT+R) avança 1 segundo">
+          <button class='btn-common' data-seek="+1s">1▶</button>
+        </tooltip>
+        <tooltip title="(CTRL+R) avança 5 segundos">
+          <button class='btn-common' data-seek="+5s">5▶</button>
+        </tooltip>
+        <tooltip title="(CTRL+SHIFT+R) avança para o final">
+          <button class='btn-common' data-seek="end">▶|</button>
+        </tooltip>
+      </div>
+      <div class="container pad-05" style="width: 100%;">
         <input id="sld_video-duration" min="0" max="100" step="1" type="range" value="0">
       </div>
-      <div class="container pad-05" style="flex: 0 1 15%;">
+      <div class="container pad-05" style="width: fit-content;">
         <div id="vfe_video-duration-indicator">00:00:00 [00]</div>
       </div>
     </div>
