@@ -78,6 +78,14 @@ export class WorkArea {
     this.eventBus.off("layer:applyCrop", this.handleApplyCrop);
   }
 
+  public destroy(): void {
+    this.removeEvents();
+    this.removeTransformBox();
+    this.canvas = null;
+    this.context = null;
+    this.elements = [];
+  }
+
   public setWorkAreaSize(newSize?: Size) {
     if (this.canvas && newSize) {
       this.canvas.width = newSize.width;

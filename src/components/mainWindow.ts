@@ -63,6 +63,7 @@ export class MainWindow {
       };
     }
     this.handleResizeWindow();
+    this.changeTool();
   }
 
   private createDOMElements(): void {
@@ -72,10 +73,7 @@ export class MainWindow {
     this.canvas.width = window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
     this.canvas.height = window.innerHeight;
     this.context = this.canvas.getContext("2d");
-
-    this.changeTool();
-
-    if (appWindow) {
+    if (appWindow && this.canvas) {
       appWindow.appendChild(this.canvas);
     }
   }
@@ -186,9 +184,12 @@ export class MainWindow {
     this.eventBus.on("workarea:project:save", () => this.saveProject());
     this.eventBus.on("workarea:clear", () => {
       window.api.setWindowTitle("");
-      this.workArea?.removeEvents();
-      this.workArea = new WorkArea(this.eventBus);
+      if (this.workArea) {
+        this.workArea.destroy();
+        this.workArea = null;
+      }
       this.eventBus.emit("tool:change", TOOL.SELECT);
+      this.update();
     });
     this.eventBus.on("zoomLevel:change", ({ level, center }) => {
       const previousLevel = this.zoomLevel;
@@ -483,6 +484,8 @@ export class MainWindow {
       if (this.workArea.transformBox) {
         this.workArea.transformBox.draw(this.context);
       }
+    } else {
+      this.clearCanvas();
     }
     this.context.restore();
     if (this.toolManager) {
@@ -493,15 +496,15 @@ export class MainWindow {
   private loadOrCreateNewProject = async (
     projectData: Partial<IProjectData>,
   ): Promise<void> => {
-    this.eventBus.emit("workarea:clear");
-    if (this.workArea) {
-      this.projectTitle = projectData?.title || "Sem título";
-      this.workArea.setWorkAreaSize(projectData.workAreaSize);
-      await this.workArea.loadElements(projectData?.elements);
-      window.api.setWindowTitle(this.projectTitle);
-      this.handleResizeWindow();
-      this.eventBus.emit("workarea:initialized");
+    if (!this.workArea) {
+      this.workArea = new WorkArea(this.eventBus);
     }
+    this.projectTitle = projectData?.title || "Sem título";
+    this.workArea.setWorkAreaSize(projectData.workAreaSize);
+    await this.workArea.loadElements(projectData?.elements);
+    window.api.setWindowTitle(this.projectTitle);
+    this.handleResizeWindow();
+    this.eventBus.emit("workarea:initialized");
   };
 
   public saveProject(): Partial<IProjectData> {
