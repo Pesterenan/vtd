@@ -66,8 +66,8 @@ const createMainWindow = (): void => {
 const createFrameExtractorWindow = (metadata: IVideoMetadata): void => {
   if (mainWindow) {
     frameExtractorWindow = new BrowserWindow({
-      width: 1024,
-      height: 768,
+      width: 800,
+      height: 600,
       parent: mainWindow,
       modal: true,
       show: false,

@@ -83,6 +83,11 @@ export class VideoFrameExtractor {
         this.requestProcessFrame.bind(this),
       );
       window.addEventListener("keydown", this.handleKeyDown.bind(this));
+
+      const seekButtons = document.querySelectorAll<HTMLButtonElement>("[data-seek]");
+      seekButtons.forEach((button) => {
+        button.addEventListener("click", this.handleSeekButton.bind(this));
+      });
     }
 
     if (this.preview) {
@@ -220,32 +225,77 @@ export class VideoFrameExtractor {
   private handleKeyDown(evt: KeyboardEvent): void {
     if (!this.videoDurationSlider || !this.videoMetadata) return;
 
-    const { code, repeat, shiftKey } = evt;
-    let delta = 1;
-    if (code === "ArrowRight" || code === "KeyR") {
-      delta = 1;
-      if (shiftKey && this.videoMetadata.frameRate) {
-        delta = Math.floor(this.videoMetadata.frameRate);
+    const { code, repeat, shiftKey, ctrlKey } = evt;
+    const slider = this.videoDurationSlider;
+    const minValue = Number(slider.min);
+    const maxValue = Number(slider.max);
+    let currentValue = Number(slider.value);
+
+    if (code === "KeyE") {
+      if (ctrlKey && shiftKey) {
+        currentValue = minValue;
+      } else if (ctrlKey) {
+        currentValue -= 5 * this.videoMetadata.frameRate;
+      } else if (shiftKey) {
+        currentValue -= this.videoMetadata.frameRate;
+      } else {
+        currentValue -= 1;
       }
-    } else if (code === "ArrowLeft" || code === "KeyE") {
-      delta = -1;
-      if (shiftKey && this.videoMetadata.frameRate) {
-        delta = -Math.floor(this.videoMetadata.frameRate);
+    } else if (code === "KeyR") {
+      if (ctrlKey && shiftKey) {
+        currentValue = maxValue;
+      } else if (ctrlKey) {
+        currentValue += 5 * this.videoMetadata.frameRate;
+      } else if (shiftKey) {
+        currentValue += this.videoMetadata.frameRate;
+      } else {
+        currentValue += 1;
       }
     } else {
       return;
     }
+
     evt.preventDefault();
-    const slider = this.videoDurationSlider;
-    const minValue = Number(slider.min);
-    const maxValue = Number(slider.max);
-    let value = Number(slider.value) + delta;
-    value = clamp(value, minValue, maxValue);
+    const value = clamp(currentValue, minValue, maxValue);
     slider.value = value.toString();
     this.videoDurationSlider.dispatchEvent(new Event("input"));
     if (!repeat) {
       this.requestProcessFrame();
     }
+  }
+
+  private handleSeekButton(evt: MouseEvent): void {
+    if (!this.videoDurationSlider || !this.videoMetadata) return;
+
+    const button = evt.currentTarget as HTMLButtonElement;
+    const seekValue = button.dataset.seek;
+    if (!seekValue) return;
+
+    const slider = this.videoDurationSlider;
+    const minValue = Number(slider.min);
+    const maxValue = Number(slider.max);
+    let currentValue = Number(slider.value);
+
+    if (seekValue === "start") {
+      currentValue = minValue;
+    } else if (seekValue === "end") {
+      currentValue = maxValue;
+    } else {
+      const isTime = seekValue.endsWith("s");
+      let delta;
+      if (isTime) {
+        delta = Number(seekValue.slice(0, -1)) * this.videoMetadata.frameRate;
+      } else {
+        delta = Number(seekValue);
+      }
+
+      currentValue += delta;
+    }
+
+    const value = clamp(currentValue, minValue, maxValue);
+    slider.value = value.toString();
+    this.videoDurationSlider.dispatchEvent(new Event("input"));
+    this.requestProcessFrame();
   }
 
   private updateThumbnail(ratio: number): void {
