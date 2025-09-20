@@ -2,8 +2,8 @@ import { BoundingBox } from "src/utils/boundingBox";
 import type { IElementGroupData, Position, Size, TElementData } from "../types";
 import { Element } from "./element";
 
-export class ElementGroup extends Element<Partial<IElementGroupData>> {
-  public children: Element<TElementData>[] | null = [];
+export class ElementGroup extends Element<IElementGroupData> {
+  public children: Element<TElementData>[] = [];
 
   constructor(
     position: Position,

@@ -91,9 +91,9 @@ export class TextElement extends Element<ITextElementData> {
       this.needsCenterRecalc = true;
     }
   }
-  public get content(): string[] {
+  public get content(): ITextElementData['content'][] {
     const content = this.properties.get("content") as string;
-    return content.split("\n") as string[];
+    return content.split("\n") as ITextElementData['content'][];
   }
   public set content(value: string[]) {
     this.properties.set("content", value.join("\n"));

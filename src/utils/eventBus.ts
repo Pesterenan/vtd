@@ -142,6 +142,10 @@ export interface EventBusMap {
     payload: ReorganizeLayersPayload;
     result: unknown;
   };
+  "layer:setHierarchy": {
+    payload: ReorganizeLayersPayload;
+    result: unknown;
+  };
   "selectTool:isCroppingBoxVisible": {
     payload: boolean;
     result: unknown;

@@ -86,11 +86,33 @@ export class WorkArea {
     }
   }
 
-  public loadElements(elementsData?: TElementData[]) {
-    this.elements =
-      elementsData
-        ?.map((el) => this.createElementFromData(el))
-        .filter((el) => el !== null) ?? [];
+  public async loadElements(elementsData?: TElementData[]) {
+    const elementPromises =
+      elementsData?.map((el) => this.createElementFromData(el)) ?? [];
+    const loadedElements = await Promise.all(elementPromises);
+    this.elements = loadedElements.filter(
+      (el): el is Element<TElementData> => el !== null,
+    );
+
+    const hierarchy = this.buildLayerHierarchy(this.elements);
+    this.eventBus.emit("layer:setHierarchy", { hierarchy });
+  }
+
+  private buildLayerHierarchy(elements: Element<TElementData>[]): Layer[] {
+    const hierarchy: Layer[] = [];
+    for (const element of elements) {
+      const layer: Layer = {
+        id: element.elementId,
+        name: element.layerName,
+        isVisible: element.isVisible,
+        isLocked: element.isLocked,
+      };
+      if (element instanceof ElementGroup && element.children) {
+        layer.children = this.buildLayerHierarchy(element.children);
+      }
+      hierarchy.push(layer);
+    }
+    return hierarchy;
   }
 
   private handleEditGradient = ({ position }: PositionPayload): void => {
@@ -235,83 +257,60 @@ export class WorkArea {
     this.eventBus.emit("workarea:update");
   };
 
-  public createElementFromData(
+  public async createElementFromData(
     elData: TElementData,
-    isChild = false,
-  ): Element<TElementData> | null {
-    let newElement = null;
+  ): Promise<Element<TElementData> | null> {
+    let newElement: Element<TElementData> | null = null;
+
     switch (elData.type) {
       case "image":
         newElement = new ImageElement(
           elData.position,
           elData.size,
           elData.zDepth,
-        );
-        newElement.deserialize(elData);
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => this.eventBus.emit("workarea:update")),
-        );
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => this.eventBus.emit("workarea:update")),
-        );
+        ) as Element<TElementData>;
         break;
       case "text":
         newElement = new TextElement(
           elData.position,
           elData.size,
           elData.zDepth,
-        );
-        newElement.deserialize(elData);
+        ) as Element<TElementData>;
         break;
       case "gradient":
         newElement = new GradientElement(
           elData.position,
           elData.size,
           elData.zDepth,
-        );
-        newElement.deserialize(elData);
+        ) as Element<TElementData>;
         break;
-      case "group":
+      case "group": {
+        const children = await Promise.all(
+          elData.children.map((el) => this.createElementFromData(el)),
+        );
         newElement = new ElementGroup(
           elData.position,
           elData.size,
           elData.zDepth,
-          elData.children
-            .map((el) => this.createElementFromData(el, true))
-            .filter((el) => el !== null),
-        );
-        newElement.deserialize(elData);
+          children.filter((el): el is Element<TElementData> => el !== null),
+        ) as Element<TElementData>;
         break;
-      default:
-        console.warn(`Unknown element type from data couldn't be parsed.`);
-        break;
-    }
-    if (!isChild && newElement) {
-      const payload = {
-        elementId: newElement.elementId,
-        layerName: newElement.layerName,
-        isVisible: newElement.isVisible,
-        isLocked: newElement.isLocked,
-        type: elData.type,
-        children: [] as Layer[],
-      };
-      if (newElement instanceof ElementGroup && newElement.children) {
-        payload.children = newElement?.children.map((child) => ({
-          id: child.elementId,
-          name: child.layerName,
-          isVisible: child.isVisible,
-          isLocked: child.isLocked,
-        }));
       }
-      this.eventBus.emit("workarea:addElement", payload);
     }
-    return newElement as Element<TElementData>;
+
+    if (newElement) {
+      await Promise.resolve(newElement.deserialize(elData));
+    }
+
+    return newElement;
   }
 
   private handleRequestCanvasBlob = ({
     format,
     quality,
-  }: ExportCanvasToStringPayload): Promise<{ blob: Blob; dataURL: string } | undefined> => {
+  }: ExportCanvasToStringPayload): Promise<
+    { blob: Blob; dataURL: string } | undefined
+  > => {
     return new Promise((resolve) => {
       if (!this.canvas) {
         console.error("Canvas not found");
@@ -516,7 +515,7 @@ export class WorkArea {
     return newElement;
   }
 
-  public addImageElement(encodedImage: string): ImageElement {
+  public async addImageElement(encodedImage: string): Promise<ImageElement> {
     const x = (this.canvas?.width || 0) * 0.5;
     const y = (this.canvas?.height || 0) * 0.5;
     const newElement = new ImageElement(
@@ -524,7 +523,7 @@ export class WorkArea {
       { width: 0, height: 0 },
       this.elements.length,
     );
-    newElement.loadImage(encodedImage);
+    await newElement.loadImage(encodedImage);
     this.elements.push(newElement as Element<TElementData>);
     this.eventBus.emit("workarea:addElement", {
       elementId: newElement.elementId,
@@ -567,7 +566,7 @@ export class WorkArea {
     );
   };
 
-  private handleApplyCrop = ({
+  private handleApplyCrop = async ({
     layerId,
     keepOriginal,
     smoothingEnabled,
@@ -575,14 +574,14 @@ export class WorkArea {
     layerId: number;
     keepOriginal: boolean;
     smoothingEnabled: boolean;
-  }): void => {
+  }): Promise<void> => {
     const originalElement = this.getElement({ elementId: layerId });
 
     if (originalElement && originalElement instanceof ImageElement) {
       const newImageData =
         originalElement.getCroppedImageDataUrl(smoothingEnabled);
       if (newImageData) {
-        const newElement = this.addImageElement(newImageData);
+        const newElement = await this.addImageElement(newImageData);
         newElement.position = {
           x: this.canvas ? this.canvas.width * 0.5 : originalElement.position.x,
           y: this.canvas

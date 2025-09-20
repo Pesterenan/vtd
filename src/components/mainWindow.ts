@@ -94,13 +94,13 @@ export class MainWindow {
       });
     });
 
-    window.api.onLoadImageResponse((_, response) => {
+    window.api.onLoadImageResponse(async (_, response) => {
       this.eventBus.emit("alert:add", {
         message: response.message,
         type: response.success ? "success" : "error",
       });
       if (response.success) {
-        this.loadImageOnWorkArea(response.data as string);
+        await this.loadImageOnWorkArea(response.data as string);
       }
     });
 
@@ -110,10 +110,10 @@ export class MainWindow {
         const uint8Array = new Uint8Array(response.data as Uint8Array);
         const blob = new Blob([uint8Array], { type: "image/png" });
         const reader = new FileReader();
-        reader.onloadend = (): void => {
+        reader.onloadend = async (): Promise<void> => {
           const dataURL = reader.result as string;
           if (this.workArea) {
-            this.workArea.addImageElement(dataURL);
+            await this.workArea.addImageElement(dataURL);
           }
         };
         reader.readAsDataURL(blob);
@@ -225,40 +225,36 @@ export class MainWindow {
     }
   }
 
-  /** Adds the image to the workarea, and creates a new workarea if it doesn't exist yet */
-  private loadImageOnWorkArea = (imgString: string): void => {
+  private async loadImageOnWorkArea(imgString: string): Promise<void> {
     if (!imgString) return;
-    let newElement;
     if (!this.workArea) {
       this.workArea = new WorkArea(this.eventBus);
       const imageEl = new Image();
       imageEl.src = imgString;
-      imageEl.onload = () => {
+      imageEl.onload = async () => {
         if (this.workArea) {
           this.workArea.setWorkAreaSize({
             width: imageEl.width,
             height: imageEl.height,
           });
-          newElement = this.workArea.addImageElement(imgString);
+          const newElement = await this.workArea.addImageElement(imgString);
           this.projectTitle = "Sem título";
           window.api.setWindowTitle(this.projectTitle);
           this.handleResizeWindow();
           this.eventBus.emit("workarea:initialized");
-          this.eventBus.emit("workarea:update");
           this.eventBus.emit("workarea:selectById", {
             elementsId: new Set([newElement.elementId]),
           });
         }
       };
     } else {
-      newElement = this.workArea.addImageElement(imgString);
+      const newElement = await this.workArea.addImageElement(imgString);
       this.handleResizeWindow();
-      this.eventBus.emit("workarea:update");
       this.eventBus.emit("workarea:selectById", {
         elementsId: new Set([newElement.elementId]),
       });
     }
-  };
+  }
 
   private handleDragOverEvent = (evt: DragEvent) => {
     evt.preventDefault();
@@ -274,8 +270,8 @@ export class MainWindow {
         const file = item.getAsFile();
         if (file) {
           const reader = new FileReader();
-          reader.onload = (evt) => {
-            this.loadImageOnWorkArea(evt.target?.result as string);
+          reader.onload = async (evt) => {
+            await this.loadImageOnWorkArea(evt.target?.result as string);
           };
           reader.readAsDataURL(file);
         }
@@ -313,7 +309,7 @@ export class MainWindow {
       const newElementsIds: number[] = [];
       let zDepth = this.workArea.elements.length;
       for (const elementData of this.copiedElements) {
-        const newElement = this.workArea.createElementFromData(elementData);
+        const newElement = await this.workArea.createElementFromData(elementData);
         if (newElement) {
           // FIX: Entender porque a referencia está afetando os novos objetos
           // newElement.position.x += 25;
@@ -368,8 +364,8 @@ export class MainWindow {
             if (imageType) {
               const blob = await item.getType(imageType);
               const reader = new FileReader();
-              reader.onload = (evt) => {
-                this.loadImageOnWorkArea(evt.target?.result as string);
+              reader.onload = async (evt) => {
+                await this.loadImageOnWorkArea(evt.target?.result as string);
                 this.eventBus.emit("alert:add", {
                   message: "Imagem copiada da área de transferência.",
                   type: "success",
@@ -494,14 +490,14 @@ export class MainWindow {
     }
   };
 
-  private loadOrCreateNewProject = (
+  private loadOrCreateNewProject = async (
     projectData: Partial<IProjectData>,
-  ): void => {
+  ): Promise<void> => {
     this.eventBus.emit("workarea:clear");
     if (this.workArea) {
       this.projectTitle = projectData?.title || "Sem título";
       this.workArea.setWorkAreaSize(projectData.workAreaSize);
-      this.workArea.loadElements(projectData?.elements);
+      await this.workArea.loadElements(projectData?.elements);
       window.api.setWindowTitle(this.projectTitle);
       this.handleResizeWindow();
       this.eventBus.emit("workarea:initialized");
