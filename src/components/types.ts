@@ -121,8 +121,3 @@ export enum TOOL {
   /** @prop ZOOM - Modificar zoom */
   ZOOM = "zoom-tool",
 }
-
-export interface ISelectOption {
-  label: string; 
-  value: string; 
-}

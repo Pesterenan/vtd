@@ -1,6 +1,6 @@
+import type { ISelectOption } from "src/components/helpers/createSelectInput";
 import createSelectInput from "src/components/helpers/createSelectInput";
 import createSliderControl from "src/components/helpers/createSliderControl";
-import type { ISelectOption } from "src/components/types";
 
 export type FilterProperty = string | number | undefined;
 export const COMPOSITE_OPTIONS: Array<ISelectOption> = [
@@ -86,8 +86,8 @@ export abstract class Filter {
       (newValue) => onChange({ globalAlpha: Number(newValue) }),
     );
 
-    compositeControl.linkEvents();
-    opacityControl.linkEvents();
+    compositeControl.enable();
+    opacityControl.enable();
     filterControls.append(compositeControl.element);
     filterControls.append(opacityControl.element);
 

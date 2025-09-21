@@ -66,12 +66,12 @@ export class TransformMenu {
       this.rotationControl &&
       this.opacityControl
     ) {
-      this.xPosControl.updateValues(position.x);
-      this.yPosControl.updateValues(position.y);
-      this.widthControl.updateValues(size.width);
-      this.heightControl.updateValues(size.height);
-      this.rotationControl.updateValues(rotation);
-      this.opacityControl.updateValues(opacity);
+      this.xPosControl.setValue(position.x);
+      this.yPosControl.setValue(position.y);
+      this.widthControl.setValue(size.width);
+      this.heightControl.setValue(size.height);
+      this.rotationControl.setValue(rotation);
+      this.opacityControl.setValue(opacity);
     }
   }
 
@@ -300,27 +300,27 @@ export class TransformMenu {
 
   private handleCroppingChanged = (croppingBox: CroppingBox): void => {
     if (croppingBox) {
-      this.cropTopControl?.updateValues(croppingBox.top);
-      this.cropLeftControl?.updateValues(croppingBox.left);
-      this.cropRightControl?.updateValues(croppingBox.right);
-      this.cropBottomControl?.updateValues(croppingBox.bottom);
+      this.cropTopControl?.setValue(croppingBox.top);
+      this.cropLeftControl?.setValue(croppingBox.left);
+      this.cropRightControl?.setValue(croppingBox.right);
+      this.cropBottomControl?.setValue(croppingBox.bottom);
     }
   };
 
   private linkDOMElements(): void {
     const [properties] = this.eventBus.request("transformBox:properties:get");
-    this.xPosControl?.linkEvents();
-    this.yPosControl?.linkEvents();
-    this.widthControl?.linkEvents();
-    this.heightControl?.linkEvents();
-    this.rotationControl?.linkEvents();
-    this.opacityControl?.linkEvents();
-    this.xPosControl?.updateValues(properties.position.x);
-    this.yPosControl?.updateValues(properties.position.y);
-    this.widthControl?.updateValues(properties.size.width);
-    this.heightControl?.updateValues(properties.size.height);
-    this.rotationControl?.updateValues(properties.rotation);
-    this.opacityControl?.updateValues(properties.opacity);
+    this.xPosControl?.enable();
+    this.yPosControl?.enable();
+    this.widthControl?.enable();
+    this.heightControl?.enable();
+    this.rotationControl?.enable();
+    this.opacityControl?.enable();
+    this.xPosControl?.setValue(properties.position.x);
+    this.yPosControl?.setValue(properties.position.y);
+    this.widthControl?.setValue(properties.size.width);
+    this.heightControl?.setValue(properties.size.height);
+    this.rotationControl?.setValue(properties.rotation);
+    this.opacityControl?.setValue(properties.opacity);
 
     const [croppingBox] = this.eventBus.request("transformBox:cropping:get");
 
@@ -328,41 +328,41 @@ export class TransformMenu {
       this.cropAccordion.removeAttribute("disabled");
 
       const sizeToUse = properties.unscaledSize || properties.size;
-      this.cropTopControl?.updateOptions({ max: sizeToUse.height });
-      this.cropLeftControl?.updateOptions({ max: sizeToUse.width });
-      this.cropRightControl?.updateOptions({ max: sizeToUse.width });
-      this.cropBottomControl?.updateOptions({ max: sizeToUse.height });
+      this.cropTopControl?.setOptions({ max: sizeToUse.height });
+      this.cropLeftControl?.setOptions({ max: sizeToUse.width });
+      this.cropRightControl?.setOptions({ max: sizeToUse.width });
+      this.cropBottomControl?.setOptions({ max: sizeToUse.height });
 
-      this.cropTopControl?.linkEvents();
-      this.cropLeftControl?.linkEvents();
-      this.cropRightControl?.linkEvents();
-      this.cropBottomControl?.linkEvents();
+      this.cropTopControl?.enable();
+      this.cropLeftControl?.enable();
+      this.cropRightControl?.enable();
+      this.cropBottomControl?.enable();
 
-      this.cropTopControl?.updateValues(croppingBox.top);
-      this.cropLeftControl?.updateValues(croppingBox.left);
-      this.cropRightControl?.updateValues(croppingBox.right);
-      this.cropBottomControl?.updateValues(croppingBox.bottom);
+      this.cropTopControl?.setValue(croppingBox.top);
+      this.cropLeftControl?.setValue(croppingBox.left);
+      this.cropRightControl?.setValue(croppingBox.right);
+      this.cropBottomControl?.setValue(croppingBox.bottom);
     } else if (this.cropAccordion) {
       this.cropAccordion.setAttribute("disabled", "true");
       this.cropAccordion.open = false;
-      this.cropTopControl?.unlinkEvents();
-      this.cropLeftControl?.unlinkEvents();
-      this.cropRightControl?.unlinkEvents();
-      this.cropBottomControl?.unlinkEvents();
+      this.cropTopControl?.disable();
+      this.cropLeftControl?.disable();
+      this.cropRightControl?.disable();
+      this.cropBottomControl?.disable();
     }
   }
 
   private unlinkDOMElements(): void {
-    this.xPosControl?.unlinkEvents();
-    this.yPosControl?.unlinkEvents();
-    this.widthControl?.unlinkEvents();
-    this.heightControl?.unlinkEvents();
-    this.rotationControl?.unlinkEvents();
-    this.opacityControl?.unlinkEvents();
-    this.cropTopControl?.unlinkEvents();
-    this.cropLeftControl?.unlinkEvents();
-    this.cropRightControl?.unlinkEvents();
-    this.cropBottomControl?.unlinkEvents();
+    this.xPosControl?.disable();
+    this.yPosControl?.disable();
+    this.widthControl?.disable();
+    this.heightControl?.disable();
+    this.rotationControl?.disable();
+    this.opacityControl?.disable();
+    this.cropTopControl?.disable();
+    this.cropLeftControl?.disable();
+    this.cropRightControl?.disable();
+    this.cropBottomControl?.disable();
     if (this.cropAccordion) {
       this.cropAccordion.setAttribute("disabled", "true");
       this.cropAccordion.open = false;
