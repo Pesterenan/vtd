@@ -1,2 +1,4 @@
 export const TOOL_MENU_WIDTH = 40;
 export const SIDE_MENU_WIDTH = 320;
+
+export const OPTION_SEPARATOR_VALUE = 'OPTION_SEPARATOR_VALUE';

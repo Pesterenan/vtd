@@ -1,3 +1,5 @@
+import { OPTION_SEPARATOR_VALUE } from "src/constants";
+
 export interface ISelectOption {
   label: string;
   value: string;
@@ -40,8 +42,13 @@ export default function createSelectInput(
     selectInputEl.innerHTML = "";
     for (const option of currentOptions.optionValues) {
       const optionEl = document.createElement("option");
-      optionEl.value = option.value;
-      optionEl.innerText = option.label;
+      if (option.value === OPTION_SEPARATOR_VALUE) {
+        optionEl.disabled = true;
+        optionEl.innerText = option.label;
+      } else {
+        optionEl.value = option.value;
+        optionEl.innerText = option.label;
+      }
       selectInputEl.append(optionEl);
     }
   };
