@@ -51,7 +51,7 @@ export default function createTextInput(
   };
   const disable = () => {
     inputFieldEl.disabled = true;
-    inputFieldEl.value = "";
+    inputFieldEl.value = options.value || "";
     inputFieldEl.removeEventListener("change", handleInputChange);
   };
 

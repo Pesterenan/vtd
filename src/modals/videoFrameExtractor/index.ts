@@ -362,7 +362,8 @@ export class VideoFrameExtractor {
    * can be sent to the WorkArea as a new element or copied to clipboard.
    * @param {boolean} toClipboard - if true, copies extracted area to clipboard instead.
    */
-  private extractFrame(toClipboard = false): void {
+  // eslint-disable-next-line @typescript-eslint/no-inferrable-types
+  private extractFrame(toClipboard: boolean = false): void {
     if (this.offScreen && this.preview && this.extractBox) {
       const { width: previewWidth, height: previewHeight } =
         this.preview.canvas;

@@ -10,8 +10,8 @@ interface IDialogOptions {
 export abstract class Dialog {
   private dialogEl: HTMLDialogElement;
   private headerEl: HTMLHeadingElement | null;
-  protected dialogContent: HTMLDivElement;
-  protected dialogActions: HTMLMenuElement;
+  protected dialogContent: HTMLDivElement | null;
+  protected dialogActions: HTMLMenuElement | null;
   private isDragging = false;
   private dragOffset: Position = { x: 0, y: 0 };
 
@@ -20,8 +20,12 @@ export abstract class Dialog {
     document.body.appendChild(this.dialogEl);
 
     this.headerEl = this.dialogEl.querySelector(`#dialog-${options.id}-header`);
-    this.dialogContent = this.dialogEl.querySelector(`#dialog-${options.id}-content`)!;
-    this.dialogActions = this.dialogEl.querySelector(`#dialog-${options.id}-actions`)!;
+    this.dialogContent = this.dialogEl.querySelector(
+      `#dialog-${options.id}-content`,
+    );
+    this.dialogActions = this.dialogEl.querySelector(
+      `#dialog-${options.id}-actions`,
+    );
 
     if (options.isDraggable) this.enableDrag();
     this.dialogEl.addEventListener("close", () => this.onClose());
@@ -59,7 +63,10 @@ export abstract class Dialog {
       this.dialogEl.style.left = `${rect.left}px`;
       this.dialogEl.style.top = `${rect.top}px`;
 
-      this.dragOffset = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      this.dragOffset = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
       this.isDragging = true;
 
       window.addEventListener("mousemove", this.onMouseMove);
@@ -89,7 +96,7 @@ export abstract class Dialog {
   }
 
   public open(): void {
-    if (!this.dialogContent.hasChildNodes()) {
+    if (this.dialogContent && this.dialogActions && !this.dialogContent.hasChildNodes()) {
       this.appendDialogContent(this.dialogContent);
       this.appendDialogActions(this.dialogActions);
     }
@@ -104,6 +111,8 @@ export abstract class Dialog {
 
   protected abstract appendDialogContent(container: HTMLDivElement): void;
   protected abstract appendDialogActions(menu: HTMLMenuElement): void;
-  protected onOpen(): void {} // hook opcional
-  protected onClose(): void {} // hook opcional
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  protected onOpen(): void {}
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  protected onClose(): void {}
 }

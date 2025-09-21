@@ -91,7 +91,7 @@ export class DialogNewProject extends Dialog {
       "Largura",
       { min: 16, max: 4096, step: 1, value: WORK_AREA_WIDTH },
       (v) => this.handleWidthInput(v),
-      true,
+      false,
     );
 
     this.workAreaHeightInput = createSliderControl(
@@ -99,7 +99,7 @@ export class DialogNewProject extends Dialog {
       "Altura",
       { min: 16, max: 4096, step: 1, value: WORK_AREA_HEIGHT },
       (v) => this.handleHeightInput(v),
-      true,
+      false,
     );
 
     this.templatesInput = createSelectInput(
@@ -116,14 +116,14 @@ export class DialogNewProject extends Dialog {
     container.appendChild(this.templatesInput.element);
     container.appendChild(this.workAreaWidthInput.element);
     container.appendChild(this.workAreaHeightInput.element);
-
-    this.projectNameInput.enable();
-    this.workAreaWidthInput.enable();
-    this.workAreaHeightInput.enable();
-    this.templatesInput.enable();
-
   }
+
   protected onOpen(): void {
+    this.projectNameInput?.enable();
+    this.workAreaWidthInput?.enable();
+    this.workAreaHeightInput?.enable();
+    this.templatesInput?.enable();
+
     // Apply initial template after controls are present + enabled.
     const initialTemplateName = templates[0]?.name;
     if (initialTemplateName) {
