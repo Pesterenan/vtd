@@ -64,9 +64,7 @@ export default function createSliderControl(
   const getValue = () => Number(inputFieldEl.value);
 
   const setValue = (newValue: string | number) => {
-    console.log("setvalue", typeof newValue, newValue);
     const v = clamped(newValue);
-    console.log("v", typeof v, v);
     sliderEl.value = v;
     inputFieldEl.value = v;
   };

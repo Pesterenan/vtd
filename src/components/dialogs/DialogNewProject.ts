@@ -135,6 +135,9 @@ export class DialogNewProject extends Dialog {
       "Templates",
       {
         optionValues: TEMPLATE_OPTIONS,
+        style: {
+          width: 'auto',
+        },
         value: TEMPLATE_OPTIONS[0].value,
       },
       (v) => this.handleTemplateChange(v),

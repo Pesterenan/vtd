@@ -22,6 +22,7 @@ export default function createSelectInput(
   options: {
     optionValues: Array<ISelectOption>;
     value: ISelectOption["value"];
+    style?: { width: string };
   },
   onChange: (newValue: string) => void,
 ): ISelectInput {
@@ -36,7 +37,7 @@ export default function createSelectInput(
 
   const selectInputEl = document.createElement("select");
   selectInputEl.id = `${id}-select-input`;
-  selectInputEl.style.width = "8rem";
+  selectInputEl.style.width = options.style?.width || "8rem";
 
   const renderOptions = () => {
     selectInputEl.innerHTML = "";
