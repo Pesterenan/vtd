@@ -1,5 +1,7 @@
 import "../../assets/main.css";
 import { Alerts } from "src/components/alerts/alerts";
+import type { ISelectInput } from "src/components/helpers/createSelectInput";
+import createSelectInput from "src/components/helpers/createSelectInput";
 import { clamp } from "src/utils/easing";
 import { EventBus } from "src/utils/eventBus";
 import formatFrameIntoTime from "src/utils/formatFrameIntoTime";
@@ -21,8 +23,8 @@ export class VideoFrameExtractor {
     context: CanvasRenderingContext2D;
   } | null = null;
   private offScreen: {
-    canvas: OffscreenCanvas;
-    context: OffscreenCanvasRenderingContext2D;
+    canvas: HTMLCanvasElement;
+    context: CanvasRenderingContext2D;
   } | null = null;
   private videoMetadata: (IVideoMetadata & { videoRatio?: number }) | null =
     null;
@@ -30,6 +32,7 @@ export class VideoFrameExtractor {
   private copyToClipBoardBtn: HTMLButtonElement | null = null;
   private videoDurationSlider: HTMLInputElement | null = null;
   private videoDurationIndicator: HTMLDivElement | null = null;
+  private aspectRatioSelect: ISelectInput | null = null;
   private extractBox: ExtractBox | null = null;
   private currentThumbIndex = -1;
   private rafId: number | null = null;
@@ -44,9 +47,33 @@ export class VideoFrameExtractor {
   }
 
   private createDOMElements(): void {
+    const mainContainer = getElementById<HTMLDivElement>("vfe_main-container");
     const previewCanvas = getElementById<HTMLCanvasElement>("video-canvas");
+    this.aspectRatioSelect = createSelectInput(
+      "vfe_aspect-ratio",
+      "Proporção",
+      {
+        optionValues: [
+          { label: "Personalizado", value: "custom" },
+          { label: "1:1 (Quadrado)", value: "1:1" },
+          { label: "4:3 (Tradicional)", value: "4:3" },
+          { label: "5:7 (Retrato)", value: "5:7" },
+          { label: "16:9 (Widescreen)", value: "16:9" },
+          { label: "21:9 (Cinemascópio)", value: "21:9" },
+        ],
+        value: "16:9",
+      },
+      (value) => {
+        if (this.extractBox) {
+          this.extractBox.setAspectRatio(value);
+        }
+      },
+    );
+    this.aspectRatioSelect.enable();
+    mainContainer.insertBefore(this.aspectRatioSelect.element, previewCanvas);
+
     const extractCanvas = document.createElement("canvas");
-    const offScreenCanvas = new OffscreenCanvas(0, 0);
+    const offScreenCanvas = document.createElement("canvas");
 
     const previewContext = previewCanvas.getContext("2d");
     const extractContext = extractCanvas.getContext("2d");
@@ -84,7 +111,8 @@ export class VideoFrameExtractor {
       );
       window.addEventListener("keydown", this.handleKeyDown.bind(this));
 
-      const seekButtons = document.querySelectorAll<HTMLButtonElement>("[data-seek]");
+      const seekButtons =
+        document.querySelectorAll<HTMLButtonElement>("[data-seek]");
       seekButtons.forEach((button) => {
         button.addEventListener("click", this.handleSeekButton.bind(this));
       });
@@ -93,7 +121,12 @@ export class VideoFrameExtractor {
     if (this.preview) {
       this.preview.canvas.addEventListener("mousedown", (evt) => {
         if (this.extractBox) {
-          return this.extractBox.onClick(evt);
+          return this.extractBox.onMouseDown(evt);
+        }
+      });
+      this.preview.canvas.addEventListener("mousemove", (evt) => {
+        if (this.extractBox) {
+          return this.extractBox.hoverHandle(evt);
         }
       });
     }
@@ -120,6 +153,9 @@ export class VideoFrameExtractor {
         this.preview.canvas.width = canvasWidth;
         this.preview.canvas.height = canvasHeight;
         this.extractBox = new ExtractBox(this.preview.canvas, this.eventBus);
+        if (this.aspectRatioSelect) {
+          this.extractBox.setAspectRatio(this.aspectRatioSelect.getValue());
+        }
         this.extractFrameBtn.onclick = (): void => {
           if (this.extractBox) {
             this.extractFrame();
@@ -406,11 +442,11 @@ export class VideoFrameExtractor {
           }, "image/png");
         } else {
           const imageUrl = this.extract.canvas.toDataURL("image/png");
-              this.eventBus.emit("alert:add", {
-                message: "Quadro do vídeo extraído para o Projeto",
-                title: "Quadro Extraído",
-                type: "success",
-              });
+          this.eventBus.emit("alert:add", {
+            message: "Quadro do vídeo extraído para o Projeto",
+            title: "Quadro Extraído",
+            type: "success",
+          });
           window.api.sendFrameToWorkArea(imageUrl);
         }
       }
