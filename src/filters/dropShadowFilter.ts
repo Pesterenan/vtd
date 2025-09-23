@@ -72,9 +72,9 @@ export class DropShadowFilter extends Filter {
       { value: properties.color as string },
       (newValue) => onChange({ color: newValue }),
     );
-    angleControl.linkEvents();
-    distanceControl.linkEvents();
-    blurControl.linkEvents();
+    angleControl.enable();
+    distanceControl.enable();
+    blurControl.enable();
     colorControl.linkEvents();
     container.append(
       angleControl.element,

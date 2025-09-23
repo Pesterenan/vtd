@@ -73,11 +73,11 @@ export class ColorCorrectionFilter extends Filter {
       { min: 0, max: 200, step: 1, value: properties.saturation as number },
       (newValue) => onChange({ saturation: Number(newValue) }),
     );
-    hueControl.linkEvents();
-    saturationControl.linkEvents();
-    grayScaleControl.linkEvents();
-    brightnessControl.linkEvents();
-    contrastControl.linkEvents();
+    hueControl.enable();
+    saturationControl.enable();
+    grayScaleControl.enable();
+    brightnessControl.enable();
+    contrastControl.enable();
     container.append(
       brightnessControl.element,
       contrastControl.element,

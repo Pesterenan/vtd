@@ -1,8 +1,9 @@
 export interface ITextInput {
   element: HTMLDivElement;
-  updateValues: (newValue: string) => void;
-  linkEvents: () => void;
-  unlinkEvents: () => void;
+  getValue: () => string;
+  setValue: (newValue: string) => void;
+  enable: () => void;
+  disable: () => void;
 }
 
 export default function createTextInput(
@@ -31,22 +32,26 @@ export default function createTextInput(
   inputFieldEl.style.width = options.style?.width ?? "4rem";
   options?.value && (inputFieldEl.value = options.value);
 
-  const updateValues = (newValue: string) => {
+  const getValue = (): string => {
+    return inputFieldEl.value;
+  };
+
+  const setValue = (newValue: string) => {
     inputFieldEl.value = newValue;
   };
 
   const handleInputChange = () => {
-    updateValues(inputFieldEl.value);
+    setValue(inputFieldEl.value);
     onChange(inputFieldEl.value);
   };
 
-  const linkEvents = () => {
+  const enable = () => {
     inputFieldEl.disabled = false;
     inputFieldEl.addEventListener("change", handleInputChange);
   };
-  const unlinkEvents = () => {
+  const disable = () => {
     inputFieldEl.disabled = true;
-    inputFieldEl.value = "";
+    inputFieldEl.value = options.value || "";
     inputFieldEl.removeEventListener("change", handleInputChange);
   };
 
@@ -55,8 +60,9 @@ export default function createTextInput(
 
   return {
     element: container,
-    updateValues,
-    linkEvents,
-    unlinkEvents,
+    getValue,
+    setValue,
+    enable,
+    disable,
   };
 }

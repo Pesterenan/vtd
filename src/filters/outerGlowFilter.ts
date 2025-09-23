@@ -55,7 +55,7 @@ export class OuterGlowFilter extends Filter {
       { value: properties.color as string },
       (newValue) => onChange({ color: newValue }),
     );
-    blurControl.linkEvents();
+    blurControl.enable();
     colorControl.linkEvents();
     container.append(blurControl.element, colorControl.element);
   }

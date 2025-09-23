@@ -9,9 +9,10 @@ import type { TElementData } from "./types";
 jest.mock("./helpers/createSliderControl", () => {
   return jest.fn(() => ({
     element: document.createElement("div"),
-    updateValues: jest.fn(),
-    linkEvents: jest.fn(),
-    unlinkEvents: jest.fn(),
+    setValue: jest.fn(),
+    getValue: jest.fn(),
+    enable: jest.fn(),
+    disable: jest.fn(),
   }));
 });
 
@@ -38,9 +39,10 @@ describe("TextMenu", () => {
         handleFunctions[id] = callback;
         return {
           element: document.createElement("div"),
-          updateValues: jest.fn(),
-          linkEvents: jest.fn(),
-          unlinkEvents: jest.fn(),
+          setValue: jest.fn(),
+          getValue: jest.fn(),
+          enable: jest.fn(),
+          disable: jest.fn(),
         };
       },
     );

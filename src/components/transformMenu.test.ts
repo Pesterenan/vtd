@@ -6,10 +6,11 @@ import type { TElementData } from "./types";
 
 const mockSliderControl = {
   element: document.createElement("div"),
-  updateValues: jest.fn(),
-  updateOptions: jest.fn(),
-  linkEvents: jest.fn(),
-  unlinkEvents: jest.fn(),
+  setValue: jest.fn(),
+  setOptions: jest.fn(),
+  getValue: jest.fn(),
+  enable: jest.fn(),
+  disable: jest.fn(),
 };
 
 jest.mock("./helpers/createSliderControl", () => {
@@ -89,23 +90,23 @@ describe("TransformMenu", () => {
 
     eventBus.emit("selection:changed", { selectedElements: [mockElement] });
 
-    expect(mockSliderControl.linkEvents).toHaveBeenCalledTimes(10);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledTimes(10);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(10);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(20);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(100);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(200);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(45);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(0.8);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(1);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(2);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(3);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(4);
+    expect(mockSliderControl.enable).toHaveBeenCalledTimes(10);
+    expect(mockSliderControl.setValue).toHaveBeenCalledTimes(10);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(10);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(20);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(100);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(200);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(45);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(0.8);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(1);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(2);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(3);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(4);
   });
 
   it("should unlink DOM elements when no elements are selected", () => {
     eventBus.emit("selection:changed", { selectedElements: [] });
-    expect(mockSliderControl.unlinkEvents).toHaveBeenCalledTimes(10);
+    expect(mockSliderControl.disable).toHaveBeenCalledTimes(10);
   });
 
   it("should update slider controls on recalculate transform box", () => {
@@ -117,12 +118,12 @@ describe("TransformMenu", () => {
     };
     eventBus.emit("transformBox:properties:change", payload);
 
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(10);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(20);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(100);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(200);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(45);
-    expect(mockSliderControl.updateValues).toHaveBeenCalledWith(0.8);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(10);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(20);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(100);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(200);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(45);
+    expect(mockSliderControl.setValue).toHaveBeenCalledWith(0.8);
   });
 
   it("should emit transformBox:updatePosition on X position change", () => {

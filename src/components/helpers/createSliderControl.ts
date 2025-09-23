@@ -1,11 +1,15 @@
 import { clamp } from "src/utils/easing";
-
 export interface ISliderControl {
   element: HTMLDivElement;
-  updateValues: (newValue: string | number) => void;
-  updateOptions: (newOptions: { min?: number; max?: number; step?: number }) => void;
-  linkEvents: () => void;
-  unlinkEvents: () => void;
+  setValue: (newValue: string | number) => void;
+  setOptions: (newOptions: {
+    min?: number;
+    max?: number;
+    step?: number;
+  }) => void;
+  getValue: () => number;
+  enable: () => void;
+  disable: () => void;
 }
 
 export default function createSliderControl(
@@ -16,9 +20,23 @@ export default function createSliderControl(
   includeSlider = true,
 ): ISliderControl {
   let options = { ...initialOptions };
-  const decimalPlaces = options.step.toString().split(".")[1]?.length || 0;
+
+  const getDecimalPlaces = () => {
+    const parts = options.step.toString().split(".");
+    return parts[1]?.length ?? 0;
+  };
+
+  const snapToStep = (v: number) => {
+    const step = options.step;
+    const snapped = Math.round((v - options.min) / step) * step + options.min;
+    // fix floating precision
+    const dp = getDecimalPlaces();
+    return Number(clamp(Number(snapped.toFixed(dp)), options.min, options.max));
+  };
+
   const clamped = (value: number | string): string =>
-    clamp(Number(value), options.min, options.max).toFixed(decimalPlaces);
+    snapToStep(Number(value)).toFixed(getDecimalPlaces());
+
   const container = document.createElement("div");
   container.className = "container ai-c jc-sb g-05";
   const labelEl = document.createElement("label");
@@ -43,25 +61,37 @@ export default function createSliderControl(
   inputFieldEl.value = clamped(options.value);
   inputFieldEl.style.width = "4rem";
 
-  const updateValues = (newValue: string | number) => {
-    sliderEl.value = clamped(newValue);
-    inputFieldEl.value = clamped(newValue);
+  const getValue = () => Number(inputFieldEl.value);
+
+  const setValue = (newValue: string | number) => {
+    const v = clamped(newValue);
+    sliderEl.value = v;
+    inputFieldEl.value = v;
   };
 
-  const updateOptions = (newOptions: { min?: number; max?: number; step?: number }) => {
+  const setOptions = (newOptions: {
+    min?: number;
+    max?: number;
+    step?: number;
+  }) => {
     options = { ...options, ...newOptions };
+    // atualizar atributos do input
     sliderEl.min = options.min.toString();
     sliderEl.max = options.max.toString();
+    sliderEl.step = options.step.toString();
     inputFieldEl.min = options.min.toString();
     inputFieldEl.max = options.max.toString();
+    inputFieldEl.step = options.step.toString();
+    // reaplicar value clamped (mantém coerência com novo range/step)
+    setValue(inputFieldEl.value);
   };
 
   const handleSliderChange = () => {
-    updateValues(sliderEl.value);
+    setValue(sliderEl.value);
     onChange(Number(clamped(sliderEl.value)));
   };
   const handleInputChange = () => {
-    updateValues(inputFieldEl.value);
+    setValue(inputFieldEl.value);
     onChange(Number(clamped(inputFieldEl.value)));
   };
 
@@ -79,12 +109,15 @@ export default function createSliderControl(
   };
 
   const handleMouseMove = (evt: MouseEvent) => {
-    if (isDragging) {
-      const deltaX = evt.clientX - startX;
-      const newValue = (startValue + deltaX * options.step).toString();
-      updateValues(newValue);
-      onChange(Number(clamped(newValue)));
-    }
+    if (!isDragging) return;
+    // converte deltaX (px) em deltaValue proporcional à largura do slider
+    const sliderWidth = sliderEl.clientWidth || 100; // fallback
+    const deltaX = evt.clientX - startX;
+    const valueRange = options.max - options.min;
+    const deltaValue = (deltaX / sliderWidth) * valueRange;
+    const newValue = snapToStep(startValue + deltaValue);
+    setValue(newValue);
+    onChange(newValue);
   };
 
   const handleMouseUp = (evt: MouseEvent) => {
@@ -96,21 +129,32 @@ export default function createSliderControl(
     }
   };
 
-  const linkEvents = () => {
+  let linked = false;
+  const enable = () => {
+    if (linked) return;
+    linked = true;
     sliderEl.disabled = false;
     sliderEl.addEventListener("input", handleSliderChange);
     inputFieldEl.disabled = false;
     inputFieldEl.addEventListener("change", handleInputChange);
     labelEl.addEventListener("mousedown", handleMouseDown);
   };
-  const unlinkEvents = () => {
+  const disable = () => {
+    if (!linked) return;
+    linked = false;
     sliderEl.disabled = true;
-    sliderEl.value = "0";
     sliderEl.removeEventListener("input", handleSliderChange);
     inputFieldEl.disabled = true;
-    inputFieldEl.value = "0";
     inputFieldEl.removeEventListener("change", handleInputChange);
     labelEl.removeEventListener("mousedown", handleMouseDown);
+    // garantir remoção dos listeners de window se estiverem presentes
+    if (isDragging) {
+      isDragging = false;
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    }
+    sliderEl.value = String(options.min) || "0";
+    inputFieldEl.value = String(options.min) || "0";
   };
 
   container.append(labelEl);
@@ -119,9 +163,10 @@ export default function createSliderControl(
 
   return {
     element: container,
-    updateValues,
-    updateOptions,
-    linkEvents,
-    unlinkEvents,
+    setValue,
+    setOptions,
+    getValue,
+    enable,
+    disable,
   };
 }

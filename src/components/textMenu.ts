@@ -395,14 +395,14 @@ export class TextMenu {
 
     if (this.activeTextElement) {
       if (this.sizeControl) {
-        this.sizeControl.unlinkEvents();
-        this.sizeControl.updateValues(this.activeTextElement.fontSize);
-        this.sizeControl.linkEvents();
+        this.sizeControl.disable();
+        this.sizeControl.setValue(this.activeTextElement.fontSize);
+        this.sizeControl.enable();
       }
       if (this.lineHeightControl) {
-        this.lineHeightControl.unlinkEvents();
-        this.lineHeightControl.updateValues(this.activeTextElement.lineHeight);
-        this.lineHeightControl.linkEvents();
+        this.lineHeightControl.disable();
+        this.lineHeightControl.setValue(this.activeTextElement.lineHeight);
+        this.lineHeightControl.enable();
       }
       if (this.fillColorControl) {
         this.fillColorControl.unlinkEvents();
@@ -415,11 +415,11 @@ export class TextMenu {
         this.strokeColorControl.linkEvents();
       }
       if (this.strokeWidthControl) {
-        this.strokeWidthControl.unlinkEvents();
-        this.strokeWidthControl.updateValues(
+        this.strokeWidthControl.disable();
+        this.strokeWidthControl.setValue(
           this.activeTextElement.strokeWidth,
         );
-        this.strokeWidthControl.linkEvents();
+        this.strokeWidthControl.enable();
       }
     }
     if (this.isTextSelected) {
@@ -461,11 +461,11 @@ export class TextMenu {
       "click",
       this.handleDeclineTextChange,
     );
-    this.sizeControl?.unlinkEvents();
-    this.lineHeightControl?.unlinkEvents();
+    this.sizeControl?.disable();
+    this.lineHeightControl?.disable();
     this.fillColorControl?.unlinkEvents();
     this.strokeColorControl?.unlinkEvents();
-    this.strokeWidthControl?.unlinkEvents();
+    this.strokeWidthControl?.disable();
   }
 
   private handleSelectElement(selectedElements: Element<TElementData>[]): void {

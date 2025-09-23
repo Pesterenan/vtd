@@ -126,9 +126,9 @@ export class GradientMenu {
   private linkDOMElements = (): void => {
     if (this.activeGradientElement) {
       this.currentColorStop = this.activeGradientElement.colorStops[0];
-      this.alphaControl?.linkEvents();
+      this.alphaControl?.enable();
       this.colorControl?.linkEvents();
-      this.portionControl?.linkEvents();
+      this.portionControl?.enable();
       this.gradientFormatSelect = getElementById<HTMLSelectElement>(
         "gradient-format-select",
       );
@@ -147,9 +147,9 @@ export class GradientMenu {
   private unlinkDOMElements = (): void => {
     this.activeGradientElement = null;
     this.currentColorStop = null;
-    this.alphaControl?.unlinkEvents();
+    this.alphaControl?.disable();
     this.colorControl?.unlinkEvents();
-    this.portionControl?.unlinkEvents();
+    this.portionControl?.disable();
     this.gradientFormatSelect = getElementById<HTMLSelectElement>(
       "gradient-format-select",
     );
@@ -317,7 +317,7 @@ export class GradientMenu {
         this.activeGradientElement.colorStops[index].portion = newPortion;
         this.activeGradientElement.sortColorStops();
         this.updateGradientBar();
-        this.portionControl?.updateValues(newPortion);
+        this.portionControl?.setValue(newPortion);
         this.eventBus.emit("workarea:update");
       }
     };
@@ -341,15 +341,15 @@ export class GradientMenu {
           index === this.activeGradientElement.colorStops.length - 1;
         this.portionControl.element.style.display = isFirstOrLast ? "none" : "";
 
-        this.alphaControl.unlinkEvents();
-        this.alphaControl.updateValues(this.currentColorStop.alpha);
-        this.alphaControl.linkEvents();
+        this.alphaControl.disable();
+        this.alphaControl.setValue(this.currentColorStop.alpha);
+        this.alphaControl.enable();
         this.colorControl.unlinkEvents();
         this.colorControl.updateValue(this.currentColorStop.color);
         this.colorControl.linkEvents();
-        this.portionControl.unlinkEvents();
-        this.portionControl.updateValues(this.currentColorStop.portion);
-        this.portionControl.linkEvents();
+        this.portionControl.disable();
+        this.portionControl.setValue(this.currentColorStop.portion);
+        this.portionControl.enable();
       }
     }
   };
