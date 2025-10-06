@@ -59,6 +59,7 @@ export class WorkArea {
     this.eventBus.on("layer:export", this.exportLayerToClipboard);
     this.eventBus.on("workarea:deleteElement", this.handleDeleteElement);
     this.eventBus.on("workarea:getElement:get", this.getElement);
+    this.eventBus.on("workarea:elements:get", this.getElements);
     this.eventBus.on("layer:applyCrop", this.handleApplyCrop);
   }
 
@@ -572,6 +573,10 @@ export class WorkArea {
     return this.getFlatElements(this.elements).find(
       (el) => el.elementId === elementId,
     );
+  };
+
+  private getElements = (): Element<TElementData>[] => {
+    return this.elements;
   };
 
   private handleApplyCrop = async ({

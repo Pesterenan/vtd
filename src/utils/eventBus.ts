@@ -308,6 +308,10 @@ export interface EventBusMap {
     payload: { elementId: number };
     result: Element<TElementData> | undefined;
   };
+  "workarea:elements:get": {
+    payload: unknown;
+    result: Element<TElementData>[];
+  };
   "workarea:offset:change": {
     payload: PositionPayload;
     result: unknown;
