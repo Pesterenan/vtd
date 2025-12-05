@@ -40,6 +40,9 @@ export class ImageElement extends Element<IImageElementData> {
     if (data.encodedImage) {
       await this.loadImage(data.encodedImage);
     }
+    if (data.cropping) {
+      this.croppingBox.deserialize(data.cropping);
+    }
   }
 
   public serialize(): IImageElementData {
@@ -47,6 +50,7 @@ export class ImageElement extends Element<IImageElementData> {
     if (this.isImageLoaded) {
       serialized.encodedImage = this.properties.get("encodedImage") as string;
     }
+    serialized.cropping = this.croppingBox.serialize();
     return serialized;
   }
 
