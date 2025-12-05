@@ -59,8 +59,8 @@ export class WorkArea {
     this.eventBus.on("layer:export", this.exportLayerToClipboard);
     this.eventBus.on("workarea:deleteElement", this.handleDeleteElement);
     this.eventBus.on("workarea:getElement:get", this.getElement);
-    this.eventBus.on("workarea:elements:get", this.getElements);
     this.eventBus.on("layer:applyCrop", this.handleApplyCrop);
+    this.eventBus.on("workarea:elements:get", this.getElements);
   }
 
   public removeEvents(): void {
@@ -445,10 +445,8 @@ export class WorkArea {
     }
     this.clearCanvas();
 
-    // FIX: AJUSTAR COMO A IMAGEM É EXPORTADA SE FOR PNG.
     this.context.fillStyle = "white";
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    // FIX:
 
     for (const element of this.elements) {
       element.draw(this.context);

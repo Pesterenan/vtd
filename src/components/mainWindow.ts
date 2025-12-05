@@ -295,7 +295,7 @@ export class MainWindow {
         }
       }, "image/png");
     } else {
-      this.copiedElements = selectedElements.map((el) => el.serialize());
+      this.copiedElements = selectedElements.map((el) => el.serialize()) as TElementData[];
       window.api.clipboardChanged(this.copiedElements.length > 0);
       this.eventBus.emit("alert:add", {
         message: "Elementos copiados para a área de transferência",
@@ -310,6 +310,7 @@ export class MainWindow {
       const newElementsIds: number[] = [];
       let zDepth = this.workArea.elements.length;
       for (const elementData of this.copiedElements) {
+        delete elementData.elementId;
         const newElement = await this.workArea.createElementFromData(elementData);
         if (newElement) {
           // FIX: Entender porque a referencia está afetando os novos objetos
@@ -318,7 +319,14 @@ export class MainWindow {
           newElement.zDepth = ++zDepth;
           newElement.layerName += " cópia";
           this.workArea.elements.push(newElement);
-          newElementsIds.push(zDepth);
+          this.eventBus.emit("workarea:addElement", {
+            elementId: newElement.elementId,
+            isLocked: newElement.isLocked,
+            isVisible: newElement.isVisible,
+            layerName: newElement.layerName,
+            type: elementData.type,
+          });
+          newElementsIds.push(newElement.elementId);
         }
       }
       this.eventBus.emit("workarea:selectById", {
@@ -518,7 +526,7 @@ export class MainWindow {
           width: this.workArea.canvas.width,
           height: this.workArea.canvas.height,
         },
-        elements: this.workArea.elements.map((el) => el.serialize()),
+        elements: this.workArea.elements.map((el) => el.serialize()) as TElementData[],
       };
       return projectData;
     }

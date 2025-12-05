@@ -1,6 +1,7 @@
 import type { FilterProperties } from "../filters/filter";
 
 export interface IElementData {
+  elementId?: number;
   type: ElementType;
   position: Position;
   scale: Scale;
