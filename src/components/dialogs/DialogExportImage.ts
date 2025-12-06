@@ -33,20 +33,30 @@ export class DialogExportImage extends Dialog {
     if (this.dialogContent) {
       const formatSelector =
         this.dialogContent.querySelector<HTMLSelectElement>(
-          "#select_export-format",
+          "#slc_export-format",
         );
       const qualitySlider = this.dialogContent.querySelector<HTMLInputElement>(
-        "#jpeg_range_quality",
+        "#inp_image-quality-range",
       );
+      const pngTransparencyCheckbox =
+        this.dialogContent.querySelector<HTMLInputElement>(
+          "#chk_image-transparency",
+        );
       const imageSize =
-        this.dialogContent?.querySelector<HTMLElement>("#image_size");
+        this.dialogContent?.querySelector<HTMLElement>("#str_image-size");
 
-      if (formatSelector && qualitySlider && imageSize) {
+      if (
+        formatSelector &&
+        qualitySlider &&
+        imageSize &&
+        pngTransparencyCheckbox
+      ) {
         const format = formatSelector.value;
         const quality = qualitySlider.value;
+        const transparent = pngTransparencyCheckbox.checked;
         const [canvasBlobPromise] = this.eventBus.request(
           "workarea:canvas:getBlob",
-          { format, quality },
+          { format, quality, transparent },
         );
         if (canvasBlobPromise) {
           const canvasBlob = await canvasBlobPromise;
@@ -70,51 +80,65 @@ export class DialogExportImage extends Dialog {
   protected appendDialogContent(container: HTMLDivElement): void {
     container.className = "container column jc-c g-05";
     container.innerHTML = `
-    <div class="container g-05 jc-sb" id="export-format_container">
+    <div class="container g-05 jc-sb" id="div_export-format-container">
       <p>Selecione o formato de exportação:</p>
-      <select id="select_export-format" class="input-common">
-        <option value="png">.PNG</option>
+      <select id="slc_export-format" class="input-common">
         <option value="jpeg">.JPG</option>
+        <option value="png">.PNG</option>
         <option value="webp">.WEBP</option>
       </select>
     </div>
-    <div id="jpeg_quality_container" class="container g-05 jc-sb" style="visibility: hidden;">
-      <p>Qualidade do JPEG/WEBP:</p>
-      <input type="range" id="jpeg_range_quality" class="input-common" min="25" max="100" value="100" step="5">
-      <label for="jpeg_range_quality" id="output_quality">100</label>
+    <div id="div_transparency-container" class="container g-05 jc-sb">
+      <p>Fundo transparente:</p>
+      <input type="checkbox" id="chk_image-transparency" class="input-common">
     </div>
+    <div id="div_image-quality-container" class="container g-05 jc-sb">
+      <p>Qualidade da Imagem:</p>
+      <input type="range" id="inp_image-quality-range" class="input-common" min="20" max="100" value="100" step="1">
+      <label for="inp_image-quality-range" id="lbl_output-quality">100</label>
+    </div>
+    <br />
     <div class="container g-05 jc-sb">
       <p>Tamanho aproximado da imagem:</p>
-      <strong id="image_size">--KB</strong>
+      <strong id="str_image-size">--KB</strong>
     </div>
 `;
 
     const exportFormatSelector = container.querySelector<HTMLSelectElement>(
-      "#select_export-format",
+      "#slc_export-format",
     );
-    const jpegQualityContainer = container.querySelector<HTMLDivElement>(
-      "#jpeg_quality_container",
+    const imageTransparencyContainer = container.querySelector<HTMLDivElement>(
+      "#div_transparency-container",
     );
-    const jpegRangeQuality = container.querySelector<HTMLInputElement>(
-      "#jpeg_range_quality",
+    const imageTransparencyCheckbox = container.querySelector<HTMLInputElement>(
+      "#chk_image-transparency",
     );
-    const outputQuality =
-      container.querySelector<HTMLLabelElement>("#output_quality");
+    const imageQualityRange = container.querySelector<HTMLInputElement>(
+      "#inp_image-quality-range",
+    );
+    const outputQuality = container.querySelector<HTMLLabelElement>(
+      "#lbl_output-quality",
+    );
 
     if (
       exportFormatSelector &&
-      jpegQualityContainer &&
-      jpegRangeQuality &&
-      outputQuality
+      imageQualityRange &&
+      outputQuality &&
+      imageTransparencyContainer &&
+      imageTransparencyCheckbox
     ) {
       const handleOptionsChange = () => {
-        jpegQualityContainer.style.visibility =
-          exportFormatSelector.value !== "png" ? "visible" : "hidden";
-        outputQuality.textContent = jpegRangeQuality.value;
+        const isJpegSelected = exportFormatSelector.value === "jpeg";
+        imageTransparencyContainer.style.visibility = isJpegSelected
+          ? "hidden"
+          : "visible";
+        outputQuality.textContent = imageQualityRange.value;
         this.updateEstimatedSize();
       };
+      handleOptionsChange();
       exportFormatSelector.addEventListener("change", handleOptionsChange);
-      jpegRangeQuality.addEventListener("change", handleOptionsChange);
+      imageQualityRange.addEventListener("input", handleOptionsChange);
+      imageTransparencyCheckbox.addEventListener("change", handleOptionsChange);
     }
   }
 
@@ -134,7 +158,7 @@ export class DialogExportImage extends Dialog {
       exportButton.addEventListener("click", () => {
         if (this.dialogContent && this.latestDataURL) {
           const exportFormatSelector = this.dialogContent.querySelector(
-            "#select_export-format",
+            "#slc_export-format",
           ) as HTMLSelectElement;
           const format = exportFormatSelector.value;
           window.api.exportCanvas(format, this.latestDataURL);

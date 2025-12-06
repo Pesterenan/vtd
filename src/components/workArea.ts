@@ -314,21 +314,39 @@ export class WorkArea {
     return newElement;
   }
 
+  /**
+     * Returns the current canvas as a blob to be exported
+     * @param {ExportCanvasToStringPayload} payload -
+     * format - format to be exported
+     * quality - quality of the image exported
+     * transparent - export with a transparent background
+     */
   private handleRequestCanvasBlob = ({
     format,
     quality,
+    transparent = false,
   }: ExportCanvasToStringPayload): Promise<
     { blob: Blob; dataURL: string } | undefined
   > => {
     return new Promise((resolve) => {
-      if (!this.canvas) {
+      if (!this.canvas || !this.context) {
         console.error("Canvas not found");
         return resolve(undefined);
       }
 
+      if (transparent) {
+        this.clearCanvas();
+        for (const element of this.elements) {
+          element.draw(this.context);
+        }
+      }
       const parsedQuality = (Number.parseInt(quality, 10) || 100) / 100;
       this.canvas.toBlob(
         (blob) => {
+          if (transparent) {
+            this.draw();
+          }
+
           if (blob) {
             const reader = new FileReader();
             reader.onload = () => {
