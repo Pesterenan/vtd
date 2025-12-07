@@ -104,9 +104,8 @@ export class DialogExportImage extends Dialog {
     </div>
 `;
 
-    const exportFormatSelector = container.querySelector<HTMLSelectElement>(
-      "#slc_export-format",
-    );
+    const exportFormatSelector =
+      container.querySelector<HTMLSelectElement>("#slc_export-format");
     const imageTransparencyContainer = container.querySelector<HTMLDivElement>(
       "#div_transparency-container",
     );

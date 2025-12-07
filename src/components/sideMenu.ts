@@ -80,12 +80,20 @@ export class SideMenu {
       exportImageBtn,
     );
 
-    domElements.push(
-      projectOptionsDiv,
+    const otherMenusDiv = document.createElement("div");
+    otherMenusDiv.className = "container column g-05 jc-sb";
+    otherMenusDiv.style.overflowY = 'auto';
+    otherMenusDiv.style.paddingInline = '0.15rem';
+    otherMenusDiv.append(
       this.transformMenu,
       this.layersMenu,
       this.textMenu,
       this.gradientMenu,
+    );
+
+    domElements.push(
+      projectOptionsDiv,
+      otherMenusDiv,
     );
 
     // APPEND ELEMENTS TO SIDE MENU:
