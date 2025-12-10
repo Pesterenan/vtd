@@ -1,6 +1,8 @@
 import type { FilterProperties } from "../filters/filter";
+import type { ICroppingBoxData } from "../utils/croppingBox";
 
 export interface IElementData {
+  elementId?: number;
   type: ElementType;
   position: Position;
   scale: Scale;
@@ -36,6 +38,7 @@ export interface IImageElementData extends IElementData {
   encodedImage: string;
   backgroundColor: string;
   backgroundOpacity: number;
+  cropping?: ICroppingBoxData;
 }
 
 export interface IColorStop {

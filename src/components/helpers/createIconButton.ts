@@ -7,13 +7,12 @@ export default function createIconButton(
   const button = document.createElement("button");
   button.id = id;
   button.className = "btn-common";
-  const tooltip = document.createElement("tooltip");
-  tooltip.title = tooltipTitle;
+  button.title = tooltipTitle; // Use standard title attribute for tooltip
+
   const icon = document.createElement("div");
   icon.className = "icon";
   icon.style.setProperty("--icon-url", `url(${iconSrc})`);
-  tooltip.appendChild(icon);
-  button.appendChild(tooltip);
+  button.appendChild(icon);
   button.addEventListener("click", onClick);
   return button;
 }

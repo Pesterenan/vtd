@@ -61,6 +61,7 @@ export type SelectionChangedPayload = {
 export type ExportCanvasToStringPayload = {
   format: string;
   quality: string;
+  transparent?: boolean;
 };
 
 export type DeltaPayload = {
@@ -285,7 +286,7 @@ export interface EventBusMap {
     result: unknown;
   };
   "workarea:canvas:getBlob": {
-    payload: { format: string, quality: string };
+    payload: ExportCanvasToStringPayload;
     result: Promise<{ blob: Blob, dataURL: string } | undefined>;
   };
   "workarea:clear": {
@@ -300,13 +301,13 @@ export interface EventBusMap {
     payload: { elementId: number };
     result: unknown;
   };
-  "workarea:exportCanvas": {
-    payload: ExportCanvasToStringPayload;
-    result: string;
-  };
   "workarea:getElement:get": {
     payload: { elementId: number };
     result: Element<TElementData> | undefined;
+  };
+  "workarea:elements:get": {
+    payload: unknown;
+    result: Element<TElementData>[];
   };
   "workarea:offset:change": {
     payload: PositionPayload;
