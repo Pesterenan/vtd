@@ -84,6 +84,7 @@ export class SideMenu {
     otherMenusDiv.className = "container column g-05 jc-sb";
     otherMenusDiv.style.overflowY = 'auto';
     otherMenusDiv.style.paddingInline = '0.15rem';
+    otherMenusDiv.style.maxWidth = `${SIDE_MENU_WIDTH - 16}px`;
     otherMenusDiv.append(
       this.transformMenu,
       this.layersMenu,
