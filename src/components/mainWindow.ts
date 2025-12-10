@@ -19,7 +19,6 @@ import { ScaleTool } from "./tools/scaleTool";
 import { RotateTool } from "./tools/rotateTool";
 import { TextTool } from "./tools/textTool";
 import { remap } from "src/utils/easing";
-import { TextElement } from "./elements/textElement";
 import { DialogAbout } from "./dialogs/DialogAbout";
 
 export class MainWindow {
@@ -239,6 +238,7 @@ export class MainWindow {
             height: imageEl.height,
           });
           const newElement = await this.workArea.addImageElement(imgString);
+          newElement.layerName = `Camada ${newElement.elementId}`;
           this.projectTitle = "Sem título";
           window.api.setWindowTitle(this.projectTitle);
           this.handleResizeWindow();
@@ -250,6 +250,7 @@ export class MainWindow {
       };
     } else {
       const newElement = await this.workArea.addImageElement(imgString);
+      newElement.layerName = `Camada ${newElement.elementId}`;
       this.handleResizeWindow();
       this.eventBus.emit("workarea:selectById", {
         elementsId: new Set([newElement.elementId]),
@@ -282,51 +283,39 @@ export class MainWindow {
 
   private handleCopyCommand = (): void => {
     const [selectedElements] = this.eventBus.request("workarea:selected:get");
-    if (!selectedElements?.length) {
-      if (!this.workArea?.canvas) return;
-      this.workArea.canvas.toBlob((blob) => {
-        if (blob) {
-          const item = new ClipboardItem({ "image/png": blob });
-          navigator.clipboard.write([item]);
-          this.eventBus.emit("alert:add", {
-            message: "Área de Trabalho copiada para a área de transferência",
-            type: "success",
-          });
-        }
-      }, "image/png");
-    } else {
-      this.copiedElements = selectedElements.map((el) => el.serialize()) as TElementData[];
+    if (selectedElements.length) {
+      this.copiedElements = selectedElements.map((el) =>
+        el.serialize(),
+      ) as TElementData[];
       window.api.clipboardChanged(this.copiedElements.length > 0);
       this.eventBus.emit("alert:add", {
-        message: "Elementos copiados para a área de transferência",
+        message: `${this.copiedElements.length > 1 ? "Elementos copiados" : "Elemento copiado"} para a área de transferência`,
         type: "success",
       });
     }
   };
 
   public handlePasteCommand = async (): Promise<void> => {
-    // Se estiver copiando elementos internos
     if (this.copiedElements.length > 0 && this.workArea) {
       const newElementsIds: number[] = [];
-      let zDepth = this.workArea.elements.length;
+      let latestZDepth = this.workArea.elements.length;
       for (const elementData of this.copiedElements) {
         delete elementData.elementId;
-        const newElement = await this.workArea.createElementFromData(elementData);
+        const newElement =
+          await this.workArea.createElementFromData(elementData);
         if (newElement) {
-          // FIX: Entender porque a referencia está afetando os novos objetos
-          // newElement.position.x += 25;
-          // newElement.position.y += 25;
-          newElement.zDepth = ++zDepth;
+          const elementId = newElement.elementId;
+          newElement.zDepth = ++latestZDepth;
           newElement.layerName += " cópia";
           this.workArea.elements.push(newElement);
           this.eventBus.emit("workarea:addElement", {
-            elementId: newElement.elementId,
+            elementId,
             isLocked: newElement.isLocked,
             isVisible: newElement.isVisible,
             layerName: newElement.layerName,
             type: elementData.type,
           });
-          newElementsIds.push(newElement.elementId);
+          newElementsIds.push(elementId);
         }
       }
       this.eventBus.emit("workarea:selectById", {
@@ -339,49 +328,23 @@ export class MainWindow {
       this.copiedElements.length = 0;
       window.api.clipboardChanged(false);
     } else {
-      // Se estiver colando da área de transferência
       try {
         const clipboardItems = await navigator.clipboard.read();
         for (const item of clipboardItems) {
-          // Tratamento de texto copiado
-          if (item.types.includes("text/plain")) {
-            const blob = await item.getType("text/plain");
-            const text = await blob.text();
-            const [selected] = this.eventBus.request("workarea:selected:get");
-            // Se estiver com algum TextElement selecionado, troca o conteúdo pelo texto colado
-            if (selected.length === 1 && selected[0] instanceof TextElement) {
-              selected[0].content = [text];
-            } else {
-              // Senão, cria um elemento com esse texto
-              const newElement = this.workArea?.addTextElement();
-              if (newElement) {
-                newElement.content = [text];
-                this.eventBus.emit("workarea:selectById", {
-                  elementsId: new Set([newElement.elementId]),
-                });
-                this.eventBus.emit("alert:add", {
-                  message: "Texto copiado da área de transferência.",
-                  type: "success",
-                });
-              }
-            }
-          } else {
-            // Tratamento de imagem copiada
-            const imageType = item.types.find((type) =>
-              type.startsWith("image/"),
-            );
-            if (imageType) {
-              const blob = await item.getType(imageType);
-              const reader = new FileReader();
-              reader.onload = async (evt) => {
-                await this.loadImageOnWorkArea(evt.target?.result as string);
-                this.eventBus.emit("alert:add", {
-                  message: "Imagem copiada da área de transferência.",
-                  type: "success",
-                });
-              };
-              reader.readAsDataURL(blob);
-            }
+          const imageType = item.types.find((type) =>
+            type.startsWith("image/"),
+          );
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+              await this.loadImageOnWorkArea(evt.target?.result as string);
+              this.eventBus.emit("alert:add", {
+                message: "Imagem copiada da área de transferência.",
+                type: "success",
+              });
+            };
+            reader.readAsDataURL(blob);
           }
         }
       } catch (err) {
@@ -526,7 +489,9 @@ export class MainWindow {
           width: this.workArea.canvas.width,
           height: this.workArea.canvas.height,
         },
-        elements: this.workArea.elements.map((el) => el.serialize()) as TElementData[],
+        elements: this.workArea.elements.map((el) =>
+          el.serialize(),
+        ) as TElementData[],
       };
       return projectData;
     }
