@@ -61,6 +61,18 @@ export class WorkArea {
     this.eventBus.on("workarea:getElement:get", this.getElement);
     this.eventBus.on("layer:applyCrop", this.handleApplyCrop);
     this.eventBus.on("workarea:elements:get", this.getElements);
+    this.eventBus.on("workarea:rotate-clockwise", () =>
+      this.handleRotateCanvas("clockwise"),
+    );
+    this.eventBus.on("workarea:rotate-anti-clockwise", () =>
+      this.handleRotateCanvas("anti-clockwise"),
+    );
+    this.eventBus.on("workarea:flip-horizontal", () =>
+      this.handleFlipCanvas("horizontal"),
+    );
+    this.eventBus.on("workarea:flip-vertical", () =>
+      this.handleFlipCanvas("vertical"),
+    );
   }
 
   public removeEvents(): void {
@@ -77,6 +89,18 @@ export class WorkArea {
     this.eventBus.off("workarea:deleteElement", this.handleDeleteElement);
     this.eventBus.off("workarea:getElement:get", this.getElement);
     this.eventBus.off("layer:applyCrop", this.handleApplyCrop);
+    this.eventBus.off("workarea:rotate-clockwise", () =>
+      this.handleRotateCanvas("clockwise"),
+    );
+    this.eventBus.off("workarea:rotate-anti-clockwise", () =>
+      this.handleRotateCanvas("anti-clockwise"),
+    );
+    this.eventBus.off("workarea:flip-horizontal", () =>
+      this.handleFlipCanvas("horizontal"),
+    );
+    this.eventBus.off("workarea:flip-vertical", () =>
+      this.handleFlipCanvas("vertical"),
+    );
   }
 
   public destroy(): void {
@@ -315,12 +339,12 @@ export class WorkArea {
   }
 
   /**
-     * Returns the current canvas as a blob to be exported
-     * @param {ExportCanvasToStringPayload} payload -
-     * format - format to be exported
-     * quality - quality of the image exported
-     * transparent - export with a transparent background
-     */
+   * Returns the current canvas as a blob to be exported
+   * @param {ExportCanvasToStringPayload} payload -
+   * format - format to be exported
+   * quality - quality of the image exported
+   * transparent - export with a transparent background
+   */
   private handleRequestCanvasBlob = ({
     format,
     quality,
@@ -691,5 +715,73 @@ export class WorkArea {
         });
       }
     }, "image/png");
+  };
+
+  private handleRotateCanvas = (
+    direction: "clockwise" | "anti-clockwise" = "clockwise",
+  ): void => {
+    if (!this.canvas) return;
+    const oldWidth = this.canvas.width;
+    const oldHeight = this.canvas.height;
+    this.setWorkAreaSize({ width: oldHeight, height: oldWidth });
+
+    for (const element of this.getFlatElements(this.elements)) {
+      const { x, y } = element.position;
+      let newX, newY, newRotation;
+      if (direction === "anti-clockwise") {
+        newX = y;
+        newY = oldWidth - x;
+        newRotation = element.rotation - 90;
+      } else {
+        newX = oldHeight - y;
+        newY = x;
+        newRotation = element.rotation + 90;
+      }
+      element.position = { x: newX, y: newY };
+      element.rotation = newRotation % 360;
+    }
+    // Update transform box if selection exists
+    const selectedElements = this.getSelectedElements();
+    if (selectedElements.length > 0) {
+      this.createTransformBox();
+    }
+    this.eventBus.emit("workarea:update");
+  };
+
+  private handleFlipCanvas = (
+    direction: "horizontal" | "vertical" = "horizontal",
+  ): void => {
+    if (!this.canvas) return;
+    const height = this.canvas.height;
+    const width = this.canvas.width;
+
+    for (const element of this.getFlatElements(this.elements)) {
+      if (direction === "vertical") {
+        element.position = {
+          x: element.position.x,
+          y: height - element.position.y,
+        };
+        element.scale = {
+          x: element.scale.x,
+          y: element.scale.y * -1,
+        };
+      } else {
+        element.position = {
+          x: width - element.position.x,
+          y: element.position.y,
+        };
+        element.scale = {
+          x: element.scale.x * -1,
+          y: element.scale.y,
+        };
+      }
+      element.rotation = -element.rotation;
+    }
+    // Update transform box if selection exists
+    const selectedElements = this.getSelectedElements();
+    if (selectedElements.length > 0) {
+      this.createTransformBox();
+    }
+    this.eventBus.emit("workarea:update");
   };
 }
