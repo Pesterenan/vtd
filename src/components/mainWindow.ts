@@ -158,6 +158,22 @@ export class MainWindow {
       this.eventBus.emit("dialog:about:open");
     });
 
+    window.api.onRotateClockwise(() => {
+      this.eventBus.emit("workarea:rotate-clockwise");
+    });
+
+    window.api.onRotateAntiClockwise(() => {
+      this.eventBus.emit("workarea:rotate-anti-clockwise");
+    });
+
+    window.api.onFlipHorizontal(() => {
+      this.eventBus.emit("workarea:flip-horizontal");
+    });
+
+    window.api.onFlipVertical(() => {
+      this.eventBus.emit("workarea:flip-vertical");
+    });
+
     window.api.onCopyToClipboard(this.handleCopyCommand);
     window.api.onPasteFromClipboard(this.handlePasteCommand);
 

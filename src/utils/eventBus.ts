@@ -321,6 +321,22 @@ export interface EventBusMap {
     payload: unknown;
     result: Partial<IProjectData>;
   };
+  "workarea:rotate-anti-clockwise": {
+    payload: unknown;
+    result: unknown;
+  };
+  "workarea:flip-horizontal": {
+    payload: unknown;
+    result: unknown;
+  };
+  "workarea:flip-vertical": {
+    payload: unknown;
+    result: unknown;
+  };
+  "workarea:rotate-clockwise": {
+    payload: unknown;
+    result: unknown;
+  };
   "workarea:selectAt": {
     payload: SelectElementsAtPayload;
     result: unknown;

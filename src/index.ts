@@ -190,6 +190,33 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
         ],
       },
       {
+        label: "Ima&gem",
+        submenu: [
+          {
+            label: "&Transformar",
+            enabled: isProjectOpen,
+            submenu: [
+              {
+                label: "Inverter &Horizontalmente",
+                click: () => mainWindow.webContents.send("workarea:flip-horizontal"),
+              },
+              {
+                label: "Inverter &Verticalmente",
+                click: () => mainWindow.webContents.send("workarea:flip-vertical"),
+              },
+              {
+                label: "Virar &90 graus horário",
+                click: () => mainWindow.webContents.send("workarea:rotate-clockwise"),
+              },
+              {
+                label: "Virar 9&0 graus anti-horário",
+                click: () => mainWindow.webContents.send("workarea:rotate-anti-clockwise"),
+              },
+            ],
+          },
+        ],
+      },
+      {
         label: "&Ajuda",
         submenu: [
           {
