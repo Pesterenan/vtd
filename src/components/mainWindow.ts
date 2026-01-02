@@ -190,6 +190,7 @@ export class MainWindow {
         this.toolManager.use(this.tools[tool]);
       }
     });
+    this.eventBus.on("mainWindow:resize", this.handleResizeWindow);
     this.eventBus.on("workarea:offset:change", ({ position }) => {
       this.offset.x += position.x;
       this.offset.y += position.y;
@@ -396,7 +397,7 @@ export class MainWindow {
     if (this.canvas) {
       this.canvas.width = window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
       this.canvas.height = window.innerHeight;
-      this.handleRezoom(this.canvas.width);
+      this.handleRezoom(this.canvas.width, this.canvas.height);
       this.centerWorkArea();
       this.update();
     }
@@ -415,9 +416,9 @@ export class MainWindow {
     }
   }
 
-  private handleRezoom(width: number) {
+  private handleRezoom(width: number, height: number) {
     if (this.workArea?.canvas) {
-      const newZoomLevel = remap(
+      const zoomWidth = remap(
         0,
         this.workArea.canvas.width,
         0,
@@ -425,7 +426,15 @@ export class MainWindow {
         width,
         true,
       );
-      this.zoomLevel = newZoomLevel;
+      const zoomHeight = remap(
+        0,
+        this.workArea.canvas.height,
+        0,
+        0.95,
+        height,
+        true,
+      );
+      this.zoomLevel = Math.min(zoomWidth, zoomHeight);
     }
   }
 

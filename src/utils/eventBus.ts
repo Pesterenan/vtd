@@ -147,6 +147,10 @@ export interface EventBusMap {
     payload: ReorganizeLayersPayload;
     result: unknown;
   };
+  "mainWindow:resize": {
+    payload: unknown;
+    result: unknown;
+  };
   "selectTool:isCroppingBoxVisible": {
     payload: boolean;
     result: unknown;

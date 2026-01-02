@@ -745,7 +745,7 @@ export class WorkArea {
     if (selectedElements.length > 0) {
       this.createTransformBox();
     }
-    this.eventBus.emit("workarea:update");
+    this.eventBus.emit("mainWindow:resize");
   };
 
   private handleFlipCanvas = (
@@ -782,6 +782,6 @@ export class WorkArea {
     if (selectedElements.length > 0) {
       this.createTransformBox();
     }
-    this.eventBus.emit("workarea:update");
+    this.eventBus.emit("mainWindow:resize");
   };
 }
