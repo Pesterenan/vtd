@@ -737,8 +737,30 @@ export class WorkArea {
         newY = x;
         newRotation = element.rotation + 90;
       }
+
+      let newStart = null;
+      let newEnd = null;
+
+      if (element instanceof GradientElement) {
+        const { x: sx, y: sy } = element.startPosition;
+        const { x: ex, y: ey } = element.endPosition;
+        if (direction === "anti-clockwise") {
+          newStart = { x: sy, y: oldWidth - sx };
+          newEnd = { x: ey, y: oldWidth - ex };
+        } else {
+          newStart = { x: oldHeight - sy, y: sx };
+          newEnd = { x: oldHeight - ey, y: ex };
+        }
+        element.size = { width: element.size.height, height: element.size.width };
+      }
+
       element.position = { x: newX, y: newY };
       element.rotation = newRotation % 360;
+
+      if (element instanceof GradientElement && newStart && newEnd) {
+        element.startPosition = newStart;
+        element.endPosition = newEnd;
+      }
     }
     // Update transform box if selection exists
     const selectedElements = this.getSelectedElements();
@@ -756,6 +778,21 @@ export class WorkArea {
     const width = this.canvas.width;
 
     for (const element of this.getFlatElements(this.elements)) {
+      let newStart = null;
+      let newEnd = null;
+
+      if (element instanceof GradientElement) {
+        const { x: sx, y: sy } = element.startPosition;
+        const { x: ex, y: ey } = element.endPosition;
+        if (direction === "vertical") {
+          newStart = { x: sx, y: height - sy };
+          newEnd = { x: ex, y: height - ey };
+        } else {
+          newStart = { x: width - sx, y: sy };
+          newEnd = { x: width - ex, y: ey };
+        }
+      }
+
       if (direction === "vertical") {
         element.position = {
           x: element.position.x,
@@ -776,12 +813,18 @@ export class WorkArea {
         };
       }
       element.rotation = -element.rotation;
+
+      if (element instanceof GradientElement && newStart && newEnd) {
+        element.startPosition = newStart;
+        element.endPosition = newEnd;
+      }
     }
     // Update transform box if selection exists
     const selectedElements = this.getSelectedElements();
     if (selectedElements.length > 0) {
       this.createTransformBox();
     }
+    this.eventBus.emit("workarea:update");
     this.eventBus.emit("mainWindow:resize");
   };
 }
