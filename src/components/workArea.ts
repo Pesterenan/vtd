@@ -60,6 +60,10 @@ export class WorkArea {
     this.eventBus.on("workarea:deleteElement", this.handleDeleteElement);
     this.eventBus.on("workarea:getElement:get", this.getElement);
     this.eventBus.on("layer:applyCrop", this.handleApplyCrop);
+    this.eventBus.on("workarea:updateProperties", ({ size }) => {
+      this.setWorkAreaSize(size);
+      this.eventBus.emit("mainWindow:resize");
+    });
     this.eventBus.on("workarea:elements:get", this.getElements);
     this.eventBus.on("workarea:rotate-clockwise", () =>
       this.handleRotateCanvas("clockwise"),

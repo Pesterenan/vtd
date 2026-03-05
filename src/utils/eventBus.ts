@@ -107,6 +107,15 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "dialog:projectProperties:open": {
+    payload: {
+      title: string;
+      size: Size;
+      lastSavedFile: string;
+      appVersion: string;
+    };
+    result: unknown;
+  };
   "edit:gradient": {
     payload: PositionPayload;
     result: unknown;
@@ -359,6 +368,13 @@ export interface EventBusMap {
   };
   "workarea:update": {
     payload: unknown;
+    result: unknown;
+  };
+  "workarea:updateProperties": {
+    payload: {
+      title: string;
+      size: Size;
+    };
     result: unknown;
   };
   "workarea:updateElement": {

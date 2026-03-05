@@ -10,6 +10,7 @@ import { DialogApplyCrop } from "./dialogs/DialogApplyCrop";
 import { DialogElementFilters } from "./dialogs/DialogElementFilters";
 import { DialogExportImage } from "./dialogs/DialogExportImage";
 import { DialogNewProject } from "./dialogs/DialogNewProject";
+import { DialogProjectProperties } from "./dialogs/DialogProjectProperties";
 import { SelectTool } from "./tools/selectTool";
 import { GradientTool } from "./tools/gradientTool";
 import { GrabTool } from "./tools/grabTool";
@@ -47,6 +48,7 @@ export class MainWindow {
     new DialogElementFilters(eventBus);
     new DialogExportImage(eventBus);
     new DialogNewProject(eventBus);
+    new DialogProjectProperties(eventBus);
     new DialogAbout(eventBus);
     if (this.canvas) {
       this.toolManager = new ToolManager(this.canvas, this.eventBus);
@@ -154,6 +156,20 @@ export class MainWindow {
     window.api.onRequestCloseProject(() => {
       this.eventBus.emit("workarea:clear");
     });
+    window.api.onRequestProjectProperties((_, info) => {
+      if (this.workArea?.canvas) {
+        info.size = {
+          width: this.workArea.canvas.width,
+          height: this.workArea.canvas.height,
+        };
+      }
+      this.eventBus.emit("dialog:projectProperties:open", {
+        appVersion: info.appVersion,
+        lastSavedFile: info.lastSavedFile,
+        size: info.size,
+        title: this.projectTitle,
+      });
+    });
     window.api.onRequestShowAboutDialog(() => {
       this.eventBus.emit("dialog:about:open");
     });
@@ -220,6 +236,10 @@ export class MainWindow {
     this.eventBus.on("workarea:createNewProject", ({ projectData }) =>
       this.loadOrCreateNewProject(projectData),
     );
+    this.eventBus.on("workarea:updateProperties", ({ title }) => {
+      this.projectTitle = title;
+      window.api.setWindowTitle(this.projectTitle);
+    });
     this.eventBus.on("workarea:update", this.update);
     this.eventBus.on("workarea:adjustForCanvas", ({ position }) =>
       this.adjustForCanvas(position),

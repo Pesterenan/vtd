@@ -95,6 +95,17 @@ declare global {
       onRequestCloseProject: (
         callback: (event: Electron.IpcRendererEvent) => void,
       ) => Electron.IpcRenderer;
+      onRequestProjectProperties: (
+        callback: (
+          event: Electron.IpcRendererEvent,
+          projectInfo: {
+            title: string;
+            size: { width: number; height: number };
+            lastSavedFile: string;
+            appVersion: string;
+          },
+        ) => void,
+      ) => Electron.IpcRenderer;
       onRequestShowAboutDialog: (
         callback: (event: Electron.IpcRendererEvent) => void,
       ) => Electron.IpcRenderer;
@@ -223,6 +234,17 @@ const api = {
   onRequestCloseProject: (
     callback: (event: Electron.IpcRendererEvent) => void,
   ): Electron.IpcRenderer => ipcRenderer.on("request-close-project", callback),
+  onRequestProjectProperties: (
+    callback: (
+      event: Electron.IpcRendererEvent,
+      projectInfo: {
+        title: string;
+        size: { width: number; height: number };
+        lastSavedFile: string;
+        appVersion: string;
+      },
+    ) => void,
+  ): Electron.IpcRenderer => ipcRenderer.on("request-project-properties", callback),
   onRequestShowAboutDialog: (
     callback: (event: Electron.IpcRendererEvent) => void,
   ): Electron.IpcRenderer =>

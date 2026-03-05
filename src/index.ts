@@ -156,6 +156,17 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
               mainWindow.webContents.send("request-save-project-as"),
           },
           {
+            label: "Propriedades",
+            enabled: isProjectOpen,
+            click: () =>
+              mainWindow.webContents.send("request-project-properties", {
+                title: currentProjectTitle,
+                size: { width: 0, height: 0 }, // Handled in renderer
+                lastSavedFile: currentFilePath,
+                appVersion: app.getVersion(),
+              }),
+          },
+          {
             type: "separator",
           },
           {
