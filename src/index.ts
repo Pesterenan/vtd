@@ -156,6 +156,17 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
               mainWindow.webContents.send("request-save-project-as"),
           },
           {
+            label: "Propriedades",
+            enabled: isProjectOpen,
+            click: () =>
+              mainWindow.webContents.send("request-project-properties", {
+                title: currentProjectTitle,
+                size: { width: 0, height: 0 }, // Handled in renderer
+                lastSavedFile: currentFilePath,
+                appVersion: app.getVersion(),
+              }),
+          },
+          {
             type: "separator",
           },
           {
@@ -186,6 +197,33 @@ function registerIPCHandlers(mainWindow: BrowserWindow): void {
             accelerator: "Ctrl+V",
             enabled: canPaste,
             click: () => mainWindow.webContents.send("paste-from-clipboard"),
+          },
+        ],
+      },
+      {
+        label: "Ima&gem",
+        submenu: [
+          {
+            label: "&Transformar",
+            enabled: isProjectOpen,
+            submenu: [
+              {
+                label: "Inverter &Horizontalmente",
+                click: () => mainWindow.webContents.send("workarea:flip-horizontal"),
+              },
+              {
+                label: "Inverter &Verticalmente",
+                click: () => mainWindow.webContents.send("workarea:flip-vertical"),
+              },
+              {
+                label: "Virar &90 graus horário",
+                click: () => mainWindow.webContents.send("workarea:rotate-clockwise"),
+              },
+              {
+                label: "Virar 9&0 graus anti-horário",
+                click: () => mainWindow.webContents.send("workarea:rotate-anti-clockwise"),
+              },
+            ],
           },
         ],
       },

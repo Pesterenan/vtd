@@ -95,7 +95,30 @@ declare global {
       onRequestCloseProject: (
         callback: (event: Electron.IpcRendererEvent) => void,
       ) => Electron.IpcRenderer;
+      onRequestProjectProperties: (
+        callback: (
+          event: Electron.IpcRendererEvent,
+          projectInfo: {
+            title: string;
+            size: { width: number; height: number };
+            lastSavedFile: string;
+            appVersion: string;
+          },
+        ) => void,
+      ) => Electron.IpcRenderer;
       onRequestShowAboutDialog: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onRotateClockwise: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onRotateAntiClockwise: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onFlipHorizontal: (
+        callback: (event: Electron.IpcRendererEvent) => void,
+      ) => Electron.IpcRenderer;
+      onFlipVertical: (
         callback: (event: Electron.IpcRendererEvent) => void,
       ) => Electron.IpcRenderer;
     };
@@ -211,10 +234,35 @@ const api = {
   onRequestCloseProject: (
     callback: (event: Electron.IpcRendererEvent) => void,
   ): Electron.IpcRenderer => ipcRenderer.on("request-close-project", callback),
+  onRequestProjectProperties: (
+    callback: (
+      event: Electron.IpcRendererEvent,
+      projectInfo: {
+        title: string;
+        size: { width: number; height: number };
+        lastSavedFile: string;
+        appVersion: string;
+      },
+    ) => void,
+  ): Electron.IpcRenderer => ipcRenderer.on("request-project-properties", callback),
   onRequestShowAboutDialog: (
     callback: (event: Electron.IpcRendererEvent) => void,
   ): Electron.IpcRenderer =>
     ipcRenderer.on("request-show-about-dialog", callback),
+  onRotateClockwise: (
+    callback: (event: Electron.IpcRendererEvent) => void,
+  ): Electron.IpcRenderer =>
+    ipcRenderer.on("workarea:rotate-clockwise", callback),
+  onRotateAntiClockwise: (
+    callback: (event: Electron.IpcRendererEvent) => void,
+  ): Electron.IpcRenderer =>
+    ipcRenderer.on("workarea:rotate-anti-clockwise", callback),
+  onFlipHorizontal: (
+    callback: (event: Electron.IpcRendererEvent) => void,
+  ): Electron.IpcRenderer => ipcRenderer.on("workarea:flip-horizontal", callback),
+  onFlipVertical: (
+    callback: (event: Electron.IpcRendererEvent) => void,
+  ): Electron.IpcRenderer => ipcRenderer.on("workarea:flip-vertical", callback),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

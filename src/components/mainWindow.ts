@@ -10,6 +10,7 @@ import { DialogApplyCrop } from "./dialogs/DialogApplyCrop";
 import { DialogElementFilters } from "./dialogs/DialogElementFilters";
 import { DialogExportImage } from "./dialogs/DialogExportImage";
 import { DialogNewProject } from "./dialogs/DialogNewProject";
+import { DialogProjectProperties } from "./dialogs/DialogProjectProperties";
 import { SelectTool } from "./tools/selectTool";
 import { GradientTool } from "./tools/gradientTool";
 import { GrabTool } from "./tools/grabTool";
@@ -47,6 +48,7 @@ export class MainWindow {
     new DialogElementFilters(eventBus);
     new DialogExportImage(eventBus);
     new DialogNewProject(eventBus);
+    new DialogProjectProperties(eventBus);
     new DialogAbout(eventBus);
     if (this.canvas) {
       this.toolManager = new ToolManager(this.canvas, this.eventBus);
@@ -154,8 +156,38 @@ export class MainWindow {
     window.api.onRequestCloseProject(() => {
       this.eventBus.emit("workarea:clear");
     });
+    window.api.onRequestProjectProperties((_, info) => {
+      if (this.workArea?.canvas) {
+        info.size = {
+          width: this.workArea.canvas.width,
+          height: this.workArea.canvas.height,
+        };
+      }
+      this.eventBus.emit("dialog:projectProperties:open", {
+        appVersion: info.appVersion,
+        lastSavedFile: info.lastSavedFile,
+        size: info.size,
+        title: this.projectTitle,
+      });
+    });
     window.api.onRequestShowAboutDialog(() => {
       this.eventBus.emit("dialog:about:open");
+    });
+
+    window.api.onRotateClockwise(() => {
+      this.eventBus.emit("workarea:rotate-clockwise");
+    });
+
+    window.api.onRotateAntiClockwise(() => {
+      this.eventBus.emit("workarea:rotate-anti-clockwise");
+    });
+
+    window.api.onFlipHorizontal(() => {
+      this.eventBus.emit("workarea:flip-horizontal");
+    });
+
+    window.api.onFlipVertical(() => {
+      this.eventBus.emit("workarea:flip-vertical");
     });
 
     window.api.onCopyToClipboard(this.handleCopyCommand);
@@ -174,6 +206,7 @@ export class MainWindow {
         this.toolManager.use(this.tools[tool]);
       }
     });
+    this.eventBus.on("mainWindow:resize", this.handleResizeWindow);
     this.eventBus.on("workarea:offset:change", ({ position }) => {
       this.offset.x += position.x;
       this.offset.y += position.y;
@@ -203,6 +236,10 @@ export class MainWindow {
     this.eventBus.on("workarea:createNewProject", ({ projectData }) =>
       this.loadOrCreateNewProject(projectData),
     );
+    this.eventBus.on("workarea:updateProperties", ({ title }) => {
+      this.projectTitle = title;
+      window.api.setWindowTitle(this.projectTitle);
+    });
     this.eventBus.on("workarea:update", this.update);
     this.eventBus.on("workarea:adjustForCanvas", ({ position }) =>
       this.adjustForCanvas(position),
@@ -380,7 +417,7 @@ export class MainWindow {
     if (this.canvas) {
       this.canvas.width = window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
       this.canvas.height = window.innerHeight;
-      this.handleRezoom(this.canvas.width);
+      this.handleRezoom(this.canvas.width, this.canvas.height);
       this.centerWorkArea();
       this.update();
     }
@@ -399,9 +436,9 @@ export class MainWindow {
     }
   }
 
-  private handleRezoom(width: number) {
+  private handleRezoom(width: number, height: number) {
     if (this.workArea?.canvas) {
-      const newZoomLevel = remap(
+      const zoomWidth = remap(
         0,
         this.workArea.canvas.width,
         0,
@@ -409,7 +446,15 @@ export class MainWindow {
         width,
         true,
       );
-      this.zoomLevel = newZoomLevel;
+      const zoomHeight = remap(
+        0,
+        this.workArea.canvas.height,
+        0,
+        0.95,
+        height,
+        true,
+      );
+      this.zoomLevel = Math.min(zoomWidth, zoomHeight);
     }
   }
 

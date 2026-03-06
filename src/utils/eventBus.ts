@@ -107,6 +107,15 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "dialog:projectProperties:open": {
+    payload: {
+      title: string;
+      size: Size;
+      lastSavedFile: string;
+      appVersion: string;
+    };
+    result: unknown;
+  };
   "edit:gradient": {
     payload: PositionPayload;
     result: unknown;
@@ -145,6 +154,10 @@ export interface EventBusMap {
   };
   "layer:setHierarchy": {
     payload: ReorganizeLayersPayload;
+    result: unknown;
+  };
+  "mainWindow:resize": {
+    payload: unknown;
     result: unknown;
   };
   "selectTool:isCroppingBoxVisible": {
@@ -321,6 +334,22 @@ export interface EventBusMap {
     payload: unknown;
     result: Partial<IProjectData>;
   };
+  "workarea:rotate-anti-clockwise": {
+    payload: unknown;
+    result: unknown;
+  };
+  "workarea:flip-horizontal": {
+    payload: unknown;
+    result: unknown;
+  };
+  "workarea:flip-vertical": {
+    payload: unknown;
+    result: unknown;
+  };
+  "workarea:rotate-clockwise": {
+    payload: unknown;
+    result: unknown;
+  };
   "workarea:selectAt": {
     payload: SelectElementsAtPayload;
     result: unknown;
@@ -339,6 +368,13 @@ export interface EventBusMap {
   };
   "workarea:update": {
     payload: unknown;
+    result: unknown;
+  };
+  "workarea:updateProperties": {
+    payload: {
+      title: string;
+      size: Size;
+    };
     result: unknown;
   };
   "workarea:updateElement": {
