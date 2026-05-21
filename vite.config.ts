@@ -24,6 +24,7 @@ const fileName = {
 const formats = Object.keys(fileName) as Array<keyof typeof fileName>;
 
 export default defineConfig({
+  root: "src",
   // prevent vite from obscuring rust errors
   clearScreen: false,
   server: {
@@ -50,12 +51,7 @@ export default defineConfig({
   // Env variables starting with the item of `envPrefix` will be exposed in tauri's source code through `import.meta.env`.
   envPrefix: ['VITE_', 'TAURI_ENV_*'],
   build: {
-    lib: {
-      entry: path.resolve(__dirname, "src/index.ts"),
-      name: getPackageNameCamelCase(),
-      formats,
-      fileName: format => fileName[format],
-    },
+
     // Tauri uses Chromium on Windows and WebKit on macOS and Linux
     target:
       process.env.TAURI_ENV_PLATFORM == 'windows'
@@ -71,6 +67,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "src": path.resolve(__dirname, "src"),
       "@": path.resolve(__dirname, "src"),
       "@@": path.resolve(__dirname),
     },
