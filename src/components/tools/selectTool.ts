@@ -14,7 +14,7 @@ export class SelectTool extends Tool {
     this.resetTool();
     super.unequip();
   }
-  
+
   private resetTool(): void {
     this.firstPoint = null;
     this.secondPoint = null;

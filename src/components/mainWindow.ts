@@ -30,11 +30,7 @@ export class MainWindow {
   private offset: Position = { x: 0, y: 0 };
   private zoomLevel = 1;
   private toolManager: ToolManager | undefined;
-  private tools:
-    | {
-        [key in TOOL]: Tool;
-      }
-    | undefined;
+  private tools: { [key in TOOL]: Tool; } | undefined;
   public currentTool: TOOL = TOOL.SELECT;
   public lastTool: TOOL | null = TOOL.SELECT;
 
