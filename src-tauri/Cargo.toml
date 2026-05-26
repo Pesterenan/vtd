@@ -1,10 +1,10 @@
 [package]
-name = "app"
+name = "vtd"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "Editor de miniaturas de videos."
+authors = ["Pesterenan"]
 license = ""
-repository = ""
+repository = "https://github.com/Pesterenan/vtd#readme"
 edition = "2021"
 rust-version = "1.77.2"
 
@@ -22,4 +22,8 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 tauri = { version = "2.11.2", features = [] }
-tauri-plugin-log = "2"
+tauri-plugin-log = "2.8.0"
+tauri-plugin-cli = "2.4.1"
+tauri-plugin-dialog = "2.7.1"
+tauri-plugin-opener = "2.5.4"
+

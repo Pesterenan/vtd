@@ -17,7 +17,7 @@
         "@electron-toolkit/eslint-config-ts": "1.0.1",
         "@electron-toolkit/tsconfig": "1.0.1",
         "@electron/fuses": "1.8.0",
-        "@tauri-apps/cli": "^1.0.0",
+        "@tauri-apps/cli": "^2.11.2",
         "@testing-library/jest-dom": "6.6.4",
         "@types/fluent-ffmpeg": "2.1.26",
         "@types/jest": "29.5.13",
@@ -53,6 +53,10 @@
     "dependencies": {
         "@electron-toolkit/preload": "3.0.1",
         "@electron-toolkit/utils": "3.0.0",
+        "@tauri-apps/api": "^2.11.0",
+        "@tauri-apps/plugin-dialog": "^2.7.1",
+        "@tauri-apps/plugin-fs": "^2.5.1",
+        "@tauri-apps/plugin-opener": "^2.5.4",
         "@vitejs/plugin-react": "^6.0.2",
         "electron-squirrel-startup": "1.0.1",
         "fluent-ffmpeg": "2.1.3"
