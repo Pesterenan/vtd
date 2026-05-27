@@ -154,21 +154,31 @@ export class MainWindow {
     //   window.api.saveProjectAs(projectData);
     // });
     listen("request-close-project", () => this.eventBus.emit("workarea:clear"));
-    // window.api.onRequestProjectProperties((_, info) => {
-    //   if (this.workArea?.canvas) {
-    //     info.size = {
-    //       width: this.workArea.canvas.width,
-    //       height: this.workArea.canvas.height,
-    //     };
-    //   }
-    //   this.eventBus.emit("dialog:projectProperties:open", {
-    //     appVersion: info.appVersion,
-    //     lastSavedFile: info.lastSavedFile,
-    //     size: info.size,
-    //     title: this.projectTitle,
-    //   });
-    // });
-    listen("request-show-about-dialog", () =>  this.eventBus.emit("dialog:about:open"));
+    listen<{
+      success: boolean; message: string; data?:
+      {
+        title: string;
+        size: { width: number; height: number };
+        lastSavedFile: string;
+        appVersion: string;
+      },
+    }>("request-project-properties", (event) => {
+      const { data } = event.payload;
+      if (data) {
+        if (this.workArea?.canvas) {
+          data.size = {
+            width: this.workArea.canvas.width,
+            height: this.workArea.canvas.height,
+          };
+        }
+        this.eventBus.emit("dialog:projectProperties:open", {
+          appVersion: data.appVersion,
+          lastSavedFile: data.lastSavedFile,
+          size: data.size,
+          title: this.projectTitle,
+        });
+      }
+    });
     listen("workarea:rotate-clockwise", () => this.eventBus.emit("workarea:rotate-clockwise"));
     listen("workarea:rotate-anti-clockwise", () => this.eventBus.emit("workarea:rotate-anti-clockwise"));
     listen("workarea:flip-horizontal", () => this.eventBus.emit("workarea:flip-horizontal"));

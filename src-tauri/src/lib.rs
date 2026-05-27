@@ -248,7 +248,23 @@ pub fn run() {
                         let _ = window.emit("request-save-project-as", ());
                     }
                     "properties" => {
-                        let _ = window.emit("request-project-properties", ());
+                        if let Ok(status) = app_handle.state::<Mutex<AppStatus>>().lock() {
+                            if let Some(path) = &status.current_file_path {
+                                let file_name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
+                                let _ = window.emit(
+                                    "request-project-properties",
+                                    serde_json::json!({
+                                        "success": true,
+                                        "message": "Propriedades do Projeto",
+                                        "data": {
+                                            "title": "test",
+                                            "lastSavedFile": file_name,
+                                            "appVersion": "0.1.0", // get version from package.json
+                                        }
+                                    }),
+                                );
+                            }
+                        }
                     }
                     "close-project" => {
                         let _ = window.emit("request-close-project", ());
