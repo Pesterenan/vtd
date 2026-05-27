@@ -2,8 +2,7 @@ import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
 import livePixQRCode from "../../../resources/livepix_qrcode.svg";
 import { invoke } from "@tauri-apps/api/core";
-
-const APP_VERSION = "0.0.6"; // FIX: Get version from package.json
+import { version as APP_VERSION } from "../../../package.json";
 const GITHUB_LINK = "https://github.com/Pesterenan/vtd" as const;
 const LIVEPIX_LINK = "https://livepix.gg/pesterenan" as const;
 export class DialogAbout extends Dialog {

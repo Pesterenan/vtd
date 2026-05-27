@@ -21,6 +21,7 @@ import { RotateTool } from "./tools/rotateTool";
 import { TextTool } from "./tools/textTool";
 import { remap } from "src/utils/easing";
 import { DialogAbout } from "./dialogs/DialogAbout";
+import { version as APP_VERSION } from "../../package.json";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
@@ -154,31 +155,17 @@ export class MainWindow {
     //   window.api.saveProjectAs(projectData);
     // });
     listen("request-close-project", () => this.eventBus.emit("workarea:clear"));
-    listen<{
-      success: boolean; message: string; data?:
-      {
-        title: string;
-        size: { width: number; height: number };
-        lastSavedFile: string;
-        appVersion: string;
-      },
-    }>("request-project-properties", (event) => {
-      const { data } = event.payload;
-      if (data) {
-        if (this.workArea?.canvas) {
-          data.size = {
-            width: this.workArea.canvas.width,
-            height: this.workArea.canvas.height,
-          };
-        }
-        this.eventBus.emit("dialog:projectProperties:open", {
-          appVersion: data.appVersion,
-          lastSavedFile: data.lastSavedFile,
-          size: data.size,
-          title: this.projectTitle,
-        });
-      }
+    listen("request-project-properties", () => {
+      this.eventBus.emit("dialog:projectProperties:open", {
+        appVersion: APP_VERSION,
+        size: {
+          width: this.workArea?.canvas?.width ?? 1920,
+          height: this.workArea?.canvas?.height ?? 1080,
+        },
+        title: this.projectTitle,
+      });
     });
+    listen("request-show-about-dialog", () => this.eventBus.emit("dialog:about:open"));
     listen("workarea:rotate-clockwise", () => this.eventBus.emit("workarea:rotate-clockwise"));
     listen("workarea:rotate-anti-clockwise", () => this.eventBus.emit("workarea:rotate-anti-clockwise"));
     listen("workarea:flip-horizontal", () => this.eventBus.emit("workarea:flip-horizontal"));

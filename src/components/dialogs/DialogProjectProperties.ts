@@ -8,6 +8,7 @@ import type { ISelectInput } from "../helpers/createSelectInput";
 import createSelectInput from "../helpers/createSelectInput";
 import type { Size } from "../types";
 import { TEMPLATE_DATA, TEMPLATE_OPTIONS } from "src/constants";
+import { version as APP_VERSION } from "../../../package.json";
 
 export interface IProjectProperties {
   title: string;
@@ -23,8 +24,7 @@ export class DialogProjectProperties extends Dialog {
 
   private currentTitle = "";
   private currentSize: Size = { width: 1920, height: 1080 };
-  private lastSavedFile = "";
-  private appVersion = "";
+  private appVersion = APP_VERSION;
 
   constructor(eventBus: EventBus) {
     super({
@@ -36,8 +36,6 @@ export class DialogProjectProperties extends Dialog {
     this.eventBus.on("dialog:projectProperties:open", (payload) => {
       this.currentTitle = payload.title;
       this.currentSize = { ...payload.size };
-      this.lastSavedFile = payload.lastSavedFile;
-      this.appVersion = payload.appVersion;
       this.open();
     });
   }
@@ -112,14 +110,9 @@ export class DialogProjectProperties extends Dialog {
     infoContainer.style.opacity = "0.7";
 
     const versionInfo = document.createElement("div");
-    versionInfo.innerHTML = `<strong>Versão da aplicação:</strong> <span id="prop-app-version"></span>`;
-    
-    const fileInfo = document.createElement("div");
-    fileInfo.style.wordBreak = "break-all";
-    fileInfo.innerHTML = `<strong>Último arquivo salvo:</strong> <span id="prop-last-file"></span>`;
+    versionInfo.innerHTML = `<strong>Versão da aplicação:</strong> ${this.appVersion}`;
 
     infoContainer.appendChild(versionInfo);
-    infoContainer.appendChild(fileInfo);
 
     container.appendChild(this.projectNameInput.element);
     container.appendChild(this.templatesInput.element);
@@ -138,11 +131,6 @@ export class DialogProjectProperties extends Dialog {
     this.workAreaWidthInput?.setValue(this.currentSize.width);
     this.workAreaHeightInput?.setValue(this.currentSize.height);
     this.templatesInput?.setValue("CUSTOM");
-
-    const versionSpan = document.getElementById("prop-app-version");
-    const fileSpan = document.getElementById("prop-last-file");
-    if (versionSpan) versionSpan.textContent = this.appVersion;
-    if (fileSpan) fileSpan.textContent = this.lastSavedFile || "Ainda não salvo";
   }
 
   protected onClose(): void {

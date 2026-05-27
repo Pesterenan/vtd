@@ -5,7 +5,7 @@ const APP_NAME: &str = "Video Thumbnail Designer";
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use tauri::menu::{Menu, MenuItem, Submenu};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::Manager;
 
 use commands::image;
@@ -78,6 +78,9 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle();
 
+            // Separador de itens
+            let separator = PredefinedMenuItem::separator(handle)?;
+
             // --- ARQUIVO SUBMENU ---
             let new_project = MenuItem::with_id(handle, "new-project", "Novo projeto", true, None::<&str>)?;
             let load_project = MenuItem::with_id(handle, "load-project", "Carregar projeto", true, None::<&str>)?;
@@ -100,10 +103,13 @@ pub fn run() {
                 &[
                     &new_project,
                     &load_project,
+                    &separator,
                     &save_project.clone(),
                     &save_project_as.clone(),
-                    &properties.clone(),
                     &close_project.clone(),
+                    &separator,
+                    &properties.clone(),
+                    &separator,
                     &quit,
                 ],
             )?;
@@ -126,7 +132,7 @@ pub fn run() {
                 handle,
                 "&Transformar",
                 true,
-                &[&flip_horiz.clone(), &flip_vert.clone(), &rotate_90_cw.clone(), &rotate_90_ccw.clone()],
+                &[&flip_horiz.clone(), &flip_vert.clone(), &separator, &rotate_90_cw.clone(), &rotate_90_ccw.clone()],
             )?;
 
             let image_menu = Submenu::with_items(handle, "Ima&gem", true, &[&transform_submenu])?;
@@ -248,23 +254,7 @@ pub fn run() {
                         let _ = window.emit("request-save-project-as", ());
                     }
                     "properties" => {
-                        if let Ok(status) = app_handle.state::<Mutex<AppStatus>>().lock() {
-                            if let Some(path) = &status.current_file_path {
-                                let file_name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
-                                let _ = window.emit(
-                                    "request-project-properties",
-                                    serde_json::json!({
-                                        "success": true,
-                                        "message": "Propriedades do Projeto",
-                                        "data": {
-                                            "title": "test",
-                                            "lastSavedFile": file_name,
-                                            "appVersion": "0.1.0", // get version from package.json
-                                        }
-                                    }),
-                                );
-                            }
-                        }
+                        let _ = window.emit("request-project-properties", ());
                     }
                     "close-project" => {
                         let _ = window.emit("request-close-project", ());

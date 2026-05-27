@@ -111,7 +111,6 @@ export interface EventBusMap {
     payload: {
       title: string;
       size: Size;
-      lastSavedFile: string;
       appVersion: string;
     };
     result: unknown;
