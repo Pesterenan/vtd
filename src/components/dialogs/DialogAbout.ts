@@ -1,6 +1,7 @@
 import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
 import livePixQRCode from "../../../resources/livepix_qrcode.svg";
+import { invoke } from "@tauri-apps/api/core";
 
 const APP_VERSION = "0.0.6"; // FIX: Get version from package.json
 const GITHUB_LINK = "https://github.com/Pesterenan/vtd" as const;
@@ -34,6 +35,16 @@ export class DialogAbout extends Dialog {
       </div>
     `;
     container.append(aboutDiv);
+    const githubLink = container.querySelector("#github-link");
+    const livePixLink = container.querySelector("#livepix-link");
+    githubLink?.addEventListener("click", (e) => {
+      e.preventDefault();
+      invoke("open_external_link", { url: GITHUB_LINK });
+    })
+    livePixLink?.addEventListener("click", (e) => {
+      e.preventDefault();
+      invoke("open_external_link", { url: LIVEPIX_LINK });
+    })
   }
 
   protected appendDialogActions(menu: HTMLMenuElement): void {
