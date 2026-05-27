@@ -1,14 +1,18 @@
+use std::fs;
 use std::path::Path;
 
 use tauri::AppHandle;
 use tauri::Emitter;
 use tauri::Manager;
+use tauri_plugin_dialog::DialogExt;
 
 use base64::Engine;
 use image::ImageEncoder;
 
 use super::CommandResponse;
 use crate::MenuHandles;
+
+use std::sync::mpsc;
 
 #[derive(serde::Serialize)]
 pub struct ClipboardStatus {
@@ -204,5 +208,67 @@ pub fn read_clipboard_image() -> CommandResponse<String> {
         success: false,
         message: "Nenhuma imagem encontrada no clipboard.".to_string(),
         data: None,
+    }
+}
+
+#[tauri::command]
+pub async fn save_project_file(
+    app: AppHandle,
+    project_data: String,
+    file_path: Option<String>,
+) -> CommandResponse<String> {
+    match file_path {
+        Some(path) => match fs::write(&path, &project_data) {
+            Ok(_) => CommandResponse {
+                success: true,
+                message: "Projeto salvo.".to_string(),
+                data: Some(path),
+            },
+            Err(e) => CommandResponse {
+                success: false,
+                message: format!("Erro ao salvar: {}", e),
+                data: None,
+            },
+        },
+        None => {
+            let (tx, rx) = mpsc::channel();
+            app.dialog()
+                .file()
+                .add_filter("Arquivos JSON", &["json"])
+                .set_title("Salvar Projeto")
+                .save_file(move |file_path| {
+                    let _ = tx.send(file_path);
+                });
+
+            match rx.recv() {
+                Ok(Some(file_path)) => {
+                    if let Some(path) = file_path.as_path() {
+                        match fs::write(path, &project_data) {
+                            Ok(_) => CommandResponse {
+                                success: true,
+                                message: format!("Projeto salvo em: {}", path.display()),
+                                data: Some(path.to_string_lossy().to_string()),
+                            },
+                            Err(e) => CommandResponse {
+                                success: false,
+                                message: format!("Erro ao salvar: {}", e),
+                                data: None,
+                            },
+                        }
+                    } else {
+                        CommandResponse {
+                            success: false,
+                            message: "Caminho inválido.".to_string(),
+                            data: None,
+                        }
+                    }
+                }
+                _ => CommandResponse {
+                    success: false,
+                    message: "Operação cancelada.".to_string(),
+                    data: None,
+                },
+            }
+        }
     }
 }

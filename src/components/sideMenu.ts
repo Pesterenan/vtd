@@ -11,6 +11,8 @@ import type { EventBus } from "src/utils/eventBus";
 import getElementById from "src/utils/getElementById";
 import createIconButton from "./helpers/createIconButton";
 import { TransformMenu } from "./transformMenu";
+import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 
 export class SideMenu {
   private static instance: SideMenu | null = null;
@@ -53,15 +55,14 @@ export class SideMenu {
       "Salvar Projeto",
       saveProjectIconSrc,
       () => {
-        const [projectData] = this.eventBus.request("workarea:project:save");
-        window.api.saveProject(projectData);
+        emit("request-save-project", {});
       },
     );
     const loadProjectBtn = createIconButton(
       "btn_load-project",
       "Carregar Projeto",
       loadProjectIconSrc,
-      () => window.api.loadProject(),
+      () => { emit("request-load-project", {}); },
     );
     const openVideoBtn = createIconButton(
       "btn_open-video",
@@ -97,7 +98,6 @@ export class SideMenu {
       otherMenusDiv,
     );
 
-    // APPEND ELEMENTS TO SIDE MENU:
     this.sideMenu.append(...domElements);
 
     const appWindow = getElementById<HTMLDivElement>("app-window");

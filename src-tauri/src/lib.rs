@@ -74,6 +74,7 @@ pub fn run() {
             misc::check_clipboard,
             misc::read_clipboard_image,
             misc::read_image_file,
+            misc::save_project_file,
         ])
         .setup(|app| {
             let handle = app.handle();

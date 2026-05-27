@@ -39,6 +39,7 @@ export class MainWindow {
   public lastTool: TOOL | null = TOOL.SELECT;
 
   private projectTitle = "";
+  private currentProjectPath: string | null = null;
   private copiedElements: TElementData[] = [];
 
   private constructor(private eventBus: EventBus) {
@@ -146,14 +147,44 @@ export class MainWindow {
     // window.api.onRequestLoadProject(() => {
     //   window.api.loadProject();
     // });
-    // window.api.onRequestSaveProject(() => {
-    //   const projectData = this.saveProject();
-    //   window.api.saveProject(projectData);
-    // });
-    // window.api.onRequestSaveProjectAs(() => {
-    //   const projectData = this.saveProject();
-    //   window.api.saveProjectAs(projectData);
-    // });
+    listen("request-save-project", async () => {
+      const projectData = this.saveProject();
+      if (Object.keys(projectData).length === 0) return;
+
+      const result = await invoke<{ success: boolean; message: string; data?: string }>(
+        "save_project_file",
+        {
+          projectData: JSON.stringify(projectData),
+          filePath: this.currentProjectPath,
+        },
+      );
+      this.eventBus.emit("alert:add", {
+        message: result.message,
+        type: result.success ? "success" : "error",
+      });
+      if (result.success && result.data) {
+        this.currentProjectPath = result.data;
+      }
+    });
+    listen("request-save-project-as", async () => {
+      const projectData = this.saveProject();
+      if (Object.keys(projectData).length === 0) return;
+
+      const result = await invoke<{ success: boolean; message: string; data?: string }>(
+        "save_project_file",
+        {
+          projectData: JSON.stringify(projectData),
+          filePath: null,
+        },
+      );
+      this.eventBus.emit("alert:add", {
+        message: result.message,
+        type: result.success ? "success" : "error",
+      });
+      if (result.success && result.data) {
+        this.currentProjectPath = result.data;
+      }
+    });
     listen("request-close-project", () => this.eventBus.emit("workarea:clear"));
     listen("request-project-properties", () => {
       this.eventBus.emit("dialog:projectProperties:open", {
