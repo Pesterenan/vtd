@@ -271,6 +271,10 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "workarea:addImage": {
+    payload: string;
+    result: unknown;
+  };
   "workarea:addElement": {
     payload: {
       children?: Layer[];

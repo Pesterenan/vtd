@@ -2,6 +2,7 @@ import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
 import livePixQRCode from "../../../resources/livepix_qrcode.svg";
 
+const APP_VERSION = "0.0.6"; // FIX: Get version from package.json
 const GITHUB_LINK = "https://github.com/Pesterenan/vtd" as const;
 const LIVEPIX_LINK = "https://livepix.gg/pesterenan" as const;
 export class DialogAbout extends Dialog {
@@ -23,32 +24,15 @@ export class DialogAbout extends Dialog {
       <div class="pad-05">
         <p><strong>Versão:</strong> ${APP_VERSION}</p>
         <p><strong>Autor:</strong> Renan Torres</p>
-        <p><strong>Github:</strong> <a href=${GITHUB_LINK} id="github-link">${GITHUB_LINK}</a></p>
+        <p><strong>Github:</strong> <a href=${GITHUB_LINK} id="github-link" target="_blank">${GITHUB_LINK}</a></p>
       </div>
       <p>Gostou do app? Considere fazer uma doação!</p>
       <hr />
       <div class="container column ai-jc-c pad-05">
         <img src=${livePixQRCode} alt="QR Code para doação" style="width: 10rem;" />
-        <p><a href=${LIVEPIX_LINK} id="livepix-link">${LIVEPIX_LINK}</a></p>
+        <p><a href=${LIVEPIX_LINK} id="livepix-link" target="_blank">${LIVEPIX_LINK}</a></p>
       </div>
     `;
-    const githubLink =
-      aboutDiv.querySelector<HTMLAnchorElement>("#github-link");
-    if (githubLink) {
-      githubLink.addEventListener("click", (e) => {
-        e.preventDefault();
-        window.api.openExternalLink(GITHUB_LINK);
-      });
-    }
-
-    const livepixLink =
-      aboutDiv.querySelector<HTMLAnchorElement>("#livepix-link");
-    if (livepixLink) {
-      livepixLink.addEventListener("click", (e) => {
-        e.preventDefault();
-        window.api.openExternalLink(LIVEPIX_LINK);
-      });
-    }
     container.append(aboutDiv);
   }
 

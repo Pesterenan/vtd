@@ -28,7 +28,8 @@ export class DialogNewProject extends Dialog {
       elements: [],
       modifyDate: "",
       title: "Sem título",
-      version: APP_VERSION,
+      // FIX: get the current version
+      version: '0.0.6',
       workAreaSize: TEMPLATE_DATA[T_1080P_FULL_HD],
     };
     this.eventBus = eventBus;

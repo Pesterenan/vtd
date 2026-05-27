@@ -21,6 +21,9 @@ import { RotateTool } from "./tools/rotateTool";
 import { TextTool } from "./tools/textTool";
 import { remap } from "src/utils/easing";
 import { DialogAbout } from "./dialogs/DialogAbout";
+import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 
 export class MainWindow {
   private static instance: MainWindow | null = null;
@@ -76,119 +79,102 @@ export class MainWindow {
   }
 
   private createEventListeners() {
-    window.api.onExportCanvasResponse((_, response) => {
+    getCurrentWindow().onResized(this.handleResizeWindow);
+    // window.api.onExportCanvasResponse((_, response) => {
+    //   this.eventBus.emit("alert:add", {
+    //     type: response.success ? "success" : "error",
+    //     message: response.message,
+    //   });
+    // });
+    // window.api.onLoadVideoResponse((_, response) => {
+    //   this.eventBus.emit("alert:add", {
+    //     message: response.message,
+    //     type: response.success ? "success" : "error",
+    //   });
+    // });
+    //
+    // window.api.onLoadImageResponse(async (_, response) => {
+    //   this.eventBus.emit("alert:add", {
+    //     message: response.message,
+    //     type: response.success ? "success" : "error",
+    //   });
+    //   if (response.success) {
+    //     await this.loadImageOnWorkArea(response.data as string);
+    //   }
+    // });
+    //
+    // // TODO: Maybe dead code, verify.
+    // window.api.onProcessVideoFrameResponse((_, response) => {
+    //   if (response.success) {
+    //     const uint8Array = new Uint8Array(response.data as Uint8Array);
+    //     const blob = new Blob([uint8Array], { type: "image/png" });
+    //     const reader = new FileReader();
+    //     reader.onloadend = async (): Promise<void> => {
+    //       const dataURL = reader.result as string;
+    //       if (this.workArea) {
+    //         await this.workArea.addImageElement(dataURL);
+    //       }
+    //     };
+    //     reader.readAsDataURL(blob);
+    //   }
+    //   this.eventBus.emit("alert:add", {
+    //     message: response.message,
+    //     type: response.success ? "success" : "error",
+    //   });
+    // });
+    //
+    listen<{ success: boolean; message: string; data?: unknown }>('load-project-response', (event) => {
+      const { success, message, data } = event.payload;
       this.eventBus.emit("alert:add", {
-        type: response.success ? "success" : "error",
-        message: response.message,
+        message,
+        type: success ? "success" : "error",
       });
-    });
-    window.api.onLoadVideoResponse((_, response) => {
-      this.eventBus.emit("alert:add", {
-        message: response.message,
-        type: response.success ? "success" : "error",
-      });
-    });
-
-    window.api.onLoadImageResponse(async (_, response) => {
-      this.eventBus.emit("alert:add", {
-        message: response.message,
-        type: response.success ? "success" : "error",
-      });
-      if (response.success) {
-        await this.loadImageOnWorkArea(response.data as string);
+      if (success) {
+        this.loadOrCreateNewProject(data as Partial<IProjectData>);
+      } else {
+        console.error(message);
       }
     });
-
-    // TODO: Maybe dead code, verify.
-    window.api.onProcessVideoFrameResponse((_, response) => {
-      if (response.success) {
-        const uint8Array = new Uint8Array(response.data as Uint8Array);
-        const blob = new Blob([uint8Array], { type: "image/png" });
-        const reader = new FileReader();
-        reader.onloadend = async (): Promise<void> => {
-          const dataURL = reader.result as string;
-          if (this.workArea) {
-            await this.workArea.addImageElement(dataURL);
-          }
-        };
-        reader.readAsDataURL(blob);
-      }
-      this.eventBus.emit("alert:add", {
-        message: response.message,
-        type: response.success ? "success" : "error",
-      });
-    });
-
-    window.api.onLoadProjectResponse((_, response) => {
-      this.eventBus.emit("alert:add", {
-        message: response.message,
-        type: response.success ? "success" : "error",
-      });
-      if (response.success) {
-        this.loadOrCreateNewProject(response.data as Partial<IProjectData>);
-      }
-    });
-
-    window.api.onSaveProjectResponse((_, response) => {
-      this.eventBus.emit("alert:add", {
-        message: response.message,
-        type: response.success ? "success" : "error",
-      });
-    });
-    window.api.onRequestNewProject(() => {
-      this.eventBus.emit("dialog:newProject:open");
-    });
-    window.api.onRequestLoadProject(() => {
-      window.api.loadProject();
-    });
-    window.api.onRequestSaveProject(() => {
-      const projectData = this.saveProject();
-      window.api.saveProject(projectData);
-    });
-    window.api.onRequestSaveProjectAs(() => {
-      const projectData = this.saveProject();
-      window.api.saveProjectAs(projectData);
-    });
-    window.api.onRequestCloseProject(() => {
-      this.eventBus.emit("workarea:clear");
-    });
-    window.api.onRequestProjectProperties((_, info) => {
-      if (this.workArea?.canvas) {
-        info.size = {
-          width: this.workArea.canvas.width,
-          height: this.workArea.canvas.height,
-        };
-      }
-      this.eventBus.emit("dialog:projectProperties:open", {
-        appVersion: info.appVersion,
-        lastSavedFile: info.lastSavedFile,
-        size: info.size,
-        title: this.projectTitle,
-      });
-    });
-    window.api.onRequestShowAboutDialog(() => {
-      this.eventBus.emit("dialog:about:open");
-    });
-
-    window.api.onRotateClockwise(() => {
-      this.eventBus.emit("workarea:rotate-clockwise");
-    });
-
-    window.api.onRotateAntiClockwise(() => {
-      this.eventBus.emit("workarea:rotate-anti-clockwise");
-    });
-
-    window.api.onFlipHorizontal(() => {
-      this.eventBus.emit("workarea:flip-horizontal");
-    });
-
-    window.api.onFlipVertical(() => {
-      this.eventBus.emit("workarea:flip-vertical");
-    });
-
-    window.api.onCopyToClipboard(this.handleCopyCommand);
-    window.api.onPasteFromClipboard(this.handlePasteCommand);
-
+    // window.api.onSaveProjectResponse((_, response) => {
+    //   this.eventBus.emit("alert:add", {
+    //     message: response.message,
+    //     type: response.success ? "success" : "error",
+    //   });
+    // });
+    listen("request-new-project", () => this.eventBus.emit("dialog:newProject:open"));
+    // window.api.onRequestLoadProject(() => {
+    //   window.api.loadProject();
+    // });
+    // window.api.onRequestSaveProject(() => {
+    //   const projectData = this.saveProject();
+    //   window.api.saveProject(projectData);
+    // });
+    // window.api.onRequestSaveProjectAs(() => {
+    //   const projectData = this.saveProject();
+    //   window.api.saveProjectAs(projectData);
+    // });
+    listen("request-close-project", () => this.eventBus.emit("workarea:clear"));
+    // window.api.onRequestProjectProperties((_, info) => {
+    //   if (this.workArea?.canvas) {
+    //     info.size = {
+    //       width: this.workArea.canvas.width,
+    //       height: this.workArea.canvas.height,
+    //     };
+    //   }
+    //   this.eventBus.emit("dialog:projectProperties:open", {
+    //     appVersion: info.appVersion,
+    //     lastSavedFile: info.lastSavedFile,
+    //     size: info.size,
+    //     title: this.projectTitle,
+    //   });
+    // });
+    listen("request-show-about-dialog", () =>  this.eventBus.emit("dialog:about:open"));
+    listen("workarea:rotate-clockwise", () => this.eventBus.emit("workarea:rotate-clockwise"));
+    listen("workarea:rotate-anti-clockwise", () => this.eventBus.emit("workarea:rotate-anti-clockwise"));
+    listen("workarea:flip-horizontal", () => this.eventBus.emit("workarea:flip-horizontal"));
+    listen("workarea:flip-vertical", () => this.eventBus.emit("workarea:flip-vertical"));
+    listen("copy-to-clipboard", () => this.handleCopyCommand());
+    listen("paste-from-clipboard", () => this.handlePasteCommand());
     window.addEventListener("copy", this.handleCopyCommand);
     window.addEventListener("paste", this.handlePasteCommand);
     window.addEventListener("resize", this.handleResizeWindow);
@@ -210,8 +196,7 @@ export class MainWindow {
     });
     this.eventBus.on("workarea:offset:get", () => this.offset);
     this.eventBus.on("workarea:project:save", () => this.saveProject());
-    this.eventBus.on("workarea:clear", () => {
-      window.api.setWindowTitle("");
+    this.eventBus.on("workarea:clear", async () => {
       if (this.workArea) {
         this.workArea.destroy();
         this.workArea = null;
@@ -234,7 +219,6 @@ export class MainWindow {
     );
     this.eventBus.on("workarea:updateProperties", ({ title }) => {
       this.projectTitle = title;
-      window.api.setWindowTitle(this.projectTitle);
     });
     this.eventBus.on("workarea:update", this.update);
     this.eventBus.on("workarea:adjustForCanvas", ({ position }) =>
@@ -244,7 +228,11 @@ export class MainWindow {
       this.adjustForScreen(position),
     );
     this.eventBus.on("selection:changed", ({ selectedElements }) => {
-      window.api.selectionChanged(selectedElements.length > 0);
+      invoke("enable_copy", { isEnabled: selectedElements.length > 0 });
+    });
+
+    this.eventBus.on("workarea:addImage", (dataUrl: string) => {
+      this.loadImageOnWorkArea(dataUrl);
     });
 
     if (this.canvas) {
@@ -273,7 +261,6 @@ export class MainWindow {
           const newElement = await this.workArea.addImageElement(imgString);
           newElement.layerName = `Camada ${newElement.elementId}`;
           this.projectTitle = "Sem título";
-          window.api.setWindowTitle(this.projectTitle);
           this.handleResizeWindow();
           this.eventBus.emit("workarea:initialized");
           this.eventBus.emit("workarea:selectById", {
@@ -514,7 +501,6 @@ export class MainWindow {
     this.projectTitle = projectData?.title || "Sem título";
     this.workArea.setWorkAreaSize(projectData.workAreaSize);
     await this.workArea.loadElements(projectData?.elements);
-    window.api.setWindowTitle(this.projectTitle);
     this.handleResizeWindow();
     this.eventBus.emit("workarea:initialized");
   };
