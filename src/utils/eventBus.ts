@@ -112,6 +112,7 @@ export interface EventBusMap {
       title: string;
       size: Size;
       appVersion: string;
+      filePath?: string | null;
     };
     result: unknown;
   };

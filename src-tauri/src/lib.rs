@@ -95,6 +95,9 @@ pub fn run() {
             )?;
             let properties = MenuItem::with_id(handle, "properties", "Propriedades", false, None::<&str>)?;
             let close_project = MenuItem::with_id(handle, "close-project", "Fechar projeto", false, None::<&str>)?;
+            let import_image = MenuItem::with_id(handle, "import-image", "Importar Imagem", true, None::<&str>)?;
+            let extract_video = MenuItem::with_id(handle, "extract-video", "Extrair de Vídeo", true, None::<&str>)?;
+            let export_image = MenuItem::with_id(handle, "export-image", "Exportar Imagem", true, None::<&str>)?;
             let quit = MenuItem::with_id(handle, "quit", "Sair", true, None::<&str>)?;
 
             let file_menu = Submenu::with_items(
@@ -107,9 +110,13 @@ pub fn run() {
                     &separator,
                     &save_project.clone(),
                     &save_project_as.clone(),
-                    &close_project.clone(),
+                    &separator,
+                    &import_image,
+                    &extract_video,
+                    &export_image,
                     &separator,
                     &properties.clone(),
+                    &close_project.clone(),
                     &separator,
                     &quit,
                 ],
@@ -189,12 +196,14 @@ pub fn run() {
                                         match std::fs::read_to_string(&path_buf) {
                                             Ok(data) => match serde_json::from_str::<serde_json::Value>(&data) {
                                                 Ok(project_data) => {
+                                                    let file_path_str = path_buf.to_string_lossy().to_string();
                                                     let _ = window_clone.emit(
                                                         "load-project-response",
                                                         serde_json::json!({
                                                             "success": true,
                                                             "message": "Projeto carregado com sucesso.",
                                                             "data": project_data,
+                                                            "filePath": file_path_str,
                                                         }),
                                                     );
                                                     if let Ok(mut status) =
@@ -294,6 +303,17 @@ pub fn run() {
                     }
                     "rotate-90-ccw" => {
                         let _ = window.emit("workarea:rotate-anti-clockwise", ());
+                    }
+                    "import-image" => {
+                        let _ = window.emit("menu:loading-show", "Importando imagem...");
+                        let _ = window.emit("menu:import-image", ());
+                    }
+                    "extract-video" => {
+                        let _ = window.emit("menu:loading-show", "Extraindo vídeo...");
+                        let _ = window.emit("menu:extract-video", ());
+                    }
+                    "export-image" => {
+                        let _ = window.emit("menu:export-image", ());
                     }
                     "about" => {
                         let _ = window.emit("request-show-about-dialog", ());

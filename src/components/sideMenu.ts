@@ -1,18 +1,10 @@
-import exportImageIconSrc from "src/assets/icons/export-image.svg";
-import extractVideoIconSrc from "src/assets/icons/extract-video.svg";
-import importImageIconSrc from "src/assets/icons/import-image.svg";
-import loadProjectIconSrc from "src/assets/icons/load-project.svg";
-import saveProjectIconSrc from "src/assets/icons/save-project.svg";
 import { GradientMenu } from "src/components/gradientMenu";
 import { LayersMenu } from "src/components/layersMenu";
 import { TextMenu } from "src/components/textMenu";
 import { SIDE_MENU_WIDTH } from "src/constants";
 import type { EventBus } from "src/utils/eventBus";
 import getElementById from "src/utils/getElementById";
-import createIconButton from "./helpers/createIconButton";
 import { TransformMenu } from "./transformMenu";
-import { invoke } from "@tauri-apps/api/core";
-import { emit } from "@tauri-apps/api/event";
 
 export class SideMenu {
   private static instance: SideMenu | null = null;
@@ -37,50 +29,6 @@ export class SideMenu {
     this.sideMenu.setAttribute("style", `width: ${SIDE_MENU_WIDTH}px;`);
     const domElements: HTMLElement[] = [];
 
-    const importImageBtn = createIconButton(
-      "btn_import-image",
-      "Importar Imagem",
-      importImageIconSrc,
-      () => window.api.loadImage(),
-    );
-    const exportImageBtn = createIconButton(
-      "btn_export-image",
-      "Exportar Imagem",
-      exportImageIconSrc,
-      () => this.eventBus.emit("dialog:exportImage:open"),
-    );
-
-    const saveProjectBtn = createIconButton(
-      "btn_save-project",
-      "Salvar Projeto",
-      saveProjectIconSrc,
-      () => {
-        emit("request-save-project", {});
-      },
-    );
-    const loadProjectBtn = createIconButton(
-      "btn_load-project",
-      "Carregar Projeto",
-      loadProjectIconSrc,
-      () => { emit("request-load-project", {}); },
-    );
-    const openVideoBtn = createIconButton(
-      "btn_open-video",
-      "Extrair de Vídeo",
-      extractVideoIconSrc,
-      () => window.api.loadVideo(),
-    );
-
-    const projectOptionsDiv = document.createElement("div");
-    projectOptionsDiv.className = "sec_menu-style container g-05 jc-sb";
-    projectOptionsDiv.append(
-      loadProjectBtn,
-      saveProjectBtn,
-      importImageBtn,
-      openVideoBtn,
-      exportImageBtn,
-    );
-
     const otherMenusDiv = document.createElement("div");
     otherMenusDiv.className = "container column g-05 jc-sb";
     otherMenusDiv.style.overflowY = 'auto';
@@ -94,7 +42,6 @@ export class SideMenu {
     );
 
     domElements.push(
-      projectOptionsDiv,
       otherMenusDiv,
     );
 

@@ -2,8 +2,6 @@ import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
 import type { ISliderControl } from "../helpers/createSliderControl";
 import createSliderControl from "../helpers/createSliderControl";
-import type { ITextInput } from "../helpers/createTextInput";
-import createTextInput from "../helpers/createTextInput";
 import type { ISelectInput } from "../helpers/createSelectInput";
 import createSelectInput from "../helpers/createSelectInput";
 import type { Size } from "../types";
@@ -19,12 +17,12 @@ export class DialogProjectProperties extends Dialog {
   private eventBus: EventBus;
   private workAreaWidthInput: ISliderControl | null = null;
   private workAreaHeightInput: ISliderControl | null = null;
-  private projectNameInput: ITextInput | null = null;
   private templatesInput: ISelectInput | null = null;
 
   private currentTitle = "";
   private currentSize: Size = { width: 1920, height: 1080 };
   private appVersion = APP_VERSION;
+  private currentFilePath: string | null = null;
 
   constructor(eventBus: EventBus) {
     super({
@@ -36,12 +34,9 @@ export class DialogProjectProperties extends Dialog {
     this.eventBus.on("dialog:projectProperties:open", (payload) => {
       this.currentTitle = payload.title;
       this.currentSize = { ...payload.size };
+      this.currentFilePath = payload.filePath ?? null;
       this.open();
     });
-  }
-
-  private handleNameInput(title: string): void {
-    this.currentTitle = title;
   }
 
   private handleWidthInput(newValue: number): void {
@@ -67,13 +62,6 @@ export class DialogProjectProperties extends Dialog {
 
   protected appendDialogContent(container: HTMLDivElement): void {
     container.className = "container column jc-c g-05";
-
-    this.projectNameInput = createTextInput(
-      "project-properties-name-input",
-      "Nome do Projeto",
-      { min: 0, max: 75, style: { width: "auto" }, value: this.currentTitle },
-      (v) => this.handleNameInput(v),
-    );
 
     this.workAreaWidthInput = createSliderControl(
       "inp_properties-width",
@@ -109,12 +97,15 @@ export class DialogProjectProperties extends Dialog {
     infoContainer.style.fontSize = "0.8rem";
     infoContainer.style.opacity = "0.7";
 
+    const fileInfo = document.createElement("div");
+    fileInfo.innerHTML = `<strong>Arquivo:</strong> <span id="prop-file-name"></span>`;
+
     const versionInfo = document.createElement("div");
     versionInfo.innerHTML = `<strong>Versão da aplicação:</strong> ${this.appVersion}`;
 
+    infoContainer.appendChild(fileInfo);
     infoContainer.appendChild(versionInfo);
 
-    container.appendChild(this.projectNameInput.element);
     container.appendChild(this.templatesInput.element);
     container.appendChild(this.workAreaWidthInput.element);
     container.appendChild(this.workAreaHeightInput.element);
@@ -122,19 +113,23 @@ export class DialogProjectProperties extends Dialog {
   }
 
   protected onOpen(): void {
-    this.projectNameInput?.enable();
     this.workAreaWidthInput?.enable();
     this.workAreaHeightInput?.enable();
     this.templatesInput?.enable();
 
-    this.projectNameInput?.setValue(this.currentTitle);
     this.workAreaWidthInput?.setValue(this.currentSize.width);
     this.workAreaHeightInput?.setValue(this.currentSize.height);
     this.templatesInput?.setValue("CUSTOM");
+
+    const fileInfo = this.dialogContent?.querySelector("#prop-file-name");
+    if (fileInfo) {
+      fileInfo.textContent = this.currentFilePath
+        ? this.currentFilePath.split(/[/\\]/).pop() ?? "Ainda não salvo"
+        : "Ainda não salvo";
+    }
   }
 
   protected onClose(): void {
-    this.projectNameInput?.disable();
     this.workAreaWidthInput?.disable();
     this.workAreaHeightInput?.disable();
     this.templatesInput?.disable();

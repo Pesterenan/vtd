@@ -1,5 +1,6 @@
 import type { EventBus } from "src/utils/eventBus";
 import { Dialog } from "./dialog";
+import { invoke } from "@tauri-apps/api/core";
 
 function formatBytes(bytes: number, decimals = 2) {
   if (bytes === 0) return "0 Bytes";
@@ -160,7 +161,15 @@ export class DialogExportImage extends Dialog {
             "#slc_export-format",
           ) as HTMLSelectElement;
           const format = exportFormatSelector.value;
-          window.api.exportCanvas(format, this.latestDataURL);
+          invoke<{ success: boolean; message: string }>("export_canvas", {
+            format,
+            dataString: this.latestDataURL,
+          }).then((response) => {
+            this.eventBus.emit("alert:add", {
+              message: response.message,
+              type: response.success ? "success" : "error",
+            });
+          });
         }
         this.close();
       });
