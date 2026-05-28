@@ -329,6 +329,7 @@ export class MainWindow {
           this.projectTitle = "Sem título";
           this.handleResizeWindow();
           this.eventBus.emit("workarea:initialized");
+          invoke("initialize_project_state", { title: "Sem título" });
           this.eventBus.emit("workarea:selectById", {
             elementsId: new Set([newElement.elementId]),
           });
@@ -373,7 +374,7 @@ export class MainWindow {
       this.copiedElements = selectedElements.map((el) =>
         el.serialize(),
       ) as TElementData[];
-      window.api.clipboardChanged(this.copiedElements.length > 0);
+      invoke("enable_paste", { isEnabled: true });
       this.eventBus.emit("alert:add", {
         message: `${this.copiedElements.length > 1 ? "Elementos copiados" : "Elemento copiado"} para a área de transferência`,
         type: "success",
@@ -569,6 +570,7 @@ export class MainWindow {
     await this.workArea.loadElements(projectData?.elements);
     this.handleResizeWindow();
     this.eventBus.emit("workarea:initialized");
+    invoke("initialize_project_state", { title: this.projectTitle });
   };
 
   public saveProject(): Partial<IProjectData> {

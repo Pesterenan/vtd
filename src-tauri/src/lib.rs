@@ -28,6 +28,7 @@ pub struct MenuHandles {
 #[derive(Default)]
 struct AppStatus {
     current_file_path: Option<PathBuf>,
+    display_title: Option<String>,
     is_modified: bool,
 }
 
@@ -39,6 +40,8 @@ fn build_window_title(status: &AppStatus) -> String {
             title.push_str(" *");
         }
         title
+    } else if let Some(display_title) = &status.display_title {
+        format!("{} - {}", APP_NAME, display_title)
     } else {
         APP_NAME.to_string()
     }
@@ -50,6 +53,28 @@ fn update_window_title(app_handle: &tauri::AppHandle) {
             let title = build_window_title(&status);
             let _ = window.set_title(&title);
         }
+    }
+}
+
+#[tauri::command]
+fn initialize_project_state(app: tauri::AppHandle, title: String) {
+    if let Ok(mut status) = app.state::<Mutex<AppStatus>>().lock() {
+        if status.current_file_path.is_none() {
+            status.display_title = Some(title);
+        }
+    }
+    update_window_title(&app);
+    if let Some(handles) = app.try_state::<MenuHandles>() {
+        handles.save_project.set_enabled(true).unwrap_or(());
+        handles.save_project_as.set_enabled(true).unwrap_or(());
+        handles.properties.set_enabled(true).unwrap_or(());
+        handles.close_project.set_enabled(true).unwrap_or(());
+        handles.copy.set_enabled(true).unwrap_or(());
+        handles.paste.set_enabled(true).unwrap_or(());
+        handles.flip_horiz.set_enabled(true).unwrap_or(());
+        handles.flip_vert.set_enabled(true).unwrap_or(());
+        handles.rotate_90_cw.set_enabled(true).unwrap_or(());
+        handles.rotate_90_ccw.set_enabled(true).unwrap_or(());
     }
 }
 
@@ -75,6 +100,7 @@ pub fn run() {
             misc::read_clipboard_image,
             misc::read_image_file,
             misc::save_project_file,
+            initialize_project_state,
         ])
         .setup(|app| {
             let handle = app.handle();
@@ -271,6 +297,7 @@ pub fn run() {
                         let _ = window.emit("request-close-project", ());
                         if let Ok(mut status) = app_handle.state::<Mutex<AppStatus>>().lock() {
                             status.current_file_path = None;
+                            status.display_title = None;
                             status.is_modified = false;
                         }
                         update_window_title(&app_handle);
