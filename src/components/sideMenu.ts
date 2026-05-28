@@ -14,7 +14,7 @@ export class SideMenu {
   private textMenu: HTMLElement;
   private transformMenu: HTMLElement;
 
-  constructor(private eventBus: EventBus) {
+  constructor(eventBus: EventBus) {
     this.sideMenu = document.createElement("menu");
     this.transformMenu = TransformMenu.getInstance(eventBus).getMenu();
     this.layersMenu = LayersMenu.getInstance(eventBus).getMenu();

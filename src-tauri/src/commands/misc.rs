@@ -163,22 +163,6 @@ fn read_arboard_image(cb: &mut arboard::Clipboard) -> Option<String> {
 }
 
 #[tauri::command]
-pub fn read_image_file(path: String) -> CommandResponse<String> {
-    match encode_image_file(Path::new(&path)) {
-        Some(data_url) => CommandResponse {
-            success: true,
-            message: format!("Imagem carregada: {}", Path::new(&path).file_name().unwrap_or_default().to_string_lossy()),
-            data: Some(data_url),
-        },
-        None => CommandResponse {
-            success: false,
-            message: "Arquivo não é uma imagem suportada.".to_string(),
-            data: None,
-        },
-    }
-}
-
-#[tauri::command]
 pub fn read_clipboard_image() -> CommandResponse<String> {
     // Try arboard first (for bitmap data from image editors)
     if let Ok(mut cb) = arboard::Clipboard::new() {

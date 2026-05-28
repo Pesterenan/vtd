@@ -98,7 +98,6 @@ pub fn run() {
             misc::enable_paste,
             misc::check_clipboard,
             misc::read_clipboard_image,
-            misc::read_image_file,
             misc::save_project_file,
             initialize_project_state,
         ])
