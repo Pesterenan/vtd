@@ -184,6 +184,7 @@ pub fn run() {
                         let _ = window.emit("request-new-project", ());
                     }
                     "load-project" => {
+                        let _ = window.emit("menu:loading-show", "Carregando projeto...");
                         let window_clone = window.clone();
                         let dialog = window_clone.dialog().clone();
 

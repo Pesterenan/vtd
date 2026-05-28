@@ -107,6 +107,14 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "loading:show": {
+    payload: undefined;
+    result: unknown;
+  };
+  "loading:hide": {
+    payload: undefined;
+    result: unknown;
+  };
   "dialog:projectProperties:open": {
     payload: {
       title: string;

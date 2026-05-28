@@ -21,6 +21,7 @@ import { RotateTool } from "./tools/rotateTool";
 import { TextTool } from "./tools/textTool";
 import { remap } from "src/utils/easing";
 import { DialogAbout } from "./dialogs/DialogAbout";
+import { LoadingOverlay } from "./loadingOverlay";
 import { version as APP_VERSION } from "../../package.json";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -38,6 +39,7 @@ export class MainWindow {
   public currentTool: TOOL = TOOL.SELECT;
   public lastTool: TOOL | null = TOOL.SELECT;
 
+  private loadingOverlay: LoadingOverlay;
   private projectTitle = "";
   private currentProjectPath: string | null = null;
   private copiedElements: TElementData[] = [];
@@ -51,6 +53,7 @@ export class MainWindow {
     new DialogNewProject(eventBus);
     new DialogProjectProperties(eventBus);
     new DialogAbout(eventBus);
+    this.loadingOverlay = new LoadingOverlay(100);
     if (this.canvas) {
       this.toolManager = new ToolManager(this.canvas, this.eventBus);
       this.tools = {
@@ -125,17 +128,22 @@ export class MainWindow {
     //   });
     // });
     //
-    listen<{ success: boolean; message: string; data?: unknown }>('load-project-response', (event) => {
-      const { success, message, data } = event.payload;
+    listen<string>("menu:loading-show", (event) => {
+      this.loadingOverlay.show(event.payload);
+    });
+    listen<{ success: boolean; message: string; data?: unknown; filePath?: string }>('load-project-response', async (event) => {
+      const { success, message, data, filePath } = event.payload;
       this.eventBus.emit("alert:add", {
         message,
         type: success ? "success" : "error",
       });
       if (success) {
-        this.loadOrCreateNewProject(data as Partial<IProjectData>);
+        this.currentProjectPath = filePath ?? null;
+        await this.loadOrCreateNewProject(data as Partial<IProjectData>);
       } else {
         console.error(message);
       }
+      this.loadingOverlay.hide();
     });
     // window.api.onSaveProjectResponse((_, response) => {
     //   this.eventBus.emit("alert:add", {
@@ -151,6 +159,7 @@ export class MainWindow {
       const projectData = this.saveProject();
       if (Object.keys(projectData).length === 0) return;
 
+      this.loadingOverlay.show("Salvando projeto...");
       const result = await invoke<{ success: boolean; message: string; data?: string }>(
         "save_project_file",
         {
@@ -158,6 +167,7 @@ export class MainWindow {
           filePath: this.currentProjectPath,
         },
       );
+      this.loadingOverlay.hide();
       this.eventBus.emit("alert:add", {
         message: result.message,
         type: result.success ? "success" : "error",
@@ -170,6 +180,7 @@ export class MainWindow {
       const projectData = this.saveProject();
       if (Object.keys(projectData).length === 0) return;
 
+      this.loadingOverlay.show("Salvando projeto...");
       const result = await invoke<{ success: boolean; message: string; data?: string }>(
         "save_project_file",
         {
@@ -177,6 +188,7 @@ export class MainWindow {
           filePath: null,
         },
       );
+      this.loadingOverlay.hide();
       this.eventBus.emit("alert:add", {
         message: result.message,
         type: result.success ? "success" : "error",
@@ -184,6 +196,31 @@ export class MainWindow {
       if (result.success && result.data) {
         this.currentProjectPath = result.data;
       }
+    });
+    listen("menu:import-image", () => {
+      invoke<{ success: boolean; message: string; data?: string }>("load_image").then((response) => {
+        this.eventBus.emit("alert:add", {
+          message: response.message,
+          type: response.success ? "success" : "error",
+        });
+        if (response.success) {
+          this.eventBus.emit("workarea:addImage", response.data);
+        }
+      }).finally(() => this.loadingOverlay.hide());
+    });
+    listen("menu:extract-video", () => {
+      invoke<{ success: boolean; message: string; data?: unknown }>("load_video").then((response) => {
+        this.eventBus.emit("alert:add", {
+          message: response.message,
+          type: response.success ? "success" : "error",
+        });
+        if (response.success) {
+          invoke("create_frame_extractor_window", { metadata: response.data });
+        }
+      }).finally(() => this.loadingOverlay.hide());
+    });
+    listen("menu:export-image", () => {
+      this.eventBus.emit("dialog:exportImage:open");
     });
     listen("request-close-project", () => this.eventBus.emit("workarea:clear"));
     listen("request-project-properties", () => {
@@ -194,6 +231,7 @@ export class MainWindow {
           height: this.workArea?.canvas?.height ?? 1080,
         },
         title: this.projectTitle,
+        filePath: this.currentProjectPath,
       });
     });
     listen("request-show-about-dialog", () => this.eventBus.emit("dialog:about:open"));
