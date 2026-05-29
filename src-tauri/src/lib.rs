@@ -178,7 +178,9 @@ pub fn run() {
             // --- CONSTRUIR MENU COMPLETO ---
             let menu = Menu::with_items(handle, &[&file_menu, &edit_menu, &image_menu, &help_menu])?;
 
-            app.set_menu(menu.clone())?;
+            if let Some(main_window) = app.get_webview_window("main") {
+                let _ = main_window.set_menu(menu);
+            }
 
             let menu_handles = MenuHandles {
                 save_project,
@@ -196,12 +198,31 @@ pub fn run() {
 
             // --- ESCUTAR CLIQUES DO MENU ---
             app.on_menu_event(move |window, event| {
+                let app_handle = window.app_handle().clone();
+
+                // Eventos do menu do Extrator de Quadros (prefixo "vfe:")
+                let event_id = event.id.as_ref();
+                if event_id.starts_with("vfe:") {
+                    match event_id {
+                        "vfe:extract-frame" | "vfe:copy-frame" => {
+                            if let Some(vfe_window) = window.get_webview_window("frame-extractor") {
+                                let _ = vfe_window.emit(event_id, ());
+                            }
+                        }
+                        "vfe:close" => {
+                            if let Some(vfe_window) = window.get_webview_window("frame-extractor") {
+                                let _ = vfe_window.close();
+                            }
+                        }
+                        _ => {}
+                    }
+                    return;
+                }
+
                 use tauri::Emitter;
                 use tauri_plugin_dialog::DialogExt;
 
-                let app_handle = window.app_handle().clone();
-
-                match event.id.as_ref() {
+                match event_id {
                     "quit" => {
                         app_handle.exit(0);
                     }
@@ -284,16 +305,16 @@ pub fn run() {
                             });
                     }
                     "save-project" => {
-                        let _ = window.emit("request-save-project", ());
+                        let _ = app_handle.emit("request-save-project", ());
                     }
                     "save-project-as" => {
-                        let _ = window.emit("request-save-project-as", ());
+                        let _ = app_handle.emit("request-save-project-as", ());
                     }
                     "properties" => {
-                        let _ = window.emit("request-project-properties", ());
+                        let _ = app_handle.emit("request-project-properties", ());
                     }
                     "close-project" => {
-                        let _ = window.emit("request-close-project", ());
+                        let _ = app_handle.emit("request-close-project", ());
                         if let Ok(mut status) = app_handle.state::<Mutex<AppStatus>>().lock() {
                             status.current_file_path = None;
                             status.display_title = None;
@@ -314,36 +335,36 @@ pub fn run() {
                         }
                     }
                     "copy" => {
-                        let _ = window.emit("copy-to-clipboard", ());
+                        let _ = app_handle.emit("copy-to-clipboard", ());
                     }
                     "paste" => {
-                        let _ = window.emit("paste-from-clipboard", ());
+                        let _ = app_handle.emit("paste-from-clipboard", ());
                     }
                     "flip-horiz" => {
-                        let _ = window.emit("workarea:flip-horizontal", ());
+                        let _ = app_handle.emit("workarea:flip-horizontal", ());
                     }
                     "flip-vert" => {
-                        let _ = window.emit("workarea:flip-vertical", ());
+                        let _ = app_handle.emit("workarea:flip-vertical", ());
                     }
                     "rotate-90-cw" => {
-                        let _ = window.emit("workarea:rotate-clockwise", ());
+                        let _ = app_handle.emit("workarea:rotate-clockwise", ());
                     }
                     "rotate-90-ccw" => {
-                        let _ = window.emit("workarea:rotate-anti-clockwise", ());
+                        let _ = app_handle.emit("workarea:rotate-anti-clockwise", ());
                     }
                     "import-image" => {
-                        let _ = window.emit("menu:loading-show", "Importando imagem...");
-                        let _ = window.emit("menu:import-image", ());
+                        let _ = app_handle.emit("menu:loading-show", "Importando imagem...");
+                        let _ = app_handle.emit("menu:import-image", ());
                     }
                     "extract-video" => {
-                        let _ = window.emit("menu:loading-show", "Extraindo vídeo...");
-                        let _ = window.emit("menu:extract-video", ());
+                        let _ = app_handle.emit("menu:loading-show", "Extraindo vídeo...");
+                        let _ = app_handle.emit("menu:extract-video", ());
                     }
                     "export-image" => {
-                        let _ = window.emit("menu:export-image", ());
+                        let _ = app_handle.emit("menu:export-image", ());
                     }
                     "about" => {
-                        let _ = window.emit("request-show-about-dialog", ());
+                        let _ = app_handle.emit("request-show-about-dialog", ());
                     }
                     _ => {}
                 }

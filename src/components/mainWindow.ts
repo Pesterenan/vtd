@@ -84,53 +84,18 @@ export class MainWindow {
   }
 
   private createEventListeners() {
-    getCurrentWindow().onResized(this.handleResizeWindow);
-    // window.api.onExportCanvasResponse((_, response) => {
-    //   this.eventBus.emit("alert:add", {
-    //     type: response.success ? "success" : "error",
-    //     message: response.message,
-    //   });
-    // });
-    // window.api.onLoadVideoResponse((_, response) => {
-    //   this.eventBus.emit("alert:add", {
-    //     message: response.message,
-    //     type: response.success ? "success" : "error",
-    //   });
-    // });
-    //
-    // window.api.onLoadImageResponse(async (_, response) => {
-    //   this.eventBus.emit("alert:add", {
-    //     message: response.message,
-    //     type: response.success ? "success" : "error",
-    //   });
-    //   if (response.success) {
-    //     await this.loadImageOnWorkArea(response.data as string);
-    //   }
-    // });
-    //
-    // // TODO: Maybe dead code, verify.
-    // window.api.onProcessVideoFrameResponse((_, response) => {
-    //   if (response.success) {
-    //     const uint8Array = new Uint8Array(response.data as Uint8Array);
-    //     const blob = new Blob([uint8Array], { type: "image/png" });
-    //     const reader = new FileReader();
-    //     reader.onloadend = async (): Promise<void> => {
-    //       const dataURL = reader.result as string;
-    //       if (this.workArea) {
-    //         await this.workArea.addImageElement(dataURL);
-    //       }
-    //     };
-    //     reader.readAsDataURL(blob);
-    //   }
-    //   this.eventBus.emit("alert:add", {
-    //     message: response.message,
-    //     type: response.success ? "success" : "error",
-    //   });
-    // });
-    //
-    listen<string>("menu:loading-show", (event) => {
-      this.loadingOverlay.show(event.payload);
+    // Backend Listeners
+    listen<{ success: boolean; message: string; data?: string }>('load-image-response', async (event) => {
+      const { message, success, data } = event.payload;
+      this.eventBus.emit("alert:add", {
+        message: message,
+        type: success ? "success" : "error",
+      });
+      if (success) {
+        await this.loadImageOnWorkArea(data as string);
+      }
     });
+    listen<string>("menu:loading-show", (event) => this.loadingOverlay.show(event.payload));
     listen<{ success: boolean; message: string; data?: unknown; filePath?: string }>('load-project-response', async (event) => {
       const { success, message, data, filePath } = event.payload;
       this.eventBus.emit("alert:add", {
@@ -145,16 +110,7 @@ export class MainWindow {
       }
       this.loadingOverlay.hide();
     });
-    // window.api.onSaveProjectResponse((_, response) => {
-    //   this.eventBus.emit("alert:add", {
-    //     message: response.message,
-    //     type: response.success ? "success" : "error",
-    //   });
-    // });
     listen("request-new-project", () => this.eventBus.emit("dialog:newProject:open"));
-    // window.api.onRequestLoadProject(() => {
-    //   window.api.loadProject();
-    // });
     listen("request-save-project", async () => {
       const projectData = this.saveProject();
       if (Object.keys(projectData).length === 0) return;
@@ -241,14 +197,19 @@ export class MainWindow {
     listen("workarea:flip-vertical", () => this.eventBus.emit("workarea:flip-vertical"));
     listen("copy-to-clipboard", () => this.handleCopyCommand());
     listen("paste-from-clipboard", () => this.handlePasteCommand());
+
+    // Window Listeners
+    getCurrentWindow().onResized(this.handleResizeWindow);
+    getCurrentWindow().onFocusChanged(this.handleWindowFocus);
     window.addEventListener("copy", this.handleCopyCommand);
-    window.addEventListener("paste", this.handlePasteCommand);
-    window.addEventListener("resize", this.handleResizeWindow);
+    window.addEventListener("paste", (e: Event) => this.handlePasteCommand(e as ClipboardEvent));
+    window.addEventListener("dragover", this.handleDragOver);
+    window.addEventListener("drop", this.handleDrop);
     window.addEventListener("keypress", this.handleKeyPress);
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
-    window.addEventListener("focus", this.handleWindowFocus);
 
+    // EventBus Listeners
     this.eventBus.on("tool:change", (tool: TOOL) => {
       if (this.toolManager && this.tools) {
         this.toolManager.use(this.tools[tool]);
@@ -295,6 +256,9 @@ export class MainWindow {
     );
     this.eventBus.on("selection:changed", ({ selectedElements }) => {
       invoke("enable_copy", { isEnabled: selectedElements.length > 0 });
+      if (this.copiedElements.length === 0) {
+        this.checkExternalClipboard();
+      }
     });
 
     this.eventBus.on("workarea:addImage", (dataUrl: string) => {
@@ -382,7 +346,7 @@ export class MainWindow {
     }
   };
 
-  public handlePasteCommand = async (): Promise<void> => {
+  public handlePasteCommand = async (event?: ClipboardEvent): Promise<void> => {
     if (this.copiedElements.length > 0 && this.workArea) {
       const newElementsIds: number[] = [];
       let latestZDepth = this.workArea.elements.length;
@@ -413,53 +377,114 @@ export class MainWindow {
         type: "success",
       });
       this.copiedElements.length = 0;
-      window.api.clipboardChanged(false);
-    } else {
-      try {
-        const clipboardItems = await navigator.clipboard.read();
-        for (const item of clipboardItems) {
-          const imageType = item.types.find((type) =>
-            type.startsWith("image/"),
-          );
-          if (imageType) {
-            const blob = await item.getType(imageType);
-            const reader = new FileReader();
-            reader.onload = async (evt) => {
-              await this.loadImageOnWorkArea(evt.target?.result as string);
-              this.eventBus.emit("alert:add", {
-                message: "Imagem copiada da área de transferência.",
-                type: "success",
-              });
-            };
-            reader.readAsDataURL(blob);
-          }
-        }
-      } catch (err) {
-        this.eventBus.emit("alert:add", {
-          message: "Não foi possível colar da área de transferência.",
-          type: "error",
-        });
-      }
+      this.update();
+      return;
     }
+
+    if (event?.clipboardData?.files?.length) {
+      for (const file of event.clipboardData.files) {
+        if (file.type.startsWith("image/")) {
+          const reader = new FileReader();
+          reader.onload = async (evt) => {
+            await this.loadImageOnWorkArea(evt.target?.result as string);
+            this.eventBus.emit("alert:add", {
+              message: `Imagem "${file.name}" colada.`,
+              type: "success",
+            });
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+      this.update();
+      return;
+    }
+
+    await this.pasteFromExternalClipboard();
     this.update();
   };
 
+  private handleDragOver = (e: DragEvent): void => {
+    console.log("[DEBUG] window dragover", { types: e.dataTransfer?.types, dropEffect: e.dataTransfer?.dropEffect, hasFiles: e.dataTransfer?.types.includes("Files") });
+    e.preventDefault();
+    if (e.dataTransfer?.types.includes("Files")) {
+      e.dataTransfer.dropEffect = "copy";
+    }
+  };
+
+  private handleDrop = async (e: DragEvent): Promise<void> => {
+    console.log("[DEBUG] window drop", { filesLength: e.dataTransfer?.files.length });
+    if (!e.dataTransfer?.files.length) return;
+    e.preventDefault();
+    for (const file of e.dataTransfer.files) {
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+          await this.loadImageOnWorkArea(evt.target?.result as string);
+          this.eventBus.emit("alert:add", {
+            message: `Imagem "${file.name}" adicionada.`,
+            type: "success",
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
   private handleWindowFocus = async (): Promise<void> => {
+    if (this.copiedElements.length === 0) {
+      this.checkExternalClipboard();
+    }
+  };
+
+  private checkExternalClipboard = async (): Promise<void> => {
+    const result = await invoke<{ has_image: boolean }>("check_clipboard");
+    if (result.has_image) {
+      invoke("enable_paste", { isEnabled: true });
+    }
+  };
+
+  private pasteFromExternalClipboard = async (): Promise<void> => {
+    try {
+      const result = await invoke<{ success: boolean; message: string; data?: string }>("read_clipboard_image");
+      if (result.success && result.data) {
+        await this.loadImageOnWorkArea(result.data);
+        this.eventBus.emit("alert:add", {
+          message: "Imagem copiada da área de transferência.",
+          type: "success",
+        });
+      } else {
+        this.pasteFromNavigatorClipboard();
+      }
+    } catch {
+      this.pasteFromNavigatorClipboard();
+    }
+  };
+
+  private pasteFromNavigatorClipboard = async (): Promise<void> => {
     try {
       const clipboardItems = await navigator.clipboard.read();
-      let canPaste = false;
       for (const item of clipboardItems) {
-        if (
-          item.types.includes("text/plain") ||
-          item.types.some((type) => type.startsWith("image/"))
-        ) {
-          canPaste = true;
-          break;
+        const imageType = item.types.find((type) =>
+          type.startsWith("image/"),
+        );
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          const reader = new FileReader();
+          reader.onload = async (evt) => {
+            await this.loadImageOnWorkArea(evt.target?.result as string);
+            this.eventBus.emit("alert:add", {
+              message: "Imagem copiada da área de transferência.",
+              type: "success",
+            });
+          };
+          reader.readAsDataURL(blob);
         }
       }
-      window.api.clipboardChanged(this.copiedElements.length > 0 || canPaste);
     } catch (err) {
-      window.api.clipboardChanged(this.copiedElements.length > 0);
+      this.eventBus.emit("alert:add", {
+        message: "Não foi possível colar da área de transferência.",
+        type: "error",
+      });
     }
   };
 

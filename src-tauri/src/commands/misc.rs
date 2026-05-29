@@ -80,16 +80,60 @@ pub async fn create_frame_extractor_window(
     app: AppHandle,
     metadata: super::video::VideoMetadata,
 ) -> CommandResponse<()> {
+    use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
     use tauri::WebviewWindowBuilder;
 
-    let label = format!("frame-extractor-{}", metadata.file_path.replace(|c: char| !c.is_alphanumeric(), "_"));
+    let label = "frame-extractor";
 
-    let metadata_json = serde_json::to_string(&metadata).unwrap();
+    // Se a janela já existe, foca e atualiza o metadata
+    if let Some(window) = app.get_webview_window(label) {
+        let _ = window.set_focus();
+        let _ = window.emit("vfe:video-metadata", &metadata);
+        return CommandResponse { success: true, message: "Janela atualizada com novo vídeo.".to_string(), data: None };
+    }
+
+    // Criar menu específico do Extrator de Quadros
+    let extract_frame = match MenuItem::with_id(&app, "vfe:extract-frame", "Extrair Quadro", true, None::<&str>) {
+        Ok(item) => item,
+        Err(e) => return CommandResponse { success: false, message: format!("Erro ao criar menu: {}", e), data: None },
+    };
+    let copy_frame = match MenuItem::with_id(&app, "vfe:copy-frame", "Copiar Quadro", true, None::<&str>) {
+        Ok(item) => item,
+        Err(e) => return CommandResponse { success: false, message: format!("Erro ao criar menu: {}", e), data: None },
+    };
+    let separator = match PredefinedMenuItem::separator(&app) {
+        Ok(item) => item,
+        Err(e) => return CommandResponse { success: false, message: format!("Erro ao criar menu: {}", e), data: None },
+    };
+    let close = match MenuItem::with_id(&app, "vfe:close", "Fechar", true, None::<&str>) {
+        Ok(item) => item,
+        Err(e) => return CommandResponse { success: false, message: format!("Erro ao criar menu: {}", e), data: None },
+    };
+
+    let extraction_submenu = match Submenu::with_items(
+        &app,
+        "&Extração",
+        true,
+        &[&extract_frame, &copy_frame, &separator, &close],
+    ) {
+        Ok(submenu) => submenu,
+        Err(e) => return CommandResponse { success: false, message: format!("Erro ao criar menu: {}", e), data: None },
+    };
+
+    let vfe_menu = match Menu::with_items(&app, &[&extraction_submenu]) {
+        Ok(menu) => menu,
+        Err(e) => return CommandResponse { success: false, message: format!("Erro ao criar menu: {}", e), data: None },
+    };
+
+    let metadata_json = match serde_json::to_string(&metadata) {
+        Ok(json) => json,
+        Err(e) => return CommandResponse { success: false, message: format!("Erro ao serializar metadata: {}", e), data: None },
+    };
     let init_script = format!("window.__videoMetadata = {};", metadata_json);
 
-    let _window = match WebviewWindowBuilder::new(
+    let window = match WebviewWindowBuilder::new(
         &app,
-        &label,
+        label,
         tauri::WebviewUrl::App("modals/videoFrameExtractor/video-frame-extractor.html".into()),
     )
     .inner_size(800.0, 600.0)
@@ -103,6 +147,9 @@ pub async fn create_frame_extractor_window(
             return CommandResponse { success: false, message: format!("Falha ao criar janela: {}", e), data: None };
         }
     };
+
+    // Aplica o menu específico na janela do VFE (Windows/Linux)
+    let _ = window.set_menu(vfe_menu);
 
     CommandResponse { success: true, message: "Janela do extrator de quadros aberta.".to_string(), data: None }
 }

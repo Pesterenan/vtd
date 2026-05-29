@@ -1,4 +1,6 @@
 import "../../assets/main.css";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { Alerts } from "src/components/alerts/alerts";
 import type { ISelectInput } from "src/components/helpers/createSelectInput";
 import createSelectInput from "src/components/helpers/createSelectInput";
@@ -28,8 +30,6 @@ export class VideoFrameExtractor {
   } | null = null;
   private videoMetadata: (IVideoMetadata & { videoRatio?: number }) | null =
     null;
-  private extractFrameBtn: HTMLButtonElement | null = null;
-  private copyToClipBoardBtn: HTMLButtonElement | null = null;
   private videoDurationSlider: HTMLInputElement | null = null;
   private videoDurationIndicator: HTMLDivElement | null = null;
   private aspectRatioSelect: ISelectInput | null = null;
@@ -43,7 +43,123 @@ export class VideoFrameExtractor {
   private constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
     this.createDOMElements();
+    this.init();
+  }
+
+  private async init(): Promise<void> {
+    await this.loadInitialMetadata();
     this.createEventListeners();
+  }
+
+  private async loadInitialMetadata(): Promise<void> {
+    const metadata = (window as unknown as Record<string, unknown>).__videoMetadata;
+    if (metadata) {
+      this.setupVideoMetadata(metadata as IVideoMetadata);
+    }
+  }
+
+  private setupVideoMetadata(metadata: IVideoMetadata): void {
+    this.videoMetadata = metadata;
+    const { width, height } = metadata;
+    this.videoMetadata.videoRatio = height / width;
+
+    let canvasWidth = PREVIEW_CANVAS_WIDTH;
+    let canvasHeight = Math.ceil(
+      PREVIEW_CANVAS_WIDTH * this.videoMetadata.videoRatio,
+    );
+    if (canvasHeight > PREVIEW_CANVAS_HEIGHT) {
+      canvasHeight = PREVIEW_CANVAS_HEIGHT;
+      canvasWidth = Math.ceil(
+        PREVIEW_CANVAS_HEIGHT / this.videoMetadata.videoRatio,
+      );
+    }
+
+    if (this.preview) {
+      this.preview.canvas.width = canvasWidth;
+      this.preview.canvas.height = canvasHeight;
+      this.extractBox = new ExtractBox(this.preview.canvas, this.eventBus);
+      if (this.aspectRatioSelect) {
+        this.extractBox.setAspectRatio(this.aspectRatioSelect.getValue());
+      }
+    }
+
+    if (this.offScreen) {
+      this.offScreen.canvas.width = width;
+      this.offScreen.canvas.height = height;
+    }
+    if (this.videoMetadata?.totalFrames && this.videoDurationSlider) {
+      this.videoDurationSlider.max = (
+        this.videoMetadata.totalFrames - 1
+      ).toString();
+      this.videoDurationSlider.step = "1";
+    }
+    invoke("generate_thumbnail_sprite", {
+      filePath: metadata.filePath,
+      duration: metadata.duration,
+    })
+      .then((response) => {
+        const result = response as { success: boolean; data?: string };
+        if (result.success) {
+          this.loadThumbnailSprite(result.data as string);
+        }
+      })
+      .catch(console.error);
+
+    invoke("process_video_frame", {
+      filePath: metadata.filePath,
+      timeInSeconds: 0,
+    })
+      .then((response) => {
+        const result = response as { success: boolean; data?: string };
+        if (result.success) {
+          this.loadFrameImage(result.data as string);
+        }
+      })
+      .catch(console.error);
+  }
+
+  private loadThumbnailSprite(dataUrl: string): void {
+    this.thumbnailSprite = new Image();
+    this.thumbnailSprite.src = dataUrl;
+    this.thumbnailSprite.onload = () => {
+      const cols = 10;
+      const rows = 10;
+      if (this.thumbnailSprite) {
+        const sw = this.thumbnailSprite.width / cols;
+        const sh = this.thumbnailSprite.height / rows;
+        this.thumbnailSpriteCells = [];
+        let index = 0;
+        for (let y = 0; y < rows; y++) {
+          for (let x = 0; x < cols; x++) {
+            this.thumbnailSpriteCells.push({
+              index: index++,
+              sx: x * sw,
+              sy: y * sh,
+              sw,
+              sh,
+            });
+          }
+        }
+      }
+    };
+  }
+
+  private loadFrameImage(dataUrl: string): void {
+    if (!this.offScreen || !this.preview || !this.videoMetadata) return;
+    const img = new Image();
+    img.onload = () => {
+      if (this.offScreen) {
+        this.offScreen.context.drawImage(
+          img,
+          0,
+          0,
+          this.offScreen.canvas.width,
+          this.offScreen.canvas.height,
+        );
+        this.update();
+      }
+    };
+    img.src = dataUrl;
   }
 
   private createDOMElements(): void {
@@ -85,13 +201,6 @@ export class VideoFrameExtractor {
       this.offScreen = { canvas: offScreenCanvas, context: offScreenContext };
     }
 
-    this.extractFrameBtn =
-      getElementById<HTMLButtonElement>("btn_extract-frame");
-    this.extractFrameBtn.classList.add("btn-common");
-    this.copyToClipBoardBtn = getElementById<HTMLButtonElement>(
-      "btn_copy-to-clipboard",
-    );
-    this.copyToClipBoardBtn.classList.add("btn-common");
     this.videoDurationSlider =
       getElementById<HTMLInputElement>("sld_video-duration");
     this.videoDurationIndicator = getElementById<HTMLDivElement>(
@@ -133,99 +242,16 @@ export class VideoFrameExtractor {
 
     this.eventBus.on("vfe:update", () => this.update());
 
-    window.api.onVideoMetadata(async (metadata: IVideoMetadata) => {
-      this.videoMetadata = metadata;
-      const { width, height } = metadata;
-      this.videoMetadata.videoRatio = height / width;
-
-      let canvasWidth = PREVIEW_CANVAS_WIDTH;
-      let canvasHeight = Math.ceil(
-        PREVIEW_CANVAS_WIDTH * this.videoMetadata.videoRatio,
-      );
-      if (canvasHeight > PREVIEW_CANVAS_HEIGHT) {
-        canvasHeight = PREVIEW_CANVAS_HEIGHT;
-        canvasWidth = Math.ceil(
-          PREVIEW_CANVAS_HEIGHT / this.videoMetadata.videoRatio,
-        );
-      }
-
-      if (this.preview && this.extractFrameBtn && this.copyToClipBoardBtn) {
-        this.preview.canvas.width = canvasWidth;
-        this.preview.canvas.height = canvasHeight;
-        this.extractBox = new ExtractBox(this.preview.canvas, this.eventBus);
-        if (this.aspectRatioSelect) {
-          this.extractBox.setAspectRatio(this.aspectRatioSelect.getValue());
-        }
-        this.extractFrameBtn.onclick = (): void => {
-          if (this.extractBox) {
-            this.extractFrame();
-          } else {
-            console.error("Extract Box not initialized");
-          }
-        };
-        this.copyToClipBoardBtn.onclick = (): void => {
-          if (this.extract?.canvas) {
-            this.extractFrame(true);
-          } else {
-            console.error("Extract Box not initialized");
-          }
-        };
-      }
-
-      if (this.offScreen) {
-        this.offScreen.canvas.width = width;
-        this.offScreen.canvas.height = height;
-      }
-      if (this.videoMetadata?.totalFrames && this.videoDurationSlider) {
-        this.videoDurationSlider.max = (
-          this.videoMetadata.totalFrames - 1
-        ).toString();
-        this.videoDurationSlider.step = "1";
-      }
-      window.api.generateThumbnailSprite(this.videoMetadata);
-      window.api.processVideoFrame(this.videoMetadata.filePath, 0);
+    listen("vfe:extract-frame", () => {
+      if (this.extractBox) this.extractFrame();
     });
 
-    window.api.onGenerateThumbnailSpriteResponse(async (_, response) => {
-      if (response.success) {
-        this.thumbnailSprite = new Image();
-        this.thumbnailSprite.src = response.data as string;
-        this.thumbnailSprite.onload = () => {
-          const cols = 10;
-          const rows = 10;
-          if (this.thumbnailSprite) {
-            const sw = this.thumbnailSprite.width / cols;
-            const sh = this.thumbnailSprite.height / rows;
-            this.thumbnailSpriteCells = [];
-            let index = 0;
-            for (let y = 0; y < rows; y++) {
-              for (let x = 0; x < cols; x++) {
-                this.thumbnailSpriteCells.push({
-                  index: index++,
-                  sx: x * sw,
-                  sy: y * sh,
-                  sw,
-                  sh,
-                });
-              }
-            }
-          }
-        };
-      }
+    listen("vfe:copy-frame", () => {
+      if (this.extract?.canvas) this.extractFrame(true);
     });
 
-    window.api.onProcessVideoFrameResponse((_, response) => {
-      if (response.success) {
-        if (this.offScreen && this.preview && this.videoMetadata) {
-          const { width, height } = this.offScreen.canvas;
-          const videoFrame = new Uint8ClampedArray(response.data as Uint8Array);
-          const videoFrameData = new ImageData(videoFrame, width, height);
-          this.offScreen.context.putImageData(videoFrameData, 0, 0);
-          this.update();
-        }
-      } else {
-        console.error(response.message);
-      }
+    listen<IVideoMetadata>("vfe:video-metadata", (event) => {
+      this.loadVideo(event.payload);
     });
   }
 
@@ -234,6 +260,16 @@ export class VideoFrameExtractor {
       VideoFrameExtractor.instance = new VideoFrameExtractor(eventBus);
     }
     return VideoFrameExtractor.instance;
+  }
+
+  public loadVideo(metadata: IVideoMetadata): void {
+    this.currentThumbIndex = -1;
+    this.thumbnailSprite = null;
+    this.thumbnailSpriteCells = [];
+    if (this.videoDurationSlider) {
+      this.videoDurationSlider.value = "0";
+    }
+    this.setupVideoMetadata(metadata);
   }
 
   private handleSliderInput(evt: Event): void {
@@ -394,12 +430,7 @@ export class VideoFrameExtractor {
     context.clearRect(0, 0, canvas.width, canvas.height);
   }
 
-  /** Copies the image from the `offScreen.canvas` within a selection to the `extract.canvas` so it
-   * can be sent to the WorkArea as a new element or copied to clipboard.
-   * @param {boolean} toClipboard - if true, copies extracted area to clipboard instead.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-inferrable-types
-  private extractFrame(toClipboard: boolean = false): void {
+  private extractFrame(toClipboard = false): void {
     if (this.offScreen && this.preview && this.extractBox) {
       const { width: previewWidth, height: previewHeight } =
         this.preview.canvas;
@@ -422,7 +453,6 @@ export class VideoFrameExtractor {
         scaledHeight,
       );
 
-      // Atualize o canvas de extração
       if (this.extract) {
         this.extract.canvas.width = scaledWidth;
         this.extract.canvas.height = scaledHeight;
@@ -447,13 +477,12 @@ export class VideoFrameExtractor {
             title: "Quadro Extraído",
             type: "success",
           });
-          window.api.sendFrameToWorkArea(imageUrl);
+          invoke("send_frame_to_work_area", { imageUrl }).catch(console.error);
         }
       }
     }
   }
 
-  /** Queries the video file with the slider value to process the resulting frame */
   private requestProcessFrame(): void {
     if (this.videoMetadata && this.videoDurationSlider) {
       const value = Number(this.videoDurationSlider.value);
@@ -461,11 +490,22 @@ export class VideoFrameExtractor {
         value / this.videoMetadata.frameRate,
         this.videoMetadata.duration,
       );
-      window.api.processVideoFrame(this.videoMetadata.filePath, timeInSeconds);
+      invoke("process_video_frame", {
+        filePath: this.videoMetadata.filePath,
+        timeInSeconds,
+      })
+        .then((response) => {
+          const result = response as { success: boolean; data?: string };
+          if (result.success) {
+            this.loadFrameImage(result.data as string);
+          }
+        })
+        .catch(console.error);
     }
   }
 }
 
 const alertEventBus = new EventBus();
 new Alerts(alertEventBus);
-VideoFrameExtractor.getInstance(alertEventBus);
+const instance = VideoFrameExtractor.getInstance(alertEventBus);
+(window as unknown as Record<string, unknown>).vfeInstance = instance;
