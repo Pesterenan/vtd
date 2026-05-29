@@ -51,7 +51,12 @@ export default defineConfig({
   // Env variables starting with the item of `envPrefix` will be exposed in tauri's source code through `import.meta.env`.
   envPrefix: ['VITE_', 'TAURI_ENV_*'],
   build: {
-
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "src/index.html"),
+        videoFrameExtractor: path.resolve(__dirname, "src/modals/videoFrameExtractor/video-frame-extractor.html"),
+      },
+    },
     // Tauri uses Chromium on Windows and WebKit on macOS and Linux
     target:
       process.env.TAURI_ENV_PLATFORM == 'windows'
