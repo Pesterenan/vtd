@@ -126,6 +126,40 @@ export class LayersMenu {
       ? this.groupTemplate(layer)
       : this.layerTemplate(layer);
 
+    const visLabel = li.querySelector<HTMLLabelElement>(
+      `label[for="inp_visibility-${layer.id}"]`,
+    );
+    if (visLabel) {
+      visLabel.style.setProperty("--icon-url", `url("${ClosedEyeIcon}")`);
+      visLabel.style.setProperty("--checked-icon-url", `url("${OpenEyeIcon}")`);
+    }
+    const lockLabel = li.querySelector<HTMLLabelElement>(
+      `label[for="inp_lock-${layer.id}"]`,
+    );
+    if (lockLabel) {
+      lockLabel.style.setProperty("--icon-url", `url("${UnlockedIcon}")`);
+      lockLabel.style.setProperty("--checked-icon-url", `url("${LockedIcon}")`);
+    }
+    if (isGroup) {
+      const toggleLabel = li.querySelector<HTMLLabelElement>(
+        `label[for="inp_toggle-children-${layer.id}"]`,
+      );
+      if (toggleLabel) {
+        toggleLabel.style.setProperty("--icon-url", `url("${GroupArrowIcon}")`);
+        toggleLabel.style.setProperty(
+          "--checked-icon-url",
+          `url("${GroupArrowIcon}")`,
+        );
+      }
+    } else {
+      const filterLabel = li.querySelector<HTMLLabelElement>(
+        `#btn_filters-${layer.id} label`,
+      );
+      if (filterLabel) {
+        filterLabel.style.setProperty("--icon-url", `url("${FilterIcon}")`);
+      }
+    }
+
     const layerNameSpan = li.querySelector<HTMLSpanElement>(
       `#spn_layer-${layer.id}`,
     );
@@ -457,11 +491,11 @@ export class LayersMenu {
 <div class="container">
   <div class="li_layer-controls">
     <input id="inp_visibility-${layer.id}" class="tgl-common" type="checkbox" ${layer.isVisible ? "checked" : ""} />
-    <label style="--checked-icon-url: url(${OpenEyeIcon}); --icon-url: url(${ClosedEyeIcon});" for="inp_visibility-${layer.id}"></label>
+    <label for="inp_visibility-${layer.id}"></label>
     <input id="inp_lock-${layer.id}" class="tgl-common" type="checkbox" ${layer.isLocked ? "checked" : ""} />
-    <label style="--checked-icon-url: url(${LockedIcon}); --icon-url: url(${UnlockedIcon});" for="inp_lock-${layer.id}"></label>
+    <label for="inp_lock-${layer.id}"></label>
     <input id="inp_toggle-children-${layer.id}" class="tgl-common" type="checkbox" />
-    <label style="--checked-icon-url: url(${GroupArrowIcon}); --icon-url: url(${GroupArrowIcon});" for="inp_toggle-children-${layer.id}"></label>
+    <label for="inp_toggle-children-${layer.id}"></label>
   </div>
   <div class="li_layer-info">
     <input id="inp_layer-${layer.id}"
@@ -480,12 +514,12 @@ export class LayersMenu {
     return `
     <div class="li_layer-controls">
       <input id="inp_visibility-${layer.id}" class="tgl-common" type="checkbox" ${layer.isVisible ? "checked" : ""} />
-      <label style="--checked-icon-url: url(${OpenEyeIcon}); --icon-url: url(${ClosedEyeIcon});" for="inp_visibility-${layer.id}"></label>
+      <label for="inp_visibility-${layer.id}"></label>
       <input id="inp_lock-${layer.id}" class="tgl-common" type="checkbox" ${layer.isLocked ? "checked" : ""} />
-      <label style="--checked-icon-url: url(${LockedIcon}); --icon-url: url(${UnlockedIcon});" for="inp_lock-${layer.id}"></label>
+      <label for="inp_lock-${layer.id}"></label>
       <button id="btn_filters-${layer.id}" class='btn-small'>
         <tooltip title='Editar opções de filtros' />
-        <label style="--icon-url: url(${FilterIcon});" />
+        <label />
       </button>
     </div>
     <div class="li_layer-info">

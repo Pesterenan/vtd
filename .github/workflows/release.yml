@@ -10,33 +10,46 @@ on:
 
 jobs:
   build_and_release:
-    name: Build & Release
+    name: Build & Release (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            bundle: deb
+          - os: windows-latest
+            bundle: nsis
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Build application
-        run: npm run make
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
+            librsvg2-dev patchelf libgtk-3-dev libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build Tauri application
+        run: npx tauri build --bundles ${{ matrix.bundle }}
 
       - name: Upload assets to GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: |
-            out/make/squirrel.windows/x64/*.exe
-            out/make/deb/x64/*.deb
-            out/make/rpm/x64/*.rpm
+          files: src-tauri/target/release/bundle/${{ matrix.bundle }}/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

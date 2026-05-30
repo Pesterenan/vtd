@@ -11,7 +11,7 @@ export default function createIconButton(
 
   const icon = document.createElement("div");
   icon.className = "icon";
-  icon.style.setProperty("--icon-url", `url(${iconSrc})`);
+  icon.style.setProperty("--icon-url", `url("${iconSrc}")`);
   button.appendChild(icon);
   button.addEventListener("click", onClick);
   return button;

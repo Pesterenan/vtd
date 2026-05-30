@@ -18,8 +18,8 @@ export default function createIconRadioButton(
   tooltip.title = tooltipTitle;
   const label = document.createElement("label");
   label.htmlFor = id;
-  label.style.setProperty("--icon-url", `url(${iconSrc})`);
-  label.style.setProperty("--checked-icon-url", `url(${iconSrc})`);
+  label.style.setProperty("--icon-url", `url("${iconSrc}")`);
+  label.style.setProperty("--checked-icon-url", `url("${iconSrc}")`);
   tooltip.append(radioButton, label);
   container.append(tooltip);
   return container;

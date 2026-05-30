@@ -34,37 +34,56 @@ export class ToolMenu {
 </label>
 <button data-tool="${TOOL.SELECT}" class='btn-common active' aria-label='(V) Selecionar elementos'>
   <tooltip title='(V) Selecionar elementos'/>
-  <div class="icon" style="--icon-url: url(${SelectIcon});" />
+  <div class="icon" />
 </button>
 <button data-tool="${TOOL.GRAB}" class='btn-common' aria-label='(G) Mover elementos'>
   <tooltip title='(G) Mover elementos'/>
-  <div class="icon" style="--icon-url: url(${GrabIcon});" />
+  <div class="icon" />
 </button>
 <button data-tool="${TOOL.ROTATE}" class='btn-common' aria-label='(R) Rotacionar elementos'>
   <tooltip title='(R) Rotacionar elementos'/>
-  <div class="icon" style="--icon-url: url(${RotateIcon});" />
+  <div class="icon" />
 </button>
 <button data-tool="${TOOL.SCALE}" class='btn-common' aria-label='(S) Escalonar elementos'>
   <tooltip title='(S) Escalonar elementos'/>
-  <div class="icon" style="--icon-url: url(${ScaleIcon});" />
+  <div class="icon" />
 </button>
 <button data-tool="${TOOL.TEXT}" class='btn-common' aria-label='(T) Criar textos'>
   <tooltip title='(T) Criar textos'/>
-  <div class="icon" style="--icon-url: url(${TextIcon});" />
+  <div class="icon" />
 </button>
 <button data-tool="${TOOL.GRADIENT}" class='btn-common' aria-label='(H) Criar gradientes'>
   <tooltip title='(H) Criar gradientes'/>
-  <div class="icon" style="--icon-url: url(${GradientIcon});" />
+  <div class="icon" />
 </button>
 <button data-tool="${TOOL.HAND}" class='btn-common' aria-label='(Espaço) Mover Área de Trabalho'>
   <tooltip title='(Espaço) Mover Área de Trabalho'/>
-  <div class="icon" style="--icon-url: url(${HandIcon});" />
+  <div class="icon" />
 </button>
 <button data-tool="${TOOL.ZOOM}" class='btn-common' aria-label='(Z) Modificar nível de zoom'>
   <tooltip title='(Z) Modificar nível de zoom' />
-  <div class="icon" style="--icon-url: url(${ZoomIcon});" />
+  <div class="icon" />
 </button>
 `;
+
+    const icons = [
+      { tool: TOOL.SELECT, src: SelectIcon },
+      { tool: TOOL.GRAB, src: GrabIcon },
+      { tool: TOOL.ROTATE, src: RotateIcon },
+      { tool: TOOL.SCALE, src: ScaleIcon },
+      { tool: TOOL.TEXT, src: TextIcon },
+      { tool: TOOL.GRADIENT, src: GradientIcon },
+      { tool: TOOL.HAND, src: HandIcon },
+      { tool: TOOL.ZOOM, src: ZoomIcon },
+    ];
+    for (const { tool, src } of icons) {
+      const iconEl = this.toolMenu.querySelector<HTMLElement>(
+        `[data-tool="${tool}"] .icon`,
+      );
+      if (iconEl) {
+        iconEl.style.setProperty("--icon-url", `url("${src}")`);
+      }
+    }
 
     const appWindow = getElementById<HTMLDivElement>("app-window");
     if (appWindow) {
