@@ -4,6 +4,8 @@ import { listen } from "@tauri-apps/api/event";
 import { Alerts } from "src/components/alerts/alerts";
 import type { ISelectInput } from "src/components/helpers/createSelectInput";
 import createSelectInput from "src/components/helpers/createSelectInput";
+import type { ISliderControl } from "src/components/helpers/createSliderControl";
+import createSliderControl from "src/components/helpers/createSliderControl";
 import { clamp } from "src/utils/easing";
 import { EventBus } from "src/utils/eventBus";
 import formatFrameIntoTime from "src/utils/formatFrameIntoTime";
@@ -34,11 +36,17 @@ export class VideoFrameExtractor {
   private videoDurationIndicator: HTMLDivElement | null = null;
   private aspectRatioSelect: ISelectInput | null = null;
   private extractBox: ExtractBox | null = null;
+  private videoInfoEl: HTMLDivElement | null = null;
+  private xPosControl: ISliderControl | null = null;
+  private yPosControl: ISliderControl | null = null;
+  private widthControl: ISliderControl | null = null;
+  private heightControl: ISliderControl | null = null;
   private currentThumbIndex = -1;
   private rafId: number | null = null;
   private thumbnailSprite: HTMLImageElement | null = null;
   private thumbnailSpriteCells: IThumbnailSpriteCell[] = [];
   private eventBus: EventBus;
+  private scale: { x: number; y: number } = { x: 1, y: 1 };
 
   private constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
@@ -47,8 +55,8 @@ export class VideoFrameExtractor {
   }
 
   private async init(): Promise<void> {
-    await this.loadInitialMetadata();
     this.createEventListeners();
+    await this.loadInitialMetadata();
   }
 
   private async loadInitialMetadata(): Promise<void> {
@@ -63,6 +71,13 @@ export class VideoFrameExtractor {
     const { width, height } = metadata;
     this.videoMetadata.videoRatio = height / width;
 
+    if (this.videoInfoEl) {
+      const format = metadata.format || "";
+      const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+      const g = gcd(width, height);
+      this.videoInfoEl.textContent = `${width}×${height} px | ${width / g}:${height / g} | ${metadata.frameRate} fps${format ? ` | ${format.toUpperCase()}` : ""}`;
+    }
+
     let canvasWidth = PREVIEW_CANVAS_WIDTH;
     let canvasHeight = Math.ceil(
       PREVIEW_CANVAS_WIDTH * this.videoMetadata.videoRatio,
@@ -72,6 +87,15 @@ export class VideoFrameExtractor {
       canvasWidth = Math.ceil(
         PREVIEW_CANVAS_HEIGHT / this.videoMetadata.videoRatio,
       );
+    }
+
+    this.scale = { x: width / canvasWidth, y: height / canvasHeight };
+
+    if (this.xPosControl && this.yPosControl && this.widthControl && this.heightControl) {
+      this.xPosControl.setOptions({ min: 0, max: width });
+      this.yPosControl.setOptions({ min: 0, max: height });
+      this.widthControl.setOptions({ min: 10, max: width });
+      this.heightControl.setOptions({ min: 10, max: height });
     }
 
     if (this.preview) {
@@ -163,7 +187,6 @@ export class VideoFrameExtractor {
   }
 
   private createDOMElements(): void {
-    const mainContainer = getElementById<HTMLDivElement>("vfe_main-container");
     const previewCanvas = getElementById<HTMLCanvasElement>("video-canvas");
     this.aspectRatioSelect = createSelectInput(
       "vfe_aspect-ratio",
@@ -186,7 +209,7 @@ export class VideoFrameExtractor {
       },
     );
     this.aspectRatioSelect.enable();
-    mainContainer.insertBefore(this.aspectRatioSelect.element, previewCanvas);
+    getElementById<HTMLDivElement>("vfe_aspect-ratio-container").appendChild(this.aspectRatioSelect.element);
 
     const extractCanvas = document.createElement("canvas");
     const offScreenCanvas = document.createElement("canvas");
@@ -206,6 +229,59 @@ export class VideoFrameExtractor {
     this.videoDurationIndicator = getElementById<HTMLDivElement>(
       "vfe_video-duration-indicator",
     );
+
+    this.videoInfoEl = getElementById<HTMLDivElement>("vfe_video-info");
+    const transformControls = getElementById<HTMLDivElement>("vfe_transform-controls");
+
+    const toPreview = (v: number, s: number) => Math.round(v / s);
+
+    this.xPosControl = createSliderControl(
+      "vfe_x-pos", "X",
+      { min: 0, max: 10000, step: 1, value: 0 },
+      (value) => { if (this.extractBox) { const p = this.extractBox.getPosition(); this.extractBox.setPosition(toPreview(value, this.scale.x), p.y); } },
+      false,
+    );
+    this.xPosControl.enable();
+    transformControls.appendChild(this.xPosControl.element);
+
+    this.yPosControl = createSliderControl(
+      "vfe_y-pos", "Y",
+      { min: 0, max: 10000, step: 1, value: 0 },
+      (value) => { if (this.extractBox) { const p = this.extractBox.getPosition(); this.extractBox.setPosition(p.x, toPreview(value, this.scale.y)); } },
+      false,
+    );
+    this.yPosControl.enable();
+    transformControls.appendChild(this.yPosControl.element);
+
+    this.widthControl = createSliderControl(
+      "vfe_width", "W",
+      { min: 10, max: 10000, step: 1, value: 100 },
+      (value) => { if (this.extractBox) { const s = this.extractBox.getSize(); this.extractBox.setSize(toPreview(value, this.scale.x), s.height); } },
+      false,
+    );
+    this.widthControl.enable();
+    transformControls.appendChild(this.widthControl.element);
+
+    this.heightControl = createSliderControl(
+      "vfe_height", "H",
+      { min: 10, max: 10000, step: 1, value: 100 },
+      (value) => { if (this.extractBox) { const s = this.extractBox.getSize(); this.extractBox.setSize(s.width, toPreview(value, this.scale.y)); } },
+      false,
+    );
+    this.heightControl.enable();
+    transformControls.appendChild(this.heightControl.element);
+
+    getElementById<HTMLButtonElement>("vfe_btn-swap").addEventListener("click", () => {
+      if (this.extractBox) {
+        this.extractBox.swapSize();
+        if (this.aspectRatioSelect?.getValue() && this.aspectRatioSelect.getValue() !== "custom") {
+          this.aspectRatioSelect.setValue("custom");
+        }
+      }
+    });
+    getElementById<HTMLButtonElement>("vfe_btn-reset").addEventListener("click", () => {
+      if (this.extractBox) this.extractBox.reset(this.aspectRatioSelect?.getValue() ?? null);
+    });
   }
 
   private createEventListeners(): void {
@@ -241,6 +317,15 @@ export class VideoFrameExtractor {
     }
 
     this.eventBus.on("vfe:update", () => this.update());
+    this.eventBus.on("vfe:extractbox:update", (payload) => {
+      if (this.xPosControl && this.yPosControl && this.widthControl && this.heightControl) {
+        const { x: sx, y: sy } = this.scale;
+        this.xPosControl.setValue(Math.round(payload.position.x * sx));
+        this.yPosControl.setValue(Math.round(payload.position.y * sy));
+        this.widthControl.setValue(Math.round(payload.size.width * sx));
+        this.heightControl.setValue(Math.round(payload.size.height * sy));
+      }
+    });
 
     listen("vfe:extract-frame", () => {
       if (this.extractBox) this.extractFrame();

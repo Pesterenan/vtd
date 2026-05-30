@@ -357,7 +357,7 @@ pub fn run() {
                         let _ = app_handle.emit("menu:import-image", ());
                     }
                     "extract-video" => {
-                        let _ = app_handle.emit("menu:loading-show", "Extraindo vídeo...");
+                        let _ = app_handle.emit("menu:loading-show", "Abrindo Extrator de Frames...");
                         let _ = app_handle.emit("menu:extract-video", ());
                     }
                     "export-image" => {

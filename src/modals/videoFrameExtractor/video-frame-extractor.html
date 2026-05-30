@@ -8,8 +8,20 @@
 
 <body>
   <div id="vfe_main-container" class="container column ai-jc-c">
+    <div id="vfe_properties-bar" class="sec_menu-style">
+      <h5>Caixa de Extração:</h5>
+      <div class="container jc-sb g-05">
+        <div id="vfe_transform-controls" class="container ai-c g-05"></div>
+          <div class="container g-05">
+            <button id="vfe_btn-swap" class="btn-common" title="Inverter largura e altura">⇄</button>
+            <button id="vfe_btn-reset" class="btn-common" title="Redefinir caixa de extração">⟲</button>
+            <div id="vfe_aspect-ratio-container" class="container ai-c g-05"></div>
+          </div>
+      </div>
+    </div>
     <canvas height="320" width="800" id="video-canvas" style="background-color: var(--background-300);"> </canvas>
-    <div id="sld_video-controls" class="container ai-c jc-sb">
+    <div id="vfe_video-info" class="container ai-c"></div>
+    <div id="sld_video-controls" class="sec_menu-style container ai-c jc-sb">
       <div class="container pad-05" style="width: fit-content;">
         <tooltip title="(CTRL+SHIFT+E) retrocede para o começo">
           <button class='btn-common' data-seek="start">|◀</button>

@@ -279,6 +279,10 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "vfe:extractbox:update": {
+    payload: { position: Position; size: Size };
+    result: unknown;
+  };
   "workarea:addImage": {
     payload: string;
     result: unknown;
