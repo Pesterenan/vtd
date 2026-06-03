@@ -1,4 +1,5 @@
 /// <reference types="vitest" />
+import react from "@vitejs/plugin-react";
 import path from "path";
 import { defineConfig } from "vite";
 
@@ -48,6 +49,7 @@ export default defineConfig({
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
   },
+  plugins: [react()],
   test: {
     globals: true,
     environment: "jsdom",
