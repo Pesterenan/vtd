@@ -3,7 +3,7 @@ import { BoundingBox } from "src/utils/boundingBox";
 import { TextElement } from "./textElement";
 
 /**
- * @jest-environment jsdom
+ * @vitest-environment jsdom
  */
 describe("TextElement", () => {
   const position: Position = { x: 100, y: 200 };

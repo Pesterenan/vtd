@@ -13,8 +13,8 @@ describe("GrabTool", () => {
   });
 
   it("should change anchor point on alt-click", () => {
-    const emitSpy = jest.spyOn(eventBus, "emit");
-    const requestSpy = jest.spyOn(eventBus, "request").mockReturnValue([
+    const emitSpy = vi.spyOn(eventBus, "emit");
+    const requestSpy = vi.spyOn(eventBus, "request").mockReturnValue([
       {
         x: 10,
         y: 20,
@@ -38,11 +38,10 @@ describe("GrabTool", () => {
   });
 
   it("should start dragging on mouse down", () => {
-    const requestSpy = jest
-      .spyOn(eventBus, "request")
+    const requestSpy = vi.spyOn(eventBus, "request")
       .mockReturnValueOnce([{ x: 30, y: 40 }])
       .mockReturnValueOnce([{ x: 10, y: 20 }]);
-    const emitSpy = jest.spyOn(eventBus, "emit");
+    const emitSpy = vi.spyOn(eventBus, "emit");
     const mouseDownEvent = new MouseEvent("mousedown") as MouseEvent & {
       offsetX: number;
       offsetY: number;
@@ -60,11 +59,10 @@ describe("GrabTool", () => {
   });
 
   it("should update position on mouse move", () => {
-    const requestSpy = jest
-      .spyOn(eventBus, "request")
+    const requestSpy = vi.spyOn(eventBus, "request")
       .mockReturnValueOnce([{ x: 30, y: 40 }])
       .mockReturnValueOnce([{ x: 10, y: 20 }]);
-    const emitSpy = jest.spyOn(eventBus, "emit");
+    const emitSpy = vi.spyOn(eventBus, "emit");
     const mouseDownEvent = new MouseEvent("mousedown") as MouseEvent & {
       offsetX: number;
       offsetY: number;
@@ -96,7 +94,7 @@ describe("GrabTool", () => {
   });
 
   it("should reset on mouse up", () => {
-    jest.spyOn(eventBus, "request").mockReturnValue([{ x: 10, y: 20 }]);
+    vi.spyOn(eventBus, "request").mockReturnValue([{ x: 10, y: 20 }]);
     const mouseDownEvent = new MouseEvent("mousedown") as MouseEvent & {
       offsetX: number;
       offsetY: number;
@@ -106,7 +104,7 @@ describe("GrabTool", () => {
     grabTool.onMouseDown(mouseDownEvent);
     grabTool.onMouseUp();
 
-    const emitSpy = jest.spyOn(eventBus, "emit");
+    const emitSpy = vi.spyOn(eventBus, "emit");
     const mouseMoveEvent = new MouseEvent("mousemove") as MouseEvent & {
       offsetX: number;
       offsetY: number;

@@ -26,7 +26,7 @@ describe("HandTool", () => {
   });
 
   it("should emit workarea:offset:change on mouse move", () => {
-    const emitSpy = jest.spyOn(eventBus, "emit");
+    const emitSpy = vi.spyOn(eventBus, "emit");
     const mouseDownEvent = new MouseEvent("mousedown", {
       clientX: 10,
       clientY: 20,
@@ -59,7 +59,7 @@ describe("HandTool", () => {
 
     handTool.onMouseUp();
 
-    const emitSpy = jest.spyOn(eventBus, "emit");
+    const emitSpy = vi.spyOn(eventBus, "emit");
     const mouseMoveEvent = new MouseEvent("mousemove", {
       clientX: 30,
       clientY: 40,

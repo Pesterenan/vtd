@@ -15,12 +15,12 @@ describe("SelectTool", () => {
   });
 
   it("should equip and unequip correctly", () => {
-    const equipSpy = jest.spyOn(eventBus, "emit");
+    const equipSpy = vi.spyOn(eventBus, "emit");
     selectTool.equip();
     expect(equipSpy).toHaveBeenCalledWith("tool:equipped", selectTool);
     expect(equipSpy).toHaveBeenCalledWith("workarea:update");
 
-    const unequipSpy = jest.spyOn(eventBus, "emit");
+    const unequipSpy = vi.spyOn(eventBus, "emit");
     selectTool.unequip();
     expect(unequipSpy).toHaveBeenCalledWith("tool:unequipped", selectTool);
     expect(unequipSpy).toHaveBeenCalledWith("workarea:update");
@@ -36,7 +36,7 @@ describe("SelectTool", () => {
   });
 
   it("should set secondPoint and emit workarea:update on mouse move if dragging distance is exceeded", () => {
-    const updateSpy = jest.spyOn(eventBus, "emit");
+    const updateSpy = vi.spyOn(eventBus, "emit");
     const mouseDownEvent = new MouseEvent("mousedown", { clientX: 10, clientY: 20 }) as MouseEvent & { offsetX: number; offsetY: number };
     Object.defineProperty(mouseDownEvent, "offsetX", { value: 10 });
     Object.defineProperty(mouseDownEvent, "offsetY", { value: 20 });
@@ -51,7 +51,7 @@ describe("SelectTool", () => {
   });
 
   it("should not set secondPoint on mouse move if dragging distance is not exceeded", () => {
-    const updateSpy = jest.spyOn(eventBus, "emit");
+    const updateSpy = vi.spyOn(eventBus, "emit");
     const mouseDownEvent = new MouseEvent("mousedown", { clientX: 10, clientY: 20 }) as MouseEvent & { offsetX: number; offsetY: number };
     Object.defineProperty(mouseDownEvent, "offsetX", { value: 10 });
     Object.defineProperty(mouseDownEvent, "offsetY", { value: 20 });
@@ -66,7 +66,7 @@ describe("SelectTool", () => {
   });
 
   it("should emit workarea:selectAt and reset points on mouse up", () => {
-    const selectAtSpy = jest.spyOn(eventBus, "emit");
+    const selectAtSpy = vi.spyOn(eventBus, "emit");
     const mouseDownEvent = new MouseEvent("mousedown", { clientX: 10, clientY: 20 }) as MouseEvent & { offsetX: number; offsetY: number };
     Object.defineProperty(mouseDownEvent, "offsetX", { value: 10 });
     Object.defineProperty(mouseDownEvent, "offsetY", { value: 20 });
@@ -85,7 +85,7 @@ describe("SelectTool", () => {
   });
 
   it("should draw the selection rectangle", () => {
-    const strokeRectSpy = jest.spyOn(context, "strokeRect");
+    const strokeRectSpy = vi.spyOn(context, "strokeRect");
     const mouseDownEvent = new MouseEvent("mousedown", { clientX: 10, clientY: 20 }) as MouseEvent & { offsetX: number; offsetY: number };
     Object.defineProperty(mouseDownEvent, "offsetX", { value: 10 });
     Object.defineProperty(mouseDownEvent, "offsetY", { value: 20 });

@@ -3,18 +3,19 @@ import { EventBus } from "src/utils/eventBus";
 import createSliderControl from "./helpers/createSliderControl";
 import type { Element } from "./elements/element";
 import type { TElementData } from "./types";
+import type { Mock } from "vitest";
 
 const mockSliderControl = {
   element: document.createElement("div"),
-  setValue: jest.fn(),
-  setOptions: jest.fn(),
-  getValue: jest.fn(),
-  enable: jest.fn(),
-  disable: jest.fn(),
+  setValue: vi.fn(),
+  setOptions: vi.fn(),
+  getValue: vi.fn(),
+  enable: vi.fn(),
+  disable: vi.fn(),
 };
 
-jest.mock("./helpers/createSliderControl", () => {
-  return jest.fn(() => mockSliderControl);
+vi.mock("./helpers/createSliderControl", () => {
+  return { default: vi.fn(() => mockSliderControl) };
 });
 
 describe("TransformMenu", () => {
@@ -24,10 +25,10 @@ describe("TransformMenu", () => {
 
   beforeAll(() => {
     eventBus = new EventBus();
-    jest.spyOn(eventBus, "emit");
-    jest.spyOn(eventBus, "on");
+    vi.spyOn(eventBus, "emit");
+    vi.spyOn(eventBus, "on");
 
-    (createSliderControl as jest.Mock).mockImplementation(
+    (createSliderControl as Mock).mockImplementation(
       (id, _label, _options, callback) => {
         handleFunctions[id] = callback;
         return mockSliderControl;
@@ -38,11 +39,11 @@ describe("TransformMenu", () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterAll(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("should be a singleton", () => {
@@ -69,8 +70,7 @@ describe("TransformMenu", () => {
       opacity: 0.8,
     } as Element<TElementData>;
 
-    jest
-      .spyOn(eventBus, "request")
+    vi.spyOn(eventBus, "request")
       .mockReturnValueOnce([
         {
           position: { x: 10, y: 20 },
@@ -127,8 +127,7 @@ describe("TransformMenu", () => {
   });
 
   it("should emit transformBox:updatePosition on X position change", () => {
-    jest
-      .spyOn(eventBus, "request")
+    vi.spyOn(eventBus, "request")
       .mockReturnValueOnce([
         {
           position: { x: 0, y: 20 },
@@ -146,8 +145,7 @@ describe("TransformMenu", () => {
   });
 
   it("should emit transformBox:updatePosition on Y position change", () => {
-    jest
-      .spyOn(eventBus, "request")
+    vi.spyOn(eventBus, "request")
       .mockReturnValueOnce([
         {
           position: { x: 10, y: 0 },
@@ -165,8 +163,7 @@ describe("TransformMenu", () => {
   });
 
   it("should emit transformBox:updateScale on width change", () => {
-    jest
-      .spyOn(eventBus, "request")
+    vi.spyOn(eventBus, "request")
       .mockReturnValueOnce([
         {
           position: { x: 10, y: 20 },
@@ -184,8 +181,7 @@ describe("TransformMenu", () => {
   });
 
   it("should emit transformBox:updateScale on height change", () => {
-    jest
-      .spyOn(eventBus, "request")
+    vi.spyOn(eventBus, "request")
       .mockReturnValueOnce([
         {
           position: { x: 10, y: 20 },

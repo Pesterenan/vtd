@@ -1,3 +1,4 @@
+import type { Mock } from "vitest";
 import { EventBus } from "src/utils/eventBus";
 import { TextTool } from "./textTool";
 
@@ -8,20 +9,20 @@ describe("TextTool", () => {
   let context: CanvasRenderingContext2D;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     canvas = document.createElement("canvas");
     canvas.width = 100;
     canvas.height = 50;
     bus = new EventBus();
     tool = new TextTool(canvas, bus);
     context = canvas.getContext("2d")!;
-    jest.spyOn(bus, "emit");
+    vi.spyOn(bus, "emit");
   });
 
   it("should emit tool:equipped and tool:unequipped", () => {
     tool.equip();
     expect(bus.emit).toHaveBeenCalledWith("tool:equipped", tool);
-    (bus.emit as jest.Mock).mockClear();
+    (bus.emit as Mock).mockClear();
     tool.unequip();
     expect(bus.emit).toHaveBeenCalledWith("tool:unequipped", tool);
   });
@@ -45,9 +46,9 @@ describe("TextTool", () => {
   });
 
   it("draw does nothing if lastPosition is null", () => {
-    const saveSpy = jest.spyOn(context, "save");
-    const fillTextSpy = jest.spyOn(context, "fillText");
-    const strokeTextSpy = jest.spyOn(context, "strokeText");
+    const saveSpy = vi.spyOn(context, "save");
+    const fillTextSpy = vi.spyOn(context, "fillText");
+    const strokeTextSpy = vi.spyOn(context, "strokeText");
 
     tool.draw();
     expect(saveSpy).not.toHaveBeenCalled();
@@ -56,10 +57,10 @@ describe("TextTool", () => {
   });
 
   it("draw renders cursor at lastPosition", () => {
-    const saveSpy = jest.spyOn(context, "save");
-    const fillTextSpy = jest.spyOn(context, "fillText");
-    const strokeTextSpy = jest.spyOn(context, "strokeText");
-    const restoreSpy = jest.spyOn(context, "restore");
+    const saveSpy = vi.spyOn(context, "save");
+    const fillTextSpy = vi.spyOn(context, "fillText");
+    const strokeTextSpy = vi.spyOn(context, "strokeText");
+    const restoreSpy = vi.spyOn(context, "restore");
 
     const mouseMoveEvent = new MouseEvent("mousemove", { clientX: 100, clientY: 200 }) as MouseEvent & { offsetX: number; offsetY: number };
     Object.defineProperty(mouseMoveEvent, "offsetX", { value: 100 });
@@ -74,7 +75,7 @@ describe("TextTool", () => {
   });
 
   it("onKeyDown prevents default and emits edit:acceptTextChange on Shift+Enter", () => {
-    const preventDefaultSpy = jest.fn();
+    const preventDefaultSpy = vi.fn();
     const keyboardEvent = new KeyboardEvent("keydown", { shiftKey: true, key: "Enter" });
     Object.defineProperty(keyboardEvent, "preventDefault", { value: preventDefaultSpy });
 
@@ -84,7 +85,7 @@ describe("TextTool", () => {
   });
 
   it("onKeyDown prevents default and emits edit:declineTextChange on Escape", () => {
-    const preventDefaultSpy = jest.fn();
+    const preventDefaultSpy = vi.fn();
     const keyboardEvent = new KeyboardEvent("keydown", { key: "Escape" });
     Object.defineProperty(keyboardEvent, "preventDefault", { value: preventDefaultSpy });
 

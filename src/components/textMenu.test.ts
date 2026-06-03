@@ -5,24 +5,25 @@ import createSliderControl from "./helpers/createSliderControl";
 import createColorControl from "./helpers/createColorControl";
 import type { Element } from "./elements/element";
 import type { TElementData } from "./types";
+import type { Mock } from "vitest";
 
-jest.mock("./helpers/createSliderControl", () => {
-  return jest.fn(() => ({
+vi.mock("./helpers/createSliderControl", () => {
+  return { default: vi.fn(() => ({
     element: document.createElement("div"),
-    setValue: jest.fn(),
-    getValue: jest.fn(),
-    enable: jest.fn(),
-    disable: jest.fn(),
-  }));
+    setValue: vi.fn(),
+    getValue: vi.fn(),
+    enable: vi.fn(),
+    disable: vi.fn(),
+  })) };
 });
 
-jest.mock("./helpers/createColorControl", () => {
-  return jest.fn(() => ({
+vi.mock("./helpers/createColorControl", () => {
+  return { default: vi.fn(() => ({
     element: document.createElement("div"),
-    updateValue: jest.fn(),
-    linkEvents: jest.fn(),
-    unlinkEvents: jest.fn(),
-  }));
+    updateValue: vi.fn(),
+    linkEvents: vi.fn(),
+    unlinkEvents: vi.fn(),
+  })) };
 });
 
 describe("TextMenu", () => {
@@ -34,26 +35,26 @@ describe("TextMenu", () => {
 
   beforeAll(() => {
     eventBus = new EventBus();
-    (createSliderControl as jest.Mock).mockImplementation(
+    (createSliderControl as Mock).mockImplementation(
       (id, _label, _options, callback) => {
         handleFunctions[id] = callback;
         return {
           element: document.createElement("div"),
-          setValue: jest.fn(),
-          getValue: jest.fn(),
-          enable: jest.fn(),
-          disable: jest.fn(),
+          setValue: vi.fn(),
+          getValue: vi.fn(),
+          enable: vi.fn(),
+          disable: vi.fn(),
         };
       },
     );
-    (createColorControl as jest.Mock).mockImplementation(
+    (createColorControl as Mock).mockImplementation(
       (id, _label, _options, callback) => {
         handleFunctions[id] = callback;
         return {
           element: document.createElement("div"),
-          updateValue: jest.fn(),
-          linkEvents: jest.fn(),
-          unlinkEvents: jest.fn(),
+          updateValue: vi.fn(),
+          linkEvents: vi.fn(),
+          unlinkEvents: vi.fn(),
         };
       },
     );
@@ -63,14 +64,14 @@ describe("TextMenu", () => {
 
   beforeEach(() => {
     element = new TextElement({ x: 0, y: 0 }, { width: 100, height: 50 }, 0);
-    jest.spyOn(eventBus, "request").mockReturnValue([[element]]);
+    vi.spyOn(eventBus, "request").mockReturnValue([[element]]);
     eventBus.emit("selection:changed", {
       selectedElements: [element] as Element<TElementData>[],
     });
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("DOM", () => {

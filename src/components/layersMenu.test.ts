@@ -8,9 +8,9 @@ describe("LayersMenu", () => {
 
   beforeAll(() => {
     eventBus = new EventBus();
-    jest.spyOn(eventBus, "emit");
-    jest.spyOn(eventBus, "on");
-    jest.spyOn(eventBus, "off");
+    vi.spyOn(eventBus, "emit");
+    vi.spyOn(eventBus, "on");
+    vi.spyOn(eventBus, "off");
     layersMenu = LayersMenu.getInstance(eventBus);
     document.body.appendChild(layersMenu.getMenu());
     layersList = layersMenu
@@ -19,7 +19,7 @@ describe("LayersMenu", () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     layersList.innerHTML = "";
   });
 

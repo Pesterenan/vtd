@@ -1,4 +1,4 @@
-import { EventBus } from "src/utils/eventBus";
+import { EventBus } from "../utils/eventBus";
 import type { Element } from "./elements/element";
 import { TextElement } from "./elements/textElement";
 import { TransformBox } from "./transformBox";
@@ -23,12 +23,12 @@ describe("TransformBox", () => {
     );
     text.content = ["VTD"];
     text.font = "monospace";
-    elements = [text as Element<TElementData>];
+    elements = [text as unknown as Element<TElementData>];
 
-    jest.spyOn(bus, "on");
-    jest.spyOn(bus, "off");
-    jest.spyOn(bus, "emit");
-    jest.spyOn(bus, "request").mockImplementation((event: string) => {
+    vi.spyOn(bus, "on");
+    vi.spyOn(bus, "off");
+    vi.spyOn(bus, "emit");
+    vi.spyOn(bus, "request").mockImplementation((event: string) => {
       if (event === "zoomLevel:get") return [1];
       if (event === "workarea:offset:get") return [{ x: 0, y: 0 }];
       if (event === "transformBox:anchorPoint:get")
@@ -289,10 +289,10 @@ describe("TransformBox", () => {
 
   it("should draw the bounding box and handles", () => {
     const context = canvas.getContext("2d")!;
-    const saveSpy = jest.spyOn(context, "save");
-    const restoreSpy = jest.spyOn(context, "restore");
-    const strokeRectSpy = jest.spyOn(context, "stroke");
-    const fillSpy = jest.spyOn(context, "fill");
+    const saveSpy = vi.spyOn(context, "save");
+    const restoreSpy = vi.spyOn(context, "restore");
+    const strokeRectSpy = vi.spyOn(context, "stroke");
+    const fillSpy = vi.spyOn(context, "fill");
 
     transformBox.draw(context);
 

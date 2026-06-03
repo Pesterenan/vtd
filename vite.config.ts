@@ -1,27 +1,8 @@
+/// <reference types="vitest" />
 import path from "path";
 import { defineConfig } from "vite";
-import packageJson from "./package.json";
 
 const host = process.env.TAURI_DEV_HOST;
-
-const getPackageName = () => {
-  return packageJson.name;
-};
-
-const getPackageNameCamelCase = () => {
-  try {
-    return getPackageName().replace(/-./g, char => char[1].toUpperCase());
-  } catch {
-    throw new Error("Name property in package.json is missing.");
-  }
-};
-
-const fileName = {
-  es: `${getPackageName()}.js`,
-  iife: `${getPackageName()}.iife.js`,
-};
-
-const formats = Object.keys(fileName) as Array<keyof typeof fileName>;
 
 export default defineConfig({
   root: "src",
@@ -68,13 +49,21 @@ export default defineConfig({
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
   },
   test: {
+    globals: true,
+    environment: "jsdom",
+    include: ["**/*.test.ts"],
     watch: false,
+    setupFiles: [path.resolve(__dirname, "vitest.setup.ts")],
+    css: false,
   },
   resolve: {
     alias: {
       "src": path.resolve(__dirname, "src"),
       "@": path.resolve(__dirname, "src"),
       "@@": path.resolve(__dirname),
+      ...(process.env.VITEST ? {
+        "\\.(jpg|jpeg|png|gif|svg)$": path.resolve(__dirname, "__mocks__/fileMock.ts"),
+      } : {}),
     },
   },
 });
