@@ -38,6 +38,10 @@
         "leadingUnderscore": "allow"
       },
       {
+        "selector": "variable",
+        "format": ["camelCase", "UPPER_CASE", "PascalCase"]
+      },
+      {
         "selector": "enum",
         "format": ["UPPER_CASE"]
       },

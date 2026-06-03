@@ -1,7 +1,7 @@
 import "../../assets/main.css";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Alerts } from "src/components/alerts/alerts";
+import { Alerts } from "src/components/Alerts/alerts";
 import type { ISelectInput } from "src/components/helpers/createSelectInput";
 import createSelectInput from "src/components/helpers/createSelectInput";
 import type { ISliderControl } from "src/components/helpers/createSliderControl";

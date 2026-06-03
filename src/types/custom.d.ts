@@ -1,7 +1,11 @@
 declare const APP_VERSION: string;
 
 declare module '*.svg' {
-  const content: React.FC<React.SVGProps<SVGSVGElement>>;
+  const content: string;
   export default content;
 }
 
+declare module '*.module.css' {
+  const classes: { readonly [key: string]: string };
+  export default classes;
+}
