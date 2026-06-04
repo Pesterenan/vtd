@@ -53,7 +53,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    include: ["**/*.test.ts"],
+    include: ["**/*.test.ts", "**/*.test.tsx"],
     watch: false,
     setupFiles: [path.resolve(__dirname, "vitest.setup.ts")],
     css: false,

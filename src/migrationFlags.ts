@@ -1,6 +1,6 @@
 export const MIGRATION = {
-  ToolMenu: false,
-  SideMenu: false,
+  ToolMenu: true,
+  SideMenu: true,
   TransformMenu: false,
   LayersMenu: false,
   TextMenu: false,

@@ -3,7 +3,9 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./assets/main.css";
 
-const root = createRoot(document.getElementById("app-window"))!;
+const rootElement = document.getElementById("app-window");
+if (!rootElement) throw new Error("Root element #app-window not found");
+const root = createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <App />

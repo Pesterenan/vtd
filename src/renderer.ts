@@ -3,6 +3,7 @@ import { ToolMenu } from "./components/toolMenu";
 import { EventBus } from "./utils/eventBus";
 import { Alerts } from "./components/Alerts/alerts";
 import { MainWindow } from "./components/mainWindow";
+import { MIGRATION } from "./migrationFlags";
 
 export function initializeVTD(uiEventBus: EventBus): void {
   const alertEventBus = new EventBus();
@@ -10,7 +11,7 @@ export function initializeVTD(uiEventBus: EventBus): void {
     alertEventBus.emit("alert:add", payload),
   );
   new Alerts(alertEventBus);
-  ToolMenu.getInstance(uiEventBus);
+  if (!MIGRATION.ToolMenu) ToolMenu.getInstance(uiEventBus);
   MainWindow.getInstance(uiEventBus);
-  SideMenu.getInstance(uiEventBus);
+  if (!MIGRATION.SideMenu) SideMenu.getInstance(uiEventBus);
 }
