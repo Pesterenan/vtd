@@ -198,9 +198,13 @@ export class MainWindow {
     listen("copy-to-clipboard", () => this.handleCopyCommand());
     listen("paste-from-clipboard", () => this.handlePasteCommand());
 
-    // Window Listeners
-    getCurrentWindow().onResized(this.handleResizeWindow);
-    getCurrentWindow().onFocusChanged(this.handleWindowFocus);
+    // Window Listeners (Tauri API - fails silently if not on within Tauri)
+    try {
+      getCurrentWindow().onResized(this.handleResizeWindow);
+      getCurrentWindow().onFocusChanged(this.handleWindowFocus);
+    } catch {
+      // running outside Tauri (e.g. `npm run dev` in browser)
+    }
     window.addEventListener("copy", this.handleCopyCommand);
     window.addEventListener("paste", (e: Event) => this.handlePasteCommand(e as ClipboardEvent));
     window.addEventListener("dragover", this.handleDragOver);

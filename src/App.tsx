@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { EventBus } from "./utils/eventBus";
 import { EventBusProvider } from "./contexts/EventBusContext";
 import { initializeVTD } from "./renderer";
@@ -6,21 +6,22 @@ import CanvasShell from "./components/CanvasShell/CanvasShell";
 import { MIGRATION } from "./migrationFlags";
 import { ToolMenu } from "./components/ToolMenu/ToolMenu";
 import { SideMenu } from "./components/SideMenu/SideMenu";
+import TransformMenu from "./components/TransformMenu/TransformMenu";
 
 const App = () => {
-  const eventBusRef = useRef<EventBus | null>(null);
+  const [eventBus, setEventBus] = useState<EventBus | null>(null);
 
   useEffect(() => {
-    const eventBus = new EventBus();
-    eventBusRef.current = eventBus;
-    initializeVTD(eventBus);
+    const bus = new EventBus();
+    setEventBus(bus);
+    initializeVTD(bus);
   }, []);
 
-  if (!eventBusRef.current) return null;
+  if (!eventBus) return null;
 
   return (
-    <EventBusProvider eventBus={eventBusRef.current}>
-      <div id="app-window" style={{ display: "flex", flexDirection: "row" }}>
+    <EventBusProvider eventBus={eventBus}>
+      <main id="app-window" style={{ display: "flex", flexDirection: "row" }}>
         {MIGRATION.ToolMenu ? <ToolMenu /> : <div id="vanilla-tool-menu" />}
 
         <div style={{ flex: 1, position: "relative" }}>
@@ -29,7 +30,7 @@ const App = () => {
 
         {MIGRATION.SideMenu ? (
           <SideMenu>
-            <div id="vanilla-transform-menu" />
+            {MIGRATION.TransformMenu ? <TransformMenu /> : <div id="vanilla-transform-menu" />}
             <div id="vanilla-layers-menu" />
             <div id="vanilla-text-menu" />
             <div id="vanilla-gradient-menu" />
@@ -37,7 +38,7 @@ const App = () => {
         ) : (
           <div id="vanilla-side-menu" />
         )}
-      </div>
+      </main>
     </EventBusProvider>
   );
 };
