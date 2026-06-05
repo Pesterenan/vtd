@@ -1,0 +1,12 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.25rem;
+}
+
+.emptyState {
+  color: var(--text-600);
+  font-size: var(--font-small);
+  font-style: italic;
+}
