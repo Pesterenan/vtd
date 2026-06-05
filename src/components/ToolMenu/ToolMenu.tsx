@@ -34,7 +34,7 @@ const toolIcons: Record<string, string> = {
   [TOOL.ZOOM]: ZoomIcon,
 };
 
-export const ToolMenu = () => {
+const ToolMenu = () => {
   const { emit, on } = useEventBus();
   const [activeTool, setActiveTool] = useState<TOOL>(TOOL.SELECT);
 
@@ -67,3 +67,5 @@ export const ToolMenu = () => {
     </menu>
   );
 }
+
+export default ToolMenu;

@@ -4,7 +4,7 @@ interface SideMenuProps {
   children: React.ReactNode;
 }
 
-export const SideMenu = ({ children }: SideMenuProps) => {
+const SideMenu = ({ children }: SideMenuProps) => {
   return (
     <menu className={styles.sideMenu}>
       <div className="container column ai-c jc-sb g-05">
@@ -13,3 +13,5 @@ export const SideMenu = ({ children }: SideMenuProps) => {
     </menu>
   );
 }
+
+export default SideMenu;

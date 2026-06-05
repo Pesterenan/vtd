@@ -4,9 +4,10 @@ import { EventBusProvider } from "./contexts/EventBusContext";
 import { initializeVTD } from "./renderer";
 import CanvasShell from "./components/CanvasShell/CanvasShell";
 import { MIGRATION } from "./migrationFlags";
-import { ToolMenu } from "./components/ToolMenu/ToolMenu";
-import { SideMenu } from "./components/SideMenu/SideMenu";
+import ToolMenu from "./components/ToolMenu/ToolMenu";
+import SideMenu from "./components/SideMenu/SideMenu";
 import TransformMenu from "./components/TransformMenu/TransformMenu";
+import LayersMenu from "./components/LayersMenu/LayersMenu";
 
 const App = () => {
   const [eventBus, setEventBus] = useState<EventBus | null>(null);
@@ -31,7 +32,7 @@ const App = () => {
         {MIGRATION.SideMenu ? (
           <SideMenu>
             {MIGRATION.TransformMenu ? <TransformMenu /> : <div id="vanilla-transform-menu" />}
-            <div id="vanilla-layers-menu" />
+            {MIGRATION.LayersMenu ? <LayersMenu /> : <div id="vanilla-layers-menu" />}
             <div id="vanilla-text-menu" />
             <div id="vanilla-gradient-menu" />
           </SideMenu>
