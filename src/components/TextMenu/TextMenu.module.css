@@ -1,0 +1,70 @@
+.section {
+  background: linear-gradient(var(--background-300), var(--background-500));
+  border-radius: var(--border-radius-small);
+  border: 1px solid var(--background-700);
+  color: var(--text-900);
+  font-size: var(--font-small);
+  margin-block: 0.25rem;
+  padding: 0.25rem;
+  transition: var(--background-transition);
+  width: 100%;
+
+  &[aria-disabled="true"] {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+.section h5 {
+  border-bottom: 1px solid var(--background-700);
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.rowEnd {
+  justify-content: flex-end;
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.textarea {
+  width: 100%;
+  resize: none;
+  font-size: var(--font-small);
+}
+
+.select {
+  width: 80%;
+  font-size: var(--font-small);
+}
+
+.radioGroup {
+  display: flex;
+  border-radius: 0.25rem;
+  background-color: var(--background-600);
+}
+
+.radioLabel {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0.125rem 0.25rem;
+  font-size: var(--font-small);
+}
+
+.radioInput {
+  margin-right: 0.25rem;
+}

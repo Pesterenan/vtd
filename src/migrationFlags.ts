@@ -3,7 +3,7 @@ export const MIGRATION = {
   SideMenu: true,
   TransformMenu: true,
   LayersMenu: true,
-  TextMenu: false,
+  TextMenu: true,
   GradientMenu: false,
   Alerts: false,
   LoadingOverlay: false,

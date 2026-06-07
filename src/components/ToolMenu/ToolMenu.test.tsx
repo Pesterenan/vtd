@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { EventBusProvider } from "src/contexts/EventBusContext";
 import { EventBus } from "src/utils/eventBus";
-import { ToolMenu } from "./ToolMenu";
+import ToolMenu from "./ToolMenu";
 
 describe("ToolMenu", () => {
   it("emits tool:change when a tool button is clicked", () => {

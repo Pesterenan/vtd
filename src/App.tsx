@@ -8,6 +8,7 @@ import ToolMenu from "./components/ToolMenu/ToolMenu";
 import SideMenu from "./components/SideMenu/SideMenu";
 import TransformMenu from "./components/TransformMenu/TransformMenu";
 import LayersMenu from "./components/LayersMenu/LayersMenu";
+import TextMenu from "./components/TextMenu/TextMenu";
 
 const App = () => {
   const [eventBus, setEventBus] = useState<EventBus | null>(null);
@@ -33,7 +34,7 @@ const App = () => {
           <SideMenu>
             {MIGRATION.TransformMenu ? <TransformMenu /> : <div id="vanilla-transform-menu" />}
             {MIGRATION.LayersMenu ? <LayersMenu /> : <div id="vanilla-layers-menu" />}
-            <div id="vanilla-text-menu" />
+            {MIGRATION.TextMenu ? <TextMenu /> : <div id="vanilla-text-menu" />}
             <div id="vanilla-gradient-menu" />
           </SideMenu>
         ) : (
