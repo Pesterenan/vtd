@@ -9,6 +9,8 @@ import SideMenu from "./components/SideMenu/SideMenu";
 import TransformMenu from "./components/TransformMenu/TransformMenu";
 import LayersMenu from "./components/LayersMenu/LayersMenu";
 import TextMenu from "./components/TextMenu/TextMenu";
+import GradientMenu from "./components/GradientMenu/GradientMenu";
+
 
 const App = () => {
   const [eventBus, setEventBus] = useState<EventBus | null>(null);
@@ -35,7 +37,7 @@ const App = () => {
             {MIGRATION.TransformMenu ? <TransformMenu /> : <div id="vanilla-transform-menu" />}
             {MIGRATION.LayersMenu ? <LayersMenu /> : <div id="vanilla-layers-menu" />}
             {MIGRATION.TextMenu ? <TextMenu /> : <div id="vanilla-text-menu" />}
-            <div id="vanilla-gradient-menu" />
+            {MIGRATION.GradientMenu ? <GradientMenu /> : <div id="vanilla-gradient-menu" />}
           </SideMenu>
         ) : (
           <div id="vanilla-side-menu" />
