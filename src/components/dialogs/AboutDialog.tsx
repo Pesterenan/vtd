@@ -1,6 +1,7 @@
 import DialogBase from "./DialogBase";
 import { version as APP_VERSION } from "../../../package.json";
 import { invoke } from "@tauri-apps/api/core";
+import livePixQRCode from "../../../resources/livepix_qrcode.svg";
 
 const GITHUB_LINK = "https://github.com/Pesterenan/vtd" as const;
 const LIVEPIX_LINK = "https://livepix.gg/pesterenan" as const;
@@ -28,7 +29,7 @@ const AboutDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
       <p>Gostou do app? Considere fazer uma doação!</p>
       <hr />
       <div className="container column ai-jc-c pad-05">
-        {/* <img src=${livePixQRCode} alt="QR Code para doação" style="width: 10rem;" /> */}
+        <img src={livePixQRCode} alt="QR Code para doação" style={{ pointerEvents: "none", width: "10rem" }} />
         <p><a href={LIVEPIX_LINK} id="livepix-link" onClick={handleLivePixLink} target="_blank">{LIVEPIX_LINK}</a></p>
       </div>
       <div className="container column ai-jc-c pad-05">

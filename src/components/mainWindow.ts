@@ -20,6 +20,7 @@ import { ScaleTool } from "./tools/scaleTool";
 import { RotateTool } from "./tools/rotateTool";
 import { TextTool } from "./tools/textTool";
 import { remap } from "src/utils/easing";
+import { MIGRATION } from "src/migrationFlags";
 import { DialogAbout } from "./Dialogs/DialogAbout";
 import { LoadingOverlay } from "./loadingOverlay";
 import { version as APP_VERSION } from "../../package.json";
@@ -47,12 +48,14 @@ export class MainWindow {
   private constructor(private eventBus: EventBus) {
     this.createDOMElements();
     this.createEventListeners();
-    new DialogApplyCrop(eventBus);
-    new DialogElementFilters(eventBus);
-    new DialogExportImage(eventBus);
-    new DialogNewProject(eventBus);
-    new DialogProjectProperties(eventBus);
-    new DialogAbout(eventBus);
+    if (!MIGRATION.Dialogs) {
+      new DialogApplyCrop(eventBus);
+      new DialogElementFilters(eventBus);
+      new DialogExportImage(eventBus);
+      new DialogNewProject(eventBus);
+      new DialogProjectProperties(eventBus);
+      new DialogAbout(eventBus);
+    }
     this.loadingOverlay = new LoadingOverlay(100);
     if (this.canvas) {
       this.toolManager = new ToolManager(this.canvas, this.eventBus);
