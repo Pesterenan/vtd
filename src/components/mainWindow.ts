@@ -72,14 +72,14 @@ export class MainWindow {
   }
 
   private createDOMElements(): void {
-    const appWindow = getElementById<HTMLDivElement>("app-window");
+    const canvasContainer = getElementById<HTMLDivElement>("canvas-container");
     this.canvas = document.createElement("canvas");
     this.canvas.id = "main-canvas";
     this.canvas.width = window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
     this.canvas.height = window.innerHeight;
     this.context = this.canvas.getContext("2d");
-    if (appWindow && this.canvas) {
-      appWindow.appendChild(this.canvas);
+    if (canvasContainer && this.canvas) {
+      canvasContainer.appendChild(this.canvas);
     }
   }
 

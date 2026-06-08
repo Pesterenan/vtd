@@ -22,6 +22,7 @@ const TransformMenu = () => {
 
   useEffect(() => {
     const unsub1 = on("selection:changed", ({ selectedElements }) => {
+      console.log(selectedElements, 'selected');
       setSelected(selectedElements.length > 0);
     });
     const unsub2 = on("transformBox:properties:change", (payload) => {

@@ -11,11 +11,14 @@ import LayersMenu from "./components/LayersMenu/LayersMenu";
 import TextMenu from "./components/TextMenu/TextMenu";
 import GradientMenu from "./components/GradientMenu/GradientMenu";
 
+let vtdInitialized = false;
 
 const App = () => {
   const [eventBus, setEventBus] = useState<EventBus | null>(null);
 
   useEffect(() => {
+    if (vtdInitialized) return;
+    vtdInitialized = true;
     const bus = new EventBus();
     setEventBus(bus);
     initializeVTD(bus);
