@@ -7,7 +7,7 @@ export const MIGRATION = {
   GradientMenu: true,
   Alerts: false,
   LoadingOverlay: false,
-  Dialogs: false,
+  Dialogs: true,
   VideoFrameExtractor: false,
 } as const;
 
