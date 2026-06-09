@@ -10,7 +10,6 @@ import TransformMenu from "./components/TransformMenu/TransformMenu";
 import LayersMenu from "./components/LayersMenu/LayersMenu";
 import TextMenu from "./components/TextMenu/TextMenu";
 import GradientMenu from "./components/GradientMenu/GradientMenu";
-import DialogBase from "./components/Dialogs/DialogBase";
 import DialogController from "./components/Dialogs/DialogController";
 
 let vtdInitialized = false;

@@ -1,0 +1,53 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 1.5rem;
+}
+
+.label {
+  user-select: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hiddenCheckbox {
+  height: 0;
+  opacity: 0;
+  position: absolute;
+  width: 0;
+}
+
+.customCheckbox {
+  background-color: var(--background-300);
+  border-radius: var(--border-radius-small);
+  border: 1px solid var(--text-500);
+  cursor: pointer;
+  display: inline-block;
+  height: 1rem;
+  margin: 0.25rem;
+  position: relative;
+  width: 1rem;
+}
+
+.hiddenCheckbox:checked + .customCheckbox {
+  background-color: var(--primary-500);
+  border-color: var(--primary-700);
+}
+
+.customCheckbox::after {
+  content: '';
+  position: absolute;
+  display: none;
+  height: 9px;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  border: solid var(--accent-500);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.hiddenCheckbox:checked + .customCheckbox::after {
+  display: block;
+}
