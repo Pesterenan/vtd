@@ -52,7 +52,7 @@ const NewProjectDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   };
 
   return (
-    <DialogBase isDraggable isOpen={isOpen} onClose={onClose} title="Novo Projeto">
+    <DialogBase isOpen={isOpen} onClose={onClose} title="Novo Projeto">
       <div className="container column jc-c g-05">
         <TextInput id="project-name-input" label="Nome do Projeto" value={title} onChange={setTitle} />
         <SelectInput id="templates-input" label="Templates" options={TEMPLATE_OPTIONS} value={template} onChange={handleTemplateChange} />

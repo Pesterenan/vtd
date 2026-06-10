@@ -17,7 +17,7 @@ const AboutDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   };
 
   return (
-    <DialogBase isDraggable isOpen={isOpen} onClose={onClose} title="Sobre">
+    <DialogBase isOpen={isOpen} onClose={onClose} title="Sobre">
       <div className="container ai-jc-c pad-b-05">
         <h1 style={{ textAlign: "center" }}>Video Thumbnail Designer</h1>
       </div>

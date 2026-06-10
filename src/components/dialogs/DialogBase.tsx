@@ -1,17 +1,30 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import styles from "./DialogBase.module.css";
 
 interface DialogBaseProps {
-  isDraggable: boolean;
+  isDraggable?: boolean;
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   title: string;
   children: React.ReactNode;
 }
 
-const DialogBase = ({ isOpen, isDraggable, onClose, title, children }: DialogBaseProps) => {
+const DialogBase = ({ isOpen, isDraggable = false, onClose, title, children }: DialogBaseProps) => {
   const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && onClose) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleDragging = (e: React.MouseEvent) => {
     const el = dialogRef.current;
