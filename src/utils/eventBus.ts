@@ -108,7 +108,7 @@ export interface EventBusMap {
     result: unknown;
   };
   "loading:show": {
-    payload: undefined;
+    payload: string | undefined;
     result: unknown;
   };
   "loading:hide": {

@@ -56,7 +56,14 @@ export class MainWindow {
       new DialogProjectProperties(eventBus);
       new DialogAbout(eventBus);
     }
-    this.loadingOverlay = new LoadingOverlay(100);
+    if (!MIGRATION.LoadingOverlay) {
+      this.loadingOverlay = new LoadingOverlay(100);
+    } else {
+      this.loadingOverlay = {
+        show: (msg?: string) => this.eventBus.emit("loading:show", msg),
+        hide: () => this.eventBus.emit("loading:hide"),
+      } as LoadingOverlay;
+    }
     if (this.canvas) {
       this.toolManager = new ToolManager(this.canvas, this.eventBus);
       this.tools = {

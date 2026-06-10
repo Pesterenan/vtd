@@ -5,8 +5,8 @@ export const MIGRATION = {
   LayersMenu: true,
   TextMenu: true,
   GradientMenu: true,
-  Alerts: false,
-  LoadingOverlay: false,
+  Alerts: true,
+  LoadingOverlay: true,
   Dialogs: true,
   VideoFrameExtractor: false,
 } as const;
