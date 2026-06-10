@@ -3,61 +3,12 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Video Frame Extractor</title>
+  <title>Extrator de Quadros de Vídeo</title>
 </head>
 
 <body>
-  <div id="vfe_main-container" class="container column ai-jc-c">
-    <div id="vfe_properties-bar" class="sec_menu-style">
-      <h5>Caixa de Extração:</h5>
-      <div class="container jc-sb g-05">
-        <div id="vfe_transform-controls" class="container ai-c g-05"></div>
-          <div class="container g-05">
-            <button id="vfe_btn-swap" class="btn-common" title="Inverter largura e altura">⇄</button>
-            <button id="vfe_btn-reset" class="btn-common" title="Redefinir caixa de extração">⟲</button>
-            <div id="vfe_aspect-ratio-container" class="container ai-c g-05"></div>
-          </div>
-      </div>
-    </div>
-    <canvas height="320" width="800" id="video-canvas" style="background-color: var(--background-300);"> </canvas>
-    <div id="vfe_video-info" class="container ai-c"></div>
-    <div id="sld_video-controls" class="sec_menu-style container ai-c jc-sb">
-      <div class="container pad-05" style="width: fit-content;">
-        <tooltip title="(CTRL+SHIFT+E) retrocede para o começo">
-          <button class='btn-common' data-seek="start">|◀</button>
-        </tooltip>
-        <tooltip title="(CTRL+E) retrocede 5 segundos">
-          <button class='btn-common' data-seek="-5s">◀5</button>
-        </tooltip>
-        <tooltip title="(SHIFT+E) retrocede 1 segundo">
-          <button class='btn-common' data-seek="-1s">◀1</button>
-        </tooltip>
-        <tooltip title="(E) retrocede 1 quadro">
-          <button class='btn-common' data-seek="-1">◀</button>
-        </tooltip>
-        <tooltip title="(R) avança 1 quadro">
-          <button class='btn-common' data-seek="+1">▶</button>
-        </tooltip>
-        <tooltip title="(SHIFT+R) avança 1 segundo">
-          <button class='btn-common' data-seek="+1s">1▶</button>
-        </tooltip>
-        <tooltip title="(CTRL+R) avança 5 segundos">
-          <button class='btn-common' data-seek="+5s">5▶</button>
-        </tooltip>
-        <tooltip title="(CTRL+SHIFT+R) avança para o final">
-          <button class='btn-common' data-seek="end">▶|</button>
-        </tooltip>
-      </div>
-      <div class="container pad-05" style="width: 100%;">
-        <input id="sld_video-duration" min="0" max="100" step="1" type="range" value="0">
-      </div>
-      <div class="container pad-05" style="width: fit-content;">
-        <div id="vfe_video-duration-indicator">00:00:00 [00]</div>
-      </div>
-    </div>
-  </div>
-  <script type="module" src="./index.ts"></script>
+  <div id="root" />
+  <script type="module" src="./vfe.tsx"></script>
 </body>
-
 
 </html>

@@ -8,7 +8,7 @@ export const MIGRATION = {
   Alerts: true,
   LoadingOverlay: true,
   Dialogs: true,
-  VideoFrameExtractor: false,
+  VideoFrameExtractor: true,
 } as const;
 
 export type MigrationFlag = keyof typeof MIGRATION;

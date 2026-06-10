@@ -294,6 +294,7 @@ export class MainWindow {
     if (!imgString) return;
     if (!this.workArea) {
       this.workArea = new WorkArea(this.eventBus);
+      this.projectTitle = "Sem título";
       const imageEl = new Image();
       imageEl.src = imgString;
       imageEl.onload = async () => {
@@ -304,10 +305,9 @@ export class MainWindow {
           });
           const newElement = await this.workArea.addImageElement(imgString);
           newElement.layerName = `Camada ${newElement.elementId}`;
-          this.projectTitle = "Sem título";
           this.handleResizeWindow();
           this.eventBus.emit("workarea:initialized");
-          invoke("initialize_project_state", { title: "Sem título" });
+          invoke("initialize_project_state", { title: this.projectTitle });
           this.eventBus.emit("workarea:selectById", {
             elementsId: new Set([newElement.elementId]),
           });

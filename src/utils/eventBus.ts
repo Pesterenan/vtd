@@ -283,6 +283,10 @@ export interface EventBusMap {
     payload: { position: Position; size: Size };
     result: unknown;
   };
+  "vfe:metadata-loaded": {
+    payload: { info: string; totalFrames: number; frameRate: number; filePath: string };
+    result: unknown;
+  };
   "workarea:addImage": {
     payload: string;
     result: unknown;
