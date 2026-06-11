@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import styles from "./CheckboxInput.module.css";
 
 interface CheckboxInputProps {
@@ -10,11 +9,9 @@ interface CheckboxInputProps {
 }
 
 const CheckboxInput = ({ id, label, checked = false, onChange, disabled = false }: CheckboxInputProps) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-
   const handleCustomClick = () => {
     if (!disabled) {
-      inputRef.current?.click();
+      onChange(!checked);
     }
   };
 
@@ -24,7 +21,6 @@ const CheckboxInput = ({ id, label, checked = false, onChange, disabled = false 
         {label}:
       </label>
       <input
-        ref={inputRef}
         id={`${id}-checkbox-input`}
         type="checkbox"
         checked={checked}

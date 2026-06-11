@@ -1,6 +1,10 @@
 import { OPTION_SEPARATOR_VALUE } from "src/constants";
-import type { ISelectOption } from "../helpers/createSelectInput";
 import styles from "./SelectInput.module.css";
+
+export interface ISelectOption {
+  label: string;
+  value: string;
+}
 
 interface SelectInputProps {
   /** Component id */

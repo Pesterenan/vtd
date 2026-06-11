@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useEventBus } from "src/hooks/useEventBus";
 import DialogBase from "./DialogBase";
 import CheckboxInput from "../CheckboxInput/CheckboxInput";
+import FilterControls from "../Filters/FilterControls";
 import { FilterManager } from "src/filters/filterManager";
 import type { Filter, FilterProperties } from "src/filters/filter";
 import type { Element } from "src/components/elements/element";
@@ -14,7 +15,8 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [activeElement, setActiveElement] = useState<Element<TElementData> | null>(null);
   const [availableFilters, setAvailableFilters] = useState<Filter[]>([]);
   const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
-  const filterControlsRef = useRef<HTMLDivElement>(null);
+  const [activeFilterIds, setActiveFilterIds] = useState<Set<string>>(new Set());
+  const [editingProps, setEditingProps] = useState<FilterProperties | null>(null);
   const initialFiltersRef = useRef<FilterProperties[]>([]);
   const propertyCacheRef = useRef<Map<string, FilterProperties>>(new Map());
 
@@ -26,6 +28,7 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
       const element = selectedElements[0];
       setActiveElement(element);
       initialFiltersRef.current = JSON.parse(JSON.stringify(element.filters));
+      setActiveFilterIds(new Set(element.filters.map((f) => f.id)));
       propertyCacheRef.current.clear();
 
       const filterManager = FilterManager.getInstance();
@@ -36,13 +39,22 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
           ? filters.filter((f) => f.id !== "drop-shadow" && f.id !== "outer-glow")
           : filters,
       );
-      setActiveFilterId(null);
+      setActiveFilterId(element.filters.length > 0 ? element.filters[0].id : null);
     });
     return unsub;
   }, [on, emit, request]);
 
+  useEffect(() => {
+    if (!activeFilterId || !activeElement) {
+      setEditingProps(null);
+      return;
+    }
+    const props = activeElement.filters.find((f) => f.id === activeFilterId);
+    setEditingProps(props ? { ...props } : null);
+  }, [activeFilterId, activeElement]);
+
   const isFilterActive = (filterId: string): boolean => {
-    return activeElement?.filters?.some((f) => f.id === filterId) ?? false;
+    return activeFilterIds.has(filterId);
   };
 
   const handleToggleFilter = (filter: Filter, isChecked: boolean): void => {
@@ -56,6 +68,7 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
       } else {
         activeElement.filters.push(filter.createDefaultProperties());
       }
+      setActiveFilterIds((prev) => new Set([...prev, filter.id]));
       setActiveFilterId(filter.id);
     } else {
       const propsToCache = activeElement.filters.find((f) => f.id === filter.id);
@@ -63,39 +76,19 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
         propertyCacheRef.current.set(filter.id, propsToCache);
         activeElement.filters = activeElement.filters.filter((f) => f.id !== filter.id);
       }
-      setActiveFilterId(null);
+      setActiveFilterIds((prev) => {
+        const next = new Set(prev);
+        next.delete(filter.id);
+        return next;
+      });
+      if (activeFilterId === filter.id) {
+        const nextActive = activeElement.filters.length > 0 ? activeElement.filters[0].id : null;
+        setActiveFilterId(nextActive);
+      }
     }
 
     emit("workarea:update");
   };
-
-  useEffect(() => {
-    const container = filterControlsRef.current;
-    if (!container || !activeFilterId || !activeElement) return;
-
-    container.innerHTML = "";
-
-    const filterManager = FilterManager.getInstance();
-    const filter = filterManager.getFilterById(activeFilterId);
-    if (!filter) return;
-
-    const properties = activeElement.filters.find((f) => f.id === activeFilterId);
-    if (!properties) return;
-
-    const controlsEl = filter.setupFilterControls(properties, (newProperties) => {
-      const existing = activeElement.filters.find((f) => f.id === activeFilterId);
-      if (existing) {
-        Object.assign(existing, newProperties);
-        emit("workarea:update");
-      }
-    });
-
-    container.appendChild(controlsEl);
-
-    return () => {
-      container.innerHTML = "";
-    };
-  }, [activeFilterId, activeElement, emit]);
 
   const handleApply = (): void => {
     onClose();
@@ -104,6 +97,7 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const handleCancel = (): void => {
     if (activeElement) {
       activeElement.filters = initialFiltersRef.current;
+      setActiveFilterIds(new Set(initialFiltersRef.current.map((f) => f.id)));
       emit("workarea:update");
     }
     onClose();
@@ -112,8 +106,9 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const handleReset = (): void => {
     if (activeElement) {
       activeElement.filters = [];
-      propertyCacheRef.current.clear();
+      setActiveFilterIds(new Set());
       setActiveFilterId(null);
+      propertyCacheRef.current.clear();
       emit("workarea:update");
     }
   };
@@ -132,7 +127,20 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
             />
           ))}
         </div>
-        <div id="filter-controls" ref={filterControlsRef} />
+        {editingProps && (
+          <FilterControls
+            filterId={activeFilterId!}
+            properties={editingProps}
+            onChange={(updates) => {
+              setEditingProps((prev) => prev ? { ...prev, ...updates } : null);
+              const existing = activeElement!.filters.find((f) => f.id === activeFilterId);
+              if (existing) {
+                Object.assign(existing, updates);
+                emit("workarea:update");
+              }
+            }}
+          />
+        )}
       </div>
       <menu className={styles.actions}>
         <button id="btn_accept-filters" className="btn-common-wide" onClick={handleApply}>Aplicar</button>

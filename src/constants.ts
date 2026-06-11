@@ -1,4 +1,4 @@
-import type { ISelectOption } from "./components/helpers/createSelectInput";
+import type { ISelectOption } from "./components/SelectInput/SelectInput";
 
 export const TOOL_MENU_WIDTH = 40;
 export const SIDE_MENU_WIDTH = 320;

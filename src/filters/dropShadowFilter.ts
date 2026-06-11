@@ -1,5 +1,3 @@
-import createColorControl from "src/components/helpers/createColorControl";
-import createSliderControl from "src/components/helpers/createSliderControl";
 import type { FilterProperties } from "src/filters/filter";
 import { Filter } from "src/filters/filter";
 import { toRadians } from "src/utils/transforms";
@@ -42,47 +40,7 @@ export class DropShadowFilter extends Filter {
     elementToDraw(context);
   }
 
-  /** Adiciona quatro controles, ângulo, distância, desfoque e cor, para controlar o efeito */
-  protected appendFilterControls(
-    container: HTMLDivElement,
-    properties: FilterProperties,
-    onChange: (newProperties: Partial<FilterProperties>) => void,
-  ): void {
-    const angleControl = createSliderControl(
-      `${this.id}-angle`,
-      "Ângulo",
-      { min: 0, max: 360, step: 1, value: properties.angle as number },
-      (newValue) => onChange({ angle: Number(newValue) }),
-    );
-    const distanceControl = createSliderControl(
-      `${this.id}-distance`,
-      "Distância",
-      { min: 0, max: 100, step: 1, value: properties.distance as number },
-      (newValue) => onChange({ distance: Number(newValue) }),
-    );
-    const blurControl = createSliderControl(
-      `${this.id}-blur`,
-      "Desfoque",
-      { min: 0, max: 100, step: 1, value: properties.blur as number },
-      (newValue) => onChange({ blur: Number(newValue) }),
-    );
-    const colorControl = createColorControl(
-      `${this.id}-color`,
-      "Cor da Sombra",
-      { value: properties.color as string },
-      (newValue) => onChange({ color: newValue }),
-    );
-    angleControl.enable();
-    distanceControl.enable();
-    blurControl.enable();
-    colorControl.linkEvents();
-    container.append(
-      angleControl.element,
-      distanceControl.element,
-      blurControl.element,
-      colorControl.element,
-    );
-  }
+
 }
 
 

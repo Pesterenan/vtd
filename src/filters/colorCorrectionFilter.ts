@@ -1,4 +1,3 @@
-import createSliderControl from "src/components/helpers/createSliderControl";
 import type { FilterProperties } from "./filter";
 import { Filter } from "./filter";
 
@@ -37,55 +36,7 @@ export class ColorCorrectionFilter extends Filter {
     elementToDraw(context);
   };
 
-  /** Adiciona cinco controles, para controlar a correção de cores no elemento */
-  protected appendFilterControls = (
-    container: HTMLDivElement,
-    properties: FilterProperties,
-    onChange: (newProperties: Partial<FilterProperties>) => void,
-  ): void => {
-    const brightnessControl = createSliderControl(
-      `${this.id}-brightness`,
-      "Brilho",
-      { min: 0, max: 150, step: 1, value: properties.brightness as number },
-      (newValue) => onChange({ brightness: Number(newValue) }),
-    );
-    const contrastControl = createSliderControl(
-      `${this.id}-contrast`,
-      "Contraste",
-      { min: 0, max: 150, step: 1, value: properties.contrast as number },
-      (newValue) => onChange({ contrast: Number(newValue) }),
-    );
-    const grayScaleControl = createSliderControl(
-      `${this.id}-grayscale`,
-      "Escala de Cinza",
-      { min: 0, max: 100, step: 1, value: properties.grayscale as number },
-      (newValue) => onChange({ grayscale: Number(newValue) }),
-    );
-    const hueControl = createSliderControl(
-      `${this.id}-hue`,
-      "Matiz",
-      { min: 0, max: 360, step: 1, value: properties.hue as number },
-      (newValue) => onChange({ hue: Number(newValue) }),
-    );
-    const saturationControl = createSliderControl(
-      `${this.id}-saturation`,
-      "Saturação",
-      { min: 0, max: 200, step: 1, value: properties.saturation as number },
-      (newValue) => onChange({ saturation: Number(newValue) }),
-    );
-    hueControl.enable();
-    saturationControl.enable();
-    grayScaleControl.enable();
-    brightnessControl.enable();
-    contrastControl.enable();
-    container.append(
-      brightnessControl.element,
-      contrastControl.element,
-      grayScaleControl.element,
-      hueControl.element,
-      saturationControl.element,
-    );
-  };
+
 }
 
 
