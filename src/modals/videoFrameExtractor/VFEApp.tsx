@@ -3,10 +3,8 @@ import { useEventBus } from "src/hooks/useEventBus";
 import { EventBusProvider } from "src/contexts/EventBusContext";
 import AlertsProvider from "src/components/Alerts/AlertsProvider";
 import { EventBus } from "src/utils/eventBus";
-import type { ISelectInput } from "src/components/helpers/createSelectInput";
-import createSelectInput from "src/components/helpers/createSelectInput";
-import type { ISliderControl } from "src/components/helpers/createSliderControl";
-import createSliderControl from "src/components/helpers/createSliderControl";
+import SliderControl from "src/components/SliderControl/SliderControl";
+import SelectInput from "src/components/SelectInput/SelectInput";
 import { clamp } from "src/utils/easing";
 import formatFrameIntoTime from "src/utils/formatFrameIntoTime";
 import { VFEManager } from "./VFEManager";
@@ -31,22 +29,23 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const managerRef = useRef<VFEManager | null>(null);
 
-  const transformRef = useRef<HTMLDivElement>(null);
-  const aspectRef = useRef<HTMLDivElement>(null);
   const seekSliderRef = useRef<HTMLInputElement>(null);
   const seekIndicatorRef = useRef<HTMLDivElement>(null);
-
-  const xSliderRef = useRef<ISliderControl | null>(null);
-  const ySliderRef = useRef<ISliderControl | null>(null);
-  const wSliderRef = useRef<ISliderControl | null>(null);
-  const hSliderRef = useRef<ISliderControl | null>(null);
-  const aspectSelectRef = useRef<ISelectInput | null>(null);
 
   const frameRateRef = useRef(30);
   const totalFramesRef = useRef(100);
 
   const [videoInfo, setVideoInfo] = useState("");
   const [durationText, setDurationText] = useState("00:00:00 [00]");
+  const [posX, setPosX] = useState(0);
+  const [posY, setPosY] = useState(0);
+  const [boxW, setBoxW] = useState(100);
+  const [boxH, setBoxH] = useState(100);
+  const [maxX, setMaxX] = useState(10000);
+  const [maxY, setMaxY] = useState(10000);
+  const [maxW, setMaxW] = useState(10000);
+  const [maxH, setMaxH] = useState(10000);
+  const [aspectRatio, setAspectRatio] = useState("16:9");
 
   const updateIndicator = useCallback(() => {
     const slider = seekSliderRef.current;
@@ -169,14 +168,14 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
 
   const handleSwap = useCallback(() => {
     managerRef.current?.swapSize();
-    if (aspectSelectRef.current?.getValue() && aspectSelectRef.current.getValue() !== "custom") {
-      aspectSelectRef.current.setValue("custom");
+    if (aspectRatio && aspectRatio !== "custom") {
+      setAspectRatio("custom");
     }
-  }, []);
+  }, [aspectRatio]);
 
   const handleReset = useCallback(() => {
-    managerRef.current?.reset(aspectSelectRef.current?.getValue() ?? null);
-  }, []);
+    managerRef.current?.reset(aspectRatio ?? null);
+  }, [aspectRatio]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -204,11 +203,10 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
       }
 
       manager.loadVideo(metadata).then(() => {
-        const scale = manager.getScale();
-        xSliderRef.current?.setOptions({ max: width });
-        ySliderRef.current?.setOptions({ max: height });
-        wSliderRef.current?.setOptions({ max: width });
-        hSliderRef.current?.setOptions({ max: height });
+        setMaxX(width);
+        setMaxY(height);
+        setMaxW(width);
+        setMaxH(height);
       });
     }
 
@@ -233,11 +231,10 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
       if (indicator) indicator.textContent = "00:00:00 [00]";
       setDurationText("00:00:00 [00]");
       manager.loadVideo(md).then(() => {
-        const scale = manager.getScale();
-        xSliderRef.current?.setOptions({ max: w });
-        ySliderRef.current?.setOptions({ max: h });
-        wSliderRef.current?.setOptions({ max: w });
-        hSliderRef.current?.setOptions({ max: h });
+        setMaxX(w);
+        setMaxY(h);
+        setMaxW(w);
+        setMaxH(h);
       });
     });
 
@@ -248,99 +245,7 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
     };
   }, [parentEventBus]);
 
-  useEffect(() => {
-    if (!managerRef.current) return;
-    const scale = managerRef.current.getScale();
 
-    const create = () => {
-      const transform = transformRef.current;
-      const aspect = aspectRef.current;
-      if (!transform || !aspect) return;
-
-      const xSlider = createSliderControl(
-        "vfe_x-pos", "X",
-        { min: 0, max: 10000, step: 1, value: 0 },
-        (value) => {
-          const p = managerRef.current?.getExtractBoxPosition();
-          if (p) managerRef.current?.setPosition(Math.round(value / scale.x), p.y);
-        },
-        false,
-      );
-      xSlider.enable();
-      transform.appendChild(xSlider.element);
-      xSliderRef.current = xSlider;
-
-      const ySlider = createSliderControl(
-        "vfe_y-pos", "Y",
-        { min: 0, max: 10000, step: 1, value: 0 },
-        (value) => {
-          const p = managerRef.current?.getExtractBoxPosition();
-          if (p) managerRef.current?.setPosition(p.x, Math.round(value / scale.y));
-        },
-        false,
-      );
-      ySlider.enable();
-      transform.appendChild(ySlider.element);
-      ySliderRef.current = ySlider;
-
-      const wSlider = createSliderControl(
-        "vfe_width", "W",
-        { min: 10, max: 10000, step: 1, value: 100 },
-        (value) => {
-          const s = managerRef.current?.getExtractBoxSize();
-          if (s) managerRef.current?.setSize(Math.round(value / scale.x), s.height);
-        },
-        false,
-      );
-      wSlider.enable();
-      transform.appendChild(wSlider.element);
-      wSliderRef.current = wSlider;
-
-      const hSlider = createSliderControl(
-        "vfe_height", "H",
-        { min: 10, max: 10000, step: 1, value: 100 },
-        (value) => {
-          const s = managerRef.current?.getExtractBoxSize();
-          if (s) managerRef.current?.setSize(s.width, Math.round(value / scale.y));
-        },
-        false,
-      );
-      hSlider.enable();
-      transform.appendChild(hSlider.element);
-      hSliderRef.current = hSlider;
-
-      const aspectSelect = createSelectInput(
-        "vfe_aspect-ratio", "Proporção",
-        {
-          optionValues: [
-            { label: "Personalizado", value: "custom" },
-            { label: "1:1 (Quadrado)", value: "1:1" },
-            { label: "4:3 (Tradicional)", value: "4:3" },
-            { label: "5:7 (Retrato)", value: "5:7" },
-            { label: "16:9 (Widescreen)", value: "16:9" },
-            { label: "21:9 (Cinemascópio)", value: "21:9" },
-          ],
-          value: "16:9",
-        },
-        (value) => {
-          managerRef.current?.setAspectRatio(value);
-        },
-      );
-      aspectSelect.enable();
-      aspect.appendChild(aspectSelect.element);
-      aspectSelectRef.current = aspectSelect;
-    };
-
-    create();
-
-    return () => {
-      xSliderRef.current?.disable();
-      ySliderRef.current?.disable();
-      wSliderRef.current?.disable();
-      hSliderRef.current?.disable();
-      aspectSelectRef.current?.disable();
-    };
-  }, []);
 
   useEffect(() => {
     const slider = seekSliderRef.current;
@@ -357,10 +262,10 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
     const unsub1 = on("vfe:extractbox:update", (payload) => {
       if (!managerRef.current) return;
       const s = managerRef.current.getScale();
-      xSliderRef.current?.setValue(Math.round(payload.position.x * s.x));
-      ySliderRef.current?.setValue(Math.round(payload.position.y * s.y));
-      wSliderRef.current?.setValue(Math.round(payload.size.width * s.x));
-      hSliderRef.current?.setValue(Math.round(payload.size.height * s.y));
+      setPosX(Math.round(payload.position.x * s.x));
+      setPosY(Math.round(payload.position.y * s.y));
+      setBoxW(Math.round(payload.size.width * s.x));
+      setBoxH(Math.round(payload.size.height * s.y));
     });
     return unsub1;
   }, [on]);
@@ -370,11 +275,23 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
       <div id="vfe_properties-bar" className="sec_menu-style">
         <h5>Caixa de Extração:</h5>
         <div className="container jc-sb g-05">
-          <div ref={transformRef} id="vfe_transform-controls" className="container ai-c g-05" />
+          <div className="container ai-c g-05">
+            <SliderControl id="vfe_x-pos" label="X" min={0} max={maxX} step={1} value={posX} onChange={(v) => { setPosX(v); const p = managerRef.current?.getExtractBoxPosition(); if (p) { const s = managerRef.current?.getScale(); if (s) managerRef.current?.setPosition(Math.round(v / s.x), p.y); } }} includeSlider={false} />
+            <SliderControl id="vfe_y-pos" label="Y" min={0} max={maxY} step={1} value={posY} onChange={(v) => { setPosY(v); const p = managerRef.current?.getExtractBoxPosition(); if (p) { const s = managerRef.current?.getScale(); if (s) managerRef.current?.setPosition(p.x, Math.round(v / s.y)); } }} includeSlider={false} />
+            <SliderControl id="vfe_width" label="W" min={10} max={maxW} step={1} value={boxW} onChange={(v) => { setBoxW(v); const s = managerRef.current?.getExtractBoxSize(); if (s) { const scale = managerRef.current?.getScale(); if (scale) managerRef.current?.setSize(Math.round(v / scale.x), s.height); } }} includeSlider={false} />
+            <SliderControl id="vfe_height" label="H" min={10} max={maxH} step={1} value={boxH} onChange={(v) => { setBoxH(v); const s = managerRef.current?.getExtractBoxSize(); if (s) { const scale = managerRef.current?.getScale(); if (scale) managerRef.current?.setSize(s.width, Math.round(v / scale.y)); } }} includeSlider={false} />
+          </div>
           <div className="container g-05">
             <button id="vfe_btn-swap" className="btn-common" title="Inverter largura e altura" onClick={handleSwap}>&#x21C4;</button>
             <button id="vfe_btn-reset" className="btn-common" title="Redefinir caixa de extração" onClick={handleReset}>&#x27F2;</button>
-            <div ref={aspectRef} id="vfe_aspect-ratio-container" className="container ai-c g-05" />
+            <SelectInput id="vfe_aspect-ratio" label="Proporção" options={[
+              { label: "Personalizado", value: "custom" },
+              { label: "1:1 (Quadrado)", value: "1:1" },
+              { label: "4:3 (Tradicional)", value: "4:3" },
+              { label: "5:7 (Retrato)", value: "5:7" },
+              { label: "16:9 (Widescreen)", value: "16:9" },
+              { label: "21:9 (Cinemascópio)", value: "21:9" },
+            ]} value={aspectRatio} onChange={(v) => { setAspectRatio(v); managerRef.current?.setAspectRatio(v); }} />
           </div>
         </div>
       </div>
