@@ -6,11 +6,6 @@ import type { IProjectData, Position, TElementData } from "./types";
 import { TOOL } from "./types";
 import type { Tool } from "./tools/abstractTool";
 import { ToolManager } from "./tools/toolManager";
-import { DialogApplyCrop } from "./Dialogs/DialogApplyCrop";
-import { DialogElementFilters } from "./Dialogs/DialogElementFilters";
-import { DialogExportImage } from "./Dialogs/DialogExportImage";
-import { DialogNewProject } from "./Dialogs/DialogNewProject";
-import { DialogProjectProperties } from "./Dialogs/DialogProjectProperties";
 import { SelectTool } from "./tools/selectTool";
 import { GradientTool } from "./tools/gradientTool";
 import { GrabTool } from "./tools/grabTool";
@@ -20,9 +15,6 @@ import { ScaleTool } from "./tools/scaleTool";
 import { RotateTool } from "./tools/rotateTool";
 import { TextTool } from "./tools/textTool";
 import { remap } from "src/utils/easing";
-import { MIGRATION } from "src/migrationFlags";
-import { DialogAbout } from "./Dialogs/DialogAbout";
-import { LoadingOverlay } from "./loadingOverlay";
 import { version as APP_VERSION } from "../../package.json";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -40,7 +32,7 @@ export class MainWindow {
   public currentTool: TOOL = TOOL.SELECT;
   public lastTool: TOOL | null = TOOL.SELECT;
 
-  private loadingOverlay: LoadingOverlay;
+  private loadingOverlay: { show: (msg?: string) => void; hide: () => void };
   private projectTitle = "";
   private currentProjectPath: string | null = null;
   private copiedElements: TElementData[] = [];
@@ -48,22 +40,10 @@ export class MainWindow {
   private constructor(private eventBus: EventBus, options?: { canvas?: HTMLCanvasElement }) {
     this.createDOMElements(options);
     this.createEventListeners();
-    if (!MIGRATION.Dialogs) {
-      new DialogApplyCrop(eventBus);
-      new DialogElementFilters(eventBus);
-      new DialogExportImage(eventBus);
-      new DialogNewProject(eventBus);
-      new DialogProjectProperties(eventBus);
-      new DialogAbout(eventBus);
-    }
-    if (!MIGRATION.LoadingOverlay) {
-      this.loadingOverlay = new LoadingOverlay(100);
-    } else {
-      this.loadingOverlay = {
-        show: (msg?: string) => this.eventBus.emit("loading:show", msg),
-        hide: () => this.eventBus.emit("loading:hide"),
-      } as LoadingOverlay;
-    }
+    this.loadingOverlay = {
+      show: (msg?: string) => this.eventBus.emit("loading:show", msg),
+      hide: () => this.eventBus.emit("loading:hide"),
+    };
     if (this.canvas) {
       this.toolManager = new ToolManager(this.canvas, this.eventBus);
       this.tools = {
