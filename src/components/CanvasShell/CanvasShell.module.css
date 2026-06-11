@@ -3,3 +3,7 @@
   position: relative;
   overflow: hidden;
 }
+
+.mainCanvas {
+  display: block;
+}

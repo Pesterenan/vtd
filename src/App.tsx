@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EventBus } from "./utils/eventBus";
 import { EventBusProvider } from "./contexts/EventBusContext";
-import { initializeVTD } from "./renderer";
-import CanvasShell from "./components/CanvasShell/CanvasShell";
+import { MainWindow } from "./components/mainWindow";
 import { MIGRATION } from "./migrationFlags";
+import CanvasShell from "./components/CanvasShell/CanvasShell";
 import ToolMenu from "./components/ToolMenu/ToolMenu";
 import SideMenu from "./components/SideMenu/SideMenu";
 import TransformMenu from "./components/TransformMenu/TransformMenu";
@@ -18,6 +18,7 @@ let vtdInitialized = false;
 
 const App = () => {
   const [eventBus, setEventBus] = useState<EventBus | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (vtdInitialized) return;
@@ -27,8 +28,8 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    if (eventBus) {
-      initializeVTD(eventBus);
+    if (eventBus && canvasRef.current) {
+      MainWindow.getInstance(eventBus, { canvas: canvasRef.current });
     }
   }, [eventBus]);
 
@@ -43,7 +44,7 @@ const App = () => {
             {MIGRATION.ToolMenu ? <ToolMenu /> : <div id="vanilla-tool-menu" />}
 
             <div style={{ flex: 1, position: "relative" }}>
-              <CanvasShell />
+              <CanvasShell ref={canvasRef} />
             </div>
             {MIGRATION.SideMenu ? (
               <SideMenu>

@@ -45,8 +45,8 @@ export class MainWindow {
   private currentProjectPath: string | null = null;
   private copiedElements: TElementData[] = [];
 
-  private constructor(private eventBus: EventBus) {
-    this.createDOMElements();
+  private constructor(private eventBus: EventBus, options?: { canvas?: HTMLCanvasElement }) {
+    this.createDOMElements(options);
     this.createEventListeners();
     if (!MIGRATION.Dialogs) {
       new DialogApplyCrop(eventBus);
@@ -81,7 +81,14 @@ export class MainWindow {
     this.changeTool();
   }
 
-  private createDOMElements(): void {
+  private createDOMElements(options?: { canvas?: HTMLCanvasElement }): void {
+    if (options?.canvas) {
+      this.canvas = options.canvas;
+      this.canvas.width = window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
+      this.canvas.height = window.innerHeight;
+      this.context = this.canvas.getContext("2d");
+      return;
+    }
     const canvasContainer = getElementById<HTMLDivElement>("canvas-container");
     this.canvas = document.createElement("canvas");
     this.canvas.id = "main-canvas";
@@ -746,9 +753,9 @@ export class MainWindow {
       y: Math.floor((mousePosition.y - this.offset.y) / this.zoomLevel),
     };
   };
-  public static getInstance(eventBus: EventBus) {
+  public static getInstance(eventBus: EventBus, options?: { canvas?: HTMLCanvasElement }) {
     if (!MainWindow.instance) {
-      MainWindow.instance = new MainWindow(eventBus);
+      MainWindow.instance = new MainWindow(eventBus, options);
     }
     return MainWindow.instance;
   }
