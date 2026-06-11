@@ -24,4 +24,74 @@ describe("TextMenu", () => {
     });
     expect(screen.getByDisplayValue("Hello")).toBeInTheDocument();
   });
+
+  it("shows accept/decline buttons when text is selected", () => {
+    const eventBus = new EventBus();
+    render(
+      <EventBusProvider eventBus={eventBus}>
+        <TextMenu />
+      </EventBusProvider>
+    );
+    act(() => {
+      eventBus.emit("workarea:initialized");
+    });
+    const textElement = new TextElement({ x: 0, y: 0 }, { width: 100, height: 50 }, 1);
+    textElement.content = ["Hello"];
+    act(() => {
+      eventBus.emit("selection:changed", {
+        selectedElements: [textElement as any],
+      });
+    });
+    expect(screen.getByTitle(/aceitar/i)).toBeInTheDocument();
+    expect(screen.getByTitle(/descartar/i)).toBeInTheDocument();
+  });
+
+  it("emits edit:acceptTextChange on accept click", () => {
+    const eventBus = new EventBus();
+    const emitSpy = vi.spyOn(eventBus, "emit");
+    render(
+      <EventBusProvider eventBus={eventBus}>
+        <TextMenu />
+      </EventBusProvider>
+    );
+    act(() => {
+      eventBus.emit("workarea:initialized");
+    });
+    const textElement = new TextElement({ x: 0, y: 0 }, { width: 100, height: 50 }, 1);
+    textElement.content = ["Hello"];
+    act(() => {
+      eventBus.emit("selection:changed", {
+        selectedElements: [textElement as any],
+      });
+    });
+    act(() => {
+      eventBus.emit("edit:acceptTextChange");
+    });
+    expect(screen.queryByDisplayValue("Hello")).not.toBeInTheDocument();
+  });
+
+  it("restores original content on edit:declineTextChange", () => {
+    const eventBus = new EventBus();
+    const emitSpy = vi.spyOn(eventBus, "emit");
+    render(
+      <EventBusProvider eventBus={eventBus}>
+        <TextMenu />
+      </EventBusProvider>
+    );
+    act(() => {
+      eventBus.emit("workarea:initialized");
+    });
+    const textElement = new TextElement({ x: 0, y: 0 }, { width: 100, height: 50 }, 1);
+    textElement.content = ["Hello"];
+    act(() => {
+      eventBus.emit("selection:changed", {
+        selectedElements: [textElement as any],
+      });
+    });
+    textElement.content = ["Changed"];
+    act(() => {
+      eventBus.emit("edit:declineTextChange");
+    });
+    expect(textElement.content[0]).toBe("Hello");
+  });
 });

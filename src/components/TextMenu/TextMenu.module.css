@@ -53,18 +53,92 @@
 
 .radioGroup {
   display: flex;
+  gap: 0.125rem;
   border-radius: 0.25rem;
   background-color: var(--background-600);
+  padding: 0.125rem;
+}
+
+.radioInput {
+  display: none;
 }
 
 .radioLabel {
   cursor: pointer;
   display: flex;
   align-items: center;
-  padding: 0.125rem 0.25rem;
-  font-size: var(--font-small);
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: var(--border-radius-small);
+  transition: var(--background-transition);
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
-.radioInput {
-  margin-right: 0.25rem;
+.radioLabel:hover {
+  background-color: var(--primary-400);
+}
+
+.radioInput:checked + .radioLabel {
+  background-color: var(--primary-500);
+}
+
+.radioIcon {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+}
+
+.radioIcon::before {
+  content: "";
+  display: block;
+  background: linear-gradient(to bottom right,
+      var(--accent-500) 40%,
+      var(--accent-700));
+  height: 1rem;
+  mask-image: var(--icon-url);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: cover;
+  width: 1rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  padding-top: 0.5rem;
+  width: 100%;
+}
+
+.acceptBtn {
+  background-color: var(--primary-500);
+  border: 1px solid var(--primary-700);
+  border-radius: var(--border-radius-small);
+  color: var(--text-900);
+  cursor: pointer;
+  font-size: var(--font-small);
+  font-weight: bold;
+  padding: 0.25rem 1rem;
+  transition: var(--background-transition);
+}
+
+.acceptBtn:hover {
+  background-color: var(--primary-300);
+}
+
+.declineBtn {
+  background-color: var(--accent-500);
+  border: 1px solid var(--accent-700);
+  border-radius: var(--border-radius-small);
+  color: var(--text-900);
+  cursor: pointer;
+  font-size: var(--font-small);
+  font-weight: bold;
+  padding: 0.25rem 1rem;
+  transition: var(--background-transition);
+}
+
+.declineBtn:hover {
+  background-color: var(--accent-300);
 }

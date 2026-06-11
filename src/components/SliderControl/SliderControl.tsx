@@ -25,7 +25,8 @@ const SliderControl = ({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(Number(e.target.value));
+    const v = Number(e.target.value);
+    onChange(Math.min(max, Math.max(min, v)));
   };
 
   return (
@@ -33,7 +34,8 @@ const SliderControl = ({
       <label
         id={`${id}-label`}
         className={styles.label}
-        onMouseDown={dragHandlers}
+        onMouseDown={disabled ? undefined : dragHandlers}
+        style={{ cursor: disabled ? "default" : undefined }}
       >
         {label}:
       </label>

@@ -67,14 +67,24 @@ const GradientBar = ({
         onDragStop(dragging.current.index, newPortion);
       };
 
-      const handleMouseUp = () => {
+      const preventClick = (ev: MouseEvent) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        document.removeEventListener("click", preventClick, true);
+      };
+
+      const handleMouseUp = (ev: MouseEvent) => {
+        if (!dragging.current) return;
         dragging.current = null;
+        ev.stopPropagation();
         document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
+        document.removeEventListener("mouseup", handleMouseUp, true);
+        document.removeEventListener("click", preventClick, true);
       };
 
       document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("mouseup", handleMouseUp, true);
+      document.addEventListener("click", preventClick, true);
     },
     [colorStops, onSelectStop, onDragStop],
   );

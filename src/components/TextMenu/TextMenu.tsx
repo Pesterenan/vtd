@@ -5,6 +5,19 @@ import { useEventBus } from 'src/hooks/useEventBus';
 import { TextElement } from '../elements/textElement';
 import SliderControl from '../SliderControl/SliderControl';
 
+import IconAlignCenter from "src/assets/icons/alignCenter.svg";
+import IconAlignLeft from "src/assets/icons/alignLeft.svg";
+import IconAlignRight from "src/assets/icons/alignRight.svg";
+
+import IconFontStyleNormal from "src/assets/icons/fontStyleNormal.svg";
+import IconFontStyleOverline from "src/assets/icons/fontStyleOverline.svg";
+import IconFontStyleStrikeThrough from "src/assets/icons/fontStyleStrikeThrough.svg";
+import IconFontStyleUnderline from "src/assets/icons/fontStyleUnderline.svg";
+
+import IconFontWeightBold from "src/assets/icons/fontWeightBold.svg";
+import IconFontWeightBoldItalic from "src/assets/icons/fontWeightBoldItalic.svg";
+import IconFontWeightItalic from "src/assets/icons/fontWeightItalic.svg";
+
 interface TextMenuState {
   content: string;
   fontSize: number;
@@ -33,12 +46,63 @@ const DEFAULT_PROPS: TextMenuState = {
   fontWeight: 'normal',
 };
 
+interface RadioOption {
+  value: string;
+  icon: string;
+  tooltip: string;
+}
+
+const TEXT_ALIGN_OPTIONS: RadioOption[] = [
+  { value: 'left', icon: IconAlignLeft, tooltip: 'Esquerda' },
+  { value: 'center', icon: IconAlignCenter, tooltip: 'Centro' },
+  { value: 'right', icon: IconAlignRight, tooltip: 'Direita' },
+];
+
+const FONT_STYLE_OPTIONS: RadioOption[] = [
+  { value: 'normal', icon: IconFontStyleNormal, tooltip: 'Sem Linha' },
+  { value: 'overline', icon: IconFontStyleOverline, tooltip: 'Linha acima' },
+  { value: 'strike-through', icon: IconFontStyleStrikeThrough, tooltip: 'Linha através' },
+  { value: 'underline', icon: IconFontStyleUnderline, tooltip: 'Linha abaixo' },
+];
+
+const FONT_WEIGHT_OPTIONS: RadioOption[] = [
+  { value: 'normal', icon: IconFontStyleNormal, tooltip: 'Normal' },
+  { value: 'bold', icon: IconFontWeightBold, tooltip: 'Negrito' },
+  { value: 'italic', icon: IconFontWeightItalic, tooltip: 'Itálico' },
+  { value: 'bold italic', icon: IconFontWeightBoldItalic, tooltip: 'Negrito e Itálico' },
+];
+
+interface IconRadioProps {
+  option: RadioOption;
+  name: string;
+  checked: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const IconRadio = ({ option, name, checked, onChange }: IconRadioProps) => (
+  <label className={styles.radioLabel} title={option.tooltip}>
+    <input
+      type="radio"
+      name={name}
+      value={option.value}
+      checked={checked}
+      onChange={onChange}
+      className={styles.radioInput}
+    />
+    <span
+      className={styles.radioIcon}
+      style={{ "--icon-url": `url("${option.icon}")` } as React.CSSProperties}
+    />
+  </label>
+);
+
 const TextMenu = () => {
   const { on, emit } = useEventBus();
   const [disabled, setDisabled] = useState(true);
   const [selected, setSelected] = useState(false);
   const [textProps, setTextProps] = useState<TextMenuState>(DEFAULT_PROPS);
   const activeElementRef = useRef<TextElement | null>(null);
+  const originalContentRef = useRef<string>('');
 
   useEffect(() => {
     const unsub1 = on("workarea:initialized", () => setDisabled(false));
@@ -56,6 +120,7 @@ const TextMenu = () => {
       ) as TextElement | undefined;
       if (textElement) {
         activeElementRef.current = textElement;
+        originalContentRef.current = textElement.content.join('');
         setSelected(true);
         setTextProps({
           content: textElement.content.join(''),
@@ -75,8 +140,25 @@ const TextMenu = () => {
         activeElementRef.current = null;
       }
     });
-    return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
-  }, [on]);
+    const unsub5 = on("edit:acceptTextChange", () => {
+      activeElementRef.current = null;
+      setTextProps(DEFAULT_PROPS);
+      setSelected(false);
+      emit("workarea:selectAt", { firstPoint: null });
+      emit("workarea:update");
+    });
+    const unsub6 = on("edit:declineTextChange", () => {
+      if (activeElementRef.current) {
+        activeElementRef.current.content = [originalContentRef.current];
+      }
+      activeElementRef.current = null;
+      setTextProps(DEFAULT_PROPS);
+      setSelected(false);
+      emit("workarea:selectAt", { firstPoint: null });
+      emit("workarea:update");
+    });
+    return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); unsub6(); };
+  }, [on, emit]);
 
   const updateProp = <K extends keyof TextMenuState>(
     key: K,
@@ -255,55 +337,63 @@ const TextMenu = () => {
       <div className={styles.row}>
         <span>Centralizar:</span>
         <div id="text-align-container" className={styles.radioGroup}>
-          {['left', 'center', 'right'].map(align => (
-            <label key={align} className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="text-align"
-                value={align}
-                checked={textProps.textAlign === align}
-                onChange={handleTextAlignChange(align)}
-                className={styles.radioInput}
-              />
-              <span>{align}</span>
-            </label>
+          {TEXT_ALIGN_OPTIONS.map(opt => (
+            <IconRadio
+              key={opt.value}
+              option={opt}
+              name="text-align"
+              checked={textProps.textAlign === opt.value}
+              onChange={handleTextAlignChange(opt.value)}
+            />
           ))}
         </div>
         <span>Linha:</span>
         <div id="font-style-container" className={styles.radioGroup}>
-          {['normal', 'overline', 'strike-through', 'underline'].map(style => (
-            <label key={style} className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="font-style"
-                value={style}
-                checked={textProps.fontStyle === style}
-                onChange={handleFontStyleChange(style)}
-                className={styles.radioInput}
-              />
-              <span>{style}</span>
-            </label>
+          {FONT_STYLE_OPTIONS.map(opt => (
+            <IconRadio
+              key={opt.value}
+              option={opt}
+              name="font-style"
+              checked={textProps.fontStyle === opt.value}
+              onChange={handleFontStyleChange(opt.value)}
+            />
           ))}
         </div>
       </div>
       <div className={`${styles.row} ${styles.rowEnd}`}>
         <span>Estilo:</span>
         <div id="font-weight-container" className={styles.radioGroup}>
-          {['normal', 'bold', 'italic', 'bold italic'].map(weight => (
-            <label key={weight} className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="font-weight"
-                value={weight}
-                checked={textProps.fontWeight === weight}
-                onChange={handleFontWeightChange(weight)}
-                className={styles.radioInput}
-              />
-              <span>{weight}</span>
-            </label>
+          {FONT_WEIGHT_OPTIONS.map(opt => (
+            <IconRadio
+              key={opt.value}
+              option={opt}
+              name="font-weight"
+              checked={textProps.fontWeight === opt.value}
+              onChange={handleFontWeightChange(opt.value)}
+            />
           ))}
         </div>
       </div>
+      {selected && !disabled && (
+        <div className={styles.actions}>
+          <button
+            id="btn_accept-text-changes"
+            className={styles.acceptBtn}
+            onClick={() => emit("edit:acceptTextChange")}
+            title="Aceitar (Shift+Enter)"
+          >
+            ✓
+          </button>
+          <button
+            id="btn_decline-text-changes"
+            className={styles.declineBtn}
+            onClick={() => emit("edit:declineTextChange")}
+            title="Descartar (Esc)"
+          >
+            ✗
+          </button>
+        </div>
+      )}
     </section>
   );
 };

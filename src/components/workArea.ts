@@ -182,7 +182,23 @@ export class WorkArea {
     this.transformBox = null;
   };
 
-  private handleDeleteElement = (): void => {
+  private handleDeleteElement = ({ elementId }: { elementId: number }): void => {
+    const removeFromList = (
+      list: Element<TElementData>[],
+    ): boolean => {
+      const index = list.findIndex((el) => el.elementId === elementId);
+      if (index !== -1) {
+        list.splice(index, 1);
+        return true;
+      }
+      for (const el of list) {
+        if (el instanceof ElementGroup && el.children) {
+          if (removeFromList(el.children)) return true;
+        }
+      }
+      return false;
+    };
+    removeFromList(this._elements);
     this.removeTransformBox();
     this.eventBus.emit("workarea:update");
   };

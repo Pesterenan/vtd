@@ -24,8 +24,13 @@ const App = () => {
     vtdInitialized = true;
     const bus = new EventBus();
     setEventBus(bus);
-    initializeVTD(bus);
   }, []);
+
+  useEffect(() => {
+    if (eventBus) {
+      initializeVTD(eventBus);
+    }
+  }, [eventBus]);
 
   if (!eventBus) return null;
 

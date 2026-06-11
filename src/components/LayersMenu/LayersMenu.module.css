@@ -187,19 +187,42 @@
   padding-top: 0.25rem;
 }
 
-.buttons button {
-  font-size: var(--font-small);
-  padding: 0.25rem 0.5rem;
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
   border: 1px solid var(--background-700);
   border-radius: var(--border-radius-small);
   background-color: var(--background-500);
-  color: var(--text-900);
   cursor: pointer;
   transition: var(--background-transition);
 }
 
-.buttons button:hover {
+.iconBtn:hover {
   background-color: var(--primary-500);
+}
+
+.iconBtnIcon {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+}
+
+.iconBtnIcon::before {
+  content: "";
+  display: block;
+  background: linear-gradient(to bottom right,
+      var(--accent-500) 40%,
+      var(--accent-700));
+  height: 1rem;
+  mask-image: var(--icon-url);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: cover;
+  width: 1rem;
 }
 
 .emptyState {
@@ -207,4 +230,48 @@
   font-style: italic;
   padding: 0.5rem;
   text-align: center;
+}
+
+.contextMenu {
+  position: fixed;
+  background-color: var(--background-200);
+  border: 1px solid var(--background-700);
+  overflow: hidden;
+  box-shadow: var(--menu-shadow);
+  z-index: 100;
+  min-width: 180px;
+  font-size: 0.85em;
+  padding: 0;
+  border-radius: var(--border-radius-medium);
+}
+
+.contextMenuItem {
+  background: none;
+  border: none;
+  color: var(--text-900);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--font-small);
+  padding: 0.25rem 1rem;
+  text-align: left;
+  text-decoration: none;
+  transition: var(--background-transition);
+  width: 100%;
+}
+
+.contextMenuItem:hover {
+  background-color: var(--primary-400);
+  color: var(--text-900);
+}
+
+.contextMenuItem:active {
+  background-color: var(--primary-600);
+  color: var(--accent-500);
+}
+
+.contextSeparator {
+  background-color: var(--background-700);
+  height: 1px;
+  margin: 0.25rem 0.5rem;
+  pointer-events: none;
 }

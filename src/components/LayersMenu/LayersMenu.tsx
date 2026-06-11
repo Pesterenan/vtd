@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useEventBus } from "src/hooks/useEventBus";
 import { useLayerDrag } from "src/hooks/useLayerDrag";
 import type { Layer } from "../types";
 import type { AddElementPayload } from "src/utils/eventBus";
+import { ImageElement } from "../elements/imageElement";
 import styles from "./LayersMenu.module.css";
 
 import ClosedEyeIcon from "src/assets/icons/closed-eye.svg";
@@ -10,6 +11,15 @@ import OpenEyeIcon from "src/assets/icons/open-eye.svg";
 import LockedIcon from "src/assets/icons/lock.svg";
 import UnlockedIcon from "src/assets/icons/unlock.svg";
 import FilterIcon from "src/assets/icons/filter.svg";
+import GroupIcon from "src/assets/icons/group.svg";
+import TrashIcon from "src/assets/icons/trash.svg";
+
+interface ContextMenuState {
+  layer: Layer;
+  x: number;
+  y: number;
+  canCrop: boolean;
+}
 
 function removeLayerById(
   layers: Layer[],
@@ -64,14 +74,16 @@ function moveLayerToEnd(layers: Layer[], draggedId: number): Layer[] {
 }
 
 const LayersMenu = () => {
-  const { on, emit } = useEventBus();
+  const { on, emit, request } = useEventBus();
   const { draggedId, handleDragStart, handleDragOver } =
     useLayerDrag();
   const [layers, setLayers] = useState<Layer[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [disabled, setDisabled] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const editInputRef = useRef<HTMLInputElement | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const unsub1 = on("workarea:initialized", () => setDisabled(false));
@@ -121,6 +133,35 @@ const LayersMenu = () => {
       unsub6();
     };
   }, [on]);
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeContextMenu();
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        closeContextMenu();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [contextMenu, closeContextMenu]);
+
+  const handleContextMenu = (layer: Layer) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    const [element] = request("workarea:getElement:get", { elementId: layer.id });
+    const canCrop = !!(element && element instanceof ImageElement && element.getCroppingBox()?.isCropped());
+    setContextMenu({ layer, x: e.clientX, y: e.clientY, canCrop });
+  };
 
   const emitGenerateLayerHierarchy = (currentLayers: Layer[]) => {
     emit("layer:generateHierarchy", { hierarchy: currentLayers });
@@ -311,9 +352,7 @@ const LayersMenu = () => {
         onDragStart={handleDragStart(layer.id)}
         onDragOver={handleDragOver}
         onDrop={handleDropOnItem(layer.id)}
-        onContextMenu={(e) => {
-          e.preventDefault();
-        }}
+        onContextMenu={handleContextMenu(layer)}
       >
         <div className={styles.controls}>
           <input
@@ -419,13 +458,89 @@ const LayersMenu = () => {
           )}
         </ul>
       <div className={styles.buttons}>
-        <button id="btn_add-group" onClick={handleAddNewGroup}>
-          Adicionar Grupo
+        <button
+          id="btn_add-group"
+          className={styles.iconBtn}
+          title="Adicionar Grupo"
+          onClick={handleAddNewGroup}
+        >
+          <span
+            className={styles.iconBtnIcon}
+            style={{ "--icon-url": `url("${GroupIcon}")` } as React.CSSProperties}
+          />
         </button>
-        <button id="btn_delete-layer" onClick={handleDeleteLayer}>
-          Deletar Camada
+        <button
+          id="btn_delete-layer"
+          className={styles.iconBtn}
+          title="Deletar Camada"
+          onClick={handleDeleteLayer}
+        >
+          <span
+            className={styles.iconBtnIcon}
+            style={{ "--icon-url": `url("${TrashIcon}")` } as React.CSSProperties}
+          />
         </button>
       </div>
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className={styles.contextMenu}
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <button
+            className={styles.contextMenuItem}
+            onClick={() => {
+              emit("dialog:elementFilters:open", { layerId: contextMenu.layer.id });
+              closeContextMenu();
+            }}
+          >
+            Editar Filtros do Elemento
+          </button>
+          <div className={styles.contextSeparator} />
+          <button
+            className={styles.contextMenuItem}
+            onClick={() => {
+              emit("layer:export", { layerId: contextMenu.layer.id, transparent: true });
+              closeContextMenu();
+            }}
+          >
+            Exportar Camada (fundo transparente)
+          </button>
+          <button
+            className={styles.contextMenuItem}
+            onClick={() => {
+              emit("layer:export", { layerId: contextMenu.layer.id, transparent: false });
+              closeContextMenu();
+            }}
+          >
+            Exportar Camada (com canvas)
+          </button>
+          {contextMenu.canCrop && (
+            <>
+              <div className={styles.contextSeparator} />
+              <button
+                className={styles.contextMenuItem}
+                onClick={() => {
+                  emit("dialog:applyCrop:open", { layerId: contextMenu.layer.id });
+                  closeContextMenu();
+                }}
+              >
+                Aplicar Recorte
+              </button>
+            </>
+          )}
+          <div className={styles.contextSeparator} />
+          <button
+            className={styles.contextMenuItem}
+            onClick={() => {
+              emit("workarea:deleteElement", { elementId: contextMenu.layer.id });
+              closeContextMenu();
+            }}
+          >
+            Apagar Elemento
+          </button>
+        </div>
+      )}
     </section>
   );
 };
