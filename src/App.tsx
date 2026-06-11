@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { EventBus } from "./utils/eventBus";
 import { EventBusProvider } from "./contexts/EventBusContext";
 import { MainWindow } from "./components/mainWindow";
-import { MIGRATION } from "./migrationFlags";
 import CanvasShell from "./components/CanvasShell/CanvasShell";
 import ToolMenu from "./components/ToolMenu/ToolMenu";
 import SideMenu from "./components/SideMenu/SideMenu";
@@ -41,21 +40,18 @@ const App = () => {
         <LoadingProvider>
           <DialogController />
           <main id="app-window" style={{ display: "flex", flexDirection: "row" }}>
-            {MIGRATION.ToolMenu ? <ToolMenu /> : <div id="vanilla-tool-menu" />}
+            <ToolMenu />
 
             <div style={{ flex: 1, position: "relative" }}>
               <CanvasShell ref={canvasRef} />
             </div>
-            {MIGRATION.SideMenu ? (
-              <SideMenu>
-                {MIGRATION.TransformMenu ? <TransformMenu /> : <div id="vanilla-transform-menu" />}
-                {MIGRATION.LayersMenu ? <LayersMenu /> : <div id="vanilla-layers-menu" />}
-                {MIGRATION.TextMenu ? <TextMenu /> : <div id="vanilla-text-menu" />}
-                {MIGRATION.GradientMenu ? <GradientMenu /> : <div id="vanilla-gradient-menu" />}
-              </SideMenu>
-            ) : (
-              <div id="vanilla-side-menu" />
-            )}
+
+            <SideMenu>
+              <TransformMenu />
+              <LayersMenu />
+              <TextMenu />
+              <GradientMenu />
+            </SideMenu>
           </main>
         </LoadingProvider>
       </AlertsProvider>
