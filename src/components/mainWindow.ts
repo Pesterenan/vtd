@@ -405,7 +405,6 @@ export class MainWindow {
   };
 
   private handleDragOver = (e: DragEvent): void => {
-    console.log("[DEBUG] window dragover", { types: e.dataTransfer?.types, dropEffect: e.dataTransfer?.dropEffect, hasFiles: e.dataTransfer?.types.includes("Files") });
     e.preventDefault();
     if (e.dataTransfer?.types.includes("Files")) {
       e.dataTransfer.dropEffect = "copy";
@@ -413,7 +412,6 @@ export class MainWindow {
   };
 
   private handleDrop = async (e: DragEvent): Promise<void> => {
-    console.log("[DEBUG] window drop", { filesLength: e.dataTransfer?.files.length });
     if (!e.dataTransfer?.files.length) return;
     e.preventDefault();
     for (const file of e.dataTransfer.files) {

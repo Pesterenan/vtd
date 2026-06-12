@@ -10,8 +10,8 @@ type TransformField = "x" | "y" | "width" | "height" | "rotation" | "opacity";
 const TRANSFORM_EVENTS: Record<TransformField, keyof EventBusMap> = {
   x: "transformBox:updatePosition",
   y: "transformBox:updatePosition",
-  width: "transformBox:updateScale",
-  height: "transformBox:updateScale",
+  width: "transformBox:setSize",
+  height: "transformBox:setSize",
   rotation: "transformBox:updateRotation",
   opacity: "transformBox:updateOpacity",
 };
@@ -73,14 +73,14 @@ const TransformMenu = () => {
 
   const handleChange = (field: TransformField) => (value: number) => {
     if (field === "width" || field === "height") {
-      value = Math.max(1, value);
+      if (value === 0) return;
     }
     const event = TRANSFORM_EVENTS[field];
     const payloadMap: Record<TransformField, EventBusMap[typeof event]["payload"]> = {
       x: { position: { x: value, y: props.y } },
       y: { position: { x: props.x, y: value } },
-      width: { delta: { x: value / props.width, y: 1 } },
-      height: { delta: { x: 1, y: value / props.height } },
+      width: { width: value, height: props.height },
+      height: { width: props.width, height: value },
       rotation: { delta: value },
       opacity: { delta: value },
     };
@@ -91,30 +91,25 @@ const TransformMenu = () => {
     emit("transformMenu:cropping:update", { property, value });
   };
 
-  if (!selected) {
-    return (
-      <section className={styles.section} aria-disabled={true}>
-        <h5>Caixa de Transformação:</h5>
-        <p className={styles.emptyState}>Nenhum elemento selecionado</p>
-      </section>
-    );
-  }
-
   return (
-    <section className={styles.section}>
-      <h5>Caixa de Transformação:</h5>
-      <SliderControl id="x-pos" label="X" min={-9999} max={9999} step={1} value={props.x} onChange={handleChange("x")} />
-      <SliderControl id="y-pos" label="Y" min={-9999} max={9999} step={1} value={props.y} onChange={handleChange("y")} />
-      <SliderControl id="width" label="Largura" min={1} max={9999} step={1} value={props.width} onChange={handleChange("width")} />
-      <SliderControl id="height" label="Altura" min={1} max={9999} step={1} value={props.height} onChange={handleChange("height")} />
-      <SliderControl id="rotation" label="Rotação" min={-360} max={360} step={0.1} value={props.rotation} onChange={handleChange("rotation")} />
-      <SliderControl id="opacity" label="Opacidade" min={0} max={1} step={0.01} value={props.opacity} onChange={handleChange("opacity")} />
-      <details className={styles.cropAccordion} data-disabled={!hasCropping || undefined}>
+    <section className={styles.section} aria-disabled={!selected || undefined}>
+      <h5>Transformações:</h5>
+      <div className={styles.grid}>
+        <SliderControl id="x-pos" label="X" min={-9999} max={9999} step={1} value={props.x} onChange={handleChange("x")} disabled={!selected} />
+        <SliderControl id="width" label="Largura" min={-9999} max={9999} step={1} value={props.width} onChange={handleChange("width")} disabled={!selected} />
+        <SliderControl id="y-pos" label="Y" min={-9999} max={9999} step={1} value={props.y} onChange={handleChange("y")} disabled={!selected} />
+        <SliderControl id="height" label="Altura" min={-9999} max={9999} step={1} value={props.height} onChange={handleChange("height")} disabled={!selected} />
+        <SliderControl id="rotation" label="Rotação" min={-360} max={360} step={0.1} value={props.rotation} onChange={handleChange("rotation")} disabled={!selected} />
+        <SliderControl id="opacity" label="Opacidade" min={0} max={1} step={0.01} value={props.opacity} onChange={handleChange("opacity")} disabled={!selected} />
+      </div>
+      <details open className={styles.cropAccordion} data-disabled={!hasCropping || undefined}>
         <summary>Recorte</summary>
-        <SliderControl id="crop-top" label="Cima" min={0} max={unscaledSize.height} step={1} value={cropProps.top} onChange={handleCropChange("top")} disabled={!hasCropping} />
-        <SliderControl id="crop-left" label="Esquerda" min={0} max={unscaledSize.width} step={1} value={cropProps.left} onChange={handleCropChange("left")} disabled={!hasCropping} />
-        <SliderControl id="crop-right" label="Direita" min={0} max={unscaledSize.width} step={1} value={cropProps.right} onChange={handleCropChange("right")} disabled={!hasCropping} />
-        <SliderControl id="crop-bottom" label="Baixo" min={0} max={unscaledSize.height} step={1} value={cropProps.bottom} onChange={handleCropChange("bottom")} disabled={!hasCropping} />
+        <div className={styles.cropGrid}>
+          <SliderControl id="crop-top" label="Cima" min={0} max={unscaledSize.height} step={1} value={cropProps.top} onChange={handleCropChange("top")} disabled={!hasCropping} />
+          <SliderControl id="crop-bottom" label="Baixo" min={0} max={unscaledSize.height} step={1} value={cropProps.bottom} onChange={handleCropChange("bottom")} disabled={!hasCropping} />
+          <SliderControl id="crop-left" label="Esquerda" min={0} max={unscaledSize.width} step={1} value={cropProps.left} onChange={handleCropChange("left")} disabled={!hasCropping} />
+          <SliderControl id="crop-right" label="Direita" min={0} max={unscaledSize.width} step={1} value={cropProps.right} onChange={handleCropChange("right")} disabled={!hasCropping} />
+        </div>
       </details>
     </section>
   );

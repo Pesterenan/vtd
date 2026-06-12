@@ -5,6 +5,7 @@ export function useLayerDrag() {
 
   const handleDragStart = useCallback(
     (id: number) => (e: React.DragEvent<HTMLLIElement>) => {
+      e.stopPropagation();
       draggedId.current = id;
       e.dataTransfer.effectAllowed = "move";
     },

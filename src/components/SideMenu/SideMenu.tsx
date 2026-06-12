@@ -7,9 +7,7 @@ interface SideMenuProps {
 const SideMenu = ({ children }: SideMenuProps) => {
   return (
     <menu className={styles.sideMenu}>
-      <div className="container column ai-c jc-sb g-05">
-        {children}
-      </div>
+      {children}
     </menu>
   );
 }

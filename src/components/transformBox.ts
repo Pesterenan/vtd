@@ -69,6 +69,7 @@ export class TransformBox {
     this.eventBus.on("transformBox:updatePosition", this.updatePosition);
     this.eventBus.on("transformBox:updateRotation", this.updateRotation);
     this.eventBus.on("transformBox:updateScale", this.updateScale);
+    this.eventBus.on("transformBox:setSize", this.setSize);
     this.eventBus.on("transformBox:updateCropping", this.updateCropping);
     this.eventBus.on(
       "selectTool:isCroppingBoxVisible",
@@ -97,6 +98,7 @@ export class TransformBox {
     this.eventBus.off("transformBox:updatePosition", this.updatePosition);
     this.eventBus.off("transformBox:updateRotation", this.updateRotation);
     this.eventBus.off("transformBox:updateScale", this.updateScale);
+    this.eventBus.off("transformBox:setSize", this.setSize);
     this.eventBus.off("transformBox:updateCropping", this.updateCropping);
     this.eventBus.off(
       "selectTool:isCroppingBoxVisible",
@@ -384,6 +386,12 @@ export class TransformBox {
     this.position.y = anchor.y + offsetRotated.y;
 
     this.updateHandles();
+  };
+
+  public setSize = ({ width, height }: { width: number; height: number }): void => {
+    const deltaX = this.size.width !== 0 ? width / this.size.width : 1;
+    const deltaY = this.size.height !== 0 ? height / this.size.height : 1;
+    this.updateScale({ delta: { x: deltaX, y: deltaY } });
   };
 
   private updateCropping = ({ position }: PositionPayload): void => {

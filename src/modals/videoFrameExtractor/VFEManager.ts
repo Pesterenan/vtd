@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { ExtractBox } from "src/components/extractBox/extractBox";
 import type { IThumbnailSpriteCell, IVideoMetadata } from "src/types";
-import { EventBus } from "src/utils/eventBus";
+import type { EventBus } from "src/utils/eventBus";
 
 const PREVIEW_CANVAS_HEIGHT = 432;
 const PREVIEW_CANVAS_WIDTH = 768;

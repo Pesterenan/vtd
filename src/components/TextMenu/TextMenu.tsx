@@ -120,10 +120,10 @@ const TextMenu = () => {
       ) as TextElement | undefined;
       if (textElement) {
         activeElementRef.current = textElement;
-        originalContentRef.current = textElement.content.join('');
+        originalContentRef.current = textElement.content.join('\n');
         setSelected(true);
         setTextProps({
-          content: textElement.content.join(''),
+          content: textElement.content.join('\n'),
           fontSize: textElement.fontSize,
           lineHeight: textElement.lineHeight,
           fillColor: textElement.fillColor,
@@ -296,23 +296,6 @@ const TextMenu = () => {
       <div className={styles.row}>
         <div id="div_fill-color" className={styles.group}>
           <input
-            id="chk_fill"
-            type="checkbox"
-            checked={textProps.hasFill}
-            onChange={handleHasFillChange}
-          />
-          <ColorPicker
-            id="fill-color"
-            label="Preenchimento"
-            value={textProps.fillColor}
-            disabled={!textProps.hasFill}
-            onChange={handleFillColorChange}
-          />
-        </div>
-      </div>
-      <div className={styles.row}>
-        <div id="div_stroke-color" className={styles.group}>
-          <input
             id="chk_stroke"
             type="checkbox"
             checked={textProps.hasStroke}
@@ -325,6 +308,23 @@ const TextMenu = () => {
             disabled={!textProps.hasStroke}
             onChange={handleStrokeColorChange}
           />
+          <input
+            id="chk_fill"
+            type="checkbox"
+            checked={textProps.hasFill}
+            onChange={handleHasFillChange}
+          />
+          <ColorPicker
+            id="fill-color"
+            label="Preench."
+            value={textProps.fillColor}
+            disabled={!textProps.hasFill}
+            onChange={handleFillColorChange}
+          />
+        </div>
+      </div>
+      <div className={styles.row}>
+        <div id="div_stroke-color" className={styles.group}>
           <SliderControl
             id="stroke-width-control"
             label="Espessura"
@@ -332,10 +332,22 @@ const TextMenu = () => {
             value={textProps.strokeWidth}
             onChange={handleStrokeWidthChange}
           />
+          <span>Linha:</span>
+          <div id="font-style-container" className={styles.radioGroup}>
+            {FONT_STYLE_OPTIONS.map(opt => (
+              <IconRadio
+                key={opt.value}
+                option={opt}
+                name="font-style"
+                checked={textProps.fontStyle === opt.value}
+                onChange={handleFontStyleChange(opt.value)}
+              />
+            ))}
+          </div>
         </div>
       </div>
       <div className={styles.row}>
-        <span>Centralizar:</span>
+        <span>Alinh.:</span>
         <div id="text-align-container" className={styles.radioGroup}>
           {TEXT_ALIGN_OPTIONS.map(opt => (
             <IconRadio
@@ -347,20 +359,6 @@ const TextMenu = () => {
             />
           ))}
         </div>
-        <span>Linha:</span>
-        <div id="font-style-container" className={styles.radioGroup}>
-          {FONT_STYLE_OPTIONS.map(opt => (
-            <IconRadio
-              key={opt.value}
-              option={opt}
-              name="font-style"
-              checked={textProps.fontStyle === opt.value}
-              onChange={handleFontStyleChange(opt.value)}
-            />
-          ))}
-        </div>
-      </div>
-      <div className={`${styles.row} ${styles.rowEnd}`}>
         <span>Estilo:</span>
         <div id="font-weight-container" className={styles.radioGroup}>
           {FONT_WEIGHT_OPTIONS.map(opt => (

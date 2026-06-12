@@ -220,34 +220,28 @@ export class WorkArea {
         elementToUpdate.isVisible = isVisible;
       }
       if (isLocked !== undefined) {
-        if (elementToUpdate instanceof ElementGroup) {
-          if (elementToUpdate.children) {
+        elementToUpdate.isLocked = isLocked;
+        if (isLocked) {
+          if (elementToUpdate instanceof ElementGroup && elementToUpdate.children) {
             for (const child of elementToUpdate.children) {
               child.selected = false;
             }
           }
+          this.selectElementsAt({});
         }
-        elementToUpdate.isLocked = isLocked;
-        this.selectElementsAt({});
       }
     }
+    this.eventBus.emit("layer:setHierarchy", {
+      hierarchy: this.buildLayerHierarchy(this.elements),
+    });
     this.eventBus.emit("workarea:update");
   };
 
   private selectElementsById = ({
     elementsId,
   }: SelectElementsByIdPayload): void => {
-    const selectElement = (element: Element<TElementData>) => {
-      element.selected = elementsId.has(element.elementId) && !element.isLocked;
-    };
-    for (const el of this.elements) {
-      if (el instanceof ElementGroup) {
-        if (el.children && !el.isLocked) {
-          el.children.forEach(selectElement);
-        }
-      } else {
-        selectElement(el);
-      }
+    for (const el of this.getFlatElements(this.elements)) {
+      el.selected = elementsId.has(el.elementId) && !el.isLocked;
     }
     this.createTransformBox();
     this.eventBus.emit("selection:changed", {
@@ -306,7 +300,8 @@ export class WorkArea {
     );
     this.elements = newOrderedElements;
     this.elements.sort((a, b) => a.zDepth - b.zDepth);
-    this.selectElementsAt({});
+    this.removeTransformBox();
+    this.eventBus.emit("selection:changed", { selectedElements: [] });
     this.eventBus.emit("workarea:update");
   };
 
@@ -412,19 +407,9 @@ export class WorkArea {
 
   private getSelectedElements = (): Element<TElementData>[] => {
     const selectedElements: Element<TElementData>[] = [];
-    for (const el of this.elements) {
-      if (el instanceof ElementGroup) {
-        if (el.children?.length) {
-          for (const child of el.children) {
-            if (child.selected) {
-              selectedElements.push(child);
-            }
-          }
-        }
-      } else {
-        if (el.selected) {
-          selectedElements.push(el);
-        }
+    for (const el of this.getFlatElements(this.elements)) {
+      if (el.selected && !el.isLocked && !(el instanceof ElementGroup)) {
+        selectedElements.push(el);
       }
     }
     return selectedElements;
@@ -459,7 +444,9 @@ export class WorkArea {
         firstElement instanceof ElementGroup &&
         firstElement.children
       ) {
-        selectedElements = firstElement.children;
+        selectedElements = firstElement.children.filter(
+          (child) => !child.isLocked,
+        );
       } else if (firstElement) {
         selectedElements = [firstElement as Element<TElementData>];
       }
@@ -470,17 +457,16 @@ export class WorkArea {
         );
         for (const el of this.elements) {
           if (el instanceof ElementGroup) {
+            const unlockedChildren =
+              el.children?.filter((child) => !child.isLocked) ?? [];
             if (
-              el.children?.some(
-                (child) =>
-                  child.isVisible &&
-                  !child.isLocked &&
-                  child
-                    .getBoundingBox()
-                    .isWithinBounds(adjustedFirstPoint, adjustedSecondPoint),
+              unlockedChildren.some((child) =>
+                child
+                  .getBoundingBox()
+                  .isWithinBounds(adjustedFirstPoint, adjustedSecondPoint),
               )
             ) {
-              selectedElements = [...selectedElements, ...el.children];
+              selectedElements = [...selectedElements, ...unlockedChildren];
             }
           } else {
             if (

@@ -6,13 +6,9 @@ import type { AddElementPayload } from "src/utils/eventBus";
 import { ImageElement } from "../elements/imageElement";
 import styles from "./LayersMenu.module.css";
 
-import ClosedEyeIcon from "src/assets/icons/closed-eye.svg";
-import OpenEyeIcon from "src/assets/icons/open-eye.svg";
-import LockedIcon from "src/assets/icons/lock.svg";
-import UnlockedIcon from "src/assets/icons/unlock.svg";
-import FilterIcon from "src/assets/icons/filter.svg";
 import GroupIcon from "src/assets/icons/group.svg";
 import TrashIcon from "src/assets/icons/trash.svg";
+import { renderLayer } from "./components/LayerItem";
 
 interface ContextMenuState {
   layer: Layer;
@@ -64,6 +60,16 @@ function getLayerById(layers: Layer[], id: number): Layer | undefined {
   return undefined;
 }
 
+function isDescendantOf(
+  layers: Layer[],
+  ancestorId: number,
+  targetId: number,
+): boolean {
+  const ancestor = getLayerById(layers, ancestorId);
+  if (!ancestor || !ancestor.children) return false;
+  return getLayerById(ancestor.children, targetId) !== undefined;
+}
+
 function moveLayerToEnd(layers: Layer[], draggedId: number): Layer[] {
   let dragged: Layer | undefined;
   const without = removeLayerById(layers, draggedId, (l) => {
@@ -73,6 +79,41 @@ function moveLayerToEnd(layers: Layer[], draggedId: number): Layer[] {
   return [...without, dragged];
 }
 
+function insertLayerNearTarget(
+  layers: Layer[],
+  targetId: number,
+  dragged: Layer,
+  position: "before" | "after" = "before",
+): Layer[] | null {
+  for (let i = 0; i < layers.length; i++) {
+    if (layers[i].id === targetId) {
+      const result = [...layers];
+      result.splice(position === "after" ? i + 2 : i, 0, dragged);
+      return result;
+    }
+    if (layers[i]?.children && layers[i].children.length > 0) {
+      const result = insertLayerNearTarget(layers[i].children, targetId, dragged, position);
+      if (result) {
+        const newLayers = [...layers];
+        newLayers[i] = { ...newLayers[i], children: result };
+        return newLayers;
+      }
+    }
+  }
+  return null;
+}
+
+function getAllGroupIds(layers: Layer[]): number[] {
+  const ids: number[] = [];
+  for (const layer of layers) {
+    if (layer.children !== undefined) {
+      ids.push(layer.id);
+      ids.push(...getAllGroupIds(layer.children ?? []));
+    }
+  }
+  return ids;
+}
+
 const LayersMenu = () => {
   const { on, emit, request } = useEventBus();
   const { draggedId, handleDragStart, handleDragOver } =
@@ -80,10 +121,84 @@ const LayersMenu = () => {
   const [layers, setLayers] = useState<Layer[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [disabled, setDisabled] = useState(true);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
-  const editInputRef = useRef<HTMLInputElement | null>(null);
+  const [hoverTarget, setHoverTarget] = useState<{ targetId: number; position: "before" | "after" } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
+  const dropPositionRef = useRef<"before" | "after">("before");
+
+  const handleItemDragOver =
+    (targetId: number) => (e: React.DragEvent) => {
+      handleDragOver(e);
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const position = y < rect.height / 2 ? "before" : "after";
+      dropPositionRef.current = position;
+      setHoverTarget((prev) => {
+        if (prev?.targetId === targetId && prev?.position === position) return prev;
+        return { targetId, position };
+      });
+    };
+
+  const handleItemDragLeave =
+    (targetId: number) => () => {
+      setHoverTarget((prev) => prev?.targetId === targetId ? null : prev);
+    };
+
+  const handleOnDrop = (event: React.DragEvent<HTMLLIElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setHoverTarget(null);
+
+    const targetId = Number(event.currentTarget.dataset.id);
+    const currentDraggedId = draggedId.current;
+    if (currentDraggedId === null || isNaN(targetId) || targetId === currentDraggedId) return;
+    draggedId.current = null;
+
+    setLayers((prev) => {
+      if (isDescendantOf(prev, currentDraggedId, targetId)) return prev;
+
+      let dragged: Layer | undefined;
+      const without = removeLayerById(prev, currentDraggedId, (l) => { dragged = l; });
+      if (!dragged) return prev;
+
+      const targetLayer = getLayerById(without, targetId);
+      if (targetLayer?.children !== undefined) {
+        const addToGroup = (layers: Layer[]): Layer[] =>
+          layers.map((l) => {
+            if (l.id === targetId)
+              return { ...l, children: [...(l.children ?? []), dragged] };
+            if (l.children) return { ...l, children: addToGroup(l.children) };
+            return l;
+          });
+        const result = addToGroup(without);
+        emitGenerateLayerHierarchy(result);
+        return result;
+      }
+
+      const position = dropPositionRef.current;
+      const result = insertLayerNearTarget(without, targetId, dragged, position);
+      if (result) {
+        emitGenerateLayerHierarchy(result);
+        return result;
+      }
+
+      emitGenerateLayerHierarchy(without);
+      return without;
+    });
+  };
+
+  const handleToggleCollapse = (layerId: number) => (collapsed: boolean) => {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (collapsed) {
+        next.add(layerId);
+      } else {
+        next.delete(layerId);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const unsub1 = on("workarea:initialized", () => setDisabled(false));
@@ -156,6 +271,19 @@ const LayersMenu = () => {
     };
   }, [contextMenu, closeContextMenu]);
 
+  useEffect(() => {
+    const groupIds = getAllGroupIds(layers);
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of groupIds) {
+        if (!prev.has(id)) {
+          next.add(id);
+        }
+      }
+      return next;
+    });
+  }, [layers]);
+
   const handleContextMenu = (layer: Layer) => (e: React.MouseEvent) => {
     e.preventDefault();
     const [element] = request("workarea:getElement:get", { elementId: layer.id });
@@ -198,63 +326,6 @@ const LayersMenu = () => {
       emit("workarea:selectById", { elementsId: newSelected });
     };
 
-  const handleVisibilityChange =
-    (layer: Layer) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      e.stopPropagation();
-      emit("workarea:updateElement", {
-        elementId: layer.id,
-        isVisible: e.target.checked,
-      });
-    };
-
-  const handleLockChange =
-    (layer: Layer) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      e.stopPropagation();
-      emit("workarea:updateElement", {
-        elementId: layer.id,
-        isLocked: e.target.checked,
-      });
-    };
-
-  const handleFilterClick =
-    (layer: Layer) => (e: React.MouseEvent) => {
-      e.stopPropagation();
-      emit("dialog:elementFilters:open", { layerId: layer.id });
-    };
-
-  const handleNameDoubleClick =
-    (layer: Layer) => () => {
-      setEditingId(layer.id);
-      setTimeout(() => {
-        const input = document.querySelector<HTMLInputElement>(
-          `#inp_layer-${layer.id}`,
-        );
-        if (input) {
-          editInputRef.current = input;
-          input.focus();
-          input.select();
-        }
-      }, 0);
-    };
-
-  const handleNameInputKeyDown =
-    (layer: Layer) => (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        const newName = (e.target as HTMLInputElement).value;
-        emit("workarea:updateElement", {
-          elementId: layer.id,
-          layerName: newName,
-        });
-        setEditingId(null);
-      } else if (e.key === "Escape") {
-        setEditingId(null);
-      }
-    };
-
-  const handleNameInputBlur = () => {
-    setEditingId(null);
-  };
-
   const handleAddNewGroup = () => {
     emit("workarea:addGroupElement");
   };
@@ -279,184 +350,22 @@ const LayersMenu = () => {
     }
   };
 
-  const handleDropOnItem =
-    (targetId: number) => (e: React.DragEvent<HTMLLIElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const currentDraggedId = draggedId.current;
-      if (currentDraggedId !== null && currentDraggedId !== targetId) {
-        setLayers((prev) => {
-          let dragged: Layer | undefined;
-          const without = removeLayerById(prev, currentDraggedId, (l) => {
-            dragged = l;
-          });
-          if (!dragged) return prev;
-          const targetIdx = without.findIndex((l) => l.id === targetId);
-          const result = [...without];
-          result.splice(targetIdx, 0, dragged);
-          draggedId.current = null;
-          emitGenerateLayerHierarchy(result);
-          return result;
-        });
-      }
-    };
-
-  const handleDropOnGroup =
-    (groupId: number) => (e: React.DragEvent<HTMLUListElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const currentDraggedId = draggedId.current;
-      if (currentDraggedId !== null && currentDraggedId !== groupId) {
-        setLayers((prev) => {
-          let dragged: Layer | undefined;
-          const without = removeLayerById(prev, currentDraggedId, (l) => {
-            dragged = l;
-          });
-          if (!dragged) return prev;
-
-          const addToGroup = (layers: Layer[]): Layer[] =>
-            layers.map((l) => {
-              if (l.id === groupId) {
-                return {
-                  ...l,
-                  children: [...(l.children ?? []), dragged],
-                };
-              }
-              if (l.children) {
-                return { ...l, children: addToGroup(l.children) };
-              }
-              return l;
-            });
-
-          const result = addToGroup(without);
-          draggedId.current = null;
-          emitGenerateLayerHierarchy(result);
-          return result;
-        });
-      }
-    };
-
-  const renderLayer = (layer: Layer, isGroup: boolean): React.ReactNode => {
-    const isSelected = selectedIds.has(layer.id);
-    const isEditing = editingId === layer.id;
-    const childListId = `ul_group-children-${layer.id}`;
-
-    return (
-      <li
-        key={layer.id}
-        id={`layer-${layer.id}`}
-        data-id={layer.id}
-        draggable
-        className={`${styles.layerItem} ${isSelected ? styles.selected : ""}`}
-        onClick={handleLayerClick(layer, isGroup)}
-        onDragStart={handleDragStart(layer.id)}
-        onDragOver={handleDragOver}
-        onDrop={handleDropOnItem(layer.id)}
-        onContextMenu={handleContextMenu(layer)}
-      >
-        <div className={styles.controls}>
-          <input
-            id={`inp_visibility-${layer.id}`}
-            className={styles.tglCheckbox}
-            type="checkbox"
-            checked={layer.isVisible}
-            onChange={handleVisibilityChange(layer)}
-          />
-          <label
-            htmlFor={`inp_visibility-${layer.id}`}
-            className={styles.tglLabel}
-            style={
-              {
-                "--icon-url": `url("${ClosedEyeIcon}")`,
-                "--checked-icon-url": `url("${OpenEyeIcon}")`,
-              } as React.CSSProperties
-            }
-          />
-          <input
-            id={`inp_lock-${layer.id}`}
-            className={styles.tglCheckbox}
-            type="checkbox"
-            checked={layer.isLocked}
-            onChange={handleLockChange(layer)}
-          />
-          <label
-            htmlFor={`inp_lock-${layer.id}`}
-            className={styles.tglLabel}
-            style={
-              {
-                "--icon-url": `url("${UnlockedIcon}")`,
-                "--checked-icon-url": `url("${LockedIcon}")`,
-              } as React.CSSProperties
-            }
-          />
-          {!isGroup && (
-            <button
-              id={`btn_filters-${layer.id}`}
-              className={styles.filterBtn}
-              onClick={handleFilterClick(layer)}
-              onDoubleClick={handleFilterClick(layer)}
-            >
-              <label
-                className={styles.filterBtnLabel}
-                style={
-                  {
-                    "--icon-url": `url("${FilterIcon}")`,
-                  } as React.CSSProperties
-                }
-              />
-            </button>
-          )}
-        </div>
-        <div className={styles.layerInfo}>
-          {isEditing ? (
-            <input
-              id={`inp_layer-${layer.id}`}
-              type="text"
-              className={styles.nameInput}
-              defaultValue={layer.name ?? `Camada ${layer.id}`}
-              onKeyDown={handleNameInputKeyDown(layer)}
-              onBlur={handleNameInputBlur}
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <span
-              id={`spn_layer-${layer.id}`}
-              className={styles.layerName}
-              onDoubleClick={handleNameDoubleClick(layer)}
-            >
-              {layer.name ?? `Camada ${layer.id}`}
-            </span>
-          )}
-        </div>
-        {isGroup && layer.children && layer.children.length > 0 && (
-          <ul
-            id={childListId}
-            className={styles.groupChildren}
-            onDragOver={handleDragOver}
-            onDrop={handleDropOnGroup(layer.id)}
-          >
-            {layer.children.map((child) =>
-              renderLayer(child, "children" in child && child.children !== undefined),
-            )}
-          </ul>
-        )}
-      </li>
-    );
-  };
-
   return (
     <section className={styles.section} aria-disabled={disabled || undefined}>
       <h5>Camadas:</h5>
-        <ul
-          id="ul_layers-list"
-          className={styles.layerList}
-          onDragOver={handleDragOver}
-          onDrop={handleDropOnList}
-        >
-          {layers.map((layer) =>
-            renderLayer(layer, layer.children !== undefined),
-          )}
-        </ul>
+      <ul
+        id="ul_layers-list"
+        className={styles.layerList}
+        onDragOver={handleDragOver}
+        onDrop={handleDropOnList}
+      >
+        {layers.map((layer) => {
+          const isCollapsed = collapsedIds.has(layer.id);
+          return renderLayer(layer, handleDragStart, handleOnDrop, handleDragOver, handleLayerClick,
+            isCollapsed, handleToggleCollapse(layer.id),
+            handleItemDragOver, handleItemDragLeave, hoverTarget, selectedIds);
+        })}
+      </ul>
       <div className={styles.buttons}>
         <button
           id="btn_add-group"

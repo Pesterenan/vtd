@@ -27,6 +27,19 @@
   font-style: italic;
 }
 
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+}
+
+.cropGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
 .cropAccordion {
   border: 1px solid var(--background-700);
   border-radius: var(--border-radius-small);

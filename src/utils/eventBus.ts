@@ -271,6 +271,10 @@ export interface EventBusMap {
     payload: DeltaPayload;
     result: unknown;
   };
+  "transformBox:setSize": {
+    payload: { width: number; height: number };
+    result: unknown;
+  };
   "transformBox:updateScale": {
     payload: { delta: Scale; anchor?: Position };
     result: unknown;

@@ -22,6 +22,7 @@ describe("LayersMenu", () => {
   it("emits workarea:selectById on layer click", () => {
     const eventBus = new EventBus();
     const emitSpy = vi.spyOn(eventBus, "emit");
+    eventBus.on("workarea:getElement:get", () => ({ isLocked: false }));
     render(
       <EventBusProvider eventBus={eventBus}>
         <LayersMenu />
@@ -36,6 +37,88 @@ describe("LayersMenu", () => {
     expect(emitSpy).toHaveBeenCalledWith("workarea:selectById", {
       elementsId: new Set([1]),
     });
+  });
+
+  it("does not select a locked layer when clicking on it", () => {
+    const eventBus = new EventBus();
+    const emitSpy = vi.spyOn(eventBus, "emit");
+    eventBus.on("workarea:getElement:get", () => ({ isLocked: true }));
+    render(
+      <EventBusProvider eventBus={eventBus}>
+        <LayersMenu />
+      </EventBusProvider>,
+    );
+    act(() => {
+      eventBus.emit("workarea:addElement", {
+        elementId: 1, layerName: "Layer 1", isVisible: true, isLocked: true, type: "image",
+      });
+    });
+    fireEvent.click(screen.getByText("Layer 1"));
+    expect(emitSpy).not.toHaveBeenCalledWith("workarea:selectById", expect.anything());
+  });
+
+  it("emits workarea:updateElement with isLocked when toggling lock checkbox", () => {
+    const eventBus = new EventBus();
+    const emitSpy = vi.spyOn(eventBus, "emit");
+    render(
+      <EventBusProvider eventBus={eventBus}>
+        <LayersMenu />
+      </EventBusProvider>,
+    );
+    act(() => {
+      eventBus.emit("workarea:addElement", {
+        elementId: 1, layerName: "Layer 1", isVisible: true, isLocked: false, type: "image",
+      });
+    });
+    const lockCheckbox = document.getElementById("inp_lock-1") as HTMLInputElement;
+    fireEvent.click(lockCheckbox);
+    expect(emitSpy).toHaveBeenCalledWith("workarea:updateElement", {
+      elementId: 1,
+      isLocked: true,
+    });
+  });
+
+  it("does not select locked layer when clicking on it in layers menu", () => {
+    const eventBus = new EventBus();
+    const emitSpy = vi.spyOn(eventBus, "emit");
+    eventBus.on("workarea:getElement:get", () => ({ isLocked: true }));
+    render(
+      <EventBusProvider eventBus={eventBus}>
+        <LayersMenu />
+      </EventBusProvider>,
+    );
+    act(() => {
+      eventBus.emit("workarea:addElement", {
+        elementId: 1, layerName: "Layer 1", isVisible: true, isLocked: true, type: "image",
+      });
+    });
+    fireEvent.click(screen.getByText("Layer 1"));
+    expect(emitSpy).not.toHaveBeenCalledWith(
+      "workarea:selectById", expect.anything(),
+    );
+  });
+
+  it("clears selection when workarea:selectById is emitted with empty set", () => {
+    const eventBus = new EventBus();
+    render(
+      <EventBusProvider eventBus={eventBus}>
+        <LayersMenu />
+      </EventBusProvider>,
+    );
+    act(() => {
+      eventBus.emit("workarea:addElement", {
+        elementId: 1, layerName: "Layer 1", isVisible: true, isLocked: false, type: "image",
+      });
+    });
+    const layerItem = screen.getByText("Layer 1").closest("li");
+    act(() => {
+      eventBus.emit("workarea:selectById", { elementsId: new Set([1]) });
+    });
+    expect(layerItem?.className).toContain("selected");
+    act(() => {
+      eventBus.emit("workarea:selectById", { elementsId: new Set() });
+    });
+    expect(layerItem?.className).not.toContain("selected");
   });
 
   it("shows context menu on right-click", () => {
