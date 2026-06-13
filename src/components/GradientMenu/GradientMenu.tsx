@@ -32,6 +32,7 @@ const GradientMenu = () => {
     const unsub2 = on("workarea:clear", () => {
       setSelected(false);
       setDisabled(true);
+      setState(DEFAULT_PROPS);
       activeElementRef.current = null;
     });
     const unsub3 = on("edit:gradient", () => {
@@ -60,6 +61,7 @@ const GradientMenu = () => {
         });
       } else {
         setSelected(false);
+        setState(DEFAULT_PROPS);
         activeElementRef.current = null;
       }
     });
@@ -261,7 +263,7 @@ const GradientMenu = () => {
   const isDisabled = disabled || !selected;
 
   return (
-    <section className={styles.section} aria-disabled={isDisabled || undefined}>
+    <section className={styles.section}>
       <h5>Gradiente:</h5>
 
       <GradientBar
@@ -282,6 +284,7 @@ const GradientMenu = () => {
               label="Cor"
               value={activeStop.color}
               onChange={handleColorChange}
+              disabled={isDisabled}
             />
             <SliderControl
               id="inp_portion_alpha"
@@ -291,6 +294,7 @@ const GradientMenu = () => {
               step={0.01}
               value={activeStop.alpha}
               onChange={handleAlphaChange}
+              disabled={isDisabled}
             />
           </div>
         </div>
@@ -307,22 +311,12 @@ const GradientMenu = () => {
           ]}
           value={state.gradientFormat}
           onChange={handleFormatChange}
+          disabled={isDisabled}
         />
-        {/* <label htmlFor="gradient-format-select">Formato:</label> */}
-        {/* <select */}
-        {/*   id="gradient-format-select" */}
-        {/*   className={styles.select} */}
-        {/*   value={state.gradientFormat} */}
-        {/*   onChange={handleFormatChange} */}
-        {/* > */}
-        {/*   <option value="conic">Cônico</option> */}
-        {/*   <option value="linear">Linear</option> */}
-        {/*   <option value="radial">Radial</option> */}
-        {/* </select> */}
         <SliderControl
           id="inp_portion_position"
           label="Posição"
-          disabled={isFirstStop || isLastStop}
+          disabled={isDisabled || isFirstStop || isLastStop}
           min={0}
           max={1}
           step={0.01}

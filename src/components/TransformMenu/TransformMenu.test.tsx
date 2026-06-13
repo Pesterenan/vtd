@@ -5,13 +5,14 @@ import { EventBus } from "src/utils/eventBus";
 import { CroppingBox } from "src/utils/croppingBox";
 
 describe("TransformMenu", () => {
-  it("disables when no element is selected", () => {
+  it("disables sliders when no element is selected", () => {
     const { container } = render(
       <EventBusProvider eventBus={new EventBus()}>
         <TransformMenu />
       </EventBusProvider>
     );
-    expect(container.querySelector("section")).toHaveAttribute("aria-disabled", "true");
+    expect(container.querySelector("#x-pos-input")).toBeDisabled();
+    expect(container.querySelector("#y-pos-input")).toBeDisabled();
   });
 
   it("updates values on transformBox:properties:change", () => {

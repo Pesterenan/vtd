@@ -49,6 +49,8 @@ const TransformMenu = () => {
         }
       } else {
         setHasCropping(false);
+        setProps({ x: 0, y: 0, width: 100, height: 100, rotation: 0, opacity: 1 });
+        setCropProps({ top: 0, left: 0, right: 100, bottom: 100 });
       }
     });
     const unsub2 = on("transformBox:properties:change", (payload) => {
@@ -92,7 +94,7 @@ const TransformMenu = () => {
   };
 
   return (
-    <section className={styles.section} aria-disabled={!selected || undefined}>
+    <section className={styles.section}>
       <h5>Transformações:</h5>
       <div className={styles.grid}>
         <SliderControl id="x-pos" label="X" min={-9999} max={9999} step={1} value={props.x} onChange={handleChange("x")} disabled={!selected} />

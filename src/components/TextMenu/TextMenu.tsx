@@ -109,6 +109,7 @@ const TextMenu = () => {
     const unsub2 = on("workarea:clear", () => {
       setSelected(false);
       setDisabled(true);
+      setTextProps(DEFAULT_PROPS);
       activeElementRef.current = null;
     });
     const unsub3 = on("edit:text", () => {
@@ -138,6 +139,7 @@ const TextMenu = () => {
       } else {
         setSelected(false);
         activeElementRef.current = null;
+        setTextProps(DEFAULT_PROPS);
       }
     });
     const unsub5 = on("edit:acceptTextChange", () => {
@@ -261,7 +263,7 @@ const TextMenu = () => {
   const isDisabled = disabled || !selected;
 
   return (
-    <section className={styles.section} aria-disabled={isDisabled || undefined}>
+    <section className={styles.section}>
       <h5>Texto:</h5>
       <div className={styles.row}>
         <textarea
@@ -269,11 +271,12 @@ const TextMenu = () => {
           className={styles.textarea}
           onChange={handleTextChange}
           value={textProps.content}
+          disabled={isDisabled}
         />
       </div>
       <div className={styles.row}>
         <label htmlFor="font-select">Fonte:</label>
-        <select id="font-select" className={styles.select}>
+        <select id="font-select" className={styles.select} disabled={isDisabled}>
           <option value="" />
         </select>
       </div>
@@ -284,6 +287,7 @@ const TextMenu = () => {
           min={1} max={250} step={1}
           value={textProps.fontSize}
           onChange={handleFontSizeChange}
+          disabled={isDisabled}
         />
         <SliderControl
           id="line-height-control"
@@ -291,6 +295,7 @@ const TextMenu = () => {
           min={0.1} max={10} step={0.1}
           value={textProps.lineHeight}
           onChange={handleLineHeightChange}
+          disabled={isDisabled}
         />
       </div>
       <div className={styles.row}>
@@ -300,12 +305,13 @@ const TextMenu = () => {
             type="checkbox"
             checked={textProps.hasStroke}
             onChange={handleHasStrokeChange}
+            disabled={isDisabled}
           />
           <ColorPicker
             id="stroke-color"
             label="Contorno"
             value={textProps.strokeColor}
-            disabled={!textProps.hasStroke}
+            disabled={isDisabled || !textProps.hasStroke}
             onChange={handleStrokeColorChange}
           />
           <input
@@ -313,12 +319,13 @@ const TextMenu = () => {
             type="checkbox"
             checked={textProps.hasFill}
             onChange={handleHasFillChange}
+            disabled={isDisabled}
           />
           <ColorPicker
             id="fill-color"
             label="Preench."
             value={textProps.fillColor}
-            disabled={!textProps.hasFill}
+            disabled={isDisabled || !textProps.hasFill}
             onChange={handleFillColorChange}
           />
         </div>
@@ -331,6 +338,7 @@ const TextMenu = () => {
             min={1} max={128} step={1}
             value={textProps.strokeWidth}
             onChange={handleStrokeWidthChange}
+            disabled={isDisabled}
           />
           <span>Linha:</span>
           <div id="font-style-container" className={styles.radioGroup}>

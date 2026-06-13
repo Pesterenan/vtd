@@ -8,11 +8,6 @@
   padding: 0.25rem;
   transition: var(--background-transition);
   width: 100%;
-
-  &[aria-disabled="true"] {
-    opacity: 0.5;
-    pointer-events: none;
-  }
 }
 
 .section h5 {
