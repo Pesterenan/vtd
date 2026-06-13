@@ -92,7 +92,12 @@ function insertLayerNearTarget(
       return result;
     }
     if (layers[i]?.children && layers[i].children.length > 0) {
-      const result = insertLayerNearTarget(layers[i].children, targetId, dragged, position);
+      const result = insertLayerNearTarget(
+        layers[i].children,
+        targetId,
+        dragged,
+        position,
+      );
       if (result) {
         const newLayers = [...layers];
         newLayers[i] = { ...newLayers[i], children: result };
@@ -116,34 +121,35 @@ function getAllGroupIds(layers: Layer[]): number[] {
 
 const LayersMenu = () => {
   const { on, emit, request } = useEventBus();
-  const { draggedId, handleDragStart, handleDragOver } =
-    useLayerDrag();
+  const { draggedId, handleDragStart, handleDragOver } = useLayerDrag();
   const [layers, setLayers] = useState<Layer[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [disabled, setDisabled] = useState(true);
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
-  const [hoverTarget, setHoverTarget] = useState<{ targetId: number; position: "before" | "after" } | null>(null);
+  const [hoverTarget, setHoverTarget] = useState<{
+    targetId: number;
+    position: "before" | "after";
+  } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
   const dropPositionRef = useRef<"before" | "after">("before");
 
-  const handleItemDragOver =
-    (targetId: number) => (e: React.DragEvent) => {
-      handleDragOver(e);
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const y = e.clientY - rect.top;
-      const position = y < rect.height / 2 ? "before" : "after";
-      dropPositionRef.current = position;
-      setHoverTarget((prev) => {
-        if (prev?.targetId === targetId && prev?.position === position) return prev;
-        return { targetId, position };
-      });
-    };
+  const handleItemDragOver = (targetId: number) => (e: React.DragEvent) => {
+    handleDragOver(e);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const position = y < rect.height / 2 ? "before" : "after";
+    dropPositionRef.current = position;
+    setHoverTarget((prev) => {
+      if (prev?.targetId === targetId && prev?.position === position)
+        return prev;
+      return { targetId, position };
+    });
+  };
 
-  const handleItemDragLeave =
-    (targetId: number) => () => {
-      setHoverTarget((prev) => prev?.targetId === targetId ? null : prev);
-    };
+  const handleItemDragLeave = (targetId: number) => () => {
+    setHoverTarget((prev) => (prev?.targetId === targetId ? null : prev));
+  };
 
   const handleOnDrop = (event: React.DragEvent<HTMLLIElement>) => {
     event.preventDefault();
@@ -152,14 +158,21 @@ const LayersMenu = () => {
 
     const targetId = Number(event.currentTarget.dataset.id);
     const currentDraggedId = draggedId.current;
-    if (currentDraggedId === null || isNaN(targetId) || targetId === currentDraggedId) return;
+    if (
+      currentDraggedId === null ||
+      isNaN(targetId) ||
+      targetId === currentDraggedId
+    )
+      return;
     draggedId.current = null;
 
     setLayers((prev) => {
       if (isDescendantOf(prev, currentDraggedId, targetId)) return prev;
 
       let dragged: Layer | undefined;
-      const without = removeLayerById(prev, currentDraggedId, (l) => { dragged = l; });
+      const without = removeLayerById(prev, currentDraggedId, (l) => {
+        dragged = l;
+      });
       if (!dragged) return prev;
 
       const targetLayer = getLayerById(without, targetId);
@@ -177,7 +190,12 @@ const LayersMenu = () => {
       }
 
       const position = dropPositionRef.current;
-      const result = insertLayerNearTarget(without, targetId, dragged, position);
+      const result = insertLayerNearTarget(
+        without,
+        targetId,
+        dragged,
+        position,
+      );
       if (result) {
         emitGenerateLayerHierarchy(result);
         return result;
@@ -259,7 +277,10 @@ const LayersMenu = () => {
       if (e.key === "Escape") closeContextMenu();
     };
     const handleClickOutside = (e: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+      if (
+        contextMenuRef.current &&
+        !contextMenuRef.current.contains(e.target as Node)
+      ) {
         closeContextMenu();
       }
     };
@@ -286,8 +307,14 @@ const LayersMenu = () => {
 
   const handleContextMenu = (layer: Layer) => (e: React.MouseEvent) => {
     e.preventDefault();
-    const [element] = request("workarea:getElement:get", { elementId: layer.id });
-    const canCrop = !!(element && element instanceof ImageElement && element.getCroppingBox()?.isCropped());
+    const [element] = request("workarea:getElement:get", {
+      elementId: layer.id,
+    });
+    const canCrop = !!(
+      element &&
+      element instanceof ImageElement &&
+      element.getCroppingBox()?.isCropped()
+    );
     setContextMenu({ layer, x: e.clientX, y: e.clientY, canCrop });
   };
 
@@ -318,9 +345,7 @@ const LayersMenu = () => {
           }
         }
       } else {
-        newSelected = new Set(
-          isGroup ? getAllChildIds(layer) : [layer.id],
-        );
+        newSelected = new Set(isGroup ? getAllChildIds(layer) : [layer.id]);
       }
       setSelectedIds(newSelected);
       emit("workarea:selectById", { elementsId: newSelected });
@@ -361,9 +386,19 @@ const LayersMenu = () => {
       >
         {layers.map((layer) => {
           const isCollapsed = collapsedIds.has(layer.id);
-          return renderLayer(layer, handleDragStart, handleOnDrop, handleDragOver, handleLayerClick,
-            isCollapsed, handleToggleCollapse(layer.id),
-            handleItemDragOver, handleItemDragLeave, hoverTarget, selectedIds);
+          return renderLayer(
+            layer,
+            handleDragStart,
+            handleOnDrop,
+            handleDragOver,
+            handleLayerClick,
+            isCollapsed,
+            handleToggleCollapse(layer.id),
+            handleItemDragOver,
+            handleItemDragLeave,
+            hoverTarget,
+            selectedIds,
+          );
         })}
       </ul>
       <div className={styles.buttons}>
@@ -375,7 +410,9 @@ const LayersMenu = () => {
         >
           <span
             className={styles.iconBtnIcon}
-            style={{ "--icon-url": `url("${GroupIcon}")` } as React.CSSProperties}
+            style={
+              { "--icon-url": `url("${GroupIcon}")` } as React.CSSProperties
+            }
           />
         </button>
         <button
@@ -386,7 +423,9 @@ const LayersMenu = () => {
         >
           <span
             className={styles.iconBtnIcon}
-            style={{ "--icon-url": `url("${TrashIcon}")` } as React.CSSProperties}
+            style={
+              { "--icon-url": `url("${TrashIcon}")` } as React.CSSProperties
+            }
           />
         </button>
       </div>
@@ -399,7 +438,9 @@ const LayersMenu = () => {
           <button
             className={styles.contextMenuItem}
             onClick={() => {
-              emit("dialog:elementFilters:open", { layerId: contextMenu.layer.id });
+              emit("dialog:elementFilters:open", {
+                layerId: contextMenu.layer.id,
+              });
               closeContextMenu();
             }}
           >
@@ -409,7 +450,10 @@ const LayersMenu = () => {
           <button
             className={styles.contextMenuItem}
             onClick={() => {
-              emit("layer:export", { layerId: contextMenu.layer.id, transparent: true });
+              emit("layer:export", {
+                layerId: contextMenu.layer.id,
+                transparent: true,
+              });
               closeContextMenu();
             }}
           >
@@ -418,7 +462,10 @@ const LayersMenu = () => {
           <button
             className={styles.contextMenuItem}
             onClick={() => {
-              emit("layer:export", { layerId: contextMenu.layer.id, transparent: false });
+              emit("layer:export", {
+                layerId: contextMenu.layer.id,
+                transparent: false,
+              });
               closeContextMenu();
             }}
           >
@@ -430,7 +477,9 @@ const LayersMenu = () => {
               <button
                 className={styles.contextMenuItem}
                 onClick={() => {
-                  emit("dialog:applyCrop:open", { layerId: contextMenu.layer.id });
+                  emit("dialog:applyCrop:open", {
+                    layerId: contextMenu.layer.id,
+                  });
                   closeContextMenu();
                 }}
               >
@@ -442,7 +491,9 @@ const LayersMenu = () => {
           <button
             className={styles.contextMenuItem}
             onClick={() => {
-              emit("workarea:deleteElement", { elementId: contextMenu.layer.id });
+              emit("workarea:deleteElement", {
+                elementId: contextMenu.layer.id,
+              });
               closeContextMenu();
             }}
           >

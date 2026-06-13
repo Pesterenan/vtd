@@ -38,7 +38,7 @@ const SelectInput = ({
       >
         {options.map((opt) => (
           <option
-            key={opt.value}
+            key={opt.label}
             value={opt.value === OPTION_SEPARATOR_VALUE ? "" : opt.value}
             disabled={opt.value === OPTION_SEPARATOR_VALUE}
           >

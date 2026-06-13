@@ -96,38 +96,40 @@ const GradientBar = ({
   }, []);
 
   return (
-    <div
-      ref={barRef}
-      className="gradientBar"
-      style={{ ...gradientStyle, position: "relative", height: "2rem", borderRadius: "0.25rem", cursor: "pointer" }}
-      onClick={handleBarClick}
-    >
-      {colorStops.map((stop, i) => (
-        <div
-          key={i}
-          data-index={i}
-          className={`colorStop ${i === activeIndex ? "active" : ""}`}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: `calc(${stop.portion * 100}% - 0.375rem)`,
-            width: "0.75rem",
-            height: "100%",
-            backgroundColor: stop.color,
-            border: i === activeIndex ? "2px solid #fff" : "1px solid #888",
-            borderRadius: "0.125rem",
-            cursor: "grab",
-            boxSizing: "border-box",
-            zIndex: i === activeIndex ? 2 : 1,
-          }}
-          onMouseDown={(e) => handleIndicatorMouseDown(i, e)}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onDeleteStop(i);
-          }}
-        />
-      ))}
+    <div style={{ backgroundColor: 'white', borderRadius: "0.25rem", marginInline: '0.25rem' }}>
+      <div
+        ref={barRef}
+        className="gradientBar"
+        style={{ ...gradientStyle, position: "relative", height: "2rem", borderRadius: "0.25rem", cursor: "pointer" }}
+        onClick={handleBarClick}
+      >
+        {colorStops.map((stop, i) => (
+          <div
+            key={i}
+            data-index={i}
+            className={`colorStop ${i === activeIndex ? "active" : ""}`}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: `calc(${stop.portion * 100}% - 0.375rem)`,
+              width: "0.75rem",
+              height: "100%",
+              backgroundColor: stop.color,
+              border: i === activeIndex ? "2px solid #fff" : "1px solid #888",
+              borderRadius: "0.125rem",
+              cursor: "grab",
+              boxSizing: "border-box",
+              zIndex: i === activeIndex ? 2 : 1,
+            }}
+            onMouseDown={(e) => handleIndicatorMouseDown(i, e)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDeleteStop(i);
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { GradientElement } from "../elements/gradientElement";
 import GradientBar from "./components/GradientBar";
 import ColorPicker from "../ColorPicker/ColorPicker";
 import SliderControl from "../SliderControl/SliderControl";
+import SelectInput from "../SelectInput/SelectInput";
 
 interface GradientMenuState {
   colorStops: IColorStop[];
@@ -39,7 +40,7 @@ const GradientMenu = () => {
     const unsub4 = on("edit:gradientUpdateColorStops", () => {
       const el = activeElementRef.current;
       if (el) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           colorStops: [...el.colorStops],
         }));
@@ -47,7 +48,7 @@ const GradientMenu = () => {
     });
     const unsub5 = on("selection:changed", ({ selectedElements }) => {
       const gradientElement = selectedElements.find(
-        el => el instanceof GradientElement,
+        (el) => el instanceof GradientElement,
       ) as GradientElement | undefined;
       if (gradientElement) {
         activeElementRef.current = gradientElement;
@@ -62,12 +63,19 @@ const GradientMenu = () => {
         activeElementRef.current = null;
       }
     });
-    return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); };
+    return () => {
+      unsub1();
+      unsub2();
+      unsub3();
+      unsub4();
+      unsub5();
+    };
   }, [on]);
 
-  const activeStop = state.activeStopIndex !== null
-    ? state.colorStops[state.activeStopIndex] ?? null
-    : null;
+  const activeStop =
+    state.activeStopIndex !== null
+      ? (state.colorStops[state.activeStopIndex] ?? null)
+      : null;
 
   const isFirstStop = state.activeStopIndex === 0;
   const isLastStop = state.activeStopIndex === state.colorStops.length - 1;
@@ -76,152 +84,179 @@ const GradientMenu = () => {
     emit("workarea:update");
   }, [emit]);
 
-  const handleAddStop = useCallback((portion: number) => {
-    const el = activeElementRef.current;
-    if (!el) return;
+  const handleAddStop = useCallback(
+    (portion: number) => {
+      const el = activeElementRef.current;
+      if (!el) return;
 
-    const stops = el.colorStops;
-    const insertIdx = stops.findIndex(s => s.portion > portion);
-    const idx = insertIdx === -1 ? stops.length : insertIdx;
+      const stops = el.colorStops;
+      const insertIdx = stops.findIndex((s) => s.portion > portion);
+      const idx = insertIdx === -1 ? stops.length : insertIdx;
 
-    const interpolate = (): IColorStop => {
-      if (idx === 0) return { portion, color: stops[0].color, alpha: stops[0].alpha };
-      if (idx >= stops.length) return { portion, color: stops[stops.length - 1].color, alpha: stops[stops.length - 1].alpha };
-      const prev = stops[idx - 1];
-      const next = stops[idx];
-      const t = (portion - prev.portion) / (next.portion - prev.portion);
-      const lerp = (a: number, b: number) => a + (b - a) * t;
-      const hex = (c: number) => Math.round(c).toString(16).padStart(2, "0");
-      const pr = parseInt(prev.color.slice(1, 3), 16);
-      const pg = parseInt(prev.color.slice(3, 5), 16);
-      const pb = parseInt(prev.color.slice(5, 7), 16);
-      const nr = parseInt(next.color.slice(1, 3), 16);
-      const ng = parseInt(next.color.slice(3, 5), 16);
-      const nb = parseInt(next.color.slice(5, 7), 16);
-      return {
-        portion,
-        color: `#${hex(lerp(pr, nr))}${hex(lerp(pg, ng))}${hex(lerp(pb, nb))}`,
-        alpha: lerp(prev.alpha, next.alpha),
+      const interpolate = (): IColorStop => {
+        if (idx === 0)
+          return { portion, color: stops[0].color, alpha: stops[0].alpha };
+        if (idx >= stops.length)
+          return {
+            portion,
+            color: stops[stops.length - 1].color,
+            alpha: stops[stops.length - 1].alpha,
+          };
+        const prev = stops[idx - 1];
+        const next = stops[idx];
+        const t = (portion - prev.portion) / (next.portion - prev.portion);
+        const lerp = (a: number, b: number) => a + (b - a) * t;
+        const hex = (c: number) => Math.round(c).toString(16).padStart(2, "0");
+        const pr = parseInt(prev.color.slice(1, 3), 16);
+        const pg = parseInt(prev.color.slice(3, 5), 16);
+        const pb = parseInt(prev.color.slice(5, 7), 16);
+        const nr = parseInt(next.color.slice(1, 3), 16);
+        const ng = parseInt(next.color.slice(3, 5), 16);
+        const nb = parseInt(next.color.slice(5, 7), 16);
+        return {
+          portion,
+          color: `#${hex(lerp(pr, nr))}${hex(lerp(pg, ng))}${hex(lerp(pb, nb))}`,
+          alpha: lerp(prev.alpha, next.alpha),
+        };
       };
-    };
 
-    const newStop = interpolate();
-    const sorted = [...stops, newStop].sort((a, b) => a.portion - b.portion);
-    const newIdx = sorted.findIndex(s => s.portion === portion);
+      const newStop = interpolate();
+      const sorted = [...stops, newStop].sort((a, b) => a.portion - b.portion);
+      const newIdx = sorted.findIndex((s) => s.portion === portion);
 
-    el.colorStops = sorted;
-    setState(prev => ({
-      ...prev,
-      colorStops: [...sorted],
-      activeStopIndex: newIdx,
-    }));
-    emit("edit:gradientUpdateColorStops");
-    updateElement();
-  }, [emit, updateElement]);
+      el.colorStops = sorted;
+      setState((prev) => ({
+        ...prev,
+        colorStops: [...sorted],
+        activeStopIndex: newIdx,
+      }));
+      emit("edit:gradientUpdateColorStops");
+      updateElement();
+    },
+    [emit, updateElement],
+  );
 
   const handleSelectStop = useCallback((index: number) => {
-    setState(prev => ({ ...prev, activeStopIndex: index }));
+    setState((prev) => ({ ...prev, activeStopIndex: index }));
   }, []);
 
-  const handleDeleteStop = useCallback((index: number) => {
-    const el = activeElementRef.current;
-    if (!el || el.colorStops.length <= 2) return;
-    if (index === 0 || index === el.colorStops.length - 1) return;
+  const handleDeleteStop = useCallback(
+    (index: number) => {
+      const el = activeElementRef.current;
+      if (!el || el.colorStops.length <= 2) return;
+      if (index === 0 || index === el.colorStops.length - 1) return;
 
-    const newStops = el.colorStops.filter((_, i) => i !== index);
-    el.colorStops = newStops;
-    const newIndex = Math.min(index, newStops.length - 1);
-    setState(prev => ({
-      ...prev,
-      colorStops: [...newStops],
-      activeStopIndex: newIndex,
-    }));
-    emit("edit:gradientUpdateColorStops");
-    updateElement();
-  }, [emit, updateElement]);
+      const newStops = el.colorStops.filter((_, i) => i !== index);
+      el.colorStops = newStops;
+      const newIndex = Math.min(index, newStops.length - 1);
+      setState((prev) => ({
+        ...prev,
+        colorStops: [...newStops],
+        activeStopIndex: newIndex,
+      }));
+      emit("edit:gradientUpdateColorStops");
+      updateElement();
+    },
+    [emit, updateElement],
+  );
 
-  const handleDragStop = useCallback((index: number, portion: number) => {
-    const el = activeElementRef.current;
-    if (!el) return;
+  const handleDragStop = useCallback(
+    (index: number, portion: number) => {
+      const el = activeElementRef.current;
+      if (!el) return;
 
-    const clamped = (() => {
-      const stops = el.colorStops;
-      const min = index > 0 ? stops[index - 1].portion + 0.01 : 0;
-      const max = index < stops.length - 1 ? stops[index + 1].portion - 0.01 : 1;
-      return Math.max(min, Math.min(max, portion));
-    })();
+      const clamped = (() => {
+        const stops = el.colorStops;
+        const min = index > 0 ? stops[index - 1].portion + 0.01 : 0;
+        const max =
+          index < stops.length - 1 ? stops[index + 1].portion - 0.01 : 1;
+        return Math.max(min, Math.min(max, portion));
+      })();
 
-    const newStops = el.colorStops.map((s, i) =>
-      i === index ? { ...s, portion: clamped } : s,
-    );
-    el.colorStops = newStops;
-    setState(prev => ({
-      ...prev,
-      colorStops: [...newStops],
-    }));
-    emit("edit:gradientUpdateColorStops");
-    updateElement();
-  }, [emit, updateElement]);
+      const newStops = el.colorStops.map((s, i) =>
+        i === index ? { ...s, portion: clamped } : s,
+      );
+      el.colorStops = newStops;
+      setState((prev) => ({
+        ...prev,
+        colorStops: [...newStops],
+      }));
+      emit("edit:gradientUpdateColorStops");
+      updateElement();
+    },
+    [emit, updateElement],
+  );
 
-  const handleColorChange = useCallback((color: string) => {
-    const el = activeElementRef.current;
-    if (!el || state.activeStopIndex === null) return;
-    const newStops = el.colorStops.map((s, i) =>
-      i === state.activeStopIndex ? { ...s, color } : s,
-    );
-    el.colorStops = newStops;
-    setState(prev => ({
-      ...prev,
-      colorStops: [...newStops],
-    }));
-    updateElement();
-  }, [state.activeStopIndex, updateElement]);
+  const handleColorChange = useCallback(
+    (color: string) => {
+      const el = activeElementRef.current;
+      if (!el || state.activeStopIndex === null) return;
+      const newStops = el.colorStops.map((s, i) =>
+        i === state.activeStopIndex ? { ...s, color } : s,
+      );
+      el.colorStops = newStops;
+      setState((prev) => ({
+        ...prev,
+        colorStops: [...newStops],
+      }));
+      updateElement();
+    },
+    [state.activeStopIndex, updateElement],
+  );
 
-  const handleAlphaChange = useCallback((value: number) => {
-    const el = activeElementRef.current;
-    if (!el || state.activeStopIndex === null) return;
-    const newStops = el.colorStops.map((s, i) =>
-      i === state.activeStopIndex ? { ...s, alpha: value } : s,
-    );
-    el.colorStops = newStops;
-    setState(prev => ({
-      ...prev,
-      colorStops: [...newStops],
-    }));
-    updateElement();
-  }, [state.activeStopIndex, updateElement]);
+  const handleAlphaChange = useCallback(
+    (value: number) => {
+      const el = activeElementRef.current;
+      if (!el || state.activeStopIndex === null) return;
+      const newStops = el.colorStops.map((s, i) =>
+        i === state.activeStopIndex ? { ...s, alpha: value } : s,
+      );
+      el.colorStops = newStops;
+      setState((prev) => ({
+        ...prev,
+        colorStops: [...newStops],
+      }));
+      updateElement();
+    },
+    [state.activeStopIndex, updateElement],
+  );
 
-  const handlePortionChange = useCallback((value: number) => {
-    const el = activeElementRef.current;
-    if (!el || state.activeStopIndex === null) return;
+  const handlePortionChange = useCallback(
+    (value: number) => {
+      const el = activeElementRef.current;
+      if (!el || state.activeStopIndex === null) return;
 
-    const clamped = (() => {
-      const stops = el.colorStops;
-      const idx = state.activeStopIndex;
-      const min = idx > 0 ? stops[idx - 1].portion + 0.01 : 0;
-      const max = idx < stops.length - 1 ? stops[idx + 1].portion - 0.01 : 1;
-      return Math.max(min, Math.min(max, value));
-    })();
+      const clamped = (() => {
+        const stops = el.colorStops;
+        const idx = state.activeStopIndex;
+        const min = idx > 0 ? stops[idx - 1].portion + 0.01 : 0;
+        const max = idx < stops.length - 1 ? stops[idx + 1].portion - 0.01 : 1;
+        return Math.max(min, Math.min(max, value));
+      })();
 
-    const newStops = el.colorStops.map((s, i) =>
-      i === state.activeStopIndex ? { ...s, portion: clamped } : s,
-    );
-    el.colorStops = newStops;
-    setState(prev => ({
-      ...prev,
-      colorStops: [...newStops],
-    }));
-    updateElement();
-  }, [state.activeStopIndex, updateElement]);
+      const newStops = el.colorStops.map((s, i) =>
+        i === state.activeStopIndex ? { ...s, portion: clamped } : s,
+      );
+      el.colorStops = newStops;
+      setState((prev) => ({
+        ...prev,
+        colorStops: [...newStops],
+      }));
+      updateElement();
+    },
+    [state.activeStopIndex, updateElement],
+  );
 
-  const handleFormatChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const el = activeElementRef.current;
-    if (!el) return;
-    const format = e.target.value as "conic" | "linear" | "radial";
-    el.gradientFormat = format;
-    setState(prev => ({ ...prev, gradientFormat: format }));
-    updateElement();
-  }, [updateElement]);
+  const handleFormatChange = useCallback(
+    (newFormat: string) => {
+      const el = activeElementRef.current;
+      if (!el) return;
+      el.gradientFormat = newFormat as GradientElement["gradientFormat"];
+      setState((prev) => ({ ...prev, gradientFormat: newFormat }));
+      updateElement();
+    },
+    [updateElement],
+  );
 
   const isDisabled = disabled || !selected;
 
@@ -248,40 +283,52 @@ const GradientMenu = () => {
               value={activeStop.color}
               onChange={handleColorChange}
             />
-          </div>
-          <div className={styles.row}>
             <SliderControl
               id="inp_portion_alpha"
               label="Alpha"
-              min={0} max={1} step={0.01}
+              min={0}
+              max={1}
+              step={0.01}
               value={activeStop.alpha}
               onChange={handleAlphaChange}
-            />
-          </div>
-          <div className={styles.row} style={{ display: isFirstStop || isLastStop ? "none" : undefined }}>
-            <SliderControl
-              id="inp_portion_position"
-              label="Posição"
-              min={0} max={1} step={0.01}
-              value={activeStop.portion}
-              onChange={handlePortionChange}
             />
           </div>
         </div>
       )}
 
       <div className={styles.row}>
-        <label htmlFor="gradient-format-select">Formato:</label>
-        <select
-          id="gradient-format-select"
-          className={styles.select}
+        <SelectInput
+          id={"gradient-format-select"}
+          label={"Formato"}
+          options={[
+            { value: "conic", label: "Cônico" },
+            { value: "linear", label: "Linear" },
+            { value: "radial", label: "Radial" },
+          ]}
           value={state.gradientFormat}
           onChange={handleFormatChange}
-        >
-          <option value="conic">Cônico</option>
-          <option value="linear">Linear</option>
-          <option value="radial">Radial</option>
-        </select>
+        />
+        {/* <label htmlFor="gradient-format-select">Formato:</label> */}
+        {/* <select */}
+        {/*   id="gradient-format-select" */}
+        {/*   className={styles.select} */}
+        {/*   value={state.gradientFormat} */}
+        {/*   onChange={handleFormatChange} */}
+        {/* > */}
+        {/*   <option value="conic">Cônico</option> */}
+        {/*   <option value="linear">Linear</option> */}
+        {/*   <option value="radial">Radial</option> */}
+        {/* </select> */}
+        <SliderControl
+          id="inp_portion_position"
+          label="Posição"
+          disabled={isFirstStop || isLastStop}
+          min={0}
+          max={1}
+          step={0.01}
+          value={activeStop?.portion ?? 0}
+          onChange={handlePortionChange}
+        />
       </div>
     </section>
   );

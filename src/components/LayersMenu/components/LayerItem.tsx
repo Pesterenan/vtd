@@ -12,10 +12,15 @@ import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { useEventBus } from "src/hooks/useEventBus";
 
-function isLayerOrDescendantSelected(layer: Layer, selectedIds: Set<number>): boolean {
+function isLayerOrDescendantSelected(
+  layer: Layer,
+  selectedIds: Set<number>,
+): boolean {
   if (selectedIds.has(layer.id)) return true;
   if (layer.children) {
-    return layer.children.every(child => isLayerOrDescendantSelected(child, selectedIds));
+    return layer.children.every((child) =>
+      isLayerOrDescendantSelected(child, selectedIds),
+    );
   }
   return false;
 }
@@ -188,9 +193,12 @@ export const renderLayer = (
   const isDragOverAfter = isHover && hoverTarget.position === "after";
   const onItemDragOver = getItemDragOver?.(layer.id) ?? handleOnDragOver;
   const onItemDragLeave = getItemDragLeave?.(layer.id);
-  const isSelected = selectedIds ? isLayerOrDescendantSelected(layer, selectedIds) : false;
+  const isSelected = selectedIds
+    ? isLayerOrDescendantSelected(layer, selectedIds)
+    : false;
   return isGroup ? (
     <LayerGroup
+      key={layer.id}
       layer={layer}
       getDragStart={getDragStart}
       onDragStart={onDragStart}
@@ -211,6 +219,7 @@ export const renderLayer = (
     />
   ) : (
     <LayerItem
+      key={layer.id}
       layer={layer}
       onDragStart={onDragStart}
       onDragOver={onItemDragOver}
@@ -243,7 +252,7 @@ export const LayerItem = ({
   onClick?: (e: React.MouseEvent) => void;
   isDragOverBefore?: boolean;
   isDragOverAfter?: boolean;
-  isSelected?: boolean,
+  isSelected?: boolean;
 }) => {
   const { emit } = useEventBus();
 
