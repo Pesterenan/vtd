@@ -4,15 +4,19 @@
   color: var(--text-900);
   font-size: var(--font-small);
   height: 100%;
-  min-width: 40px;
+  min-width: 3rem;
   padding-block: 0.5rem;
-  padding: 0px;
+  padding-inline: 0px;
   transition: var(--background-transition);
-  width: 40px;
+  width: 3rem;
 }
 
 .btn,
 .btn-wide {
+  &:last-child {
+    position: absolute;
+    bottom: 0.5rem;
+  }
   &:hover {
     background-color: var(--primary-500);
     border-color: var(--primary-400);
@@ -46,4 +50,11 @@
     mask-size: cover;
     width: 1.2rem;
   }
+}
+
+.container {
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
 }
