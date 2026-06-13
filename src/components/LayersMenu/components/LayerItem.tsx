@@ -178,8 +178,8 @@ export const renderLayer = (
     layer: Layer,
     isGroup: boolean,
   ) => (e: React.MouseEvent) => void,
-  isCollapsed?: boolean,
-  onToggleCollapse?: (collapsed: boolean) => void,
+  collapsedIds?: Set<number>,
+  getToggleCollapse?: (id: number) => (collapsed: boolean) => void,
   getItemDragOver?: (targetId: number) => (e: React.DragEvent) => void,
   getItemDragLeave?: (targetId: number) => (e: React.DragEvent) => void,
   hoverTarget?: { targetId: number; position: "before" | "after" } | null,
@@ -196,6 +196,8 @@ export const renderLayer = (
   const isSelected = selectedIds
     ? isLayerOrDescendantSelected(layer, selectedIds)
     : false;
+  const isCollapsed = collapsedIds?.has(layer.id) ?? true;
+  const onToggleCollapse = getToggleCollapse?.(layer.id);
   return isGroup ? (
     <LayerGroup
       key={layer.id}
@@ -207,7 +209,7 @@ export const renderLayer = (
       onDrop={handleOnDrop}
       onClick={onClick}
       getLayerClick={getLayerClick}
-      isCollapsed={isCollapsed ?? true}
+      isCollapsed={isCollapsed}
       onToggleCollapse={onToggleCollapse}
       isDragOverBefore={isDragOverBefore}
       isDragOverAfter={isDragOverAfter}
@@ -216,6 +218,8 @@ export const renderLayer = (
       getItemDragLeave={getItemDragLeave}
       isSelected={isSelected}
       selectedIds={selectedIds}
+      collapsedIds={collapsedIds}
+      getToggleCollapse={getToggleCollapse}
     />
   ) : (
     <LayerItem
@@ -304,6 +308,8 @@ export const LayerGroup = ({
   getItemDragLeave,
   isSelected,
   selectedIds,
+  collapsedIds,
+  getToggleCollapse,
 }: {
   layer: Layer;
   getDragStart: (id: number) => (e: React.DragEvent<HTMLLIElement>) => void;
@@ -325,6 +331,8 @@ export const LayerGroup = ({
   getItemDragOver?: (targetId: number) => (e: React.DragEvent) => void;
   getItemDragLeave?: (targetId: number) => (e: React.DragEvent) => void;
   selectedIds?: Set<number>;
+  collapsedIds?: Set<number>;
+  getToggleCollapse?: (id: number) => (collapsed: boolean) => void;
 }) => {
   const collapsed = isCollapsed ?? true;
   const CollapseToggle = () => {
@@ -364,8 +372,8 @@ export const LayerGroup = ({
               onDrop,
               handleOnDragOver ?? onDragOver,
               getLayerClick,
-              isCollapsed,
-              onToggleCollapse,
+              collapsedIds,
+              getToggleCollapse,
               getItemDragOver,
               getItemDragLeave,
               undefined,

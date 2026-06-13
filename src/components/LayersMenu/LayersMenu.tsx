@@ -133,6 +133,7 @@ const LayersMenu = () => {
   } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
   const dropPositionRef = useRef<"before" | "after">("before");
+  const seenGroupIds = useRef<Set<number>>(new Set());
 
   const handleItemDragOver = (targetId: number) => (e: React.DragEvent) => {
     handleDragOver(e);
@@ -297,8 +298,11 @@ const LayersMenu = () => {
     setCollapsedIds((prev) => {
       const next = new Set(prev);
       for (const id of groupIds) {
-        if (!prev.has(id)) {
-          next.add(id);
+        if (!seenGroupIds.current.has(id)) {
+          seenGroupIds.current.add(id);
+          if (!prev.has(id)) {
+            next.add(id);
+          }
         }
       }
       return next;
@@ -385,15 +389,14 @@ const LayersMenu = () => {
         onDrop={handleDropOnList}
       >
         {layers.map((layer) => {
-          const isCollapsed = collapsedIds.has(layer.id);
           return renderLayer(
             layer,
             handleDragStart,
             handleOnDrop,
             handleDragOver,
             handleLayerClick,
-            isCollapsed,
-            handleToggleCollapse(layer.id),
+            collapsedIds,
+            handleToggleCollapse,
             handleItemDragOver,
             handleItemDragLeave,
             hoverTarget,
