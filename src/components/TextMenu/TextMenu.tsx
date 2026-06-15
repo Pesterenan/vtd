@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import styles from './TextMenu.module.css';
-import ColorPicker from '../ColorPicker/ColorPicker';
-import { useEventBus } from 'src/hooks/useEventBus';
-import { TextElement } from '../elements/textElement';
-import SliderControl from '../SliderControl/SliderControl';
+import { useEffect, useRef, useState } from "react";
+import styles from "./TextMenu.module.css";
+import ColorPicker from "../ColorPicker/ColorPicker";
+import { useEventBus } from "src/hooks/useEventBus";
+import { TextElement } from "../elements/textElement";
+import SliderControl from "../SliderControl/SliderControl";
 
 import IconAlignCenter from "src/assets/icons/alignCenter.svg";
 import IconAlignLeft from "src/assets/icons/alignLeft.svg";
@@ -33,17 +33,17 @@ interface TextMenuState {
 }
 
 const DEFAULT_PROPS: TextMenuState = {
-  content: '',
+  content: "",
   fontSize: 48,
   lineHeight: 1.2,
-  fillColor: '#FFFFFF',
-  strokeColor: '#000000',
+  fillColor: "#FFFFFF",
+  strokeColor: "#000000",
   strokeWidth: 3,
   hasFill: true,
   hasStroke: false,
-  textAlign: 'center',
-  fontStyle: 'normal',
-  fontWeight: 'normal',
+  textAlign: "center",
+  fontStyle: "normal",
+  fontWeight: "normal",
 };
 
 interface RadioOption {
@@ -53,23 +53,31 @@ interface RadioOption {
 }
 
 const TEXT_ALIGN_OPTIONS: RadioOption[] = [
-  { value: 'left', icon: IconAlignLeft, tooltip: 'Esquerda' },
-  { value: 'center', icon: IconAlignCenter, tooltip: 'Centro' },
-  { value: 'right', icon: IconAlignRight, tooltip: 'Direita' },
+  { value: "left", icon: IconAlignLeft, tooltip: "Esquerda" },
+  { value: "center", icon: IconAlignCenter, tooltip: "Centro" },
+  { value: "right", icon: IconAlignRight, tooltip: "Direita" },
 ];
 
 const FONT_STYLE_OPTIONS: RadioOption[] = [
-  { value: 'normal', icon: IconFontStyleNormal, tooltip: 'Sem Linha' },
-  { value: 'overline', icon: IconFontStyleOverline, tooltip: 'Linha acima' },
-  { value: 'strike-through', icon: IconFontStyleStrikeThrough, tooltip: 'Linha através' },
-  { value: 'underline', icon: IconFontStyleUnderline, tooltip: 'Linha abaixo' },
+  { value: "normal", icon: IconFontStyleNormal, tooltip: "Sem Linha" },
+  { value: "overline", icon: IconFontStyleOverline, tooltip: "Linha acima" },
+  {
+    value: "strike-through",
+    icon: IconFontStyleStrikeThrough,
+    tooltip: "Linha através",
+  },
+  { value: "underline", icon: IconFontStyleUnderline, tooltip: "Linha abaixo" },
 ];
 
 const FONT_WEIGHT_OPTIONS: RadioOption[] = [
-  { value: 'normal', icon: IconFontStyleNormal, tooltip: 'Normal' },
-  { value: 'bold', icon: IconFontWeightBold, tooltip: 'Negrito' },
-  { value: 'italic', icon: IconFontWeightItalic, tooltip: 'Itálico' },
-  { value: 'bold italic', icon: IconFontWeightBoldItalic, tooltip: 'Negrito e Itálico' },
+  { value: "normal", icon: IconFontStyleNormal, tooltip: "Normal" },
+  { value: "bold", icon: IconFontWeightBold, tooltip: "Negrito" },
+  { value: "italic", icon: IconFontWeightItalic, tooltip: "Itálico" },
+  {
+    value: "bold italic",
+    icon: IconFontWeightBoldItalic,
+    tooltip: "Negrito e Itálico",
+  },
 ];
 
 interface IconRadioProps {
@@ -102,7 +110,7 @@ const TextMenu = () => {
   const [selected, setSelected] = useState(false);
   const [textProps, setTextProps] = useState<TextMenuState>(DEFAULT_PROPS);
   const activeElementRef = useRef<TextElement | null>(null);
-  const originalContentRef = useRef<string>('');
+  const originalContentRef = useRef<string>("");
 
   useEffect(() => {
     const unsub1 = on("workarea:initialized", () => setDisabled(false));
@@ -117,14 +125,14 @@ const TextMenu = () => {
     });
     const unsub4 = on("selection:changed", ({ selectedElements }) => {
       const textElement = selectedElements.find(
-        el => el instanceof TextElement,
+        (el) => el instanceof TextElement,
       ) as TextElement | undefined;
       if (textElement) {
         activeElementRef.current = textElement;
-        originalContentRef.current = textElement.content.join('\n');
+        originalContentRef.current = textElement.content.join("\n");
         setSelected(true);
         setTextProps({
-          content: textElement.content.join('\n'),
+          content: textElement.content.join("\n"),
           fontSize: textElement.fontSize,
           lineHeight: textElement.lineHeight,
           fillColor: textElement.fillColor,
@@ -159,19 +167,26 @@ const TextMenu = () => {
       emit("workarea:selectAt", { firstPoint: null });
       emit("workarea:update");
     });
-    return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); unsub6(); };
+    return () => {
+      unsub1();
+      unsub2();
+      unsub3();
+      unsub4();
+      unsub5();
+      unsub6();
+    };
   }, [on, emit]);
 
   const updateProp = <K extends keyof TextMenuState>(
     key: K,
     value: TextMenuState[K],
   ) => {
-    setTextProps(prev => ({ ...prev, [key]: value }));
+    setTextProps((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = event.target.value;
-    updateProp('content', newContent);
+    updateProp("content", newContent);
     if (activeElementRef.current) {
       activeElementRef.current.content = [newContent];
       emit("workarea:update");
@@ -179,7 +194,7 @@ const TextMenu = () => {
   };
 
   const handleFontSizeChange = (value: number) => {
-    updateProp('fontSize', value);
+    updateProp("fontSize", value);
     if (activeElementRef.current) {
       activeElementRef.current.fontSize = value;
       emit("workarea:update");
@@ -187,7 +202,7 @@ const TextMenu = () => {
   };
 
   const handleLineHeightChange = (value: number) => {
-    updateProp('lineHeight', value);
+    updateProp("lineHeight", value);
     if (activeElementRef.current) {
       activeElementRef.current.lineHeight = value;
       emit("workarea:update");
@@ -195,7 +210,7 @@ const TextMenu = () => {
   };
 
   const handleFillColorChange = (color: string) => {
-    updateProp('fillColor', color);
+    updateProp("fillColor", color);
     if (activeElementRef.current) {
       activeElementRef.current.fillColor = color;
       emit("workarea:update");
@@ -203,7 +218,7 @@ const TextMenu = () => {
   };
 
   const handleStrokeColorChange = (color: string) => {
-    updateProp('strokeColor', color);
+    updateProp("strokeColor", color);
     if (activeElementRef.current) {
       activeElementRef.current.strokeColor = color;
       emit("workarea:update");
@@ -211,7 +226,7 @@ const TextMenu = () => {
   };
 
   const handleStrokeWidthChange = (value: number) => {
-    updateProp('strokeWidth', value);
+    updateProp("strokeWidth", value);
     if (activeElementRef.current) {
       activeElementRef.current.strokeWidth = value;
       emit("workarea:update");
@@ -220,7 +235,7 @@ const TextMenu = () => {
 
   const handleHasFillChange = () => {
     const newValue = !textProps.hasFill;
-    updateProp('hasFill', newValue);
+    updateProp("hasFill", newValue);
     if (activeElementRef.current) {
       activeElementRef.current.hasFill = newValue;
       emit("workarea:update");
@@ -229,42 +244,70 @@ const TextMenu = () => {
 
   const handleHasStrokeChange = () => {
     const newValue = !textProps.hasStroke;
-    updateProp('hasStroke', newValue);
+    updateProp("hasStroke", newValue);
     if (activeElementRef.current) {
       activeElementRef.current.hasStroke = newValue;
       emit("workarea:update");
     }
   };
 
-  const handleTextAlignChange = (value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateProp('textAlign', e.target.value);
-    if (activeElementRef.current) {
-      activeElementRef.current.textAlign = e.target.value as TextElement['textAlign'];
-      emit("workarea:update");
-    }
-  };
+  const handleTextAlignChange =
+    (value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      updateProp("textAlign", e.target.value);
+      if (activeElementRef.current) {
+        activeElementRef.current.textAlign = e.target
+          .value as TextElement["textAlign"];
+        emit("workarea:update");
+      }
+    };
 
-  const handleFontStyleChange = (value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateProp('fontStyle', e.target.value);
-    if (activeElementRef.current) {
-      activeElementRef.current.fontStyle = e.target.value as TextElement['fontStyle'];
-      emit("workarea:update");
-    }
-  };
+  const handleFontStyleChange =
+    (value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      updateProp("fontStyle", e.target.value);
+      if (activeElementRef.current) {
+        activeElementRef.current.fontStyle = e.target
+          .value as TextElement["fontStyle"];
+        emit("workarea:update");
+      }
+    };
 
-  const handleFontWeightChange = (value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateProp('fontWeight', e.target.value);
-    if (activeElementRef.current) {
-      activeElementRef.current.fontWeight = e.target.value as TextElement['fontWeight'];
-      emit("workarea:update");
-    }
-  };
+  const handleFontWeightChange =
+    (value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      updateProp("fontWeight", e.target.value);
+      if (activeElementRef.current) {
+        activeElementRef.current.fontWeight = e.target
+          .value as TextElement["fontWeight"];
+        emit("workarea:update");
+      }
+    };
 
   const isDisabled = disabled || !selected;
 
   return (
     <section className={styles.section}>
-      <h5>Texto:</h5>
+      <div className={styles.titleRow}>
+        <h5>Texto:</h5>
+        <div className={styles.titleActions}>
+          <button
+            id="btn_accept-text-changes"
+            className={styles.acceptBtn}
+            onClick={() => emit("edit:acceptTextChange")}
+            disabled={isDisabled}
+            title="Aceitar (Shift+Enter)"
+          >
+            ✓
+          </button>
+          <button
+            id="btn_decline-text-changes"
+            className={styles.declineBtn}
+            onClick={() => emit("edit:declineTextChange")}
+            disabled={isDisabled}
+            title="Descartar (Esc)"
+          >
+            ✗
+          </button>
+        </div>
+      </div>
       <div className={styles.row}>
         <textarea
           id="inp_text-input"
@@ -276,7 +319,11 @@ const TextMenu = () => {
       </div>
       <div className={styles.row}>
         <label htmlFor="font-select">Fonte:</label>
-        <select id="font-select" className={styles.select} disabled={isDisabled}>
+        <select
+          id="font-select"
+          className={styles.select}
+          disabled={isDisabled}
+        >
           <option value="" />
         </select>
       </div>
@@ -284,7 +331,9 @@ const TextMenu = () => {
         <SliderControl
           id="font-size-control"
           label="Tamanho"
-          min={1} max={250} step={1}
+          min={1}
+          max={250}
+          step={1}
           value={textProps.fontSize}
           onChange={handleFontSizeChange}
           disabled={isDisabled}
@@ -292,7 +341,9 @@ const TextMenu = () => {
         <SliderControl
           id="line-height-control"
           label="Espaçamento"
-          min={0.1} max={10} step={0.1}
+          min={0.1}
+          max={10}
+          step={0.1}
           value={textProps.lineHeight}
           onChange={handleLineHeightChange}
           disabled={isDisabled}
@@ -335,14 +386,16 @@ const TextMenu = () => {
           <SliderControl
             id="stroke-width-control"
             label="Espessura"
-            min={1} max={128} step={1}
+            min={1}
+            max={128}
+            step={1}
             value={textProps.strokeWidth}
             onChange={handleStrokeWidthChange}
             disabled={isDisabled}
           />
           <span>Linha:</span>
           <div id="font-style-container" className={styles.radioGroup}>
-            {FONT_STYLE_OPTIONS.map(opt => (
+            {FONT_STYLE_OPTIONS.map((opt) => (
               <IconRadio
                 key={opt.value}
                 option={opt}
@@ -357,7 +410,7 @@ const TextMenu = () => {
       <div className={styles.row}>
         <span>Alinh.:</span>
         <div id="text-align-container" className={styles.radioGroup}>
-          {TEXT_ALIGN_OPTIONS.map(opt => (
+          {TEXT_ALIGN_OPTIONS.map((opt) => (
             <IconRadio
               key={opt.value}
               option={opt}
@@ -369,7 +422,7 @@ const TextMenu = () => {
         </div>
         <span>Estilo:</span>
         <div id="font-weight-container" className={styles.radioGroup}>
-          {FONT_WEIGHT_OPTIONS.map(opt => (
+          {FONT_WEIGHT_OPTIONS.map((opt) => (
             <IconRadio
               key={opt.value}
               option={opt}
@@ -380,26 +433,6 @@ const TextMenu = () => {
           ))}
         </div>
       </div>
-      {selected && !disabled && (
-        <div className={styles.actions}>
-          <button
-            id="btn_accept-text-changes"
-            className={styles.acceptBtn}
-            onClick={() => emit("edit:acceptTextChange")}
-            title="Aceitar (Shift+Enter)"
-          >
-            ✓
-          </button>
-          <button
-            id="btn_decline-text-changes"
-            className={styles.declineBtn}
-            onClick={() => emit("edit:declineTextChange")}
-            title="Descartar (Esc)"
-          >
-            ✗
-          </button>
-        </div>
-      )}
     </section>
   );
 };

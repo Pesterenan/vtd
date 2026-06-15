@@ -380,10 +380,11 @@ const LayersMenu = () => {
   };
 
   return (
-    <section className={styles.section} aria-disabled={disabled || undefined}>
+    <section className={styles.section}>
       <h5>Camadas:</h5>
       <ul
         id="ul_layers-list"
+        aria-disabled={disabled || undefined}
         className={styles.layerList}
         onDragOver={handleDragOver}
         onDrop={handleDropOnList}
