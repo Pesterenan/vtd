@@ -107,6 +107,8 @@ export enum MOUSE_BUTTONS {
 
 /** Ferramentas para manipular elementos @readonly @enum */
 export enum TOOL {
+  /** @prop MULTI - Selecionar, mover, rotacionar, escalonar elemento */
+  MULTI = "multi-tool",
   /** @prop SELECT - Selecionar elemento */
   SELECT = "select-tool",
   /** @prop GRAB - Mover elemento */

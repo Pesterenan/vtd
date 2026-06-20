@@ -14,6 +14,7 @@ import TextIcon from "src/assets/icons/text-tool.svg";
 import ZoomIcon from "src/assets/icons/zoom-tool.svg";
 
 const TOOLS = [
+  { tool: TOOL.MULTI, label: "(M) Selecionar elementos" },
   { tool: TOOL.SELECT, label: "(V) Selecionar elementos" },
   { tool: TOOL.GRAB, label: "(G) Mover elementos" },
   { tool: TOOL.ROTATE, label: "(R) Rotacionar elementos" },
@@ -25,6 +26,7 @@ const TOOLS = [
 ] as const;
 
 const toolIcons: Record<string, string> = {
+  [TOOL.MULTI]: SelectIcon,
   [TOOL.SELECT]: SelectIcon,
   [TOOL.GRAB]: GrabIcon,
   [TOOL.ROTATE]: RotateIcon,

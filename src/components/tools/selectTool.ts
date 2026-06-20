@@ -48,7 +48,12 @@ export class SelectTool extends Tool {
     }
   }
 
-  public onMouseMove({ offsetX, offsetY, movementX, movementY }: MouseEvent): void {
+  public onMouseMove({
+    offsetX,
+    offsetY,
+    movementX,
+    movementY,
+  }: MouseEvent): void {
     const [mousePos] = this.eventBus.request("workarea:adjustForCanvas", {
       position: {
         x: offsetX,

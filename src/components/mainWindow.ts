@@ -19,6 +19,7 @@ import { version as APP_VERSION } from "../../package.json";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
+import { MultiTool } from "./tools/multiTool";
 
 export class MainWindow {
   private static instance: MainWindow | null = null;
@@ -28,16 +29,19 @@ export class MainWindow {
   private offset: Position = { x: 0, y: 0 };
   private zoomLevel = 1;
   private toolManager: ToolManager | undefined;
-  private tools: { [key in TOOL]: Tool; } | undefined;
-  public currentTool: TOOL = TOOL.SELECT;
-  public lastTool: TOOL | null = TOOL.SELECT;
+  private tools: { [key in TOOL]: Tool } | undefined;
+  public currentTool: TOOL = TOOL.MULTI;
+  public lastTool: TOOL | null = TOOL.MULTI;
 
   private loadingOverlay: { show: (msg?: string) => void; hide: () => void };
   private projectTitle = "";
   private currentProjectPath: string | null = null;
   private copiedElements: TElementData[] = [];
 
-  private constructor(private eventBus: EventBus, options?: { canvas?: HTMLCanvasElement }) {
+  private constructor(
+    private eventBus: EventBus,
+    options?: { canvas?: HTMLCanvasElement },
+  ) {
     this.createDOMElements(options);
     this.createEventListeners();
     this.loadingOverlay = {
@@ -47,6 +51,7 @@ export class MainWindow {
     if (this.canvas) {
       this.toolManager = new ToolManager(this.canvas, this.eventBus);
       this.tools = {
+        [TOOL.MULTI]: new MultiTool(this.canvas, this.eventBus),
         [TOOL.SELECT]: new SelectTool(this.canvas, this.eventBus),
         [TOOL.GRADIENT]: new GradientTool(this.canvas, this.eventBus),
         [TOOL.GRAB]: new GrabTool(this.canvas, this.eventBus),
@@ -82,18 +87,28 @@ export class MainWindow {
 
   private createEventListeners() {
     // Backend Listeners
-    listen<{ success: boolean; message: string; data?: string }>('load-image-response', async (event) => {
-      const { message, success, data } = event.payload;
-      this.eventBus.emit("alert:add", {
-        message: message,
-        type: success ? "success" : "error",
-      });
-      if (success) {
-        await this.loadImageOnWorkArea(data as string);
-      }
-    });
-    listen<string>("menu:loading-show", (event) => this.loadingOverlay.show(event.payload));
-    listen<{ success: boolean; message: string; data?: unknown; filePath?: string }>('load-project-response', async (event) => {
+    listen<{ success: boolean; message: string; data?: string }>(
+      "load-image-response",
+      async (event) => {
+        const { message, success, data } = event.payload;
+        this.eventBus.emit("alert:add", {
+          message: message,
+          type: success ? "success" : "error",
+        });
+        if (success) {
+          await this.loadImageOnWorkArea(data as string);
+        }
+      },
+    );
+    listen<string>("menu:loading-show", (event) =>
+      this.loadingOverlay.show(event.payload),
+    );
+    listen<{
+      success: boolean;
+      message: string;
+      data?: unknown;
+      filePath?: string;
+    }>("load-project-response", async (event) => {
       const { success, message, data, filePath } = event.payload;
       this.eventBus.emit("alert:add", {
         message,
@@ -107,19 +122,22 @@ export class MainWindow {
       }
       this.loadingOverlay.hide();
     });
-    listen("request-new-project", () => this.eventBus.emit("dialog:newProject:open"));
+    listen("request-new-project", () =>
+      this.eventBus.emit("dialog:newProject:open"),
+    );
     listen("request-save-project", async () => {
       const projectData = this.saveProject();
       if (Object.keys(projectData).length === 0) return;
 
       this.loadingOverlay.show("Salvando projeto...");
-      const result = await invoke<{ success: boolean; message: string; data?: string }>(
-        "save_project_file",
-        {
-          projectData: JSON.stringify(projectData),
-          filePath: this.currentProjectPath,
-        },
-      );
+      const result = await invoke<{
+        success: boolean;
+        message: string;
+        data?: string;
+      }>("save_project_file", {
+        projectData: JSON.stringify(projectData),
+        filePath: this.currentProjectPath,
+      });
       this.loadingOverlay.hide();
       this.eventBus.emit("alert:add", {
         message: result.message,
@@ -134,13 +152,14 @@ export class MainWindow {
       if (Object.keys(projectData).length === 0) return;
 
       this.loadingOverlay.show("Salvando projeto...");
-      const result = await invoke<{ success: boolean; message: string; data?: string }>(
-        "save_project_file",
-        {
-          projectData: JSON.stringify(projectData),
-          filePath: null,
-        },
-      );
+      const result = await invoke<{
+        success: boolean;
+        message: string;
+        data?: string;
+      }>("save_project_file", {
+        projectData: JSON.stringify(projectData),
+        filePath: null,
+      });
       this.loadingOverlay.hide();
       this.eventBus.emit("alert:add", {
         message: result.message,
@@ -151,26 +170,34 @@ export class MainWindow {
       }
     });
     listen("menu:import-image", () => {
-      invoke<{ success: boolean; message: string; data?: string }>("load_image").then((response) => {
-        this.eventBus.emit("alert:add", {
-          message: response.message,
-          type: response.success ? "success" : "error",
-        });
-        if (response.success) {
-          this.eventBus.emit("workarea:addImage", response.data);
-        }
-      }).finally(() => this.loadingOverlay.hide());
+      invoke<{ success: boolean; message: string; data?: string }>("load_image")
+        .then((response) => {
+          this.eventBus.emit("alert:add", {
+            message: response.message,
+            type: response.success ? "success" : "error",
+          });
+          if (response.success) {
+            this.eventBus.emit("workarea:addImage", response.data);
+          }
+        })
+        .finally(() => this.loadingOverlay.hide());
     });
     listen("menu:extract-video", () => {
-      invoke<{ success: boolean; message: string; data?: unknown }>("load_video").then((response) => {
-        this.eventBus.emit("alert:add", {
-          message: response.message,
-          type: response.success ? "success" : "error",
-        });
-        if (response.success) {
-          invoke("create_frame_extractor_window", { metadata: response.data });
-        }
-      }).finally(() => this.loadingOverlay.hide());
+      invoke<{ success: boolean; message: string; data?: unknown }>(
+        "load_video",
+      )
+        .then((response) => {
+          this.eventBus.emit("alert:add", {
+            message: response.message,
+            type: response.success ? "success" : "error",
+          });
+          if (response.success) {
+            invoke("create_frame_extractor_window", {
+              metadata: response.data,
+            });
+          }
+        })
+        .finally(() => this.loadingOverlay.hide());
     });
     listen("menu:export-image", () => {
       this.eventBus.emit("dialog:exportImage:open");
@@ -187,11 +214,21 @@ export class MainWindow {
         filePath: this.currentProjectPath,
       });
     });
-    listen("request-show-about-dialog", () => this.eventBus.emit("dialog:about:open"));
-    listen("workarea:rotate-clockwise", () => this.eventBus.emit("workarea:rotate-clockwise"));
-    listen("workarea:rotate-anti-clockwise", () => this.eventBus.emit("workarea:rotate-anti-clockwise"));
-    listen("workarea:flip-horizontal", () => this.eventBus.emit("workarea:flip-horizontal"));
-    listen("workarea:flip-vertical", () => this.eventBus.emit("workarea:flip-vertical"));
+    listen("request-show-about-dialog", () =>
+      this.eventBus.emit("dialog:about:open"),
+    );
+    listen("workarea:rotate-clockwise", () =>
+      this.eventBus.emit("workarea:rotate-clockwise"),
+    );
+    listen("workarea:rotate-anti-clockwise", () =>
+      this.eventBus.emit("workarea:rotate-anti-clockwise"),
+    );
+    listen("workarea:flip-horizontal", () =>
+      this.eventBus.emit("workarea:flip-horizontal"),
+    );
+    listen("workarea:flip-vertical", () =>
+      this.eventBus.emit("workarea:flip-vertical"),
+    );
     listen("copy-to-clipboard", () => this.handleCopyCommand());
     listen("paste-from-clipboard", () => this.handlePasteCommand());
 
@@ -203,7 +240,9 @@ export class MainWindow {
       // running outside Tauri (e.g. `npm run dev` in browser)
     }
     window.addEventListener("copy", this.handleCopyCommand);
-    window.addEventListener("paste", (e: Event) => this.handlePasteCommand(e as ClipboardEvent));
+    window.addEventListener("paste", (e: Event) =>
+      this.handlePasteCommand(e as ClipboardEvent),
+    );
     window.addEventListener("dragover", this.handleDragOver);
     window.addEventListener("drop", this.handleDrop);
     window.addEventListener("keypress", this.handleKeyPress);
@@ -444,7 +483,11 @@ export class MainWindow {
 
   private pasteFromExternalClipboard = async (): Promise<void> => {
     try {
-      const result = await invoke<{ success: boolean; message: string; data?: string }>("read_clipboard_image");
+      const result = await invoke<{
+        success: boolean;
+        message: string;
+        data?: string;
+      }>("read_clipboard_image");
       if (result.success && result.data) {
         await this.loadImageOnWorkArea(result.data);
         this.eventBus.emit("alert:add", {
@@ -463,9 +506,7 @@ export class MainWindow {
     try {
       const clipboardItems = await navigator.clipboard.read();
       for (const item of clipboardItems) {
-        const imageType = item.types.find((type) =>
-          type.startsWith("image/"),
-        );
+        const imageType = item.types.find((type) => type.startsWith("image/"));
         if (imageType) {
           const blob = await item.getType(imageType);
           const reader = new FileReader();
@@ -623,18 +664,21 @@ export class MainWindow {
     }
     let tool: TOOL | null = null;
     switch (evt.code) {
-      case "KeyV":
-        tool = TOOL.SELECT;
+      case "KeyM":
+        tool = TOOL.MULTI;
         break;
-      case "KeyG":
-        tool = TOOL.GRAB;
-        break;
-      case "KeyR":
-        tool = TOOL.ROTATE;
-        break;
-      case "KeyS":
-        tool = TOOL.SCALE;
-        break;
+      // case "KeyV":
+      //   tool = TOOL.SELECT;
+      //   break;
+      // case "KeyG":
+      //   tool = TOOL.GRAB;
+      //   break;
+      // case "KeyR":
+      //   tool = TOOL.ROTATE;
+      //   break;
+      // case "KeyS":
+      //   tool = TOOL.SCALE;
+      //   break;
       case "KeyT":
         tool = TOOL.TEXT;
         break;
@@ -731,7 +775,10 @@ export class MainWindow {
       y: Math.floor((mousePosition.y - this.offset.y) / this.zoomLevel),
     };
   };
-  public static getInstance(eventBus: EventBus, options?: { canvas?: HTMLCanvasElement }) {
+  public static getInstance(
+    eventBus: EventBus,
+    options?: { canvas?: HTMLCanvasElement },
+  ) {
     if (!MainWindow.instance) {
       MainWindow.instance = new MainWindow(eventBus, options);
     }
