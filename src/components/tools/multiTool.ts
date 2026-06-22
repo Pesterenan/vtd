@@ -267,6 +267,17 @@ export class MultiTool extends Tool {
   }
 
   public onKeyDown(evt: KeyboardEvent): void {
+    switch (this.currentMode) {
+      case "select": {
+        if (evt.key === "Alt") {
+          evt.preventDefault();
+          this.eventBus.emit("selectTool:isCroppingBoxVisible", true);
+        }
+        break;
+      }
+      default:
+        break;
+    }
     const previousMode = this.currentMode;
     switch (evt.code) {
       case "KeyV":
@@ -293,22 +304,36 @@ export class MultiTool extends Tool {
         this.isRelativeMovement = false;
         this.originalRotation = 0;
       }
-      this.eventBus.emit("workarea:update");
     }
+    this.eventBus.emit("workarea:update");
   }
 
   public onKeyUp(evt: KeyboardEvent): void {
-    if (evt.code === "KeyF" && this.currentMode === "move") {
-      this.isRelativeMovement = !this.isRelativeMovement;
+    switch (this.currentMode) {
+      case "move": {
+        if (evt.code === "KeyF") {
+          this.isRelativeMovement = !this.isRelativeMovement;
 
-      if (this.isRelativeMovement) {
-        const [rotation] = this.eventBus.request("transformBox:rotation");
-        this.originalRotation = rotation || 0;
-      } else {
-        this.originalRotation = 0;
+          if (this.isRelativeMovement) {
+            const [rotation] = this.eventBus.request("transformBox:rotation");
+            this.originalRotation = rotation || 0;
+          } else {
+            this.originalRotation = 0;
+          }
+        }
+        break;
       }
-      this.eventBus.emit("workarea:update");
+      case "select": {
+        if (evt.key === "Alt") {
+          evt.preventDefault();
+          this.eventBus.emit("selectTool:isCroppingBoxVisible", false);
+        }
+        break;
+      }
+      default:
+        break;
     }
+    this.eventBus.emit("workarea:update");
   }
 
   public onMouseDown({ altKey, offsetX, offsetY, shiftKey }: MouseEvent): void {
@@ -399,26 +424,34 @@ export class MultiTool extends Tool {
   public onMouseMove({
     offsetX,
     offsetY,
+    movementX,
+    movementY,
     shiftKey,
     ctrlKey,
   }: MouseEvent): void {
     const [mousePos] = this.eventBus.request("workarea:adjustForCanvas", {
       position: { x: offsetX, y: offsetY },
     });
+    this.eventBus.emit("transformBox:hoverHandle", { position: mousePos });
 
     switch (this.currentMode) {
       case "select": {
-        if (!this.startPosition) break;
-        const distance = Math.hypot(
-          offsetX - this.startPosition.x,
-          offsetY - this.startPosition.y,
-        );
-        if (distance > Tool.DRAGGING_DISTANCE) {
-          this.endPosition = { x: offsetX, y: offsetY };
-          this.isDragging = true;
+        if (this.startPosition) {
+          if (this.isCropping) {
+            this.eventBus.emit("transformBox:updateCropping", {
+              position: { x: movementX, y: movementY },
+            });
+          } else {
+            const distance = Math.hypot(
+              offsetX - this.startPosition.x,
+              offsetY - this.startPosition.y,
+            );
+            if (distance > Tool.DRAGGING_DISTANCE) {
+              this.endPosition = { x: offsetX, y: offsetY };
+              this.isDragging = true;
+            }
+          }
         }
-        this.eventBus.emit("transformBox:hoverHandle", { position: mousePos });
-        this.eventBus.emit("workarea:update");
         break;
       }
 
@@ -431,8 +464,10 @@ export class MultiTool extends Tool {
           const rotRad = toRadians(this.originalRotation);
           const cos = Math.cos(rotRad);
           const sin = Math.sin(rotRad);
-          const deltaX = mousePos.x - (this.startPosition.x + this.startCenter.x);
-          const deltaY = mousePos.y - (this.startPosition.y + this.startCenter.y);
+          const deltaX =
+            mousePos.x - (this.startPosition.x + this.startCenter.x);
+          const deltaY =
+            mousePos.y - (this.startPosition.y + this.startCenter.y);
 
           if (this.selectedGizmoPart === "xAxis") {
             const t = deltaX * cos + deltaY * sin;
@@ -545,10 +580,10 @@ export class MultiTool extends Tool {
           anchor: this.localAnchor ?? anchor,
         });
         this.startPosition = mousePos;
-        this.eventBus.emit("workarea:update");
         break;
       }
     }
+    this.eventBus.emit("workarea:update");
   }
 
   private getScaleParams(
