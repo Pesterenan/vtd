@@ -212,6 +212,10 @@ export interface EventBusMap {
     payload: unknown;
     result: boolean;
   };
+  "transformBox:snapHandle": {
+    payload: PositionPayload;
+    result: Position | null;
+  };
   "transformBox:getSignAndAnchor": {
     payload: unknown;
     result: {

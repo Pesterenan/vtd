@@ -61,6 +61,8 @@ describe("MultiTool", () => {
             return [false];
           case "transformBox:hoverHandle":
             return [];
+          case "transformBox:snapHandle":
+            return [null];
           default:
             return [];
         }

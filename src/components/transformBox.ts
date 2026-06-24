@@ -61,6 +61,7 @@ export class TransformBox {
       this.calculateSignAndAnchor,
     );
     this.eventBus.on("transformBox:hoverHandle", this.hoverHandle);
+    this.eventBus.on("transformBox:snapHandle", this.snapHandle);
     this.eventBus.on("transformBox:position", this.getPosition);
     this.eventBus.on("transformBox:properties:get", this.getProperties);
     this.eventBus.on("transformBox:rotation", this.getRotation);
@@ -90,6 +91,7 @@ export class TransformBox {
       this.calculateSignAndAnchor,
     );
     this.eventBus.off("transformBox:hoverHandle", this.hoverHandle);
+    this.eventBus.off("transformBox:snapHandle", this.snapHandle);
     this.eventBus.off("transformBox:position", this.getPosition);
     this.eventBus.off("transformBox:properties:get", this.getProperties);
     this.eventBus.off("transformBox:rotation", this.getRotation);
@@ -144,13 +146,13 @@ export class TransformBox {
         const { property, value } = payload;
 
           if (property === "top") {
-            croppingBox.top = clamp(value, 0, croppingBox.bottom - 1);
+            croppingBox.top = Math.round(clamp(value, 0, croppingBox.bottom - 1));
           } else if (property === "left") {
-            croppingBox.left = clamp(value, 0, croppingBox.right - 1);
+            croppingBox.left = Math.round(clamp(value, 0, croppingBox.right - 1));
           } else if (property === "right") {
-            croppingBox.right = clamp(value, croppingBox.left + 1, width);
+            croppingBox.right = Math.round(clamp(value, croppingBox.left + 1, width));
           } else if (property === "bottom") {
-            croppingBox.bottom = clamp(value, croppingBox.top + 1, height);
+            croppingBox.bottom = Math.round(clamp(value, croppingBox.top + 1, height));
           }
           this.eventBus.emit("workarea:update");
           this.eventBus.emit("transformBox:cropping:changed", croppingBox);
@@ -203,6 +205,16 @@ export class TransformBox {
       });
       this.hoveredHandle = hitHandle || null;
     }
+  };
+
+  public snapHandle = ({ position }: PositionPayload): Position | null => {
+    if (!this.handles) return null;
+    for (const point of Object.values(this.handles)) {
+      if (Math.hypot(position.x - point.x, position.y - point.y) < 15) {
+        return { ...point };
+      }
+    }
+    return null;
   };
 
   private calculateBoundingBox = (): void => {
@@ -289,6 +301,7 @@ export class TransformBox {
       }
     }
     this.position = { x, y };
+    this.anchorPoint = { x, y };
     this.updateHandles();
   };
 
@@ -416,27 +429,27 @@ export class TransformBox {
     if (xSign !== 0) {
       if (xSign > 0) {
         croppingBox.right += unscaledDelta.x;
-        croppingBox.right = clamp(
+        croppingBox.right = Math.round(clamp(
           croppingBox.right,
           croppingBox.left + 1,
           element.size.width,
-        );
+        ));
       } else {
         croppingBox.left += unscaledDelta.x;
-        croppingBox.left = clamp(croppingBox.left, 0, croppingBox.right - 1);
+        croppingBox.left = Math.round(clamp(croppingBox.left, 0, croppingBox.right - 1));
       }
     }
     if (ySign !== 0) {
       if (ySign > 0) {
         croppingBox.bottom += unscaledDelta.y;
-        croppingBox.bottom = clamp(
+        croppingBox.bottom = Math.round(clamp(
           croppingBox.bottom,
           croppingBox.top + 1,
           element.size.height,
-        );
+        ));
       } else {
         croppingBox.top += unscaledDelta.y;
-        croppingBox.top = clamp(croppingBox.top, 0, croppingBox.bottom - 1);
+        croppingBox.top = Math.round(clamp(croppingBox.top, 0, croppingBox.bottom - 1));
       }
     }
     this.eventBus.emit("transformBox:cropping:changed", croppingBox);
