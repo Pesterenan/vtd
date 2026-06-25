@@ -55,8 +55,6 @@ export class MultiTool extends Tool {
   public resetTool(): void {
     this.currentMode = "select";
     this.resetDragState();
-    this.isRelativeMovement = false;
-    this.originalRotation = 0;
   }
 
   public draw(): void {
@@ -280,7 +278,6 @@ export class MultiTool extends Tool {
       default:
         break;
     }
-    const previousMode = this.currentMode;
     switch (evt.code) {
       case "KeyV":
         this.currentMode = "select";
@@ -300,12 +297,6 @@ export class MultiTool extends Tool {
         break;
       default:
         return;
-    }
-    if (this.currentMode !== previousMode) {
-      if (this.currentMode !== "move") {
-        this.isRelativeMovement = false;
-        this.originalRotation = 0;
-      }
     }
     this.eventBus.emit("workarea:update");
   }
@@ -406,7 +397,9 @@ export class MultiTool extends Tool {
         this.isDragging = true;
         this.startPosition = mousePos;
         this.startCenter = { ...pivot };
-        const [currentRotation] = this.eventBus.request("transformBox:rotation");
+        const [currentRotation] = this.eventBus.request(
+          "transformBox:rotation",
+        );
         this.rotateInitialRotation = currentRotation || 0;
         this.eventBus.emit("workarea:update");
         break;

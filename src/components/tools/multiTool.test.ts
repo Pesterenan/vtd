@@ -382,11 +382,12 @@ describe("MultiTool", () => {
       expect((multiTool as any).originalRotation).toBe(0);
     });
     
-    it('should reset relative state when swtching modes', () => {
+    it('should persist relative state when switching modes', () => {
+      currentRotation = 30;
       multiTool.onKeyUp(new KeyboardEvent('keyup', { code: 'KeyF' }));
       multiTool.onKeyDown(new KeyboardEvent('keydown', { code: 'KeyV' }));
-      expect((multiTool as any).isRelativeMovement).toBe(false);
-      expect((multiTool as any).originalRotation).toBe(0);
+      expect((multiTool as any).isRelativeMovement).toBe(true);
+      expect((multiTool as any).originalRotation).toBe(30);
     });
 
     it('should move along rotated X axis in relative mode', () => {
