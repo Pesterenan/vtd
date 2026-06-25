@@ -80,6 +80,7 @@ export type PositionPayload = {
 export type SelectElementsAtPayload = {
   firstPoint?: Position | null;
   secondPoint?: Position | null;
+  isAddingToSelection?: boolean;
 };
 
 export interface EventBusMap {

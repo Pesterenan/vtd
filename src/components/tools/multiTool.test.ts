@@ -124,6 +124,22 @@ describe("MultiTool", () => {
         secondPoint: { x: 100, y: 120 },
       });
     });
+
+    it("should add to selection when holding shift", () => {
+      multiTool.onMouseDown(
+        createMouseEvent("mousedown", { offsetX: 50, offsetY: 60 }),
+      );
+      multiTool.onMouseMove(
+        createMouseEvent("mousemove", { offsetX: 100, offsetY: 120 }),
+      );
+      multiTool.onMouseUp(new MouseEvent("mouseup", { shiftKey: true }));
+
+      expect(emitSpy).toHaveBeenCalledWith("workarea:selectAt", {
+        firstPoint: { x: 50, y: 60 },
+        secondPoint: { x: 100, y: 120 },
+        isAddingToSelection: true,
+      });
+    });
   });
 
   describe("move mode", () => {

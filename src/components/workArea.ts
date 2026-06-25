@@ -418,8 +418,9 @@ export class WorkArea {
   public selectElementsAt = ({
     firstPoint,
     secondPoint,
+    isAddingToSelection,
   }: SelectElementsAtPayload): void => {
-    let selectedElements: Element<TElementData>[] = [];
+    let selectedElements: Element<TElementData>[] = isAddingToSelection ? this.getSelectedElements() : [];
     if (firstPoint) {
       const [adjustedFirstPoint] = this.eventBus.request(
         "workarea:adjustForCanvas",
@@ -444,11 +445,32 @@ export class WorkArea {
         firstElement instanceof ElementGroup &&
         firstElement.children
       ) {
-        selectedElements = firstElement.children.filter(
+        const groupChildren = firstElement.children.filter(
           (child) => !child.isLocked,
         );
+        if (isAddingToSelection) {
+          for (const child of groupChildren) {
+            const idx = selectedElements.findIndex((el) => el.elementId === child.elementId);
+            if (idx === -1) {
+              selectedElements.push(child);
+            }
+          }
+        } else {
+          selectedElements = groupChildren;
+        }
       } else if (firstElement) {
-        selectedElements = [firstElement as Element<TElementData>];
+        if (isAddingToSelection) {
+          const idx = selectedElements.findIndex(
+            (el) => el.elementId === firstElement!.elementId,
+          );
+          if (idx === -1) {
+            selectedElements.push(firstElement);
+          } else {
+            selectedElements.splice(idx, 1);
+          }
+        } else {
+          selectedElements = [firstElement as Element<TElementData>];
+        }
       }
       if (secondPoint) {
         const [adjustedSecondPoint] = this.eventBus.request(

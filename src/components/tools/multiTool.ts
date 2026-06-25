@@ -614,13 +614,14 @@ export class MultiTool extends Tool {
     }
   }
 
-  public onMouseUp(): void {
+  public onMouseUp({ shiftKey }: MouseEvent): void {
     switch (this.currentMode) {
       case "select":
         if (!this.isCropping) {
           this.eventBus.emit("workarea:selectAt", {
             firstPoint: this.startPosition,
             secondPoint: this.endPosition,
+            isAddingToSelection: shiftKey,
           });
         }
         break;
