@@ -38,6 +38,7 @@ export class TransformBox {
   private eventBus: EventBus;
   public hoveredHandle: TransformBoxHandleKeys | null = null;
   public selectedHandle: TransformBoxHandleKeys | null = null;
+  private lockedHandleKey: TransformBoxHandleKeys | null = null;
   private isCroppingBoxVisible = false;
 
   public constructor(
@@ -164,10 +165,12 @@ export class TransformBox {
   private getAnchorPoint = (): Position => this.anchorPoint;
   private setAnchorPoint = ({ position }: PositionPayload): void => {
     let snappedHandle: Position | null = null;
+    this.lockedHandleKey = null;
     if (this.handles) {
-      for (const point of Object.values(this.handles)) {
+      for (const [key, point] of Object.entries(this.handles)) {
         if (Math.hypot(position.x - point.x, position.y - point.y) < 15) {
           snappedHandle = { ...point };
+          this.lockedHandleKey = key as TransformBoxHandleKeys;
           break;
         }
       }
@@ -263,6 +266,9 @@ export class TransformBox {
     if (this.boundingBox && this.handles) {
       this.boundingBox.update(this.position, this.size, this.rotation);
       this.generateHandles();
+      if (this.lockedHandleKey && this.handles[this.lockedHandleKey]) {
+        this.anchorPoint = { ...this.handles[this.lockedHandleKey] };
+      }
     }
     this.eventBus.emit("transformBox:properties:change", {
       position: this.position,

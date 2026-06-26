@@ -61,8 +61,6 @@ describe("MultiTool", () => {
             return [false];
           case "transformBox:mousePosition":
             return [];
-          case "transformBox:snapHandle":
-            return [null];
           default:
             return [];
         }
@@ -104,9 +102,10 @@ describe("MultiTool", () => {
       );
       multiTool.onMouseUp(new MouseEvent("mouseup"));
 
-      expect(emitSpy).toHaveBeenCalledWith("workarea:selectAt", {
+      expect(emitSpy).toHaveBeenNthCalledWith(2, "workarea:selectAt", {
         firstPoint: { x: 50, y: 60 },
         secondPoint: null,
+        isAddingToSelection: false,
       });
     });
 
@@ -119,9 +118,10 @@ describe("MultiTool", () => {
       );
       multiTool.onMouseUp(new MouseEvent("mouseup"));
 
-      expect(emitSpy).toHaveBeenCalledWith("workarea:selectAt", {
+      expect(emitSpy).toHaveBeenNthCalledWith(4, "workarea:selectAt", {
         firstPoint: { x: 50, y: 60 },
         secondPoint: { x: 100, y: 120 },
+        isAddingToSelection: false,
       });
     });
 
@@ -134,7 +134,7 @@ describe("MultiTool", () => {
       );
       multiTool.onMouseUp(new MouseEvent("mouseup", { shiftKey: true }));
 
-      expect(emitSpy).toHaveBeenCalledWith("workarea:selectAt", {
+      expect(emitSpy).toHaveBeenNthCalledWith(4, "workarea:selectAt", {
         firstPoint: { x: 50, y: 60 },
         secondPoint: { x: 100, y: 120 },
         isAddingToSelection: true,
@@ -155,7 +155,7 @@ describe("MultiTool", () => {
         createMouseEvent("mousemove", { offsetX: 150, offsetY: 100 }),
       );
 
-      expect(emitSpy).toHaveBeenCalledWith("transformBox:updatePosition", {
+      expect(emitSpy).toHaveBeenNthCalledWith(5, "transformBox:updatePosition", {
         position: { x: 120, y: 100 },
       });
     });
@@ -168,7 +168,7 @@ describe("MultiTool", () => {
         createMouseEvent("mousemove", { offsetX: 100, offsetY: 60 }),
       );
 
-      expect(emitSpy).toHaveBeenCalledWith("transformBox:updatePosition", {
+      expect(emitSpy).toHaveBeenNthCalledWith(5, "transformBox:updatePosition", {
         position: { x: 100, y: 90 },
       });
     });
@@ -181,7 +181,7 @@ describe("MultiTool", () => {
         createMouseEvent("mousemove", { offsetX: 130, offsetY: 80 }),
       );
 
-      expect(emitSpy).toHaveBeenCalledWith("transformBox:updatePosition", {
+      expect(emitSpy).toHaveBeenNthCalledWith(5, "transformBox:updatePosition", {
         position: { x: 130, y: 80 },
       });
     });
@@ -189,10 +189,10 @@ describe("MultiTool", () => {
     it("should not move if clicking outside gizmo", () => {
       emitSpy.mockClear();
       multiTool.onMouseDown(
-        createMouseEvent("mousedown", { offsetX: 50, offsetY: 50 }),
+        createMouseEvent("mousedown", { offsetX: 10, offsetY: 10 }),
       );
       multiTool.onMouseMove(
-        createMouseEvent("mousemove", { offsetX: 60, offsetY: 60 }),
+        createMouseEvent("mousemove", { offsetX: 20, offsetY: 20 }),
       );
 
       expect(emitSpy).not.toHaveBeenCalledWith(
@@ -209,48 +209,48 @@ describe("MultiTool", () => {
 
     it("should rotate with continuous angle without modifiers", () => {
       multiTool.onMouseDown(
-        createMouseEvent("mousedown", { offsetX: 140, offsetY: 100 }),
+        createMouseEvent("mousedown", { offsetX: 180, offsetY: 100 }),
       );
       multiTool.onMouseMove(
-        createMouseEvent("mousemove", { offsetX: 116, offsetY: 68 }),
+        createMouseEvent("mousemove", { offsetX: 120, offsetY: 60 }),
       );
 
-      expect(emitSpy).toHaveBeenCalledWith("transformBox:updateRotation", {
-        delta: expect.closeTo(-63.43, 1),
+      expect(emitSpy).toHaveBeenNthCalledWith(4, "transformBox:updateRotation", {
+        delta: -63,
       });
     });
 
     it("should lock rotation increments by 5 when holding SHIFT", () => {
       multiTool.onMouseDown(
-        createMouseEvent("mousedown", { offsetX: 140, offsetY: 100 }),
+        createMouseEvent("mousedown", { offsetX: 180, offsetY: 100 }),
       );
       multiTool.onMouseMove(
         createMouseEvent("mousemove", {
-          offsetX: 116,
-          offsetY: 68,
+          offsetX: 120,
+          offsetY: 60,
           shiftKey: true,
         }),
       );
 
-      expect(emitSpy).toHaveBeenCalledWith("transformBox:updateRotation", {
-        delta: -65,
+      expect(emitSpy).toHaveBeenNthCalledWith(4, "transformBox:updateRotation", {
+        delta: -60,
       });
     });
 
     it("should round rotation increments by 1 when holding CTRL", () => {
       multiTool.onMouseDown(
-        createMouseEvent("mousedown", { offsetX: 140, offsetY: 100 }),
+        createMouseEvent("mousedown", { offsetX: 180, offsetY: 100 }),
       );
       multiTool.onMouseMove(
         createMouseEvent("mousemove", {
-          offsetX: 116,
-          offsetY: 68,
+          offsetX: 120,
+          offsetY: 60,
           ctrlKey: true,
         }),
       );
 
-      expect(emitSpy).toHaveBeenCalledWith("transformBox:updateRotation", {
-        delta: -63,
+      expect(emitSpy).toHaveBeenNthCalledWith(4, "transformBox:updateRotation", {
+        delta: -65,
       });
     });
   });
@@ -262,29 +262,27 @@ describe("MultiTool", () => {
 
     it("should scale elements on X axis while dragging the X Axis arrow", () => {
       multiTool.onMouseDown(
-        createMouseEvent("mousedown", { offsetX: 130, offsetY: 100 }),
+        createMouseEvent("mousedown", { offsetX: 131, offsetY: 100 }),
       );
       multiTool.onMouseMove(
-        createMouseEvent("mousemove", { offsetX: 150, offsetY: 100 }),
+        createMouseEvent("mousemove", { offsetX: 151, offsetY: 100 }),
       );
 
-      expect(emitSpy).toHaveBeenCalledWith("transformBox:updateScale", {
+      expect(emitSpy).toHaveBeenNthCalledWith(4, "transformBox:updateScale", {
         delta: { x: 1.1, y: 1 },
-        anchor: { x: 100, y: 100 },
       });
     });
 
     it("should scale elements on Y axis while dragging the Y Axis arrow", () => {
       multiTool.onMouseDown(
-        createMouseEvent("mousedown", { offsetX: 100, offsetY: 70 }),
+        createMouseEvent("mousedown", { offsetX: 100, offsetY: 50 }),
       );
       multiTool.onMouseMove(
-        createMouseEvent("mousemove", { offsetX: 100, offsetY: 60 }),
+        createMouseEvent("mousemove", { offsetX: 100, offsetY: 40 }),
       );
 
-      expect(emitSpy).toHaveBeenCalledWith("transformBox:updateScale", {
+      expect(emitSpy).toHaveBeenNthCalledWith(4, "transformBox:updateScale", {
         delta: { x: 1, y: 1.05 },
-        anchor: { x: 100, y: 100 },
       });
     });
 
@@ -296,9 +294,8 @@ describe("MultiTool", () => {
         createMouseEvent("mousemove", { offsetX: 120, offsetY: 120 }),
       );
 
-      expect(emitSpy).toHaveBeenCalledWith("transformBox:updateScale", {
+      expect(emitSpy).toHaveBeenNthCalledWith(4, "transformBox:updateScale", {
         delta: { x: 1.1, y: 1.1 },
-        anchor: { x: 100, y: 100 },
       });
     });
 

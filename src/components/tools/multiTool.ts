@@ -395,6 +395,12 @@ export class MultiTool extends Tool {
       }
 
       case "scale": {
+        if (altKey) {
+          this.eventBus.emit("transformBox:anchorPoint:set", {
+            position: mousePos,
+          });
+          break;
+        }
         if (!center) break;
         const part = this.getGizmoPartAt(mousePos, center);
         if (!part) break;
@@ -522,7 +528,7 @@ export class MultiTool extends Tool {
         const [props] = this.eventBus.request("transformBox:properties:get");
         if (!props) break;
 
-        const { xSign, ySign, anchor } = this.getScaleParams(
+        const { xSign, ySign } = this.getScaleParams(
           this.selectedGizmoPart,
           props,
         );
@@ -562,7 +568,6 @@ export class MultiTool extends Tool {
 
         this.eventBus.emit("transformBox:updateScale", {
           delta,
-          anchor,
         });
         this.startPosition = mousePos;
         break;
