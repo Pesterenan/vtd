@@ -12,6 +12,8 @@ import GradientMenu from "./components/GradientMenu/GradientMenu";
 import DialogController from "./components/Dialogs/DialogController";
 import AlertsProvider from "./components/Alerts/AlertsProvider";
 import LoadingProvider from "./components/LoadingOverlay/LoadingProvider";
+import type { IProjectData } from "./components/types";
+import exampleProject from "./exampleProject.json";
 
 let vtdInitialized = false;
 
@@ -26,9 +28,19 @@ const App = () => {
     setEventBus(bus);
   }, []);
 
+  const hasLoadedExample = useRef(false);
+
   useEffect(() => {
     if (eventBus && canvasRef.current) {
       MainWindow.getInstance(eventBus, { canvas: canvasRef.current });
+      if (import.meta.env.DEV && !hasLoadedExample.current) {
+        hasLoadedExample.current = true;
+        setTimeout(() => {
+          eventBus.emit("workarea:createNewProject", {
+            projectData: exampleProject as unknown as IProjectData,
+          });
+        }, 0);
+      }
     }
   }, [eventBus]);
 
