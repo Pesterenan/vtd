@@ -27,7 +27,7 @@ describe("ScaleTool", () => {
     scaleTool.onMouseDown(mouseDownEvent);
 
     expect(requestSpy).toHaveBeenCalledWith("workarea:adjustForCanvas", { position: { x: 10, y: 20 } });
-    expect(emitSpy).toHaveBeenCalledWith("transformBox:anchorPoint:change", { position: { x: 10, y: 20 } });
+    expect(emitSpy).toHaveBeenCalledWith("transformBox:anchorPoint:set", { position: { x: 10, y: 20 } });
     expect(emitSpy).toHaveBeenCalledWith("workarea:update");
   });
 

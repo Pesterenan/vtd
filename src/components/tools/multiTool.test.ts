@@ -59,7 +59,7 @@ describe("MultiTool", () => {
             return [currentRotation];
           case "transformBox:selectHandle":
             return [false];
-          case "transformBox:hoverHandle":
+          case "transformBox:mousePosition":
             return [];
           case "transformBox:snapHandle":
             return [null];

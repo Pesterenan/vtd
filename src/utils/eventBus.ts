@@ -205,17 +205,13 @@ export interface EventBusMap {
     payload: { property: "top" | "left" | "right" | "bottom"; value: number };
     result: unknown;
   };
-  "transformBox:hoverHandle": {
+  "transformBox:mousePosition": {
     payload: PositionPayload;
     result: unknown;
   };
   "transformBox:selectHandle": {
     payload: unknown;
     result: boolean;
-  };
-  "transformBox:snapHandle": {
-    payload: PositionPayload;
-    result: Position | null;
   };
   "transformBox:getSignAndAnchor": {
     payload: unknown;
@@ -225,7 +221,7 @@ export interface EventBusMap {
       ySign: number;
     };
   };
-  "transformBox:anchorPoint:change": {
+  "transformBox:anchorPoint:set": {
     payload: PositionPayload;
     result: unknown;
   };

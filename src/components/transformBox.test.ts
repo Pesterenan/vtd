@@ -84,7 +84,7 @@ describe("TransformBox", () => {
       expect.any(Function),
     );
     expect(bus.on).toHaveBeenCalledWith(
-      "transformBox:anchorPoint:change",
+      "transformBox:anchorPoint:set",
       expect.any(Function),
     );
     expect(bus.on).toHaveBeenCalledWith(
@@ -104,7 +104,7 @@ describe("TransformBox", () => {
       expect.any(Function),
     );
     expect(bus.on).toHaveBeenCalledWith(
-      "transformBox:hoverHandle",
+      "transformBox:mousePosition",
       expect.any(Function),
     );
     expect(bus.on).toHaveBeenCalledWith(
@@ -136,7 +136,7 @@ describe("TransformBox", () => {
       expect.any(Function),
     );
     expect(bus.off).toHaveBeenCalledWith(
-      "transformBox:anchorPoint:change",
+      "transformBox:anchorPoint:set",
       expect.any(Function),
     );
     expect(bus.off).toHaveBeenCalledWith(
@@ -156,7 +156,7 @@ describe("TransformBox", () => {
       expect.any(Function),
     );
     expect(bus.off).toHaveBeenCalledWith(
-      "transformBox:hoverHandle",
+      "transformBox:mousePosition",
       expect.any(Function),
     );
     expect(bus.off).toHaveBeenCalledWith(
@@ -255,13 +255,13 @@ describe("TransformBox", () => {
 
   it("should set hoveredHandle on hoverHandle", () => {
     const handlePosition = transformBox.handles!.TOP_LEFT;
-    transformBox.hoverHandle({ position: handlePosition });
+    transformBox.mousePosition({ position: handlePosition });
     expect(transformBox.hoveredHandle).toEqual("TOP_LEFT");
   });
 
   it("should set selectedHandle on selectHandle", () => {
     const handlePosition = transformBox.handles!.TOP_LEFT;
-    transformBox.hoverHandle({ position: handlePosition });
+    transformBox.mousePosition({ position: handlePosition });
     const result = transformBox.selectHandle();
     expect(result).toBe(true);
     expect(transformBox.selectedHandle).toEqual("TOP_LEFT");

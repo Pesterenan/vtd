@@ -59,7 +59,7 @@ export class ScaleTool extends Tool {
       },
     });
     if (altKey) {
-      this.eventBus.emit("transformBox:anchorPoint:change", {
+      this.eventBus.emit("transformBox:anchorPoint:set", {
         position: mousePos,
       });
       this.eventBus.emit("workarea:update");
@@ -87,7 +87,7 @@ export class ScaleTool extends Tool {
         y: offsetY,
       },
     });
-    this.eventBus.emit("transformBox:hoverHandle", { position: mousePos });
+    this.eventBus.emit("transformBox:mousePosition", { position: mousePos });
 
     const [props] = this.eventBus.request("transformBox:properties:get");
     const [{ xSign, ySign, anchor }] = this.eventBus.request(

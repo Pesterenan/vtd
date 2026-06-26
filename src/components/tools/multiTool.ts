@@ -24,7 +24,6 @@ export class MultiTool extends Tool {
   private startCenter: Position | null = null;
   private isProportional = false;
   private isCropping = false;
-  private localAnchor: Position | null = null;
   private rotateInitialRotation = 0;
 
   constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
@@ -48,7 +47,6 @@ export class MultiTool extends Tool {
     this.startCenter = null;
     this.isProportional = false;
     this.isCropping = false;
-    this.localAnchor = null;
     this.rotateInitialRotation = 0;
   }
 
@@ -72,6 +70,7 @@ export class MultiTool extends Tool {
     this.context.scale(zoomLevel, zoomLevel);
 
     const [center] = this.eventBus.request("transformBox:position");
+    const [anchorPoint] = this.eventBus.request("transformBox:anchorPoint:get");
     if (!center) {
       this.context.restore();
       return;
@@ -82,7 +81,7 @@ export class MultiTool extends Tool {
         this.drawMoveGizmo(center, zoomLevel);
         break;
       case "rotate":
-        this.drawRotateGizmo(center, zoomLevel);
+        this.drawRotateGizmo(anchorPoint ?? center, zoomLevel);
         break;
       case "scale":
         this.drawScaleGizmo(center, zoomLevel);
@@ -369,29 +368,20 @@ export class MultiTool extends Tool {
 
       case "rotate": {
         if (altKey) {
-          const [snapped] = this.eventBus.request("transformBox:snapHandle", {
+          this.eventBus.emit("transformBox:anchorPoint:set", {
             position: mousePos,
           });
-          this.localAnchor = snapped ?? { ...mousePos };
-          this.eventBus.emit("transformBox:anchorPoint:change", {
-            position: this.localAnchor,
-          });
-          this.eventBus.emit("workarea:update");
           break;
         }
         if (!center) break;
         const [zoomLevel] = this.eventBus.request("zoomLevel:get");
+        const [anchorPoint] = this.eventBus.request("transformBox:anchorPoint:get");
         const radius = ROTATE_RADIUS / zoomLevel;
         const threshold = HIT_THRESHOLD / zoomLevel;
-        if (!this.localAnchor) {
-          this.eventBus.emit("transformBox:anchorPoint:change", {
-            position: center,
-          });
-        }
-        const pivot = this.localAnchor ?? center;
+        const pivot = anchorPoint ?? center;
         const distFromCenter = Math.hypot(
-          mousePos.x - center.x,
-          mousePos.y - center.y,
+          mousePos.x - pivot.x,
+          mousePos.y - pivot.y,
         );
         if (Math.abs(distFromCenter - radius) >= threshold) break;
         this.isDragging = true;
@@ -401,16 +391,10 @@ export class MultiTool extends Tool {
           "transformBox:rotation",
         );
         this.rotateInitialRotation = currentRotation || 0;
-        this.eventBus.emit("workarea:update");
         break;
       }
 
       case "scale": {
-        if (altKey) {
-          this.localAnchor = { ...mousePos };
-          this.eventBus.emit("workarea:update");
-          break;
-        }
         if (!center) break;
         const part = this.getGizmoPartAt(mousePos, center);
         if (!part) break;
@@ -418,10 +402,10 @@ export class MultiTool extends Tool {
         this.isDragging = true;
         this.startPosition = mousePos;
         this.isProportional = shiftKey;
-        this.eventBus.emit("workarea:update");
         break;
       }
     }
+    this.eventBus.emit("workarea:update");
   }
 
   public onMouseMove({
@@ -435,7 +419,7 @@ export class MultiTool extends Tool {
     const [mousePos] = this.eventBus.request("workarea:adjustForCanvas", {
       position: { x: offsetX, y: offsetY },
     });
-    this.eventBus.emit("transformBox:hoverHandle", { position: mousePos });
+    this.eventBus.emit("transformBox:mousePosition", { position: mousePos });
 
     switch (this.currentMode) {
       case "select": {
@@ -578,7 +562,7 @@ export class MultiTool extends Tool {
 
         this.eventBus.emit("transformBox:updateScale", {
           delta,
-          anchor: this.localAnchor ?? anchor,
+          anchor,
         });
         this.startPosition = mousePos;
         break;

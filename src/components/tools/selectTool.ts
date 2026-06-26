@@ -60,7 +60,7 @@ export class SelectTool extends Tool {
         y: offsetY,
       },
     });
-    this.eventBus.emit("transformBox:hoverHandle", { position: mousePos });
+    this.eventBus.emit("transformBox:mousePosition", { position: mousePos });
 
     if (this.firstPoint) {
       if (this.isCropping) {

@@ -56,7 +56,7 @@ export class GrabTool extends Tool {
       },
     });
     if (altKey) {
-      this.eventBus.emit("transformBox:anchorPoint:change", { position: mousePos });
+      this.eventBus.emit("transformBox:anchorPoint:set", { position: mousePos });
       this.eventBus.emit("workarea:update");
       return;
     }

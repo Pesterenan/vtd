@@ -54,14 +54,13 @@ export class TransformBox {
   }
 
   private addEvents() {
-    this.eventBus.on("transformBox:anchorPoint:change", this.changeAnchorPoint);
+    this.eventBus.on("transformBox:anchorPoint:set", this.setAnchorPoint);
     this.eventBus.on("transformBox:anchorPoint:get", this.getAnchorPoint);
     this.eventBus.on(
       "transformBox:getSignAndAnchor",
       this.calculateSignAndAnchor,
     );
-    this.eventBus.on("transformBox:hoverHandle", this.hoverHandle);
-    this.eventBus.on("transformBox:snapHandle", this.snapHandle);
+    this.eventBus.on("transformBox:mousePosition", this.mousePosition);
     this.eventBus.on("transformBox:position", this.getPosition);
     this.eventBus.on("transformBox:properties:get", this.getProperties);
     this.eventBus.on("transformBox:rotation", this.getRotation);
@@ -83,15 +82,14 @@ export class TransformBox {
   public removeEvents() {
     this.eventBus.off("transformBox:anchorPoint:get", this.getAnchorPoint);
     this.eventBus.off(
-      "transformBox:anchorPoint:change",
-      this.changeAnchorPoint,
+      "transformBox:anchorPoint:set",
+      this.setAnchorPoint,
     );
     this.eventBus.off(
       "transformBox:getSignAndAnchor",
       this.calculateSignAndAnchor,
     );
-    this.eventBus.off("transformBox:hoverHandle", this.hoverHandle);
-    this.eventBus.off("transformBox:snapHandle", this.snapHandle);
+    this.eventBus.off("transformBox:mousePosition", this.mousePosition);
     this.eventBus.off("transformBox:position", this.getPosition);
     this.eventBus.off("transformBox:properties:get", this.getProperties);
     this.eventBus.off("transformBox:rotation", this.getRotation);
@@ -162,7 +160,21 @@ export class TransformBox {
 
   private getPosition = (): Position => this.position;
   private getRotation = (): number => this.rotation;
+
   private getAnchorPoint = (): Position => this.anchorPoint;
+  private setAnchorPoint = ({ position }: PositionPayload): void => {
+    let snappedHandle: Position | null = null;
+    if (this.handles) {
+      for (const point of Object.values(this.handles)) {
+        if (Math.hypot(position.x - point.x, position.y - point.y) < 15) {
+          snappedHandle = { ...point };
+          break;
+        }
+      }
+    }
+    this.anchorPoint = snappedHandle ?? { ...position };
+  };
+
   private getProperties = (): {
     position: Position;
     size: Size;
@@ -188,11 +200,7 @@ export class TransformBox {
     return props;
   };
 
-  private changeAnchorPoint = ({ position }: PositionPayload): void => {
-    this.anchorPoint = position;
-  };
-
-  public hoverHandle = ({ position }: PositionPayload): void => {
+  public mousePosition = ({ position }: PositionPayload): void => {
     if (this.handles) {
       const hitHandle = (
         Object.keys(this.handles) as TransformBoxHandleKeys[]
@@ -205,16 +213,6 @@ export class TransformBox {
       });
       this.hoveredHandle = hitHandle || null;
     }
-  };
-
-  public snapHandle = ({ position }: PositionPayload): Position | null => {
-    if (!this.handles) return null;
-    for (const point of Object.values(this.handles)) {
-      if (Math.hypot(position.x - point.x, position.y - point.y) < 15) {
-        return { ...point };
-      }
-    }
-    return null;
   };
 
   private calculateBoundingBox = (): void => {
