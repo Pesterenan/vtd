@@ -1,17 +1,19 @@
 import { Tool } from "./abstractTool";
 import type { EventBus } from "src/utils/eventBus";
 import type { Position, Scale } from "../types";
+import type { GizmoPart } from "./multiTool.helpers";
 import { toDegrees, toRadians, rotatePoint } from "src/utils/transforms";
+import {
+  ROTATE_RADIUS,
+  HIT_THRESHOLD,
+  drawMoveGizmo,
+  drawRotateGizmo,
+  drawScaleGizmo,
+  drawSelectGizmo,
+  getGizmoPartAt,
+} from "./multiTool.helpers";
 
 type MODES = "select" | "move" | "rotate" | "scale";
-type GizmoPart = "xAxis" | "yAxis" | "center" | "rotateRing" | null;
-
-const GIZMO_LENGTH = 50;
-const ARROW_HEAD_SIZE = 10;
-const CENTER_SIZE = 6;
-const HANDLE_SIZE = 8;
-const ROTATE_RADIUS = 80;
-const HIT_THRESHOLD = 24;
 
 export class MultiTool extends Tool {
   private currentMode: MODES = "select";
@@ -59,7 +61,7 @@ export class MultiTool extends Tool {
     if (!this.context) return;
 
     if (this.currentMode === "select") {
-      this.drawSelectGizmo();
+      drawSelectGizmo(this.context, this.startPosition, this.endPosition);
     }
 
     const [zoomLevel] = this.eventBus.request("zoomLevel:get");
@@ -71,198 +73,41 @@ export class MultiTool extends Tool {
 
     const [center] = this.eventBus.request("transformBox:position");
     const [anchorPoint] = this.eventBus.request("transformBox:anchorPoint:get");
+    const [rotation] = this.eventBus.request("transformBox:rotation");
     if (!center) {
       this.context.restore();
       return;
     }
 
     switch (this.currentMode) {
-      case "move":
-        this.drawMoveGizmo(center, zoomLevel);
+      case "move": {
+        drawMoveGizmo(this.context, center, zoomLevel, {
+          isRelative: this.isRelativeMovement,
+          rotation: rotation ?? 0,
+        });
         break;
-      case "rotate":
-        this.drawRotateGizmo(anchorPoint ?? center, zoomLevel);
+      }
+      case "rotate": {
+        drawRotateGizmo(
+          this.context,
+          anchorPoint ?? center,
+          zoomLevel,
+          rotation ?? 0,
+        );
         break;
-      case "scale":
-        this.drawScaleGizmo(center, zoomLevel);
+      }
+      case "scale": {
+        drawScaleGizmo(
+          this.context,
+          anchorPoint ?? center,
+          zoomLevel,
+          rotation ?? 0,
+        );
         break;
+      }
     }
 
     this.context.restore();
-  }
-
-  private drawSelectGizmo(): void {
-    if (!this.startPosition || !this.endPosition || !this.context) return;
-    const ctx = this.context;
-    ctx.save();
-    ctx.strokeStyle = "black";
-    ctx.setLineDash([3, 3]);
-    ctx.lineWidth = 2;
-    ctx.strokeRect(
-      this.startPosition.x,
-      this.startPosition.y,
-      this.endPosition.x - this.startPosition.x,
-      this.endPosition.y - this.startPosition.y,
-    );
-    ctx.restore();
-  }
-
-  private drawMoveGizmo(anchor: Position, zoomLevel: number): void {
-    const ctx = this.context!;
-    const len = GIZMO_LENGTH / zoomLevel;
-    const head = ARROW_HEAD_SIZE / zoomLevel;
-    const hc = CENTER_SIZE / zoomLevel;
-    const lw = 2 / zoomLevel;
-
-    ctx.save();
-    ctx.lineWidth = lw;
-
-    if (this.isRelativeMovement) {
-      const [rotation] = this.eventBus.request("transformBox:rotation");
-      if (rotation !== 0) {
-        ctx.translate(anchor.x, anchor.y);
-        ctx.rotate(toRadians(rotation));
-        ctx.translate(-anchor.x, -anchor.y);
-      }
-    }
-
-    ctx.strokeStyle = "#ff4444";
-    ctx.fillStyle = "#ff4444";
-    ctx.beginPath();
-    ctx.moveTo(anchor.x, anchor.y);
-    ctx.lineTo(anchor.x + len, anchor.y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(anchor.x + len, anchor.y);
-    ctx.lineTo(anchor.x + len - head, anchor.y - head * 0.5);
-    ctx.lineTo(anchor.x + len - head, anchor.y + head * 0.5);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.strokeStyle = "#44cc44";
-    ctx.fillStyle = "#44cc44";
-    ctx.beginPath();
-    ctx.moveTo(anchor.x, anchor.y);
-    ctx.lineTo(anchor.x, anchor.y - len);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(anchor.x, anchor.y - len);
-    ctx.lineTo(anchor.x - head * 0.5, anchor.y - len + head);
-    ctx.lineTo(anchor.x + head * 0.5, anchor.y - len + head);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.strokeStyle = "white";
-    ctx.lineWidth = 1.5 / zoomLevel;
-    ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
-    ctx.fillRect(anchor.x - hc, anchor.y - hc, hc * 2, hc * 2);
-    ctx.strokeRect(anchor.x - hc, anchor.y - hc, hc * 2, hc * 2);
-    ctx.restore();
-  }
-
-  private drawRotateGizmo(center: Position, zoomLevel: number): void {
-    const ctx = this.context!;
-    const radius = ROTATE_RADIUS / zoomLevel;
-
-    ctx.save();
-    ctx.strokeStyle = "#4488ff";
-    ctx.lineWidth = 2 / zoomLevel;
-    ctx.setLineDash([4 / zoomLevel, 4 / zoomLevel]);
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.setLineDash([]);
-    const [rotation] = this.eventBus.request("transformBox:rotation");
-    const angleRad = toRadians(rotation);
-    const dotX = center.x + radius * Math.cos(angleRad);
-    const dotY = center.y + radius * Math.sin(angleRad);
-    ctx.fillStyle = "#4488ff";
-    ctx.beginPath();
-    ctx.arc(dotX, dotY, 4 / zoomLevel, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  private drawScaleGizmo(anchor: Position, zoomLevel: number): void {
-    const ctx = this.context!;
-    const len = GIZMO_LENGTH / zoomLevel;
-    const hh = HANDLE_SIZE / zoomLevel;
-    const hc = CENTER_SIZE / zoomLevel;
-    const lw = 2 / zoomLevel;
-
-    ctx.lineWidth = lw;
-
-    ctx.strokeStyle = "#ff4444";
-    ctx.beginPath();
-    ctx.moveTo(anchor.x, anchor.y);
-    ctx.lineTo(anchor.x + len, anchor.y);
-    ctx.stroke();
-    ctx.fillStyle = "#ff4444";
-    ctx.fillRect(anchor.x + len - hh, anchor.y - hh, hh * 2, hh * 2);
-
-    ctx.strokeStyle = "#44cc44";
-    ctx.beginPath();
-    ctx.moveTo(anchor.x, anchor.y);
-    ctx.lineTo(anchor.x, anchor.y - len);
-    ctx.stroke();
-    ctx.fillStyle = "#44cc44";
-    ctx.fillRect(anchor.x - hh, anchor.y - len - hh, hh * 2, hh * 2);
-
-    ctx.strokeStyle = "white";
-    ctx.lineWidth = 1.5 / zoomLevel;
-    ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
-    ctx.fillRect(anchor.x - hc, anchor.y - hc, hc * 2, hc * 2);
-    ctx.strokeRect(anchor.x - hc, anchor.y - hc, hc * 2, hc * 2);
-  }
-
-  private getGizmoPartAt(mousePos: Position, anchor: Position): GizmoPart {
-    let testPos = mousePos;
-    if (this.isRelativeMovement) {
-      const [rotation] = this.eventBus.request("transformBox:rotation");
-      if (rotation !== 0) {
-        testPos = rotatePoint(mousePos, anchor, -rotation);
-      }
-    }
-    const [zoomLevel] = this.eventBus.request("zoomLevel:get");
-    const gizmoLen = GIZMO_LENGTH / zoomLevel;
-    const threshold = HIT_THRESHOLD / zoomLevel;
-    const hc = CENTER_SIZE / zoomLevel;
-
-    if (
-      testPos.x >= anchor.x - hc - threshold &&
-      testPos.x <= anchor.x + hc + threshold &&
-      testPos.y >= anchor.y - hc - threshold &&
-      testPos.y <= anchor.y + hc + threshold
-    ) {
-      return "center";
-    }
-
-    if (
-      testPos.y >= anchor.y - threshold &&
-      testPos.y <= anchor.y + threshold &&
-      testPos.x >= anchor.x - threshold &&
-      testPos.x <= anchor.x + gizmoLen + threshold
-    ) {
-      return "xAxis";
-    }
-
-    if (
-      testPos.x >= anchor.x - threshold &&
-      testPos.x <= anchor.x + threshold &&
-      testPos.y >= anchor.y - gizmoLen - threshold &&
-      testPos.y <= anchor.y + threshold
-    ) {
-      return "yAxis";
-    }
-
-    const dist = Math.hypot(testPos.x - anchor.x, testPos.y - anchor.y);
-    const radius = ROTATE_RADIUS / zoomLevel;
-    if (Math.abs(dist - radius) < threshold) {
-      return "rotateRing";
-    }
-
-    return null;
   }
 
   public onKeyDown(evt: KeyboardEvent): void {
@@ -349,7 +194,15 @@ export class MultiTool extends Tool {
 
       case "move": {
         if (!center) break;
-        const part = this.getGizmoPartAt(mousePos, center);
+        const [zoomLevel] = this.eventBus.request("zoomLevel:get");
+        const [rotation] = this.eventBus.request("transformBox:rotation");
+        const part = getGizmoPartAt(
+          mousePos,
+          center,
+          this.isRelativeMovement,
+          rotation ?? 0,
+          zoomLevel,
+        );
         if (!part) break;
         this.selectedGizmoPart = part;
         this.isDragging = true;
@@ -375,7 +228,9 @@ export class MultiTool extends Tool {
         }
         if (!center) break;
         const [zoomLevel] = this.eventBus.request("zoomLevel:get");
-        const [anchorPoint] = this.eventBus.request("transformBox:anchorPoint:get");
+        const [anchorPoint] = this.eventBus.request(
+          "transformBox:anchorPoint:get",
+        );
         const radius = ROTATE_RADIUS / zoomLevel;
         const threshold = HIT_THRESHOLD / zoomLevel;
         const pivot = anchorPoint ?? center;
@@ -402,7 +257,19 @@ export class MultiTool extends Tool {
           break;
         }
         if (!center) break;
-        const part = this.getGizmoPartAt(mousePos, center);
+        const [zoomLevel] = this.eventBus.request("zoomLevel:get");
+        const [rotation] = this.eventBus.request("transformBox:rotation");
+        const [anchorPoint] = this.eventBus.request(
+          "transformBox:anchorPoint:get",
+        );
+        const pivot = anchorPoint ?? center;
+        const part = getGizmoPartAt(
+          mousePos,
+          pivot,
+          true,
+          rotation ?? 0,
+          zoomLevel,
+        );
         if (!part) break;
         this.selectedGizmoPart = part;
         this.isDragging = true;
@@ -481,7 +348,6 @@ export class MultiTool extends Tool {
             };
           }
         } else {
-          // Lógica ABSOLUTA existente (inalterada)
           newPos = {
             x: mousePos.x - this.startPosition.x,
             y: mousePos.y - this.startPosition.y,
