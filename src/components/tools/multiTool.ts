@@ -208,6 +208,15 @@ export class MultiTool extends Tool {
           });
           break;
         }
+        const [selected] = this.eventBus.request("workarea:selected:get");
+        if (!selected || selected.length === 0) {
+          this.eventBus.emit("workarea:selectAt", {
+            firstPoint: { x: offsetX, y: offsetY },
+            secondPoint: { x: offsetX, y: offsetY },
+          });
+          this.eventBus.emit("workarea:update");
+          break;
+        }
         if (!center) break;
         const [zoomLevel] = this.eventBus.request("zoomLevel:get");
         const [rotation] = this.eventBus.request("transformBox:rotation");
@@ -241,6 +250,17 @@ export class MultiTool extends Tool {
           });
           break;
         }
+        {
+          const [selected] = this.eventBus.request("workarea:selected:get");
+          if (!selected || selected.length === 0) {
+            this.eventBus.emit("workarea:selectAt", {
+              firstPoint: { x: offsetX, y: offsetY },
+              secondPoint: { x: offsetX, y: offsetY },
+            });
+            this.eventBus.emit("workarea:update");
+            break;
+          }
+        }
         if (!center) break;
         const [zoomLevel] = this.eventBus.request("zoomLevel:get");
         const [anchorPoint] = this.eventBus.request(
@@ -270,6 +290,17 @@ export class MultiTool extends Tool {
             position: mousePos,
           });
           break;
+        }
+        {
+          const [selected] = this.eventBus.request("workarea:selected:get");
+          if (!selected || selected.length === 0) {
+            this.eventBus.emit("workarea:selectAt", {
+              firstPoint: { x: offsetX, y: offsetY },
+              secondPoint: { x: offsetX, y: offsetY },
+            });
+            this.eventBus.emit("workarea:update");
+            break;
+          }
         }
         if (!center) break;
         const [zoomLevel] = this.eventBus.request("zoomLevel:get");

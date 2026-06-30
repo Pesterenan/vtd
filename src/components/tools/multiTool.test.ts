@@ -61,6 +61,8 @@ describe("MultiTool", () => {
             return [false];
           case "transformBox:mousePosition":
             return [];
+          case "workarea:selected:get":
+            return [["mockElement"]];
           default:
             return [];
         }
