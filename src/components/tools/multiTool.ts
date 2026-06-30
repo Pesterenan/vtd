@@ -34,6 +34,8 @@ export class MultiTool extends Tool {
 
   public equip(): void {
     super.equip();
+    this.resetTool();
+    this.eventBus.emit("multiTool:modeChange", this.currentMode);
   }
 
   public unequip(): void {
@@ -119,6 +121,12 @@ export class MultiTool extends Tool {
         }
         break;
       }
+      case "scale": {
+        if (evt.key === "Alt") {
+          evt.preventDefault();
+        }
+        break;
+      }
       default:
         break;
     }
@@ -142,6 +150,7 @@ export class MultiTool extends Tool {
       default:
         return;
     }
+    this.eventBus.emit("multiTool:modeChange", this.currentMode);
     this.eventBus.emit("workarea:update");
   }
 
@@ -193,6 +202,12 @@ export class MultiTool extends Tool {
         break;
 
       case "move": {
+        if (altKey) {
+          this.eventBus.emit("transformBox:anchorPoint:set", {
+            position: mousePos,
+          });
+          break;
+        }
         if (!center) break;
         const [zoomLevel] = this.eventBus.request("zoomLevel:get");
         const [rotation] = this.eventBus.request("transformBox:rotation");

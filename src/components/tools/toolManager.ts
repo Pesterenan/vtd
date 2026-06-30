@@ -37,6 +37,10 @@ export class ToolManager {
 
   private delegate(method: ToolEventHandler, evt: MouseEvent | KeyboardEvent) {
     if (!this.current || !this.isWorkAreaActive) return;
+    if (method === "onKeyDown" || method === "onKeyUp") {
+      const activeEl = document.activeElement;
+      if (activeEl?.tagName === "TEXTAREA" || activeEl?.tagName === "INPUT") return;
+    }
     const handler = this.current[method] as (e: typeof evt) => void;
     handler.call(this.current, evt);
     this.eventBus.emit("tool:event", {

@@ -24,7 +24,7 @@ const TextInput = ({
         minLength={minLength}
         maxLength={maxLength}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => { onChange(e.target.value) }}
       />
     </div>
   );

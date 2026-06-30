@@ -155,7 +155,7 @@ describe("MultiTool", () => {
         createMouseEvent("mousemove", { offsetX: 150, offsetY: 100 }),
       );
 
-      expect(emitSpy).toHaveBeenNthCalledWith(5, "transformBox:updatePosition", {
+      expect(emitSpy).toHaveBeenNthCalledWith(6, "transformBox:updatePosition", {
         position: { x: 120, y: 100 },
       });
     });
@@ -168,7 +168,7 @@ describe("MultiTool", () => {
         createMouseEvent("mousemove", { offsetX: 100, offsetY: 60 }),
       );
 
-      expect(emitSpy).toHaveBeenNthCalledWith(5, "transformBox:updatePosition", {
+      expect(emitSpy).toHaveBeenNthCalledWith(6, "transformBox:updatePosition", {
         position: { x: 100, y: 90 },
       });
     });
@@ -181,7 +181,7 @@ describe("MultiTool", () => {
         createMouseEvent("mousemove", { offsetX: 130, offsetY: 80 }),
       );
 
-      expect(emitSpy).toHaveBeenNthCalledWith(5, "transformBox:updatePosition", {
+      expect(emitSpy).toHaveBeenNthCalledWith(6, "transformBox:updatePosition", {
         position: { x: 130, y: 80 },
       });
     });
@@ -215,7 +215,7 @@ describe("MultiTool", () => {
         createMouseEvent("mousemove", { offsetX: 120, offsetY: 60 }),
       );
 
-      expect(emitSpy).toHaveBeenNthCalledWith(4, "transformBox:updateRotation", {
+      expect(emitSpy).toHaveBeenNthCalledWith(5, "transformBox:updateRotation", {
         delta: -63,
       });
     });
@@ -232,7 +232,7 @@ describe("MultiTool", () => {
         }),
       );
 
-      expect(emitSpy).toHaveBeenNthCalledWith(4, "transformBox:updateRotation", {
+      expect(emitSpy).toHaveBeenNthCalledWith(5, "transformBox:updateRotation", {
         delta: -60,
       });
     });
@@ -249,7 +249,7 @@ describe("MultiTool", () => {
         }),
       );
 
-      expect(emitSpy).toHaveBeenNthCalledWith(4, "transformBox:updateRotation", {
+      expect(emitSpy).toHaveBeenNthCalledWith(5, "transformBox:updateRotation", {
         delta: -65,
       });
     });
@@ -268,7 +268,7 @@ describe("MultiTool", () => {
         createMouseEvent("mousemove", { offsetX: 151, offsetY: 100 }),
       );
 
-      expect(emitSpy).toHaveBeenNthCalledWith(4, "transformBox:updateScale", {
+      expect(emitSpy).toHaveBeenNthCalledWith(5, "transformBox:updateScale", {
         delta: { x: 1.1, y: 1 },
       });
     });
@@ -281,7 +281,7 @@ describe("MultiTool", () => {
         createMouseEvent("mousemove", { offsetX: 100, offsetY: 40 }),
       );
 
-      expect(emitSpy).toHaveBeenNthCalledWith(4, "transformBox:updateScale", {
+      expect(emitSpy).toHaveBeenNthCalledWith(5, "transformBox:updateScale", {
         delta: { x: 1, y: 1.05 },
       });
     });
@@ -294,7 +294,7 @@ describe("MultiTool", () => {
         createMouseEvent("mousemove", { offsetX: 120, offsetY: 120 }),
       );
 
-      expect(emitSpy).toHaveBeenNthCalledWith(4, "transformBox:updateScale", {
+      expect(emitSpy).toHaveBeenNthCalledWith(5, "transformBox:updateScale", {
         delta: { x: 1.1, y: 1.1 },
       });
     });

@@ -14,11 +14,7 @@ import TextIcon from "src/assets/icons/text-tool.svg";
 import ZoomIcon from "src/assets/icons/zoom-tool.svg";
 
 const TOOLS = [
-  { tool: TOOL.MULTI, label: "(M) Selecionar elementos" },
-  { tool: TOOL.SELECT, label: "(V) Selecionar elementos" },
-  { tool: TOOL.GRAB, label: "(G) Mover elementos" },
-  { tool: TOOL.ROTATE, label: "(R) Rotacionar elementos" },
-  { tool: TOOL.SCALE, label: "(S) Escalonar elementos" },
+  { tool: TOOL.MULTI },
   { tool: TOOL.TEXT, label: "(T) Criar textos" },
   { tool: TOOL.GRADIENT, label: "(H) Criar gradientes" },
   { tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },
@@ -26,23 +22,43 @@ const TOOLS = [
 ] as const;
 
 const toolIcons: Record<string, string> = {
-  [TOOL.MULTI]: SelectIcon,
-  [TOOL.SELECT]: SelectIcon,
-  [TOOL.GRAB]: GrabIcon,
-  [TOOL.ROTATE]: RotateIcon,
-  [TOOL.SCALE]: ScaleIcon,
   [TOOL.TEXT]: TextIcon,
   [TOOL.GRADIENT]: GradientIcon,
   [TOOL.HAND]: HandIcon,
   [TOOL.ZOOM]: ZoomIcon,
 };
 
+const modeLabels: Record<string, string> = {
+  select: "(M) Selecionar elementos",
+  move: "(M) Mover elementos",
+  rotate: "(M) Rotacionar elementos",
+  scale: "(M) Escalar elementos",
+};
+
+const modeIcons: Record<string, string> = {
+  select: SelectIcon,
+  move: GrabIcon,
+  rotate: RotateIcon,
+  scale: ScaleIcon,
+};
+
 const ToolMenu = () => {
   const { emit, on } = useEventBus();
-  const [activeTool, setActiveTool] = useState<TOOL>(TOOL.SELECT);
+  const [activeTool, setActiveTool] = useState<TOOL>(TOOL.MULTI);
+  const [currentMode, setCurrentMode] = useState<
+    "select" | "move" | "rotate" | "scale"
+  >("select");
 
   useEffect(() => {
     const unsub = on("tool:change", (tool: TOOL) => setActiveTool(tool));
+    return unsub;
+  }, [on]);
+
+  useEffect(() => {
+    const unsub = on(
+      "multiTool:modeChange",
+      (mode: "select" | "move" | "rotate" | "scale") => setCurrentMode(mode),
+    );
     return unsub;
   }, [on]);
 
@@ -66,24 +82,32 @@ const ToolMenu = () => {
     <menu className={styles.toolMenu}>
       <div className={styles.container}>
         <label>Ferr.</label>
-        {TOOLS.map(({ tool, label }) => (
-          <button
-            key={tool}
-            data-tool={tool}
-            className={`${styles.btn} ${activeTool === tool ? styles.active : ""}`}
-            aria-label={label}
-            onClick={() => handleToolClick(tool)}
-          >
-            <div
-              className={styles.icon}
-              style={
-                {
-                  "--icon-url": `url("${toolIcons[tool]}")`,
-                } as React.CSSProperties
-              }
-            />
-          </button>
-        ))}
+        {TOOLS.map(({ tool, label }) => {
+          const isMulti = tool === TOOL.MULTI;
+          const resolvedLabel = isMulti ? modeLabels[currentMode] : label;
+          const resolvedIcon = isMulti
+            ? modeIcons[currentMode]
+            : toolIcons[tool];
+
+          return (
+            <button
+              key={tool}
+              data-tool={tool}
+              className={`${styles.btn} ${activeTool === tool ? styles.active : ""}`}
+              aria-label={resolvedLabel}
+              onClick={() => handleToolClick(tool)}
+            >
+              <div
+                className={styles.icon}
+                style={
+                  {
+                    "--icon-url": `url("${resolvedIcon}")`,
+                  } as React.CSSProperties
+                }
+              />
+            </button>
+          );
+        })}
         <button
           className={styles.btn}
           aria-label="Alternar tema claro/escuro"

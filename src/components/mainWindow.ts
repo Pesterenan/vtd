@@ -6,13 +6,9 @@ import type { IProjectData, Position, TElementData } from "./types";
 import { TOOL } from "./types";
 import type { Tool } from "./tools/abstractTool";
 import { ToolManager } from "./tools/toolManager";
-import { SelectTool } from "./tools/selectTool";
 import { GradientTool } from "./tools/gradientTool";
-import { GrabTool } from "./tools/grabTool";
 import { HandTool } from "./tools/handTool";
 import { ZoomTool } from "./tools/zoomTool";
-import { ScaleTool } from "./tools/scaleTool";
-import { RotateTool } from "./tools/rotateTool";
 import { TextTool } from "./tools/textTool";
 import { remap } from "src/utils/easing";
 import { version as APP_VERSION } from "../../package.json";
@@ -52,13 +48,9 @@ export class MainWindow {
       this.toolManager = new ToolManager(this.canvas, this.eventBus);
       this.tools = {
         [TOOL.MULTI]: new MultiTool(this.canvas, this.eventBus),
-        [TOOL.SELECT]: new SelectTool(this.canvas, this.eventBus),
         [TOOL.GRADIENT]: new GradientTool(this.canvas, this.eventBus),
-        [TOOL.GRAB]: new GrabTool(this.canvas, this.eventBus),
         [TOOL.HAND]: new HandTool(this.canvas, this.eventBus),
         [TOOL.ZOOM]: new ZoomTool(this.canvas, this.eventBus),
-        [TOOL.SCALE]: new ScaleTool(this.canvas, this.eventBus),
-        [TOOL.ROTATE]: new RotateTool(this.canvas, this.eventBus),
         [TOOL.TEXT]: new TextTool(this.canvas, this.eventBus),
       };
     }
@@ -268,7 +260,7 @@ export class MainWindow {
         this.workArea.destroy();
         this.workArea = null;
       }
-      this.eventBus.emit("tool:change", TOOL.SELECT);
+      this.eventBus.emit("tool:change", TOOL.MULTI);
       this.update();
     });
     this.eventBus.on("zoomLevel:change", ({ level, center }) => {
@@ -664,21 +656,6 @@ export class MainWindow {
     }
     let tool: TOOL | null = null;
     switch (evt.code) {
-      case "KeyM":
-        tool = TOOL.MULTI;
-        break;
-      // case "KeyV":
-      //   tool = TOOL.SELECT;
-      //   break;
-      // case "KeyG":
-      //   tool = TOOL.GRAB;
-      //   break;
-      // case "KeyR":
-      //   tool = TOOL.ROTATE;
-      //   break;
-      // case "KeyS":
-      //   tool = TOOL.SCALE;
-      //   break;
       case "KeyT":
         tool = TOOL.TEXT;
         break;
@@ -712,7 +689,7 @@ export class MainWindow {
       switch (evt.code) {
         case "Space":
         case "KeyZ":
-          this.currentTool = this.lastTool ? this.lastTool : TOOL.SELECT;
+          this.currentTool = this.lastTool ? this.lastTool : TOOL.MULTI;
           this.changeTool();
       }
     }
@@ -742,6 +719,14 @@ export class MainWindow {
         case "KeyZ":
           tool = TOOL.ZOOM;
           break;
+        case "KeyV":
+        case "KeyG":
+        case "KeyR":
+        case "KeyS":
+          if (this.currentTool !== TOOL.MULTI) {
+            tool = TOOL.MULTI;
+          }
+        break;
       }
       if (tool) {
         this.currentTool = tool;
