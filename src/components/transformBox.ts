@@ -77,15 +77,15 @@ export class TransformBox {
       this.setCroppingBoxVisibility,
     );
     this.eventBus.on("transformBox:cropping:get", this.getCropping);
-    this.eventBus.on("transformMenu:cropping:update", this.updateCroppingFromMenu);
+    this.eventBus.on(
+      "transformMenu:cropping:update",
+      this.updateCroppingFromMenu,
+    );
   }
 
   public removeEvents() {
     this.eventBus.off("transformBox:anchorPoint:get", this.getAnchorPoint);
-    this.eventBus.off(
-      "transformBox:anchorPoint:set",
-      this.setAnchorPoint,
-    );
+    this.eventBus.off("transformBox:anchorPoint:set", this.setAnchorPoint);
     this.eventBus.off(
       "transformBox:getSignAndAnchor",
       this.calculateSignAndAnchor,
@@ -144,17 +144,21 @@ export class TransformBox {
         const { width, height } = element.size;
         const { property, value } = payload;
 
-          if (property === "top") {
-            croppingBox.top = Math.round(clamp(value, 0, croppingBox.bottom - 1));
-          } else if (property === "left") {
-            croppingBox.left = Math.round(clamp(value, 0, croppingBox.right - 1));
-          } else if (property === "right") {
-            croppingBox.right = Math.round(clamp(value, croppingBox.left + 1, width));
-          } else if (property === "bottom") {
-            croppingBox.bottom = Math.round(clamp(value, croppingBox.top + 1, height));
-          }
-          this.eventBus.emit("workarea:update");
-          this.eventBus.emit("transformBox:cropping:changed", croppingBox);
+        if (property === "top") {
+          croppingBox.top = Math.round(clamp(value, 0, croppingBox.bottom - 1));
+        } else if (property === "left") {
+          croppingBox.left = Math.round(clamp(value, 0, croppingBox.right - 1));
+        } else if (property === "right") {
+          croppingBox.right = Math.round(
+            clamp(value, croppingBox.left + 1, width),
+          );
+        } else if (property === "bottom") {
+          croppingBox.bottom = Math.round(
+            clamp(value, croppingBox.top + 1, height),
+          );
+        }
+        this.eventBus.emit("workarea:update");
+        this.eventBus.emit("transformBox:cropping:changed", croppingBox);
       }
     }
   };
@@ -405,7 +409,13 @@ export class TransformBox {
     this.updateHandles();
   };
 
-  public setSize = ({ width, height }: { width: number; height: number }): void => {
+  public setSize = ({
+    width,
+    height,
+  }: {
+    width: number;
+    height: number;
+  }): void => {
     const deltaX = this.size.width !== 0 ? width / this.size.width : 1;
     const deltaY = this.size.height !== 0 ? height / this.size.height : 1;
     this.updateScale({ delta: { x: deltaX, y: deltaY } });
@@ -433,27 +443,27 @@ export class TransformBox {
     if (xSign !== 0) {
       if (xSign > 0) {
         croppingBox.right += unscaledDelta.x;
-        croppingBox.right = Math.round(clamp(
-          croppingBox.right,
-          croppingBox.left + 1,
-          element.size.width,
-        ));
+        croppingBox.right = Math.round(
+          clamp(croppingBox.right, croppingBox.left + 1, element.size.width),
+        );
       } else {
         croppingBox.left += unscaledDelta.x;
-        croppingBox.left = Math.round(clamp(croppingBox.left, 0, croppingBox.right - 1));
+        croppingBox.left = Math.round(
+          clamp(croppingBox.left, 0, croppingBox.right - 1),
+        );
       }
     }
     if (ySign !== 0) {
       if (ySign > 0) {
         croppingBox.bottom += unscaledDelta.y;
-        croppingBox.bottom = Math.round(clamp(
-          croppingBox.bottom,
-          croppingBox.top + 1,
-          element.size.height,
-        ));
+        croppingBox.bottom = Math.round(
+          clamp(croppingBox.bottom, croppingBox.top + 1, element.size.height),
+        );
       } else {
         croppingBox.top += unscaledDelta.y;
-        croppingBox.top = Math.round(clamp(croppingBox.top, 0, croppingBox.bottom - 1));
+        croppingBox.top = Math.round(
+          clamp(croppingBox.top, 0, croppingBox.bottom - 1),
+        );
       }
     }
     this.eventBus.emit("transformBox:cropping:changed", croppingBox);
@@ -525,42 +535,59 @@ export class TransformBox {
     return { anchor, xSign, ySign };
   };
 
-  public draw(context: CanvasRenderingContext2D): void {
+  public draw(ctx: CanvasRenderingContext2D): void {
     if (!this.boundingBox) return;
     const [zoomLevel] = this.eventBus.request("zoomLevel:get");
     const [workAreaOffset] = this.eventBus.request("workarea:offset:get");
 
     // Draw bounding box
-    context.save();
-    context.translate(workAreaOffset.x, workAreaOffset.y);
-    context.scale(zoomLevel, zoomLevel);
+    ctx.save();
+    ctx.translate(workAreaOffset.x, workAreaOffset.y);
+    ctx.scale(zoomLevel, zoomLevel);
     const { topLeft, topRight, bottomLeft, bottomRight } = this.boundingBox;
 
-    context.strokeStyle = "red";
-    context.setLineDash([3 / zoomLevel, 3 / zoomLevel]);
-    context.lineWidth = 2 / zoomLevel;
-    context.beginPath();
-    context.moveTo(topLeft.x, topLeft.y);
-    context.lineTo(topRight.x, topRight.y);
-    context.lineTo(bottomRight.x, bottomRight.y);
-    context.lineTo(bottomLeft.x, bottomLeft.y);
-    context.closePath();
-    context.stroke();
-    // Desenhar os handles
+    ctx.strokeStyle = "red";
+    ctx.setLineDash([3 / zoomLevel, 3 / zoomLevel]);
+    ctx.lineWidth = 2 / zoomLevel;
+    ctx.beginPath();
+    ctx.moveTo(topLeft.x, topLeft.y);
+    ctx.lineTo(topRight.x, topRight.y);
+    ctx.lineTo(bottomRight.x, bottomRight.y);
+    ctx.lineTo(bottomLeft.x, bottomLeft.y);
+    ctx.closePath();
+    ctx.stroke();
+    // Draw handles
     if (this.handles) {
       for (const key of Object.keys(this.handles) as TransformBoxHandleKeys[]) {
         const point = this.handles[key];
-        context.fillStyle = key === this.hoveredHandle ? "blue" : "gray";
-        context.beginPath();
-        context.arc(point.x, point.y, 5 / zoomLevel, 0, Math.PI * 2);
-        context.closePath();
-        context.fill();
+        // Outer Ring
+        ctx.strokeStyle = "black";
+        ctx.fillStyle = "white";
+        ctx.setLineDash([]);
+        ctx.lineWidth = 1 / zoomLevel;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 4 / zoomLevel, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+
+        // Inner Circle
+        const hoverColor = key === this.hoveredHandle ? "gray" : "black";
+        ctx.strokeStyle = hoverColor;
+        ctx.fillStyle = key === this.lockedHandleKey ? "white" : hoverColor;
+        ctx.setLineDash([]);
+        ctx.lineWidth = 4 / zoomLevel;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 1 / zoomLevel, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
       }
     }
-    context.restore();
-    // Desenhar CroppingBox em volta do elemento
+    ctx.restore();
+    // Draw CroppingBox around element
     if (this.isCroppingBoxVisible) {
-      this.drawCroppingBox(context);
+      this.drawCroppingBox(ctx);
     }
   }
 
