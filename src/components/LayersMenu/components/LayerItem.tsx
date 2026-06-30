@@ -33,6 +33,7 @@ export const LayerBase = ({
   onDragLeave,
   onDrop,
   onClick,
+  onContextMenu,
   isDragOverBefore,
   isDragOverAfter,
   isSelected,
@@ -45,6 +46,7 @@ export const LayerBase = ({
   onDragLeave?: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent<HTMLLIElement>) => void;
   onClick: (e: React.MouseEvent) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   isDragOverBefore?: boolean;
   isDragOverAfter?: boolean;
   isSelected?: boolean;
@@ -121,6 +123,7 @@ export const LayerBase = ({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       onClick={onClick}
+      onContextMenu={onContextMenu}
     >
       <div className={styles.titleRow}>
         <div className={styles.controls}>
@@ -184,10 +187,12 @@ export const renderLayer = (
   getItemDragLeave?: (targetId: number) => (e: React.DragEvent) => void,
   hoverTarget?: { targetId: number; position: "before" | "after" } | null,
   selectedIds?: Set<number>,
+  getContextMenu?: (layer: Layer) => (e: React.MouseEvent) => void,
 ) => {
   const isGroup = "children" in layer && layer.children !== undefined;
   const onDragStart = getDragStart(layer.id);
   const onClick = getLayerClick?.(layer, isGroup);
+  const onContextMenu = getContextMenu?.(layer);
   const isHover = hoverTarget?.targetId === layer.id;
   const isDragOverBefore = isHover && hoverTarget.position === "before";
   const isDragOverAfter = isHover && hoverTarget.position === "after";
@@ -208,6 +213,7 @@ export const renderLayer = (
       onDragLeave={onItemDragLeave}
       onDrop={handleOnDrop}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       getLayerClick={getLayerClick}
       isCollapsed={isCollapsed}
       onToggleCollapse={onToggleCollapse}
@@ -230,6 +236,7 @@ export const renderLayer = (
       onDragLeave={onItemDragLeave}
       onDrop={handleOnDrop}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       isDragOverBefore={isDragOverBefore}
       isDragOverAfter={isDragOverAfter}
       isSelected={isSelected}
@@ -244,6 +251,7 @@ export const LayerItem = ({
   onDragLeave,
   onDrop,
   onClick,
+  onContextMenu,
   isDragOverBefore,
   isDragOverAfter,
   isSelected,
@@ -254,6 +262,7 @@ export const LayerItem = ({
   onDragLeave?: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent<HTMLLIElement>) => void;
   onClick?: (e: React.MouseEvent) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   isDragOverBefore?: boolean;
   isDragOverAfter?: boolean;
   isSelected?: boolean;
@@ -275,18 +284,19 @@ export const LayerItem = ({
   };
 
   return (
-    <LayerBase
-      layer={layer}
-      extraToggle={<FilterButton />}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
-      onClick={onClick}
-      isDragOverBefore={isDragOverBefore}
-      isDragOverAfter={isDragOverAfter}
-      isSelected={isSelected}
-    />
+      <LayerBase
+        layer={layer}
+        extraToggle={<FilterButton />}
+        onDragStart={onDragStart}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        onClick={onClick}
+        onContextMenu={onContextMenu}
+        isDragOverBefore={isDragOverBefore}
+        isDragOverAfter={isDragOverAfter}
+        isSelected={isSelected}
+      />
   );
 };
 
@@ -298,6 +308,7 @@ export const LayerGroup = ({
   onDragLeave,
   onDrop,
   onClick,
+  onContextMenu,
   getLayerClick,
   isCollapsed,
   onToggleCollapse,
@@ -318,6 +329,7 @@ export const LayerGroup = ({
   onDragLeave?: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent<HTMLLIElement>) => void;
   onClick?: (e: React.MouseEvent) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   getLayerClick?: (
     layer: Layer,
     isGroup: boolean,
@@ -355,6 +367,7 @@ export const LayerGroup = ({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       isDragOverBefore={isDragOverBefore}
       isDragOverAfter={isDragOverAfter}
       isSelected={isSelected}

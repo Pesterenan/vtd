@@ -14,7 +14,7 @@ import TextIcon from "src/assets/icons/text-tool.svg";
 import ZoomIcon from "src/assets/icons/zoom-tool.svg";
 
 const TOOLS = [
-  { tool: TOOL.MULTI },
+  { tool: TOOL.MULTI, label: "(V) Selecionar, (G) Mover, (R) Rotacionar, (S) Escalonar" },
   { tool: TOOL.TEXT, label: "(T) Criar textos" },
   { tool: TOOL.GRADIENT, label: "(H) Criar gradientes" },
   { tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },

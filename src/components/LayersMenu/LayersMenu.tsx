@@ -389,21 +389,22 @@ const LayersMenu = () => {
         onDragOver={handleDragOver}
         onDrop={handleDropOnList}
       >
-        {layers.map((layer) => {
-          return renderLayer(
-            layer,
-            handleDragStart,
-            handleOnDrop,
-            handleDragOver,
-            handleLayerClick,
-            collapsedIds,
-            handleToggleCollapse,
-            handleItemDragOver,
-            handleItemDragLeave,
-            hoverTarget,
-            selectedIds,
-          );
-        })}
+          {layers.map((layer) => {
+            return renderLayer(
+              layer,
+              handleDragStart,
+              handleOnDrop,
+              handleDragOver,
+              handleLayerClick,
+              collapsedIds,
+              handleToggleCollapse,
+              handleItemDragOver,
+              handleItemDragLeave,
+              hoverTarget,
+              selectedIds,
+              handleContextMenu,
+            );
+          })}
       </ul>
       <div className={styles.buttons}>
         <button
