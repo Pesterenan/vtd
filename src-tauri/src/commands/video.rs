@@ -3,12 +3,18 @@ use std::process::Command;
 use std::sync::mpsc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
 
 use super::CommandResponse;
+
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -20,6 +26,13 @@ pub struct VideoMetadata {
     pub height: i64,
     pub total_frames: i64,
     pub width: i64,
+}
+
+fn build_command(program: &str) -> Command {
+    let mut cmd = Command::new(program);
+    #[cfg(windows)]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    cmd
 }
 
 #[tauri::command]
@@ -66,7 +79,7 @@ pub async fn load_video(app: AppHandle) -> CommandResponse<VideoMetadata> {
 
     let path_str = path_buf.to_string_lossy().to_string();
 
-    let ffprobe_output = Command::new("ffprobe")
+    let ffprobe_output = build_command("ffprobe")
         .args(["-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", &path_str])
         .output();
 
@@ -158,7 +171,7 @@ pub async fn generate_thumbnail_sprite(file_path: String, duration: f64) -> Comm
     let _ = fs::create_dir_all(&tmp_dir);
     let out_file = tmp_dir.join("thumbnail_sprite.jpg");
 
-    let output = Command::new("ffmpeg")
+    let output = build_command("ffmpeg")
         .args([
             "-i",
             &file_path,
@@ -219,7 +232,7 @@ pub async fn process_video_frame(file_path: String, time_in_seconds: f64) -> Com
         .as_nanos();
     let tmp_file = std::env::temp_dir().join(format!("vtd_frame_{}.png", nanos));
 
-    let output = Command::new("ffmpeg")
+    let output = build_command("ffmpeg")
         .args([
             "-y",
             "-ss",
