@@ -30,6 +30,19 @@ export class MultiTool extends Tool {
 
   constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
     super(canvas, eventBus);
+    this.eventBus.on("multiTool:setMode", (mode: MODES) => {
+      this.setMode(mode);
+    });
+  }
+
+  public setMode(mode: MODES): void {
+    this.currentMode = mode;
+    if (mode === "move" && this.isRelativeMovement) {
+      const [rotation] = this.eventBus.request("transformBox:rotation");
+      this.originalRotation = rotation || 0;
+    }
+    this.eventBus.emit("multiTool:modeChange", this.currentMode);
+    this.eventBus.emit("workarea:update");
   }
 
   public equip(): void {

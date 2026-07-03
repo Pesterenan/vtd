@@ -15,7 +15,8 @@ describe("ToolMenu", () => {
     );
 
     const selectBtn = screen.getByLabelText(/selecionar/i);
-    fireEvent.click(selectBtn);
+    fireEvent.pointerDown(selectBtn);
+    fireEvent.pointerUp(selectBtn);
     expect(emitSpy).toHaveBeenCalledWith("tool:change", expect.any(String));
   });
 
@@ -28,7 +29,8 @@ describe("ToolMenu", () => {
     );
 
     const selectBtn = screen.getByLabelText(/selecionar/i);
-    fireEvent.click(selectBtn);
+    fireEvent.pointerDown(selectBtn);
+    fireEvent.pointerUp(selectBtn);
 
     expect(selectBtn).toHaveClass(/active/);
   });

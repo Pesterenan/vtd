@@ -173,6 +173,10 @@ export interface EventBusMap {
     payload: "select" | "move" | "rotate" | "scale";
     result: unknown;
   };
+  "multiTool:setMode": {
+    payload: "select" | "move" | "rotate" | "scale";
+    result: unknown;
+  };
   "selectTool:isCroppingBoxVisible": {
     payload: boolean;
     result: unknown;

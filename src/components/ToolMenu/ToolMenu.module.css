@@ -13,10 +13,6 @@
 
 .btn,
 .btn-wide {
-  &:last-child {
-    position: absolute;
-    bottom: 0.5rem;
-  }
   &:hover {
     background-color: var(--primary-500);
     border-color: var(--primary-400);
@@ -52,9 +48,90 @@
   }
 }
 
+.themeBtn {
+  margin-top: auto;
+  }
+
 .container {
   align-items: center;
-  justify-content: center;
   display: flex;
   flex-direction: column;
+  height: 100%;
+}
+
+.toolWrapper {
+  position: relative;
+}
+
+.hasSubmenu {
+  position: relative;
+
+  &::after {
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid var(--accent-500);
+    content: "";
+    height: 0;
+    position: absolute;
+    right: 0px;
+    bottom: 2px;
+    transform: rotate(-45deg);
+    width: 0;
+  }
+}
+
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
+.modeMenu {
+  position: absolute;
+  left: calc(100% + 4px);
+  top: 0;
+  z-index: 1000;
+  background-color: var(--background-100);
+  border: 1px solid var(--background-700);
+  border-radius: var(--border-radius-small);
+  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.modeOption {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius-small);
+  color: var(--text-900);
+  cursor: pointer;
+  display: flex;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: var(--font-small);
+
+  &:hover {
+    background-color: var(--primary-500);
+  }
+
+  &.modeOptionActive {
+    background-color: var(--primary-600);
+  }
+
+  & .icon {
+    background: linear-gradient(to bottom right,
+        var(--accent-500) 40%,
+        var(--accent-700));
+    height: 1rem;
+    mask-image: var(--icon-url);
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: cover;
+    width: 1rem;
+    flex-shrink: 0;
+  }
 }

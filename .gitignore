@@ -95,3 +95,6 @@ dist/
 out/
 
 GEMINI.MD
+
+# Playwright MCP output (screenshots, snapshots)
+.playwright-mcp/

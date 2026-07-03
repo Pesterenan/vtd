@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useEventBus } from "../../hooks/useEventBus";
 import { TOOL } from "../types";
@@ -13,8 +13,13 @@ import SelectIcon from "src/assets/icons/select-tool.svg";
 import TextIcon from "src/assets/icons/text-tool.svg";
 import ZoomIcon from "src/assets/icons/zoom-tool.svg";
 
+type Mode = "select" | "move" | "rotate" | "scale";
+
 const TOOLS = [
-  { tool: TOOL.MULTI, label: "(V) Selecionar, (G) Mover, (R) Rotacionar, (S) Escalonar" },
+  {
+    tool: TOOL.MULTI,
+    label: "(V) Selecionar, (G) Mover, (R) Rotacionar, (S) Escalonar",
+  },
   { tool: TOOL.TEXT, label: "(T) Criar textos" },
   { tool: TOOL.GRADIENT, label: "(H) Criar gradientes" },
   { tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },
@@ -42,12 +47,22 @@ const modeIcons: Record<string, string> = {
   scale: ScaleIcon,
 };
 
+const MODE_OPTIONS: { mode: Mode; label: string; icon: string }[] = [
+  { mode: "select", label: "Selecionar", icon: SelectIcon },
+  { mode: "move", label: "Mover", icon: GrabIcon },
+  { mode: "rotate", label: "Rotacionar", icon: RotateIcon },
+  { mode: "scale", label: "Escalar", icon: ScaleIcon },
+];
+
+const LONG_PRESS_DELAY = 400;
+
 const ToolMenu = () => {
   const { emit, on } = useEventBus();
   const [activeTool, setActiveTool] = useState<TOOL>(TOOL.MULTI);
-  const [currentMode, setCurrentMode] = useState<
-    "select" | "move" | "rotate" | "scale"
-  >("select");
+  const [currentMode, setCurrentMode] = useState<Mode>("select");
+  const [showModeMenu, setShowModeMenu] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLongPress = useRef(false);
 
   useEffect(() => {
     const unsub = on("tool:change", (tool: TOOL) => setActiveTool(tool));
@@ -55,15 +70,48 @@ const ToolMenu = () => {
   }, [on]);
 
   useEffect(() => {
-    const unsub = on(
-      "multiTool:modeChange",
-      (mode: "select" | "move" | "rotate" | "scale") => setCurrentMode(mode),
+    const unsub = on("multiTool:modeChange", (mode: Mode) =>
+      setCurrentMode(mode),
     );
     return unsub;
   }, [on]);
 
   const handleToolClick = (tool: TOOL) => {
     emit("tool:change", tool);
+  };
+
+  const handleMultiPointerDown = () => {
+    isLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      isLongPress.current = true;
+      setShowModeMenu(true);
+    }, LONG_PRESS_DELAY);
+  };
+
+  const handleMultiPointerUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if (!isLongPress.current) {
+      handleToolClick(TOOL.MULTI);
+    }
+    isLongPress.current = false;
+  };
+
+  const handleMultiPointerLeave = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleModeSelect = (mode: Mode) => {
+    setShowModeMenu(false);
+    if (activeTool !== TOOL.MULTI) {
+      emit("tool:change", TOOL.MULTI);
+    }
+    emit("multiTool:setMode", mode);
   };
 
   const [theme, setTheme] = useState<"light" | "dark">(
@@ -90,26 +138,60 @@ const ToolMenu = () => {
             : toolIcons[tool];
 
           return (
-            <button
-              key={tool}
-              data-tool={tool}
-              className={`${styles.btn} ${activeTool === tool ? styles.active : ""}`}
-              aria-label={resolvedLabel}
-              onClick={() => handleToolClick(tool)}
-            >
-              <div
-                className={styles.icon}
-                style={
-                  {
-                    "--icon-url": `url("${resolvedIcon}")`,
-                  } as React.CSSProperties
-                }
-              />
-            </button>
+            <div key={tool} className={styles.toolWrapper}>
+              <button
+                data-tool={tool}
+                className={`${styles.btn} ${isMulti ? styles.hasSubmenu : ""} ${activeTool === tool ? styles.active : ""}`}
+                aria-label={resolvedLabel}
+                {...(isMulti
+                  ? {
+                      onPointerDown: handleMultiPointerDown,
+                      onPointerUp: handleMultiPointerUp,
+                      onPointerLeave: handleMultiPointerLeave,
+                    }
+                  : { onClick: () => handleToolClick(tool) })}
+              >
+                <div
+                  className={styles.icon}
+                  style={
+                    {
+                      "--icon-url": `url("${resolvedIcon}")`,
+                    } as React.CSSProperties
+                  }
+                />
+              </button>
+              {isMulti && showModeMenu && (
+                <>
+                  <div
+                    className={styles.menuBackdrop}
+                    onClick={() => setShowModeMenu(false)}
+                  />
+                  <div className={styles.modeMenu}>
+                    {MODE_OPTIONS.map(({ mode, label, icon }) => (
+                      <button
+                        key={mode}
+                        className={`${styles.modeOption} ${currentMode === mode ? styles.modeOptionActive : ""}`}
+                        onClick={() => handleModeSelect(mode)}
+                      >
+                        <div
+                          className={styles.icon}
+                          style={
+                            {
+                              "--icon-url": `url("${icon}")`,
+                            } as React.CSSProperties
+                          }
+                        />
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           );
         })}
         <button
-          className={styles.btn}
+          className={`${styles.btn} ${styles.themeBtn}`}
           aria-label="Alternar tema claro/escuro"
           onClick={handleThemeToggle}
         >
