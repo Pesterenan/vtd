@@ -11,6 +11,7 @@ import { VFEManager } from "./VFEManager";
 import type { IVideoMetadata } from "src/types";
 import "./VFEModule.css";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 
 const seekButtons = [
   { seek: "start", title: "(CTRL+SHIFT+E) retrocede para o começo", label: "|\u25C0" },
@@ -46,6 +47,10 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
   const [maxW, setMaxW] = useState(10000);
   const [maxH, setMaxH] = useState(10000);
   const [aspectRatio, setAspectRatio] = useState("16:9");
+  const [spriteProgress, setSpriteProgress] = useState(-1);
+  const [isFrameLoading, setIsFrameLoading] = useState(false);
+
+  const sliderProgressRef = useRef<HTMLDivElement>(null);
 
   const updateIndicator = useCallback(() => {
     const slider = seekSliderRef.current;
@@ -182,6 +187,7 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
     if (!canvas) return;
 
     const manager = new VFEManager(canvas, parentEventBus);
+    manager.onFrameLoadingChange = setIsFrameLoading;
     managerRef.current = manager;
 
     const metadata = (window as unknown as Record<string, unknown>).__videoMetadata as IVideoMetadata | undefined;
@@ -202,6 +208,8 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
         slider.step = "1";
       }
 
+      setIsFrameLoading(true);
+      setSpriteProgress(0);
       manager.loadVideo(metadata).then(() => {
         setMaxX(width);
         setMaxY(height);
@@ -210,7 +218,14 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
       });
     }
 
-    const unlistenPromise = listen<IVideoMetadata>("vfe:video-metadata", (event) => {
+    const progressInterval = setInterval(async () => {
+      try {
+        const p = await invoke<number>("get_sprite_progress");
+        setSpriteProgress(p);
+      } catch {}
+    }, 200);
+
+    const unlistenMetaPromise = listen<IVideoMetadata>("vfe:video-metadata", (event) => {
       const md = event.payload;
       totalFramesRef.current = md.totalFrames ?? 100;
       frameRateRef.current = md.frameRate;
@@ -221,6 +236,7 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
       setVideoInfo(
         `${w} x ${h} px | ${w / g2}:${h / g2} | ${md.frameRate} fps${fmt ? ` | ${fmt.toUpperCase()}` : ""}`
       );
+
       const sld = seekSliderRef.current;
       if (sld && md.totalFrames) {
         sld.max = (md.totalFrames - 1).toString();
@@ -230,6 +246,8 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
       const indicator = seekIndicatorRef.current;
       if (indicator) indicator.textContent = "00:00:00 [00]";
       setDurationText("00:00:00 [00]");
+      setIsFrameLoading(true);
+      setSpriteProgress(0);
       manager.loadVideo(md).then(() => {
         setMaxX(w);
         setMaxY(h);
@@ -239,9 +257,12 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
     });
 
     return () => {
+      clearInterval(progressInterval);
       manager.destroy();
       managerRef.current = null;
-      unlistenPromise.then((unlisten) => unlisten());
+      setSpriteProgress(-1);
+      setIsFrameLoading(false);
+      unlistenMetaPromise.then((unlisten) => unlisten());
     };
   }, [parentEventBus]);
 
@@ -295,7 +316,14 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
           </div>
         </div>
       </div>
-      <canvas ref={canvasRef} id="video-canvas" height="320" width="800" style={{ backgroundColor: "var(--background-300)" }} />
+      <div id="vfe_canvas-wrapper">
+        <canvas ref={canvasRef} id="video-canvas" height="320" width="800" style={{ backgroundColor: "var(--background-300)" }} />
+        {isFrameLoading && (
+          <div id="vfe_loading-overlay">
+            <div className="vfe_spinner" />
+          </div>
+        )}
+      </div>
       <div id="vfe_video-info" className="container ai-c">{videoInfo}</div>
       <div id="sld_video-controls" className="sec_menu-style container ai-c jc-sb">
         <div id="vfe_seek-buttons" className="container pad-05" style={{ width: "fit-content" }}>
@@ -306,15 +334,26 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
           ))}
         </div>
         <div className="container pad-05" style={{ width: "100%" }}>
-          <input
-            ref={seekSliderRef}
-            id="sld_video-duration"
-            min="0"
-            max="100"
-            step="1"
-            type="range"
-            defaultValue="0"
-          />
+          <div id="vfe_slider-wrapper">
+            <input
+              ref={seekSliderRef}
+              id="sld_video-duration"
+              min="0"
+              max="100"
+              step="1"
+              type="range"
+              defaultValue="0"
+            />
+            {spriteProgress >= 0 && spriteProgress < 1 && (
+              <div id="vfe_sprite-progress-bar">
+                <div
+                  ref={sliderProgressRef}
+                  id="vfe_sprite-progress-fill"
+                  style={{ width: `${spriteProgress * 100}%` }}
+                />
+              </div>
+            )}
+          </div>
         </div>
         <div className="container pad-05" style={{ width: "fit-content" }}>
           <div ref={seekIndicatorRef} id="vfe_video-duration-indicator">{durationText}</div>

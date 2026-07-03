@@ -1,20 +1,34 @@
-use std::fs;
-use std::process::Command;
+use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::mpsc;
-use std::time::{SystemTime, UNIX_EPOCH};
-
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
 
 use base64::Engine;
+use image::ImageEncoder;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
 
 use super::CommandResponse;
 
-#[cfg(windows)]
-const CREATE_NO_WINDOW: u32 = 0x08000000;
+static VFE_CANCELLED: AtomicBool = AtomicBool::new(false);
+static VFE_SPRITE_PROGRESS: AtomicU16 = AtomicU16::new(0);
+
+#[tauri::command]
+pub fn open_vfe() {
+    VFE_CANCELLED.store(false, Ordering::SeqCst);
+    println!("VFE session started");
+}
+
+#[tauri::command]
+pub fn get_sprite_progress() -> f64 {
+    VFE_SPRITE_PROGRESS.load(Ordering::Relaxed) as f64 / 100.0
+}
+
+#[tauri::command]
+pub fn cancel_vfe() {
+    VFE_CANCELLED.store(true, Ordering::SeqCst);
+    VFE_SPRITE_PROGRESS.store(0, Ordering::SeqCst);
+    println!("VFE session cancelled");
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,15 +42,138 @@ pub struct VideoMetadata {
     pub width: i64,
 }
 
-fn build_command(program: &str) -> Command {
-    let mut cmd = Command::new(program);
-    #[cfg(windows)]
-    cmd.creation_flags(CREATE_NO_WINDOW);
-    cmd
+fn copy_frame_rgba(frame: &ffmpeg_next::frame::Video) -> Result<image::RgbaImage, String> {
+    let width = frame.width() as usize;
+    let height = frame.height() as usize;
+    let linesize = frame.stride(0) as usize;
+    let src = frame.data(0);
+    let mut data = vec![0u8; width * 4 * height];
+
+    for y in 0..height {
+        let src_start = y * linesize;
+        let dst_start = y * width * 4;
+        data[dst_start..dst_start + width * 4]
+            .copy_from_slice(&src[src_start..src_start + width * 4]);
+    }
+
+    image::RgbaImage::from_raw(width as u32, height as u32, data)
+        .ok_or_else(|| "Falha ao criar imagem RGBA".to_string())
+}
+
+fn decode_frame_at(
+    ictx: &mut ffmpeg_next::format::context::Input,
+    decoder: &mut ffmpeg_next::codec::decoder::Video,
+    stream_index: usize,
+    time_base: ffmpeg_next::Rational,
+    timestamp: f64,
+    backward: bool,
+) -> Result<ffmpeg_next::frame::Video, String> {
+    if VFE_CANCELLED.load(Ordering::Relaxed) {
+        return Err("Cancelado pelo usuário".to_string());
+    }
+
+    let seek_target = if time_base.numerator() > 0 && time_base.denominator() > 0 {
+        (timestamp * time_base.denominator() as f64 / time_base.numerator() as f64) as i64
+    } else {
+        (timestamp * 1_000_000.0) as i64
+    };
+    println!("  decode_frame_at: timestamp={}s, stream_ts={}, stream={}, backward={}", timestamp, seek_target, stream_index, backward);
+
+    let t0 = std::time::Instant::now();
+    decoder.flush();
+
+    unsafe {
+        let ret = if backward {
+            ffmpeg_next::sys::avformat_seek_file(
+                ictx.as_mut_ptr(),
+                stream_index as i32,
+                i64::MIN,
+                seek_target,
+                seek_target,
+                1,
+            )
+        } else {
+            let ret = ffmpeg_next::sys::avformat_seek_file(
+                ictx.as_mut_ptr(),
+                stream_index as i32,
+                seek_target,
+                seek_target,
+                i64::MAX,
+                0,
+            );
+            if ret < 0 {
+                return Err(format!("Forward seek falhou (código {}).", ret));
+            }
+            ret
+        };
+        if ret < 0 {
+            return Err(format!("Erro ao buscar quadro (código {})", ret));
+        }
+    }
+    let seek_time = t0.elapsed();
+    let t1 = std::time::Instant::now();
+
+    let mut frame = ffmpeg_next::frame::Video::empty();
+    let mut packets_sent = 0u32;
+    let mut frames_skipped = 0u32;
+
+    for (s_idx, packet) in ictx.packets() {
+        if VFE_CANCELLED.load(Ordering::Relaxed) {
+            return Err("Cancelado pelo usuário".to_string());
+        }
+        if s_idx.index() != stream_index {
+            continue;
+        }
+
+        if decoder.send_packet(&packet).is_err() {
+            continue;
+        }
+        packets_sent += 1;
+
+        while decoder.receive_frame(&mut frame).is_ok() {
+            match frame.pts() {
+                Some(pts) if pts >= seek_target => {
+                    let total = t0.elapsed();
+                    println!("  frame obtido após {} pacotes e {}/{} frames, pts={}, seek={:?}, decode={:?}, total={:?}",
+                        packets_sent, packets_sent, frames_skipped, pts, seek_time, t1.elapsed(), total);
+                    return Ok(frame);
+                }
+                _ => {
+                    frames_skipped += 1;
+                }
+            }
+        }
+    }
+
+    Err(format!("Nenhum quadro encontrado ({packets_sent} pacotes, {frames_skipped} frames ignorados)."))
+}
+
+fn convert_frame_to_rgba(
+    frame: &ffmpeg_next::frame::Video,
+    width: u32,
+    height: u32,
+) -> Result<ffmpeg_next::frame::Video, String> {
+    let mut sws = ffmpeg_next::software::scaling::Context::get(
+        frame.format(),
+        frame.width(),
+        frame.height(),
+        ffmpeg_next::format::Pixel::RGBA,
+        width,
+        height,
+        ffmpeg_next::software::scaling::Flags::BILINEAR,
+    ).map_err(|e| format!("Erro ao criar conversor de cores: {}", e))?;
+
+    let mut converted = ffmpeg_next::frame::Video::empty();
+    sws.run(frame, &mut converted)
+        .map_err(|e| format!("Erro ao converter frame: {}", e))?;
+
+    Ok(converted)
 }
 
 #[tauri::command]
 pub async fn load_video(app: AppHandle) -> CommandResponse<VideoMetadata> {
+    ffmpeg_next::init().unwrap_or(());
+
     let (tx, rx) = mpsc::channel();
     app.dialog()
         .file()
@@ -79,78 +216,124 @@ pub async fn load_video(app: AppHandle) -> CommandResponse<VideoMetadata> {
 
     let path_str = path_buf.to_string_lossy().to_string();
 
-    let ffprobe_output = build_command("ffprobe")
-        .args(["-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", &path_str])
-        .output();
+    let metadata = std::thread::spawn(move || -> Result<VideoMetadata, String> {
+        let ictx = ffmpeg_next::format::input(&std::path::Path::new(&path_str))
+            .map_err(|e| format!("Erro ao abrir vídeo: {}", e))?;
 
-    match ffprobe_output {
-        Ok(output) => match serde_json::from_slice::<serde_json::Value>(&output.stdout) {
-            Ok(json) => {
-                let fmt_name = json["format"]["format_name"]
-                    .as_str()
-                    .unwrap_or("unknown")
-                    .to_string();
-                let duration: f64 = json["format"]["duration"]
-                    .as_str()
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(0.0);
+        let duration = ictx.duration() as f64 / 1_000_000.0;
 
-                let streams = json["streams"].as_array().cloned().unwrap_or_default();
-                let video_stream = streams.iter().find(|s| s["codec_type"] == "video").cloned();
+        let format_name = ictx.format().name().to_string();
 
-                match video_stream {
-                    Some(stream) => {
-                        let width = stream["width"].as_i64().unwrap_or(0);
-                        let height = stream["height"].as_i64().unwrap_or(0);
-                        let frame_rate_str = stream["r_frame_rate"].as_str().unwrap_or("1/1");
+        let stream = ictx.streams()
+            .best(ffmpeg_next::media::Type::Video)
+            .ok_or_else(|| "Nenhum stream de vídeo encontrado.".to_string())?;
 
-                        let frame_rate = {
-                            let parts: Vec<&str> = frame_rate_str.split('/').collect();
-                            let num: f64 =
-                                parts.first().and_then(|s| s.parse().ok()).unwrap_or(1.0);
-                            let den: f64 =
-                                parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(1.0);
-                            if den == 0.0 {
-                                1.0
-                            } else {
-                                num / den
-                            }
-                        };
+        let params = stream.parameters();
+        let width = unsafe { (*params.as_ptr()).width };
+        let height = unsafe { (*params.as_ptr()).height };
 
-                        let total_frames = (duration * frame_rate) as i64;
-
-                        let metadata = VideoMetadata {
-                            duration,
-                            file_path: path_str,
-                            format: Some(fmt_name.clone()),
-                            frame_rate,
-                            height,
-                            total_frames,
-                            width,
-                        };
-
-                        CommandResponse {
-                            success: true,
-                            message: format!("Vídeo {} carregado com sucesso.", fmt_name),
-                            data: Some(metadata),
-                        }
-                    }
-                    None => CommandResponse {
-                        success: false,
-                        message: "Nenhum stream de vídeo encontrado.".to_string(),
-                        data: None,
-                    },
+        let frame_rate = {
+            let r = stream.avg_frame_rate();
+            if r.numerator() > 0 && r.denominator() > 0 {
+                r.numerator() as f64 / r.denominator() as f64
+            } else {
+                let r = stream.rate();
+                if r.numerator() > 0 && r.denominator() > 0 {
+                    r.numerator() as f64 / r.denominator() as f64
+                } else {
+                    30.0
                 }
             }
-            Err(e) => CommandResponse {
-                success: false,
-                message: format!("Falha ao interpretar metadados: {}", e),
-                data: None,
-            },
+        };
+
+        let total_frames = (duration * frame_rate) as i64;
+
+        Ok(VideoMetadata {
+            duration,
+            file_path: path_str,
+            format: Some(format_name),
+            frame_rate,
+            height: height as i64,
+            total_frames,
+            width: width as i64,
+        })
+    }).join().map_err(|_| "Erro interno ao processar metadados.".to_string());
+
+    match metadata {
+        Ok(Ok(meta)) => CommandResponse {
+            success: true,
+            message: format!("Vídeo {} carregado com sucesso.", meta.format.as_deref().unwrap_or("desconhecido")),
+            data: Some(meta),
+        },
+        Ok(Err(e)) => CommandResponse {
+            success: false,
+            message: e,
+            data: None,
         },
         Err(e) => CommandResponse {
             success: false,
-            message: format!("Erro ao executar ffprobe: {}", e),
+            message: e,
+            data: None,
+        },
+    }
+}
+
+#[tauri::command]
+pub async fn process_video_frame(file_path: String, time_in_seconds: f64) -> CommandResponse<String> {
+    println!("process_video_frame: {} @ {}s", file_path, time_in_seconds);
+    ffmpeg_next::init().unwrap_or(());
+
+    let result = std::thread::spawn(move || -> Result<String, String> {
+        let mut ictx = ffmpeg_next::format::input(&std::path::Path::new(&file_path))
+            .map_err(|e| format!("Erro ao abrir vídeo: {}", e))?;
+        println!("  arquivo aberto");
+
+        let stream = ictx.streams()
+            .best(ffmpeg_next::media::Type::Video)
+            .ok_or_else(|| "Nenhum stream de vídeo encontrado.".to_string())?;
+        println!("  stream index: {}", stream.index());
+
+        let stream_index = stream.index();
+        let time_base = stream.time_base();
+        let context = ffmpeg_next::codec::context::Context::from_parameters(stream.parameters())
+            .map_err(|e| format!("Erro ao criar contexto de codec: {}", e))?;
+        let mut decoder = context.decoder().video()
+            .map_err(|e| format!("Erro ao criar decoder: {}", e))?;
+        println!("  decoder criado");
+
+        let raw = decode_frame_at(&mut ictx, &mut decoder, stream_index, time_base, time_in_seconds, true)?;
+        println!("  frame decodificado: {}x{}, format={:?}", raw.width(), raw.height(), raw.format());
+        let converted = convert_frame_to_rgba(&raw, raw.width(), raw.height())?;
+        let img = copy_frame_rgba(&converted)?;
+
+        let mut png_buf = std::io::BufWriter::new(std::io::Cursor::new(Vec::new()));
+        let encoder = image::codecs::png::PngEncoder::new(&mut png_buf);
+        encoder.write_image(
+            &img,
+            img.width(),
+            img.height(),
+            image::ExtendedColorType::Rgba8,
+        ).map_err(|e| format!("Erro ao codificar PNG: {}", e))?;
+
+        let bytes = png_buf.into_inner().unwrap().into_inner();
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+        Ok(format!("data:image/png;base64,{}", b64))
+    }).join().map_err(|_| "Erro interno ao processar quadro.".to_string());
+
+    match result {
+        Ok(Ok(data_url)) => CommandResponse {
+            success: true,
+            message: format!("Quadro em {:.2}s extraído com sucesso.", time_in_seconds),
+            data: Some(data_url),
+        },
+        Ok(Err(e)) => CommandResponse {
+            success: false,
+            message: e,
+            data: None,
+        },
+        Err(e) => CommandResponse {
+            success: false,
+            message: e,
             data: None,
         },
     }
@@ -158,129 +341,203 @@ pub async fn load_video(app: AppHandle) -> CommandResponse<VideoMetadata> {
 
 #[tauri::command]
 pub async fn generate_thumbnail_sprite(file_path: String, duration: f64) -> CommandResponse<String> {
-    let cols = 10;
-    let rows = 10;
-    let count = cols * rows;
-    let interval = duration / count as f64;
+    ffmpeg_next::init().unwrap_or(());
 
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    let tmp_dir = std::env::temp_dir().join(format!("vtd_sprite_{}", nanos));
-    let _ = fs::create_dir_all(&tmp_dir);
-    let out_file = tmp_dir.join("thumbnail_sprite.jpg");
+    VFE_SPRITE_PROGRESS.store(0, Ordering::SeqCst);
 
-    let output = build_command("ffmpeg")
-        .args([
-            "-i",
-            &file_path,
-            "-vf",
-            &format!("fps=1/{},scale=192:-1,tile={}x{}", interval, cols, rows),
-            "-frames:v",
-            "1",
-            "-y",
-            out_file.to_str().unwrap_or(""),
-        ])
-        .output();
+    let result = std::thread::spawn(move || -> Result<String, String> {
+        let t_start = std::time::Instant::now();
 
-    match output {
-        Ok(status) if status.status.success() => match fs::read(&out_file) {
-            Ok(data) => {
-                let b64 = base64::engine::general_purpose::STANDARD.encode(&data);
-                let _ = fs::remove_dir_all(&tmp_dir);
-                CommandResponse {
-                    success: true,
-                    message: "Sprite de miniaturas gerado com sucesso.".to_string(),
-                    data: Some(format!("data:image/jpeg;base64,{}", b64)),
+        let mut ictx = ffmpeg_next::format::input(&std::path::Path::new(&file_path))
+            .map_err(|e| format!("Erro ao abrir vídeo: {}", e))?;
+
+        let stream = ictx.streams()
+            .best(ffmpeg_next::media::Type::Video)
+            .ok_or_else(|| "Nenhum stream de vídeo encontrado.".to_string())?;
+
+        let stream_index = stream.index();
+        let time_base = stream.time_base();
+
+        let context = ffmpeg_next::codec::context::Context::from_parameters(stream.parameters())
+            .map_err(|e| format!("Erro ao criar contexto de codec: {}", e))?;
+        let mut decoder = context.decoder().video()
+            .map_err(|e| format!("Erro ao criar decoder: {}", e))?;
+
+        let cols = 10usize;
+        let rows = 10usize;
+        let count = cols * rows;
+        let interval = duration / count as f64;
+        let thumb_width = 192u32;
+
+        println!("generate_thumbnail_sprite: {} frames, interval={}s, video={}s", count, interval, duration);
+
+        let targets: Vec<(i64, usize)> = (0..count)
+            .map(|i| {
+                let ts = i as f64 * interval;
+                let stream_ts = if time_base.numerator() > 0 && time_base.denominator() > 0 {
+                    (ts * time_base.denominator() as f64 / time_base.numerator() as f64) as i64
+                } else {
+                    (ts * 1_000_000.0) as i64
+                };
+                (stream_ts, i)
+            })
+            .collect();
+
+        // --- Phase 1: try fast forward seeks ---
+        let mut thumbnails: Vec<Option<image::RgbaImage>> = (0..count).map(|_| None).collect();
+        let mut fallback_size: Option<(u32, u32)> = None;
+        let mut use_sequential = false;
+
+        for i in 0..count {
+            let timestamp = i as f64 * interval;
+            if i % 10 == 0 {
+                println!("  thumbnail {}/{} forward... (elapsed={:?})", i, count, t_start.elapsed());
+                VFE_SPRITE_PROGRESS.store(((i * 100) / count) as u16, Ordering::Relaxed);
+            }
+
+            match decode_frame_at(&mut ictx, &mut decoder, stream_index, time_base, timestamp, false) {
+                Ok(raw) => {
+                    let aspect = raw.height() as f64 / raw.width() as f64;
+                    let thumb_height = (thumb_width as f64 * aspect).round() as u32;
+                    if i == 0 {
+                        fallback_size = Some((thumb_width, thumb_height));
+                    }
+                    let converted = convert_frame_to_rgba(&raw, thumb_width, thumb_height)?;
+                    let img = copy_frame_rgba(&converted)?;
+                    thumbnails[i] = Some(img);
+                }
+                Err(_) => {
+                    println!("  forward seek falhou no thumbnail {}, trocando para sequential", i);
+                    use_sequential = true;
+                    break;
                 }
             }
-            Err(e) => {
-                let _ = fs::remove_dir_all(&tmp_dir);
-                CommandResponse {
-                    success: false,
-                    message: format!("Falha ao ler sprite: {}", e),
-                    data: None,
+        }
+
+        // --- Phase 2: if forward failed, do sequential pass ---
+        if use_sequential {
+            println!("  iniciando passagem sequencial...");
+            thumbnails = (0..count).map(|_| None).collect();
+            fallback_size = None;
+            decoder.flush();
+
+            unsafe {
+                let _ = ffmpeg_next::sys::avformat_seek_file(
+                    ictx.as_mut_ptr(),
+                    stream_index as i32,
+                    i64::MIN,
+                    0,
+                    0,
+                    1,
+                );
+            }
+
+            let mut target_idx = 0usize;
+            let mut frame = ffmpeg_next::frame::Video::empty();
+            let mut packets_total = 0u32;
+
+            for (s_idx, packet) in ictx.packets() {
+                if VFE_CANCELLED.load(Ordering::Relaxed) {
+                    return Err("Cancelado pelo usuário".to_string());
+                }
+                if target_idx >= count {
+                    break;
+                }
+                if s_idx.index() != stream_index {
+                    continue;
+                }
+                packets_total += 1;
+
+                if decoder.send_packet(&packet).is_err() {
+                    continue;
+                }
+
+                while decoder.receive_frame(&mut frame).is_ok() {
+                    let Some(pts) = frame.pts() else { continue; };
+
+                    while target_idx < count && pts >= targets[target_idx].0 {
+                        let i = targets[target_idx].1;
+                        target_idx += 1;
+                        if thumbnails[i].is_some() {
+                            continue;
+                        }
+
+                        if i % 10 == 0 || target_idx % 10 == 0 {
+                            println!("  capturando thumbnail {} (pts={}, pacotes={}, elapsed={:?})",
+                                i, pts, packets_total, t_start.elapsed());
+                            VFE_SPRITE_PROGRESS.store(((target_idx * 100) / count) as u16, Ordering::Relaxed);
+                        }
+
+                        let aspect = frame.height() as f64 / frame.width() as f64;
+                        let thumb_height = (thumb_width as f64 * aspect).round() as u32;
+                        if fallback_size.is_none() {
+                            fallback_size = Some((thumb_width, thumb_height));
+                        }
+
+                        match convert_frame_to_rgba(&frame, thumb_width, thumb_height) {
+                            Ok(converted) => {
+                                if let Ok(img) = copy_frame_rgba(&converted) {
+                                    thumbnails[i] = Some(img);
+                                }
+                            }
+                            Err(_) => {}
+                        }
+                    }
                 }
             }
+            println!("  passagem sequencial concluída: {} pacotes em {:?}", packets_total, t_start.elapsed());
+        }
+
+        // --- Build grid ---
+        let (cell_w, cell_h) = fallback_size.unwrap_or((thumb_width, (thumb_width as f64 * 0.5625).round() as u32));
+        let grid_w = cell_w * cols as u32;
+        let grid_h = cell_h * rows as u32;
+        let mut grid = image::RgbaImage::new(grid_w, grid_h);
+        let blank = image::RgbaImage::new(cell_w, cell_h);
+
+        for (i, thumb_opt) in thumbnails.iter().enumerate() {
+            let img = thumb_opt.as_ref().unwrap_or(&blank);
+            let x = (i % cols) as i64 * cell_w as i64;
+            let y = (i / cols) as i64 * cell_h as i64;
+            image::imageops::overlay(&mut grid, img, x, y);
+        }
+
+        let t_jpeg = std::time::Instant::now();
+        let mut jpeg_buf = std::io::BufWriter::new(std::io::Cursor::new(Vec::new()));
+        let rgb = image::DynamicImage::from(grid).into_rgb8();
+        let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg_buf, 85);
+        encoder.write_image(
+            &rgb,
+            rgb.width(),
+            rgb.height(),
+            image::ExtendedColorType::Rgb8,
+        ).map_err(|e| format!("Erro ao codificar JPEG: {}", e))?;
+        println!("  jpeg encode={:?}", t_jpeg.elapsed());
+
+        let bytes = jpeg_buf.into_inner().unwrap().into_inner();
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+
+        println!("generate_thumbnail_sprite total={:?}", t_start.elapsed());
+        VFE_SPRITE_PROGRESS.store(100, Ordering::Relaxed);
+
+        Ok(format!("data:image/jpeg;base64,{}", b64))
+    }).join().map_err(|_| "Erro interno ao gerar sprite.".to_string());
+
+    match result {
+        Ok(Ok(data_url)) => CommandResponse {
+            success: true,
+            message: "Sprite de miniaturas gerado com sucesso.".to_string(),
+            data: Some(data_url),
         },
-        Ok(status) => {
-            let _ = fs::remove_dir_all(&tmp_dir);
-            let stderr = String::from_utf8_lossy(&status.stderr);
-            CommandResponse {
-                success: false,
-                message: format!("ffmpeg falhou: {}", stderr),
-                data: None,
-            }
-        }
-        Err(e) => {
-            let _ = fs::remove_dir_all(&tmp_dir);
-            CommandResponse {
-                success: false,
-                message: format!("Erro ao executar ffmpeg: {}", e),
-                data: None,
-            }
-        }
-    }
-}
-
-#[tauri::command]
-pub async fn process_video_frame(file_path: String, time_in_seconds: f64) -> CommandResponse<String> {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    let tmp_file = std::env::temp_dir().join(format!("vtd_frame_{}.png", nanos));
-
-    let output = build_command("ffmpeg")
-        .args([
-            "-y",
-            "-ss",
-            &time_in_seconds.to_string(),
-            "-i",
-            &file_path,
-            "-frames:v",
-            "1",
-            tmp_file.to_str().unwrap_or(""),
-        ])
-        .output();
-
-    match output {
-        Ok(status) if status.status.success() => match fs::read(&tmp_file) {
-            Ok(data) => {
-                let b64 = base64::engine::general_purpose::STANDARD.encode(&data);
-                let _ = fs::remove_file(&tmp_file);
-                CommandResponse {
-                    success: true,
-                    message: format!("Quadro em {:.2}s extraído com sucesso.", time_in_seconds),
-                    data: Some(format!("data:image/png;base64,{}", b64)),
-                }
-            }
-            Err(e) => {
-                let _ = fs::remove_file(&tmp_file);
-                CommandResponse {
-                    success: false,
-                    message: format!("Falha ao ler frame: {}", e),
-                    data: None,
-                }
-            }
+        Ok(Err(e)) => CommandResponse {
+            success: false,
+            message: e,
+            data: None,
         },
-        Ok(status) => {
-            let _ = fs::remove_file(&tmp_file);
-            let stderr = String::from_utf8_lossy(&status.stderr);
-            CommandResponse {
-                success: false,
-                message: format!("ffmpeg falhou: {}", stderr),
-                data: None,
-            }
-        }
-        Err(e) => {
-            let _ = fs::remove_file(&tmp_file);
-            CommandResponse {
-                success: false,
-                message: format!("Erro ao executar ffmpeg: {}", e),
-                data: None,
-            }
-        }
+        Err(e) => CommandResponse {
+            success: false,
+            message: e,
+            data: None,
+        },
     }
 }

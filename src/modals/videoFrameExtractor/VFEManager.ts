@@ -8,6 +8,9 @@ const PREVIEW_CANVAS_HEIGHT = 432;
 const PREVIEW_CANVAS_WIDTH = 768;
 
 export class VFEManager {
+  onSpriteLoaded?: () => void;
+  onFrameLoadingChange?: (loading: boolean) => void;
+
   private preview: { canvas: HTMLCanvasElement; context: CanvasRenderingContext2D };
   private extract: { canvas: HTMLCanvasElement; context: CanvasRenderingContext2D };
   private offScreen: { canvas: HTMLCanvasElement; context: CanvasRenderingContext2D };
@@ -24,6 +27,8 @@ export class VFEManager {
 
   constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
     this.eventBus = eventBus;
+
+    invoke("open_vfe").catch(console.error);
 
     const previewContext = canvas.getContext("2d");
     if (!previewContext) throw new Error("Could not get 2D context");
@@ -88,6 +93,7 @@ export class VFEManager {
     this.preview.canvas.width = canvasWidth;
     this.preview.canvas.height = canvasHeight;
     this.extractBox = new ExtractBox(this.preview.canvas, this.eventBus);
+    this.extractBox.setAspectRatio("16:9");
 
     this.offScreen.canvas.width = width;
     this.offScreen.canvas.height = height;
@@ -108,33 +114,43 @@ export class VFEManager {
       filePath: metadata.filePath,
     });
 
-    try {
-      const response = await invoke("generate_thumbnail_sprite", {
-        filePath: metadata.filePath,
-        duration: metadata.duration,
-      }) as { success: boolean; data?: string };
-      if (response.success && response.data) {
-        this.loadThumbnailSprite(response.data);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-
+    // Show first frame immediately before generating sprite
+    this.onFrameLoadingChange?.(true);
     try {
       const response = await invoke("process_video_frame", {
         filePath: metadata.filePath,
         timeInSeconds: 0,
-      }) as { success: boolean; data?: string };
+      }) as { success: boolean; data?: string; message?: string };
       if (response.success && response.data) {
         this.loadFrameImage(response.data);
+      } else {
+        console.warn("process_video_frame(0) falhou:", response.message || "sem mensagem");
+        this.onFrameLoadingChange?.(false);
       }
     } catch (err) {
-      console.error(err);
+      console.error("process_video_frame error:", err);
+      this.onFrameLoadingChange?.(false);
     }
+
+    // Generate sprite in background (non-blocking)
+    invoke("generate_thumbnail_sprite", {
+      filePath: metadata.filePath,
+      duration: metadata.duration,
+    }).then((response) => {
+      const r = response as { success: boolean; data?: string; message?: string };
+      if (r.success && r.data) {
+        this.loadThumbnailSprite(r.data);
+      } else {
+        console.warn("thumbnail_sprite falhou:", r.message || "sem mensagem");
+      }
+    }).catch((err) => {
+      console.error("generate_thumbnail_sprite error:", err);
+    });
   }
 
   seekFrame(frameIndex: number): void {
     if (!this.videoMetadata) return;
+    this.onFrameLoadingChange?.(true);
     const timeInSeconds = Math.min(
       frameIndex / this.videoMetadata.frameRate,
       this.videoMetadata.duration,
@@ -144,37 +160,40 @@ export class VFEManager {
       timeInSeconds,
     })
       .then((response) => {
-        const result = response as { success: boolean; data?: string };
+        const result = response as { success: boolean; data?: string; message?: string };
         if (result.success && result.data) {
           this.loadFrameImage(result.data);
+        } else {
+          console.warn("seekFrame falhou em", frameIndex, ":", result.message || "sem mensagem");
+          this.onFrameLoadingChange?.(false);
         }
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+        this.onFrameLoadingChange?.(false);
+      });
   }
 
   scrubTo(ratio: number): void {
-    if (
-      !this.preview ||
-      !this.thumbnailSprite ||
-      !this.thumbnailSpriteCells.length
-    )
-      return;
+    if (!this.preview) return;
 
-    let index = Math.round(ratio * (this.thumbnailSpriteCells.length - 1));
-    index = Math.max(0, Math.min(index, this.thumbnailSpriteCells.length - 1));
+    if (this.thumbnailSprite && this.thumbnailSpriteCells.length) {
+      let index = Math.round(ratio * (this.thumbnailSpriteCells.length - 1));
+      index = Math.max(0, Math.min(index, this.thumbnailSpriteCells.length - 1));
 
-    if (index === this.currentThumbIndex) return;
-    this.currentThumbIndex = index;
-    const cell = this.thumbnailSpriteCells[index];
-    const { sx, sy, sw, sh } = cell;
-    const { canvas, context } = this.preview;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(
-      this.thumbnailSprite,
-      sx, sy, sw, sh,
-      0, 0,
-      canvas.width, canvas.height,
-    );
+      if (index === this.currentThumbIndex) return;
+      this.currentThumbIndex = index;
+      const cell = this.thumbnailSpriteCells[index];
+      const { sx, sy, sw, sh } = cell;
+      const { canvas, context } = this.preview;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(
+        this.thumbnailSprite,
+        sx, sy, sw, sh,
+        0, 0,
+        canvas.width, canvas.height,
+      );
+    }
   }
 
   setAspectRatio(value: string): void {
@@ -252,6 +271,7 @@ export class VFEManager {
   }
 
   destroy(): void {
+    invoke("cancel_vfe").catch(console.error);
     if (this.unsubscribeUpdate) {
       this.unsubscribeUpdate();
       this.unsubscribeUpdate = null;
@@ -287,17 +307,38 @@ export class VFEManager {
   }
 
   private loadFrameImage(dataUrl: string): void {
-    if (!this.offScreen || !this.preview || !this.videoMetadata) return;
+    console.log("loadFrameImage chamado, dataUrl length:", dataUrl.length);
+    if (!this.offScreen || !this.preview || !this.videoMetadata) {
+      console.warn("loadFrameImage: dependencias faltando", {
+        offScreen: !!this.offScreen,
+        preview: !!this.preview,
+        videoMetadata: !!this.videoMetadata
+      });
+      this.onFrameLoadingChange?.(false);
+      return;
+    }
     const img = new Image();
     img.onload = () => {
+      console.log("loadFrameImage: imagem carregada, desenhando...");
+      this.onFrameLoadingChange?.(false);
       if (this.offScreen) {
-        this.offScreen.context.drawImage(
-          img, 0, 0,
-          this.offScreen.canvas.width,
-          this.offScreen.canvas.height,
-        );
-        this.update();
+        try {
+          this.offScreen.context.clearRect(0, 0, this.offScreen.canvas.width, this.offScreen.canvas.height);
+          this.offScreen.context.drawImage(
+            img, 0, 0,
+            this.offScreen.canvas.width,
+            this.offScreen.canvas.height,
+          );
+          console.log("loadFrameImage: drawImage OK, chamando update()");
+          this.update();
+        } catch (e) {
+          console.error("loadFrameImage: erro no drawImage:", e);
+        }
       }
+    };
+    img.onerror = (err) => {
+      console.error("loadFrameImage: erro ao carregar imagem:", err, "url:", dataUrl.substring(0, 100));
+      this.onFrameLoadingChange?.(false);
     };
     img.src = dataUrl;
   }
