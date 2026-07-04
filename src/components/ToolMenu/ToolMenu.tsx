@@ -106,6 +106,11 @@ const ToolMenu = () => {
     }
   };
 
+  const handleMultiContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowModeMenu(true);
+  };
+
   const handleModeSelect = (mode: Mode) => {
     setShowModeMenu(false);
     if (activeTool !== TOOL.MULTI) {
@@ -143,13 +148,14 @@ const ToolMenu = () => {
                 data-tool={tool}
                 className={`${styles.btn} ${isMulti ? styles.hasSubmenu : ""} ${activeTool === tool ? styles.active : ""}`}
                 aria-label={resolvedLabel}
-                {...(isMulti
-                  ? {
-                      onPointerDown: handleMultiPointerDown,
-                      onPointerUp: handleMultiPointerUp,
-                      onPointerLeave: handleMultiPointerLeave,
-                    }
-                  : { onClick: () => handleToolClick(tool) })}
+                  {...(isMulti
+                    ? {
+                        onPointerDown: handleMultiPointerDown,
+                        onPointerUp: handleMultiPointerUp,
+                        onPointerLeave: handleMultiPointerLeave,
+                        onContextMenu: handleMultiContextMenu,
+                      }
+                    : { onClick: () => handleToolClick(tool) })}
               >
                 <div
                   className={styles.icon}
