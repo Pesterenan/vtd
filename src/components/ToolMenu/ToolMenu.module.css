@@ -63,6 +63,13 @@
   position: relative;
 }
 
+.divider {
+  border: none;
+  border-top: 1px solid var(--background-700);
+  margin: 4px 6px;
+  width: calc(100% - 12px);
+}
+
 .hasSubmenu {
   position: relative;
 

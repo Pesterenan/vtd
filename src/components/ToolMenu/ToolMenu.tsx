@@ -15,16 +15,18 @@ import ZoomIcon from "src/assets/icons/zoom-tool.svg";
 
 type Mode = "select" | "move" | "rotate" | "scale";
 
-const TOOLS = [
-  {
-    tool: TOOL.MULTI,
-    label: "(V) Selecionar, (G) Mover, (R) Rotacionar, (S) Escalonar",
-  },
-  { tool: TOOL.TEXT, label: "(T) Criar textos" },
-  { tool: TOOL.GRADIENT, label: "(H) Criar gradientes" },
-  { tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },
-  { tool: TOOL.ZOOM, label: "(Z) Modificar nível de zoom" },
-] as const;
+type MenuItem =
+  | { type: "tool"; tool: TOOL; label: string }
+  | { type: "divider" };
+
+const MENU_ITEMS: MenuItem[] = [
+  { type: "tool", tool: TOOL.MULTI, label: "(V) Selecionar, (G) Mover, (R) Rotacionar, (S) Escalonar" },
+  { type: "tool", tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },
+  { type: "tool", tool: TOOL.ZOOM, label: "(Z) Modificar nível de zoom" },
+  { type: "divider" },
+  { type: "tool", tool: TOOL.TEXT, label: "(T) Criar textos" },
+  { type: "tool", tool: TOOL.GRADIENT, label: "(H) Criar gradientes" },
+];
 
 const toolIcons: Record<string, string> = {
   [TOOL.TEXT]: TextIcon,
@@ -135,7 +137,11 @@ const ToolMenu = () => {
     <menu className={styles.toolMenu}>
       <div className={styles.container}>
         <label>Ferr.</label>
-        {TOOLS.map(({ tool, label }) => {
+        {MENU_ITEMS.map((item) => {
+          if (item.type === "divider") {
+            return <div key="divider" className={styles.divider} />;
+          }
+          const { tool, label } = item;
           const isMulti = tool === TOOL.MULTI;
           const resolvedLabel = isMulti ? modeLabels[currentMode] : label;
           const resolvedIcon = isMulti
