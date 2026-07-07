@@ -193,6 +193,16 @@ const TextMenu = () => {
     }
   };
 
+  const handleTextKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      event.preventDefault();
+      emit("edit:acceptTextChange");
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      emit("edit:declineTextChange");
+    }
+  };
+
   const handleFontSizeChange = (value: number) => {
     updateProp("fontSize", value);
     if (activeElementRef.current) {
@@ -293,7 +303,7 @@ const TextMenu = () => {
             className={styles.acceptBtn}
             onClick={() => emit("edit:acceptTextChange")}
             disabled={isDisabled}
-            title="Aceitar (Shift+Enter)"
+            title="Aceitar (CTRL+Enter)"
           >
             ✓
           </button>
@@ -313,6 +323,7 @@ const TextMenu = () => {
           id="inp_text-input"
           className={styles.textarea}
           onChange={handleTextChange}
+          onKeyDown={handleTextKeyDown}
           value={textProps.content}
           disabled={isDisabled}
         />

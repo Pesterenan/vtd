@@ -53,6 +53,30 @@ describe("TextElement", () => {
     });
   });
 
+  describe("deserialize", () => {
+    it("should recalculate lineVerticalSpacing after deserialize", () => {
+      const data: ITextElementData = {
+        ...element.serialize(),
+        lineHeight: 2.5,
+        fontSize: 30,
+      };
+      element.deserialize(data);
+      expect(element.lineHeight).toBeCloseTo(2.5);
+      expect(element.fontSize).toBeCloseTo(30);
+      expect(element.lineVerticalSpacing).toBeCloseTo(30 * 2.5);
+    });
+
+    it("should set content correctly via setter during deserialize", () => {
+      const data: ITextElementData = {
+        ...element.serialize(),
+        content: "Line1\nLine2\nLine3",
+      };
+      element.deserialize(data);
+      expect(element.content).toEqual(["Line1", "Line2", "Line3"]);
+      expect(element.serialize().content).toBe("Line1\nLine2\nLine3");
+    });
+  });
+
   describe("font size and line spacing", () => {
     it("should start with fontSize > 1 and lineHeight > 0.1", () => {
       expect(element.fontSize).toBeGreaterThan(1);
@@ -130,6 +154,47 @@ describe("TextElement", () => {
       });
     });
 
+    describe("rotated text should not 'walk' when content changes", () => {
+      it("should keep center position for center-aligned rotated text", () => {
+        element.rotation = 45;
+        element.textAlign = "center";
+        const oldCenter = { ...element.position };
+        element.content = ["Much longer text content"];
+        const box = element.getBoundingBox();
+        expect(box.center.x).toBeCloseTo(oldCenter.x);
+        expect(box.center.y).toBeCloseTo(oldCenter.y);
+      });
+
+      it("should keep left edge for left-aligned rotated text", () => {
+        element.rotation = 30;
+        element.textAlign = "left";
+        const oldLeftEdgeX = element.position.x - element.size.width / 2;
+        element.content = ["Changed content that is wider"];
+        void element.getBoundingBox();
+        const newLeftEdgeX = element.position.x - element.size.width / 2;
+        expect(newLeftEdgeX).toBeCloseTo(oldLeftEdgeX);
+      });
+
+      it("should keep right edge for right-aligned rotated text", () => {
+        element.rotation = -20;
+        element.textAlign = "right";
+        const oldRightEdgeX = element.position.x + element.size.width / 2;
+        element.content = ["Narrower"];
+        void element.getBoundingBox();
+        const newRightEdgeX = element.position.x + element.size.width / 2;
+        expect(newRightEdgeX).toBeCloseTo(oldRightEdgeX);
+      });
+
+      it("should keep position for center-aligned rotated text with multiline", () => {
+        element.rotation = 60;
+        element.textAlign = "center";
+        const oldCenter = { ...element.position };
+        element.content = ["Line 1", "Line 2", "Line 3"];
+        const box = element.getBoundingBox();
+        expect(box.center.x).toBeCloseTo(oldCenter.x);
+        expect(box.center.y).toBeCloseTo(oldCenter.y);
+      });
+    });
   });
 
   describe("text alignment", () => {
