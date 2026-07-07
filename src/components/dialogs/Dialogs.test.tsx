@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { EventBusProvider } from "src/contexts/EventBusContext";
 import { EventBus } from "src/utils/eventBus";
-import DialogController from "./DialogController";
+
 import AboutDialog from "./AboutDialog";
 import NewProjectDialog from "./NewProjectDialog";
 import ExportImageDialog from "./ExportImageDialog";
@@ -12,9 +12,10 @@ import type { FilterProperties } from "src/filters/filter";
 import type { Element } from "src/components/elements/element";
 import type { TElementData } from "src/components/types";
 
-function renderDialog(Component: React.ComponentType<{ isOpen: boolean; onClose: () => void }>, isOpen = true) {
+function renderDialog(component: React.ComponentType<{ isOpen: boolean; onClose: () => void }>, isOpen = true) {
   const onClose = vi.fn();
   const eventBus = new EventBus();
+  const Component = component;
   const view = render(
     <EventBusProvider eventBus={eventBus}>
       <Component isOpen={isOpen} onClose={onClose} />
@@ -79,8 +80,8 @@ describe("ExportImageDialog", () => {
   });
 
   it("shows transparency checkbox when PNG is selected", () => {
-    const { view } = renderDialog(ExportImageDialog);
-    const select = document.body.querySelector<HTMLSelectElement>("#slc_export-format-select-input")!;
+    renderDialog(ExportImageDialog);
+    const select = document.body.querySelector<HTMLSelectElement>("#slc_export-format-select-input") as HTMLSelectElement;
     fireEvent.change(select, { target: { value: "png" } });
     expect(screen.getByText(/fundo transparente/i)).toBeInTheDocument();
   });

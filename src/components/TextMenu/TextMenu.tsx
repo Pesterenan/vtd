@@ -262,7 +262,7 @@ const TextMenu = () => {
   };
 
   const handleTextAlignChange =
-    (value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    (_value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
       updateProp("textAlign", e.target.value);
       if (activeElementRef.current) {
         activeElementRef.current.textAlign = e.target
@@ -272,7 +272,7 @@ const TextMenu = () => {
     };
 
   const handleFontStyleChange =
-    (value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    (_value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
       updateProp("fontStyle", e.target.value);
       if (activeElementRef.current) {
         activeElementRef.current.fontStyle = e.target
@@ -282,7 +282,7 @@ const TextMenu = () => {
     };
 
   const handleFontWeightChange =
-    (value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    (_value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
       updateProp("fontWeight", e.target.value);
       if (activeElementRef.current) {
         activeElementRef.current.fontWeight = e.target

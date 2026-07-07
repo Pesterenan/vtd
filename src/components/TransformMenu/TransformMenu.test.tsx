@@ -24,7 +24,7 @@ describe("TransformMenu", () => {
     );
 
     act(() => {
-      eventBus.emit("selection:changed", { selectedElements: [{} as any] });
+      eventBus.emit("selection:changed", { selectedElements: [{} as never] });
     });
     act(() => {
       eventBus.emit("transformBox:properties:change", {
@@ -55,7 +55,7 @@ describe("TransformMenu", () => {
     );
 
     act(() => {
-      eventBus.emit("selection:changed", { selectedElements: [{} as any] });
+      eventBus.emit("selection:changed", { selectedElements: [{} as never] });
     });
 
     expect(screen.getByText("Recorte")).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe("TransformMenu", () => {
     );
 
     act(() => {
-      eventBus.emit("selection:changed", { selectedElements: [{} as any] });
+      eventBus.emit("selection:changed", { selectedElements: [{} as never] });
     });
 
     const accordion = container.querySelector("details");
@@ -98,7 +98,7 @@ describe("TransformMenu", () => {
     );
 
     act(() => {
-      eventBus.emit("selection:changed", { selectedElements: [{} as any] });
+      eventBus.emit("selection:changed", { selectedElements: [{} as never] });
     });
 
     const topInput = container.querySelector("#crop-top-input") as HTMLInputElement;

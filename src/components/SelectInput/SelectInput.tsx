@@ -28,7 +28,7 @@ const SelectInput = ({
 }: SelectInputProps) => {
   return (
     <div className={styles.container}>
-      <label id={`${id}-label`} className={styles.label}>{label}:</label>
+      <label id={`${id}-label`} htmlFor={`${id}-select-input`} className={styles.label}>{label}:</label>
       <select
         id={`${id}-select-input`}
         className={styles.select}

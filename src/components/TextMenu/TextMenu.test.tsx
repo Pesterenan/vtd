@@ -19,7 +19,7 @@ describe("TextMenu", () => {
     textElement.content = ["Hello"];
     act(() => {
       eventBus.emit("selection:changed", {
-        selectedElements: [textElement as any],
+        selectedElements: [textElement as never],
       });
     });
     expect(screen.getByDisplayValue("Hello")).toBeInTheDocument();
@@ -39,7 +39,7 @@ describe("TextMenu", () => {
     textElement.content = ["Hello"];
     act(() => {
       eventBus.emit("selection:changed", {
-        selectedElements: [textElement as any],
+        selectedElements: [textElement as never],
       });
     });
     expect(screen.getByTitle(/aceitar/i)).toBeInTheDocument();
@@ -48,7 +48,7 @@ describe("TextMenu", () => {
 
   it("emits edit:acceptTextChange on accept click", () => {
     const eventBus = new EventBus();
-    const emitSpy = vi.spyOn(eventBus, "emit");
+    vi.spyOn(eventBus, "emit");
     render(
       <EventBusProvider eventBus={eventBus}>
         <TextMenu />
@@ -61,7 +61,7 @@ describe("TextMenu", () => {
     textElement.content = ["Hello"];
     act(() => {
       eventBus.emit("selection:changed", {
-        selectedElements: [textElement as any],
+        selectedElements: [textElement as never],
       });
     });
     act(() => {
@@ -72,7 +72,7 @@ describe("TextMenu", () => {
 
   it("restores original content on edit:declineTextChange", () => {
     const eventBus = new EventBus();
-    const emitSpy = vi.spyOn(eventBus, "emit");
+    vi.spyOn(eventBus, "emit");
     render(
       <EventBusProvider eventBus={eventBus}>
         <TextMenu />
@@ -85,7 +85,7 @@ describe("TextMenu", () => {
     textElement.content = ["Hello"];
     act(() => {
       eventBus.emit("selection:changed", {
-        selectedElements: [textElement as any],
+        selectedElements: [textElement as never],
       });
     });
     textElement.content = ["Changed"];

@@ -461,7 +461,7 @@ export class WorkArea {
       } else if (firstElement) {
         if (isAddingToSelection) {
           const idx = selectedElements.findIndex(
-            (el) => el.elementId === firstElement!.elementId,
+            (el) => el.elementId === firstElement.elementId,
           );
           if (idx === -1) {
             selectedElements.push(firstElement);

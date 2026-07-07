@@ -127,13 +127,13 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
             />
           ))}
         </div>
-        {editingProps && (
+        {editingProps && activeFilterId && activeElement && (
           <FilterControls
-            filterId={activeFilterId!}
+            filterId={activeFilterId}
             properties={editingProps}
             onChange={(updates) => {
               setEditingProps((prev) => prev ? { ...prev, ...updates } : null);
-              const existing = activeElement!.filters.find((f) => f.id === activeFilterId);
+              const existing = activeElement.filters.find((f) => f.id === activeFilterId);
               if (existing) {
                 Object.assign(existing, updates);
                 emit("workarea:update");

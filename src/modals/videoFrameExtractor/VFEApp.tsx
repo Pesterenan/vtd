@@ -222,7 +222,7 @@ const VFEContent = ({ eventBus: parentEventBus }: { eventBus: EventBus }) => {
       try {
         const p = await invoke<number>("get_sprite_progress");
         setSpriteProgress(p);
-      } catch {}
+      } catch { void 0; }
     }, 200);
 
     const unlistenMetaPromise = listen<IVideoMetadata>("vfe:video-metadata", (event) => {

@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { MultiTool } from "./multiTool";
 import { EventBus } from "../../utils/eventBus";
-import { Position } from "@tauri-apps/api/dpi";
 
 function createMouseEvent(
   type: string,
@@ -34,10 +34,10 @@ describe("MultiTool", () => {
     currentRotation = 0;
 
     vi.spyOn(eventBus, "request").mockImplementation(
-      (channel: string, payload?: any) => {
+      (channel: string, payload: never) => {
         switch (channel) {
           case "workarea:adjustForCanvas":
-            return [{ x: payload.position.x, y: payload.position.y }];
+            return [{ x: (payload as { position: { x: number; y: number } }).position.x, y: (payload as { position: { x: number; y: number } }).position.y }];
           case "transformBox:position":
             return [center];
           case "transformBox:anchorPoint:get":
