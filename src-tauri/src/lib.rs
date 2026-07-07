@@ -17,6 +17,7 @@ pub struct MenuHandles {
     save_project_as: MenuItem<tauri::Wry>,
     properties: MenuItem<tauri::Wry>,
     close_project: MenuItem<tauri::Wry>,
+    export_image: MenuItem<tauri::Wry>,
     copy: MenuItem<tauri::Wry>,
     paste: MenuItem<tauri::Wry>,
     flip_horiz: MenuItem<tauri::Wry>,
@@ -69,6 +70,7 @@ fn initialize_project_state(app: tauri::AppHandle, title: String) {
         handles.save_project_as.set_enabled(true).unwrap_or(());
         handles.properties.set_enabled(true).unwrap_or(());
         handles.close_project.set_enabled(true).unwrap_or(());
+        handles.export_image.set_enabled(true).unwrap_or(());
         handles.copy.set_enabled(true).unwrap_or(());
         handles.paste.set_enabled(true).unwrap_or(());
         handles.flip_horiz.set_enabled(true).unwrap_or(());
@@ -124,8 +126,8 @@ pub fn run() {
             let properties = MenuItem::with_id(handle, "properties", "Propriedades", false, None::<&str>)?;
             let close_project = MenuItem::with_id(handle, "close-project", "Fechar projeto", false, None::<&str>)?;
             let import_image = MenuItem::with_id(handle, "import-image", "Importar Imagem", true, None::<&str>)?;
-            let extract_video = MenuItem::with_id(handle, "extract-video", "Extrair de Vídeo", true, None::<&str>)?;
-            let export_image = MenuItem::with_id(handle, "export-image", "Exportar Imagem", true, None::<&str>)?;
+            let extract_video = MenuItem::with_id(handle, "extract-video", "Extrair Frame de Vídeo", true, None::<&str>)?;
+            let export_image = MenuItem::with_id(handle, "export-image", "Exportar Imagem", false, None::<&str>)?;
             let quit = MenuItem::with_id(handle, "quit", "Sair", true, None::<&str>)?;
 
             let file_menu = Submenu::with_items(
@@ -190,6 +192,7 @@ pub fn run() {
                 save_project_as,
                 properties,
                 close_project,
+                export_image,
                 copy,
                 paste,
                 flip_horiz,
@@ -267,6 +270,7 @@ pub fn run() {
                                                         handles.save_project_as.set_enabled(true).unwrap();
                                                         handles.properties.set_enabled(true).unwrap();
                                                         handles.close_project.set_enabled(true).unwrap();
+                                                        handles.export_image.set_enabled(true).unwrap();
                                                         handles.copy.set_enabled(true).unwrap();
                                                         handles.paste.set_enabled(true).unwrap();
                                                         handles.flip_horiz.set_enabled(true).unwrap();
@@ -329,6 +333,7 @@ pub fn run() {
                             handles.save_project_as.set_enabled(false).unwrap();
                             handles.properties.set_enabled(false).unwrap();
                             handles.close_project.set_enabled(false).unwrap();
+                            handles.export_image.set_enabled(false).unwrap();
                             handles.copy.set_enabled(false).unwrap();
                             handles.paste.set_enabled(false).unwrap();
                             handles.flip_horiz.set_enabled(false).unwrap();
