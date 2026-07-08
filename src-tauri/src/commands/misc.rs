@@ -30,6 +30,7 @@ fn image_mime_for_ext(ext: &str) -> &str {
     }
 }
 
+#[cfg(windows)]
 fn get_clipboard_file_paths() -> Vec<String> {
     use clipboard_win::{formats::FileList, Getter, Clipboard};
     let _clip = match Clipboard::new() {
@@ -42,6 +43,11 @@ fn get_clipboard_file_paths() -> Vec<String> {
     } else {
         vec![]
     }
+}
+
+#[cfg(not(windows))]
+fn get_clipboard_file_paths() -> Vec<String> {
+    vec![]
 }
 
 fn encode_image_file(path: &Path) -> Option<String> {
