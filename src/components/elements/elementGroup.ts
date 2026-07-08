@@ -71,9 +71,6 @@ export class ElementGroup extends Element<IElementGroupData> {
       width: maxX - minX,
       height: maxY - minY,
     };
-    this.position = center;
-    this.size = size;
-    this.rotation = 0;
-    return new BoundingBox(center, size, 0);
+    return new BoundingBox(center, size, this.rotation);
   }
 }

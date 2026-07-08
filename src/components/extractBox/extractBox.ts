@@ -62,6 +62,10 @@ export class ExtractBox {
 
     this.generateHandles();
     this.eventBus.emit("vfe:update");
+    this.eventBus.emit("vfe:extractbox:update", {
+      position: this.getPosition(),
+      size: this.getSize(),
+    });
   }
 
   public getBoundingBox(): TBoundingBox {
@@ -71,6 +75,84 @@ export class ExtractBox {
       x2: this.size.width,
       y2: this.size.height,
     };
+  }
+
+  public swapSize(): void {
+    const prevRatio = this.aspectRatio;
+    this.aspectRatio = null;
+    const center = this.getCenter();
+    const minSize = 10;
+    this.size = { width: this.size.height, height: this.size.width };
+    this.size.width = clamp(this.size.width, minSize, this.canvas.width);
+    this.size.height = clamp(this.size.height, minSize, this.canvas.height);
+    this.position.x = clamp(center.x - this.size.width / 2, 0, this.canvas.width - this.size.width);
+    this.position.y = clamp(center.y - this.size.height / 2, 0, this.canvas.height - this.size.height);
+    if (prevRatio) {
+      this.aspectRatio = 1 / prevRatio;
+    }
+    this.generateHandles();
+    this.eventBus.emit("vfe:update");
+    this.eventBus.emit("vfe:extractbox:update", {
+      position: this.getPosition(),
+      size: this.getSize(),
+    });
+  }
+
+  public reset(aspectRatio: string | null): void {
+    if (!aspectRatio || aspectRatio === "custom") {
+      this.position = { x: 0, y: 0 };
+      this.size = { width: this.canvas.width, height: this.canvas.height };
+      this.generateHandles();
+      this.eventBus.emit("vfe:update");
+      this.eventBus.emit("vfe:extractbox:update", {
+        position: this.getPosition(),
+        size: this.getSize(),
+      });
+    } else {
+      this.setAspectRatio(aspectRatio);
+    }
+  }
+
+  public getPosition(): Position {
+    return { ...this.position };
+  }
+
+  public getSize(): Size {
+    return { ...this.size };
+  }
+
+  public setPosition(x: number, y: number): void {
+    this.position.x = clamp(x, 0, this.canvas.width - this.size.width);
+    this.position.y = clamp(y, 0, this.canvas.height - this.size.height);
+    this.generateHandles();
+    this.eventBus.emit("vfe:update");
+    this.eventBus.emit("vfe:extractbox:update", {
+      position: this.getPosition(),
+      size: this.getSize(),
+    });
+  }
+
+  public setSize(w: number, h: number): void {
+    const minSize = 10;
+    if (this.aspectRatio) {
+      if (Math.abs(w - this.size.width) >= Math.abs(h - this.size.height)) {
+        h = w / this.aspectRatio;
+      } else {
+        w = h * this.aspectRatio;
+      }
+    }
+    w = Math.max(w, minSize);
+    h = Math.max(h, minSize);
+    w = clamp(w, minSize, this.canvas.width - this.position.x);
+    h = clamp(h, minSize, this.canvas.height - this.position.y);
+    this.size.width = w;
+    this.size.height = h;
+    this.generateHandles();
+    this.eventBus.emit("vfe:update");
+    this.eventBus.emit("vfe:extractbox:update", {
+      position: this.getPosition(),
+      size: this.getSize(),
+    });
   }
 
   public onMouseDown(evt: MouseEvent): void {
@@ -119,6 +201,10 @@ export class ExtractBox {
 
     this.lastMousePosition = { x: mouseX, y: mouseY };
     this.eventBus.emit("vfe:update");
+    this.eventBus.emit("vfe:extractbox:update", {
+      position: this.getPosition(),
+      size: this.getSize(),
+    });
   }
 
   private resizeExtractBox(deltaX: number, deltaY: number): void {

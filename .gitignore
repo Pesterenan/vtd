@@ -87,8 +87,14 @@ typings/
 
 # Vite
 .vite/
+dist/
+/dist
+
 
 # Electron-Forge
 out/
 
 GEMINI.MD
+
+# Playwright MCP output (screenshots, snapshots)
+.playwright-mcp/

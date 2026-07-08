@@ -10,21 +10,21 @@ describe("GradientTool", () => {
     canvas = document.createElement("canvas");
     eventBus = new EventBus();
     gradientTool = new GradientTool(canvas, eventBus);
-    jest.spyOn(eventBus, "request").mockReturnValue([[]]);
+    vi.spyOn(eventBus, "request").mockReturnValue([[]]);
   });
 
   it("should equip and unequip correctly", () => {
-    const equipSpy = jest.spyOn(eventBus, "emit");
+    const equipSpy = vi.spyOn(eventBus, "emit");
     gradientTool.equip();
     expect(equipSpy).toHaveBeenCalledWith("tool:equipped", gradientTool);
 
-    const unequipSpy = jest.spyOn(eventBus, "emit");
+    const unequipSpy = vi.spyOn(eventBus, "emit");
     gradientTool.unequip();
     expect(unequipSpy).toHaveBeenCalledWith("tool:unequipped", gradientTool);
   });
 
   it("should create a new gradient on mouse drag", () => {
-    const emitSpy = jest.spyOn(eventBus, "emit");
+    const emitSpy = vi.spyOn(eventBus, "emit");
     const mouseDownEvent = new MouseEvent("mousedown") as MouseEvent & {
       offsetX: number;
       offsetY: number;

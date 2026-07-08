@@ -1,0 +1,9 @@
+.canvasShell {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.mainCanvas {
+  display: block;
+}

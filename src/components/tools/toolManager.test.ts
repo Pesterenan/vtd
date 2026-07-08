@@ -4,14 +4,14 @@ import { Tool } from "./abstractTool";
 import { ToolManager } from "./toolManager";
 
 class MockTool extends Tool {
-  equip = jest.fn();
-  unequip = jest.fn();
-  onMouseDown = jest.fn();
-  onMouseMove = jest.fn();
-  onMouseUp = jest.fn();
-  onKeyDown = jest.fn();
-  onKeyUp = jest.fn();
-  draw = jest.fn();
+  equip = vi.fn();
+  unequip = vi.fn();
+  onMouseDown = vi.fn();
+  onMouseMove = vi.fn();
+  onMouseUp = vi.fn();
+  onKeyDown = vi.fn();
+  onKeyUp = vi.fn();
+  draw = vi.fn();
 }
 
 describe("ToolManager", () => {

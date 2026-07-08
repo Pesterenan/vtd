@@ -1,0 +1,94 @@
+#vfe_main-container {
+  background-color: var(--background-50);
+  padding: 1rem;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+#sld_video-controls {
+  background-color: var(--background-200);
+  border: 1px solid var(--background-700);
+  border-radius: var(--border-radius-medium);
+  margin-top: 1rem;
+  width: 100%;
+}
+
+#sld_video-duration {
+  width: 100%;
+  border-radius: var(--border-radius-small);
+}
+
+#vfe_slider-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+#vfe_sprite-progress-bar {
+  position: absolute;
+  bottom: -4px;
+  left: 2px;
+  right: 2px;
+  height: 3px;
+  background: transparent;
+  border-radius: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#vfe_sprite-progress-fill {
+  height: 100%;
+  background: var(--primary-500, #4f8cff);
+  border-radius: 2px;
+  transition: width 0.15s ease;
+}
+
+#vfe_video-duration-indicator {
+  text-align: center;
+  width: 100%;
+  pointer-events: none;
+  background: var(--background-300);
+  border: 1px solid var(--background-700);
+  color: var(--text-900);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--border-radius-small);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+#vfe_canvas-wrapper {
+  position: relative;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+#video-canvas {
+  display: block;
+}
+
+#vfe_loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.vfe_spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: vfe-spin 0.7s linear infinite;
+}
+
+@keyframes vfe-spin {
+  to { transform: rotate(360deg); }
+}

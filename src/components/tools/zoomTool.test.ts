@@ -13,7 +13,7 @@ describe("ZoomTool", () => {
   });
 
   it("should set startingPosition on mouse down", () => {
-    jest.spyOn(eventBus, "request").mockReturnValue([0.5]);
+    vi.spyOn(eventBus, "request").mockReturnValue([0.5]);
     const mouseDownEvent = new MouseEvent("mousedown", {
       clientX: 10,
       clientY: 20,
@@ -27,8 +27,8 @@ describe("ZoomTool", () => {
   });
 
   it("should emit zoomLevel:change on mouse move", () => {
-    jest.spyOn(eventBus, "request").mockReturnValue([0.5]);
-    const emitSpy = jest.spyOn(eventBus, "emit");
+    vi.spyOn(eventBus, "request").mockReturnValue([0.5]);
+    const emitSpy = vi.spyOn(eventBus, "emit");
     const mouseDownEvent = new MouseEvent("mousedown", {
       clientX: 10,
       clientY: 20,
@@ -52,7 +52,7 @@ describe("ZoomTool", () => {
   });
 
   it("should reset startingPosition on mouse up", () => {
-    jest.spyOn(eventBus, "request").mockReturnValue([0.5]);
+    vi.spyOn(eventBus, "request").mockReturnValue([0.5]);
     const mouseDownEvent = new MouseEvent("mousedown", {
       clientX: 10,
       clientY: 20,
@@ -63,7 +63,7 @@ describe("ZoomTool", () => {
 
     zoomTool.onMouseUp(new MouseEvent("mouseup"));
 
-    const emitSpy = jest.spyOn(eventBus, "emit");
+    const emitSpy = vi.spyOn(eventBus, "emit");
     const mouseMoveEvent = new MouseEvent("mousemove", {
       clientX: 150,
       clientY: 40,

@@ -1,0 +1,48 @@
+# Largura máxima da linha (padrão 100). Aumente para evitar quebras precoces.
+max_width = 120
+
+# Heurística para decidir quando quebrar linhas.
+# "Max" tenta usar o máximo de espaço disponível antes de quebrar.
+use_small_heuristics = "Max"
+
+# Tamanho da indentação (Rust por convenção é 4, mas se quiser 2, troque aqui).
+tab_spaces = 4
+
+# Estilo de nova linha (Unix/Windows). "Auto" mantém o do sistema.
+newline_style = "Auto"
+
+# Organização de imports
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"   # agrupa: std, externas, crate local
+reorder_imports = true
+
+# Formatação de strings e macros
+format_strings = true
+format_macro_matchers = true
+format_macro_bodies = true
+
+# Não força blocos em braços de match (pode deixar em linha)
+match_arm_blocks = false
+
+# Usa a sintaxe abreviada de inicialização de struct (field: field -> field)
+use_field_init_shorthand = true
+
+# Remove parênteses aninhados desnecessários
+remove_nested_parens = true
+
+# Espaços em ranges (a..b fica sem espaços extras)
+spaces_around_ranges = false
+
+# Tenta colocar funções curtas em uma única linha (ex.: fn foo() -> i32 { 42 })
+fn_single_line = true
+
+# Largura máxima para encadeamento de métodos antes de quebrar
+chain_width = 80
+
+# Quebra de strings longas (se ultrapassar max_width)
+wrap_comments = true
+comment_width = 100   # largura para comentários (padrão 80)
+normalize_comments = true
+
+# Alinhamento de campos de struct (padrão false, mas pode ativar se quiser)
+struct_field_align_threshold = 0

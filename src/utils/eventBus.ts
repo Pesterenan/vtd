@@ -80,6 +80,7 @@ export type PositionPayload = {
 export type SelectElementsAtPayload = {
   firstPoint?: Position | null;
   secondPoint?: Position | null;
+  isAddingToSelection?: boolean;
 };
 
 export interface EventBusMap {
@@ -107,12 +108,20 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "loading:show": {
+    payload: string | undefined;
+    result: unknown;
+  };
+  "loading:hide": {
+    payload: undefined;
+    result: unknown;
+  };
   "dialog:projectProperties:open": {
     payload: {
       title: string;
       size: Size;
-      lastSavedFile: string;
       appVersion: string;
+      filePath?: string | null;
     };
     result: unknown;
   };
@@ -160,6 +169,14 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "multiTool:modeChange": {
+    payload: "select" | "move" | "rotate" | "scale";
+    result: unknown;
+  };
+  "multiTool:setMode": {
+    payload: "select" | "move" | "rotate" | "scale";
+    result: unknown;
+  };
   "selectTool:isCroppingBoxVisible": {
     payload: boolean;
     result: unknown;
@@ -196,7 +213,7 @@ export interface EventBusMap {
     payload: { property: "top" | "left" | "right" | "bottom"; value: number };
     result: unknown;
   };
-  "transformBox:hoverHandle": {
+  "transformBox:mousePosition": {
     payload: PositionPayload;
     result: unknown;
   };
@@ -212,7 +229,7 @@ export interface EventBusMap {
       ySign: number;
     };
   };
-  "transformBox:anchorPoint:change": {
+  "transformBox:anchorPoint:set": {
     payload: PositionPayload;
     result: unknown;
   };
@@ -263,12 +280,28 @@ export interface EventBusMap {
     payload: DeltaPayload;
     result: unknown;
   };
+  "transformBox:setSize": {
+    payload: { width: number; height: number };
+    result: unknown;
+  };
   "transformBox:updateScale": {
     payload: { delta: Scale; anchor?: Position };
     result: unknown;
   };
   "vfe:update": {
     payload: unknown;
+    result: unknown;
+  };
+  "vfe:extractbox:update": {
+    payload: { position: Position; size: Size };
+    result: unknown;
+  };
+  "vfe:metadata-loaded": {
+    payload: { info: string; totalFrames: number; frameRate: number; filePath: string };
+    result: unknown;
+  };
+  "workarea:addImage": {
+    payload: string;
     result: unknown;
   };
   "workarea:addElement": {

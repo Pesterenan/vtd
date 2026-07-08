@@ -1,0 +1,19 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.label {
+  cursor: ew-resize;
+  font-size: var(--font-small);
+  min-width: 3rem;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.numberInput {
+  width: 4rem;
+  text-align: center;
+}

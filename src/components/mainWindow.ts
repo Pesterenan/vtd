@@ -6,21 +6,16 @@ import type { IProjectData, Position, TElementData } from "./types";
 import { TOOL } from "./types";
 import type { Tool } from "./tools/abstractTool";
 import { ToolManager } from "./tools/toolManager";
-import { DialogApplyCrop } from "./dialogs/DialogApplyCrop";
-import { DialogElementFilters } from "./dialogs/DialogElementFilters";
-import { DialogExportImage } from "./dialogs/DialogExportImage";
-import { DialogNewProject } from "./dialogs/DialogNewProject";
-import { DialogProjectProperties } from "./dialogs/DialogProjectProperties";
-import { SelectTool } from "./tools/selectTool";
 import { GradientTool } from "./tools/gradientTool";
-import { GrabTool } from "./tools/grabTool";
 import { HandTool } from "./tools/handTool";
 import { ZoomTool } from "./tools/zoomTool";
-import { ScaleTool } from "./tools/scaleTool";
-import { RotateTool } from "./tools/rotateTool";
 import { TextTool } from "./tools/textTool";
 import { remap } from "src/utils/easing";
-import { DialogAbout } from "./dialogs/DialogAbout";
+import { version as APP_VERSION } from "../../package.json";
+import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
+import { MultiTool } from "./tools/multiTool";
 
 export class MainWindow {
   private static instance: MainWindow | null = null;
@@ -30,36 +25,32 @@ export class MainWindow {
   private offset: Position = { x: 0, y: 0 };
   private zoomLevel = 1;
   private toolManager: ToolManager | undefined;
-  private tools:
-    | {
-        [key in TOOL]: Tool;
-      }
-    | undefined;
-  public currentTool: TOOL = TOOL.SELECT;
-  public lastTool: TOOL | null = TOOL.SELECT;
+  private tools: { [key in TOOL]: Tool } | undefined;
+  public currentTool: TOOL = TOOL.MULTI;
+  public lastTool: TOOL | null = TOOL.MULTI;
 
+  private loadingOverlay: { show: (msg?: string) => void; hide: () => void };
   private projectTitle = "";
+  private currentProjectPath: string | null = null;
   private copiedElements: TElementData[] = [];
 
-  private constructor(private eventBus: EventBus) {
-    this.createDOMElements();
+  private constructor(
+    private eventBus: EventBus,
+    options?: { canvas?: HTMLCanvasElement },
+  ) {
+    this.createDOMElements(options);
     this.createEventListeners();
-    new DialogApplyCrop(eventBus);
-    new DialogElementFilters(eventBus);
-    new DialogExportImage(eventBus);
-    new DialogNewProject(eventBus);
-    new DialogProjectProperties(eventBus);
-    new DialogAbout(eventBus);
+    this.loadingOverlay = {
+      show: (msg?: string) => this.eventBus.emit("loading:show", msg),
+      hide: () => this.eventBus.emit("loading:hide"),
+    };
     if (this.canvas) {
       this.toolManager = new ToolManager(this.canvas, this.eventBus);
       this.tools = {
-        [TOOL.SELECT]: new SelectTool(this.canvas, this.eventBus),
+        [TOOL.MULTI]: new MultiTool(this.canvas, this.eventBus),
         [TOOL.GRADIENT]: new GradientTool(this.canvas, this.eventBus),
-        [TOOL.GRAB]: new GrabTool(this.canvas, this.eventBus),
         [TOOL.HAND]: new HandTool(this.canvas, this.eventBus),
         [TOOL.ZOOM]: new ZoomTool(this.canvas, this.eventBus),
-        [TOOL.SCALE]: new ScaleTool(this.canvas, this.eventBus),
-        [TOOL.ROTATE]: new RotateTool(this.canvas, this.eventBus),
         [TOOL.TEXT]: new TextTool(this.canvas, this.eventBus),
       };
     }
@@ -67,140 +58,190 @@ export class MainWindow {
     this.changeTool();
   }
 
-  private createDOMElements(): void {
-    const appWindow = getElementById<HTMLDivElement>("app-window");
+  private createDOMElements(options?: { canvas?: HTMLCanvasElement }): void {
+    if (options?.canvas) {
+      this.canvas = options.canvas;
+      this.canvas.width = window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
+      this.canvas.height = window.innerHeight;
+      this.context = this.canvas.getContext("2d");
+      return;
+    }
+    const canvasContainer = getElementById<HTMLDivElement>("canvas-container");
     this.canvas = document.createElement("canvas");
     this.canvas.id = "main-canvas";
     this.canvas.width = window.innerWidth - TOOL_MENU_WIDTH - SIDE_MENU_WIDTH;
     this.canvas.height = window.innerHeight;
     this.context = this.canvas.getContext("2d");
-    if (appWindow && this.canvas) {
-      appWindow.appendChild(this.canvas);
+    if (canvasContainer && this.canvas) {
+      canvasContainer.appendChild(this.canvas);
     }
   }
 
   private createEventListeners() {
-    window.api.onExportCanvasResponse((_, response) => {
+    // Backend Listeners
+    listen<{ success: boolean; message: string; data?: string }>(
+      "load-image-response",
+      async (event) => {
+        const { message, success, data } = event.payload;
+        this.eventBus.emit("alert:add", {
+          message: message,
+          type: success ? "success" : "error",
+        });
+        if (success) {
+          await this.loadImageOnWorkArea(data as string);
+        }
+      },
+    );
+    listen<string>("menu:loading-show", (event) =>
+      this.loadingOverlay.show(event.payload),
+    );
+    listen<{
+      success: boolean;
+      message: string;
+      data?: unknown;
+      filePath?: string;
+    }>("load-project-response", async (event) => {
+      const { success, message, data, filePath } = event.payload;
       this.eventBus.emit("alert:add", {
-        type: response.success ? "success" : "error",
-        message: response.message,
+        message,
+        type: success ? "success" : "error",
       });
+      if (success) {
+        this.currentProjectPath = filePath ?? null;
+        await this.loadOrCreateNewProject(data as Partial<IProjectData>);
+      } else {
+        console.error(message);
+      }
+      this.loadingOverlay.hide();
     });
-    window.api.onLoadVideoResponse((_, response) => {
-      this.eventBus.emit("alert:add", {
-        message: response.message,
-        type: response.success ? "success" : "error",
-      });
-    });
+    listen("request-new-project", () =>
+      this.eventBus.emit("dialog:newProject:open"),
+    );
+    listen("request-save-project", async () => {
+      const projectData = this.saveProject();
+      if (Object.keys(projectData).length === 0) return;
 
-    window.api.onLoadImageResponse(async (_, response) => {
-      this.eventBus.emit("alert:add", {
-        message: response.message,
-        type: response.success ? "success" : "error",
+      this.loadingOverlay.show("Salvando projeto...");
+      const result = await invoke<{
+        success: boolean;
+        message: string;
+        data?: string;
+      }>("save_project_file", {
+        projectData: JSON.stringify(projectData),
+        filePath: this.currentProjectPath,
       });
-      if (response.success) {
-        await this.loadImageOnWorkArea(response.data as string);
+      this.loadingOverlay.hide();
+      this.eventBus.emit("alert:add", {
+        message: result.message,
+        type: result.success ? "success" : "error",
+      });
+      if (result.success && result.data) {
+        this.currentProjectPath = result.data;
       }
     });
+    listen("request-save-project-as", async () => {
+      const projectData = this.saveProject();
+      if (Object.keys(projectData).length === 0) return;
 
-    // TODO: Maybe dead code, verify.
-    window.api.onProcessVideoFrameResponse((_, response) => {
-      if (response.success) {
-        const uint8Array = new Uint8Array(response.data as Uint8Array);
-        const blob = new Blob([uint8Array], { type: "image/png" });
-        const reader = new FileReader();
-        reader.onloadend = async (): Promise<void> => {
-          const dataURL = reader.result as string;
-          if (this.workArea) {
-            await this.workArea.addImageElement(dataURL);
+      this.loadingOverlay.show("Salvando projeto...");
+      const result = await invoke<{
+        success: boolean;
+        message: string;
+        data?: string;
+      }>("save_project_file", {
+        projectData: JSON.stringify(projectData),
+        filePath: null,
+      });
+      this.loadingOverlay.hide();
+      this.eventBus.emit("alert:add", {
+        message: result.message,
+        type: result.success ? "success" : "error",
+      });
+      if (result.success && result.data) {
+        this.currentProjectPath = result.data;
+      }
+    });
+    listen("menu:import-image", () => {
+      invoke<{ success: boolean; message: string; data?: string }>("load_image")
+        .then((response) => {
+          this.eventBus.emit("alert:add", {
+            message: response.message,
+            type: response.success ? "success" : "error",
+          });
+          if (response.success) {
+            this.eventBus.emit("workarea:addImage", response.data);
           }
-        };
-        reader.readAsDataURL(blob);
-      }
-      this.eventBus.emit("alert:add", {
-        message: response.message,
-        type: response.success ? "success" : "error",
-      });
+        })
+        .finally(() => this.loadingOverlay.hide());
     });
-
-    window.api.onLoadProjectResponse((_, response) => {
-      this.eventBus.emit("alert:add", {
-        message: response.message,
-        type: response.success ? "success" : "error",
-      });
-      if (response.success) {
-        this.loadOrCreateNewProject(response.data as Partial<IProjectData>);
-      }
+    listen("menu:extract-video", () => {
+      invoke<{ success: boolean; message: string; data?: unknown }>(
+        "load_video",
+      )
+        .then((response) => {
+          this.eventBus.emit("alert:add", {
+            message: response.message,
+            type: response.success ? "success" : "error",
+          });
+          if (response.success) {
+            invoke("create_frame_extractor_window", {
+              metadata: response.data,
+            });
+          }
+        })
+        .finally(() => this.loadingOverlay.hide());
     });
-
-    window.api.onSaveProjectResponse((_, response) => {
-      this.eventBus.emit("alert:add", {
-        message: response.message,
-        type: response.success ? "success" : "error",
-      });
+    listen("menu:export-image", () => {
+      this.eventBus.emit("dialog:exportImage:open");
     });
-    window.api.onRequestNewProject(() => {
-      this.eventBus.emit("dialog:newProject:open");
-    });
-    window.api.onRequestLoadProject(() => {
-      window.api.loadProject();
-    });
-    window.api.onRequestSaveProject(() => {
-      const projectData = this.saveProject();
-      window.api.saveProject(projectData);
-    });
-    window.api.onRequestSaveProjectAs(() => {
-      const projectData = this.saveProject();
-      window.api.saveProjectAs(projectData);
-    });
-    window.api.onRequestCloseProject(() => {
-      this.eventBus.emit("workarea:clear");
-    });
-    window.api.onRequestProjectProperties((_, info) => {
-      if (this.workArea?.canvas) {
-        info.size = {
-          width: this.workArea.canvas.width,
-          height: this.workArea.canvas.height,
-        };
-      }
+    listen("request-close-project", () => this.eventBus.emit("workarea:clear"));
+    listen("request-project-properties", () => {
       this.eventBus.emit("dialog:projectProperties:open", {
-        appVersion: info.appVersion,
-        lastSavedFile: info.lastSavedFile,
-        size: info.size,
+        appVersion: APP_VERSION,
+        size: {
+          width: this.workArea?.canvas?.width ?? 1920,
+          height: this.workArea?.canvas?.height ?? 1080,
+        },
         title: this.projectTitle,
+        filePath: this.currentProjectPath,
       });
     });
-    window.api.onRequestShowAboutDialog(() => {
-      this.eventBus.emit("dialog:about:open");
-    });
+    listen("request-show-about-dialog", () =>
+      this.eventBus.emit("dialog:about:open"),
+    );
+    listen("workarea:rotate-clockwise", () =>
+      this.eventBus.emit("workarea:rotate-clockwise"),
+    );
+    listen("workarea:rotate-anti-clockwise", () =>
+      this.eventBus.emit("workarea:rotate-anti-clockwise"),
+    );
+    listen("workarea:flip-horizontal", () =>
+      this.eventBus.emit("workarea:flip-horizontal"),
+    );
+    listen("workarea:flip-vertical", () =>
+      this.eventBus.emit("workarea:flip-vertical"),
+    );
+    listen("copy-to-clipboard", () => this.handleCopyCommand());
+    listen("paste-from-clipboard", () => this.handlePasteCommand());
 
-    window.api.onRotateClockwise(() => {
-      this.eventBus.emit("workarea:rotate-clockwise");
-    });
-
-    window.api.onRotateAntiClockwise(() => {
-      this.eventBus.emit("workarea:rotate-anti-clockwise");
-    });
-
-    window.api.onFlipHorizontal(() => {
-      this.eventBus.emit("workarea:flip-horizontal");
-    });
-
-    window.api.onFlipVertical(() => {
-      this.eventBus.emit("workarea:flip-vertical");
-    });
-
-    window.api.onCopyToClipboard(this.handleCopyCommand);
-    window.api.onPasteFromClipboard(this.handlePasteCommand);
-
+    // Window Listeners (Tauri API - fails silently if not on within Tauri)
+    try {
+      getCurrentWindow().onResized(this.handleResizeWindow);
+      getCurrentWindow().onFocusChanged(this.handleWindowFocus);
+    } catch {
+      // running outside Tauri (e.g. `npm run dev` in browser)
+    }
     window.addEventListener("copy", this.handleCopyCommand);
-    window.addEventListener("paste", this.handlePasteCommand);
-    window.addEventListener("resize", this.handleResizeWindow);
+    window.addEventListener("paste", (e: Event) =>
+      this.handlePasteCommand(e as ClipboardEvent),
+    );
+    window.addEventListener("dragover", this.handleDragOver);
+    window.addEventListener("drop", this.handleDrop);
     window.addEventListener("keypress", this.handleKeyPress);
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
-    window.addEventListener("focus", this.handleWindowFocus);
 
+    // EventBus Listeners
     this.eventBus.on("tool:change", (tool: TOOL) => {
       if (this.toolManager && this.tools) {
         this.toolManager.use(this.tools[tool]);
@@ -214,13 +255,12 @@ export class MainWindow {
     });
     this.eventBus.on("workarea:offset:get", () => this.offset);
     this.eventBus.on("workarea:project:save", () => this.saveProject());
-    this.eventBus.on("workarea:clear", () => {
-      window.api.setWindowTitle("");
+    this.eventBus.on("workarea:clear", async () => {
       if (this.workArea) {
         this.workArea.destroy();
         this.workArea = null;
       }
-      this.eventBus.emit("tool:change", TOOL.SELECT);
+      this.eventBus.emit("tool:change", TOOL.MULTI);
       this.update();
     });
     this.eventBus.on("zoomLevel:change", ({ level, center }) => {
@@ -238,7 +278,6 @@ export class MainWindow {
     );
     this.eventBus.on("workarea:updateProperties", ({ title }) => {
       this.projectTitle = title;
-      window.api.setWindowTitle(this.projectTitle);
     });
     this.eventBus.on("workarea:update", this.update);
     this.eventBus.on("workarea:adjustForCanvas", ({ position }) =>
@@ -248,7 +287,14 @@ export class MainWindow {
       this.adjustForScreen(position),
     );
     this.eventBus.on("selection:changed", ({ selectedElements }) => {
-      window.api.selectionChanged(selectedElements.length > 0);
+      invoke("enable_copy", { isEnabled: selectedElements.length > 0 });
+      if (this.copiedElements.length === 0) {
+        this.checkExternalClipboard();
+      }
+    });
+
+    this.eventBus.on("workarea:addImage", (dataUrl: string) => {
+      this.loadImageOnWorkArea(dataUrl);
     });
 
     if (this.canvas) {
@@ -266,6 +312,7 @@ export class MainWindow {
     if (!imgString) return;
     if (!this.workArea) {
       this.workArea = new WorkArea(this.eventBus);
+      this.projectTitle = "Sem título";
       const imageEl = new Image();
       imageEl.src = imgString;
       imageEl.onload = async () => {
@@ -276,10 +323,9 @@ export class MainWindow {
           });
           const newElement = await this.workArea.addImageElement(imgString);
           newElement.layerName = `Camada ${newElement.elementId}`;
-          this.projectTitle = "Sem título";
-          window.api.setWindowTitle(this.projectTitle);
           this.handleResizeWindow();
           this.eventBus.emit("workarea:initialized");
+          invoke("initialize_project_state", { title: this.projectTitle });
           this.eventBus.emit("workarea:selectById", {
             elementsId: new Set([newElement.elementId]),
           });
@@ -324,7 +370,7 @@ export class MainWindow {
       this.copiedElements = selectedElements.map((el) =>
         el.serialize(),
       ) as TElementData[];
-      window.api.clipboardChanged(this.copiedElements.length > 0);
+      invoke("enable_paste", { isEnabled: true });
       this.eventBus.emit("alert:add", {
         message: `${this.copiedElements.length > 1 ? "Elementos copiados" : "Elemento copiado"} para a área de transferência`,
         type: "success",
@@ -332,7 +378,7 @@ export class MainWindow {
     }
   };
 
-  public handlePasteCommand = async (): Promise<void> => {
+  public handlePasteCommand = async (event?: ClipboardEvent): Promise<void> => {
     if (this.copiedElements.length > 0 && this.workArea) {
       const newElementsIds: number[] = [];
       let latestZDepth = this.workArea.elements.length;
@@ -363,53 +409,114 @@ export class MainWindow {
         type: "success",
       });
       this.copiedElements.length = 0;
-      window.api.clipboardChanged(false);
-    } else {
-      try {
-        const clipboardItems = await navigator.clipboard.read();
-        for (const item of clipboardItems) {
-          const imageType = item.types.find((type) =>
-            type.startsWith("image/"),
-          );
-          if (imageType) {
-            const blob = await item.getType(imageType);
-            const reader = new FileReader();
-            reader.onload = async (evt) => {
-              await this.loadImageOnWorkArea(evt.target?.result as string);
-              this.eventBus.emit("alert:add", {
-                message: "Imagem copiada da área de transferência.",
-                type: "success",
-              });
-            };
-            reader.readAsDataURL(blob);
-          }
-        }
-      } catch (err) {
-        this.eventBus.emit("alert:add", {
-          message: "Não foi possível colar da área de transferência.",
-          type: "error",
-        });
-      }
+      this.update();
+      return;
     }
+
+    if (event?.clipboardData?.files?.length) {
+      for (const file of event.clipboardData.files) {
+        if (file.type.startsWith("image/")) {
+          const reader = new FileReader();
+          reader.onload = async (evt) => {
+            await this.loadImageOnWorkArea(evt.target?.result as string);
+            this.eventBus.emit("alert:add", {
+              message: `Imagem "${file.name}" colada.`,
+              type: "success",
+            });
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+      this.update();
+      return;
+    }
+
+    await this.pasteFromExternalClipboard();
     this.update();
   };
 
+  private handleDragOver = (e: DragEvent): void => {
+    e.preventDefault();
+    if (e.dataTransfer?.types.includes("Files")) {
+      e.dataTransfer.dropEffect = "copy";
+    }
+  };
+
+  private handleDrop = async (e: DragEvent): Promise<void> => {
+    if (!e.dataTransfer?.files.length) return;
+    e.preventDefault();
+    for (const file of e.dataTransfer.files) {
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+          await this.loadImageOnWorkArea(evt.target?.result as string);
+          this.eventBus.emit("alert:add", {
+            message: `Imagem "${file.name}" adicionada.`,
+            type: "success",
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
   private handleWindowFocus = async (): Promise<void> => {
+    if (this.copiedElements.length === 0) {
+      this.checkExternalClipboard();
+    }
+  };
+
+  private checkExternalClipboard = async (): Promise<void> => {
+    const result = await invoke<{ has_image: boolean }>("check_clipboard");
+    if (result.has_image) {
+      invoke("enable_paste", { isEnabled: true });
+    }
+  };
+
+  private pasteFromExternalClipboard = async (): Promise<void> => {
+    try {
+      const result = await invoke<{
+        success: boolean;
+        message: string;
+        data?: string;
+      }>("read_clipboard_image");
+      if (result.success && result.data) {
+        await this.loadImageOnWorkArea(result.data);
+        this.eventBus.emit("alert:add", {
+          message: "Imagem copiada da área de transferência.",
+          type: "success",
+        });
+      } else {
+        this.pasteFromNavigatorClipboard();
+      }
+    } catch {
+      this.pasteFromNavigatorClipboard();
+    }
+  };
+
+  private pasteFromNavigatorClipboard = async (): Promise<void> => {
     try {
       const clipboardItems = await navigator.clipboard.read();
-      let canPaste = false;
       for (const item of clipboardItems) {
-        if (
-          item.types.includes("text/plain") ||
-          item.types.some((type) => type.startsWith("image/"))
-        ) {
-          canPaste = true;
-          break;
+        const imageType = item.types.find((type) => type.startsWith("image/"));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          const reader = new FileReader();
+          reader.onload = async (evt) => {
+            await this.loadImageOnWorkArea(evt.target?.result as string);
+            this.eventBus.emit("alert:add", {
+              message: "Imagem copiada da área de transferência.",
+              type: "success",
+            });
+          };
+          reader.readAsDataURL(blob);
         }
       }
-      window.api.clipboardChanged(this.copiedElements.length > 0 || canPaste);
     } catch (err) {
-      window.api.clipboardChanged(this.copiedElements.length > 0);
+      this.eventBus.emit("alert:add", {
+        message: "Não foi possível colar da área de transferência.",
+        type: "error",
+      });
     }
   };
 
@@ -518,9 +625,9 @@ export class MainWindow {
     this.projectTitle = projectData?.title || "Sem título";
     this.workArea.setWorkAreaSize(projectData.workAreaSize);
     await this.workArea.loadElements(projectData?.elements);
-    window.api.setWindowTitle(this.projectTitle);
     this.handleResizeWindow();
     this.eventBus.emit("workarea:initialized");
+    invoke("initialize_project_state", { title: this.projectTitle });
   };
 
   public saveProject(): Partial<IProjectData> {
@@ -549,18 +656,6 @@ export class MainWindow {
     }
     let tool: TOOL | null = null;
     switch (evt.code) {
-      case "KeyV":
-        tool = TOOL.SELECT;
-        break;
-      case "KeyG":
-        tool = TOOL.GRAB;
-        break;
-      case "KeyR":
-        tool = TOOL.ROTATE;
-        break;
-      case "KeyS":
-        tool = TOOL.SCALE;
-        break;
       case "KeyT":
         tool = TOOL.TEXT;
         break;
@@ -594,7 +689,7 @@ export class MainWindow {
       switch (evt.code) {
         case "Space":
         case "KeyZ":
-          this.currentTool = this.lastTool ? this.lastTool : TOOL.SELECT;
+          this.currentTool = this.lastTool ? this.lastTool : TOOL.MULTI;
           this.changeTool();
       }
     }
@@ -624,6 +719,14 @@ export class MainWindow {
         case "KeyZ":
           tool = TOOL.ZOOM;
           break;
+        case "KeyV":
+        case "KeyG":
+        case "KeyR":
+        case "KeyS":
+          if (this.currentTool !== TOOL.MULTI) {
+            tool = TOOL.MULTI;
+          }
+        break;
       }
       if (tool) {
         this.currentTool = tool;
@@ -657,9 +760,12 @@ export class MainWindow {
       y: Math.floor((mousePosition.y - this.offset.y) / this.zoomLevel),
     };
   };
-  public static getInstance(eventBus: EventBus) {
+  public static getInstance(
+    eventBus: EventBus,
+    options?: { canvas?: HTMLCanvasElement },
+  ) {
     if (!MainWindow.instance) {
-      MainWindow.instance = new MainWindow(eventBus);
+      MainWindow.instance = new MainWindow(eventBus, options);
     }
     return MainWindow.instance;
   }

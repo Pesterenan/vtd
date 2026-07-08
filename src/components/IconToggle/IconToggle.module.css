@@ -1,0 +1,47 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 1.5rem;
+}
+
+.tglCheckbox {
+  display: none;
+}
+
+.tglLabel {
+  border-radius: var(--border-radius-small);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  height: 1.25rem;
+  justify-content: center;
+  transition: var(--background-transition);
+  width: 1.25rem;
+}
+
+.tglCheckbox:checked + .tglLabel {
+  background-color: var(--primary-500);
+}
+
+.tglLabel::before {
+  content: "";
+  display: block;
+  background: linear-gradient(to bottom right,
+      var(--accent-500) 40%,
+      var(--accent-700));
+  height: 1rem;
+  mask-image: var(--icon-url);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: cover;
+  width: 1rem;
+}
+
+.tglCheckbox:checked + .tglLabel::before {
+  mask-image: var(--checked-icon-url);
+}
+
+.tglLabel.active::before {
+  transform: rotate(90deg);
+}

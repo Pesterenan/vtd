@@ -1,0 +1,13 @@
+.sideMenu {
+  background-color: var(--background-50);
+  border-left: 1px solid var(--background-700);
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: center;
+  padding: 0.5rem;
+  width: 330px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  transition: var(--background-transition);
+}

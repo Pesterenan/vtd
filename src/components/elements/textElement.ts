@@ -33,6 +33,7 @@ export class TextElement extends Element<ITextElementData> {
   public set textAlign(value: ITextElementData["textAlign"]) {
     this.properties.set("textAlign", value);
     this.needsCacheUpdate = true;
+    this.needsCenterRecalc = true;
   }
   public get fillColor(): string {
     return this.properties.get("fillColor") as string;
@@ -168,6 +169,9 @@ export class TextElement extends Element<ITextElementData> {
 
   public deserialize(data: ITextElementData): void {
     super.deserialize(data);
+    this.lineHeight = data.lineHeight;
+    this.fontSize = data.fontSize;
+    this.content = data.content.split("\n");
   }
 
   public serialize(): ITextElementData {
@@ -199,20 +203,17 @@ export class TextElement extends Element<ITextElementData> {
     let centerY = this.position.y;
 
     if (this.needsCenterRecalc) {
-      const topLeft = this.boundingBox.topLeft;
-      const topRight = this.boundingBox.topRight;
-      switch (this.textAlign) {
-        case "left":
-          centerX = topLeft.x + width / 2;
-          centerY = topLeft.y + height / 2;
-          break;
-        case "right":
-          centerX = topRight.x - width / 2;
-          centerY = topRight.y + height / 2;
-          break;
-        default:
-          centerX = this.position.x;
-          break;
+      const oldWidth = this.size.width;
+      if (this.textAlign === "left") {
+        const anchorX = this.position.x - oldWidth / 2;
+        const anchorY = this.position.y;
+        centerX = anchorX + width / 2;
+        centerY = anchorY;
+      } else if (this.textAlign === "right") {
+        const anchorX = this.position.x + oldWidth / 2;
+        const anchorY = this.position.y;
+        centerX = anchorX - width / 2;
+        centerY = anchorY;
       }
       this.needsCenterRecalc = false;
     }

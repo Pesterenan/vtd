@@ -1,0 +1,228 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { useEventBus } from "../../hooks/useEventBus";
+import { TOOL } from "../types";
+import styles from "./ToolMenu.module.css";
+
+import GradientIcon from "src/assets/icons/gradient-tool.svg";
+import HandIcon from "src/assets/icons/hand-tool.svg";
+import GrabIcon from "src/assets/icons/move-tool.svg";
+import RotateIcon from "src/assets/icons/rotate-tool.svg";
+import ScaleIcon from "src/assets/icons/scale-tool.svg";
+import SelectIcon from "src/assets/icons/select-tool.svg";
+import TextIcon from "src/assets/icons/text-tool.svg";
+import ZoomIcon from "src/assets/icons/zoom-tool.svg";
+
+type Mode = "select" | "move" | "rotate" | "scale";
+
+type MenuItem =
+  | { type: "tool"; tool: TOOL; label: string }
+  | { type: "divider" };
+
+const MENU_ITEMS: MenuItem[] = [
+  { type: "tool", tool: TOOL.MULTI, label: "(V) Selecionar, (G) Mover, (R) Rotacionar, (S) Escalonar" },
+  { type: "tool", tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },
+  { type: "tool", tool: TOOL.ZOOM, label: "(Z) Modificar nível de zoom" },
+  { type: "divider" },
+  { type: "tool", tool: TOOL.TEXT, label: "(T) Criar textos" },
+  { type: "tool", tool: TOOL.GRADIENT, label: "(H) Criar gradientes" },
+];
+
+const toolIcons: Record<string, string> = {
+  [TOOL.TEXT]: TextIcon,
+  [TOOL.GRADIENT]: GradientIcon,
+  [TOOL.HAND]: HandIcon,
+  [TOOL.ZOOM]: ZoomIcon,
+};
+
+const modeLabels: Record<string, string> = {
+  select: "(M) Selecionar elementos",
+  move: "(M) Mover elementos",
+  rotate: "(M) Rotacionar elementos",
+  scale: "(M) Escalar elementos",
+};
+
+const modeIcons: Record<string, string> = {
+  select: SelectIcon,
+  move: GrabIcon,
+  rotate: RotateIcon,
+  scale: ScaleIcon,
+};
+
+const MODE_OPTIONS: { mode: Mode; label: string; icon: string }[] = [
+  { mode: "select", label: "Selecionar", icon: SelectIcon },
+  { mode: "move", label: "Mover", icon: GrabIcon },
+  { mode: "rotate", label: "Rotacionar", icon: RotateIcon },
+  { mode: "scale", label: "Escalar", icon: ScaleIcon },
+];
+
+const LONG_PRESS_DELAY = 400;
+
+const ToolMenu = () => {
+  const { emit, on } = useEventBus();
+  const [activeTool, setActiveTool] = useState<TOOL>(TOOL.MULTI);
+  const [currentMode, setCurrentMode] = useState<Mode>("select");
+  const [showModeMenu, setShowModeMenu] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLongPress = useRef(false);
+
+  useEffect(() => {
+    const unsub = on("tool:change", (tool: TOOL) => setActiveTool(tool));
+    return unsub;
+  }, [on]);
+
+  useEffect(() => {
+    const unsub = on("multiTool:modeChange", (mode: Mode) =>
+      setCurrentMode(mode),
+    );
+    return unsub;
+  }, [on]);
+
+  const handleToolClick = (tool: TOOL) => {
+    emit("tool:change", tool);
+  };
+
+  const handleMultiPointerDown = () => {
+    isLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      isLongPress.current = true;
+      setShowModeMenu(true);
+    }, LONG_PRESS_DELAY);
+  };
+
+  const handleMultiPointerUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if (!isLongPress.current) {
+      handleToolClick(TOOL.MULTI);
+    }
+    isLongPress.current = false;
+  };
+
+  const handleMultiPointerLeave = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleMultiContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowModeMenu(true);
+  };
+
+  const handleModeSelect = (mode: Mode) => {
+    setShowModeMenu(false);
+    if (activeTool !== TOOL.MULTI) {
+      emit("tool:change", TOOL.MULTI);
+    }
+    emit("multiTool:setMode", mode);
+  };
+
+  const [theme, setTheme] = useState<"light" | "dark">(
+    () =>
+      (document.documentElement.dataset.theme as "light" | "dark") ?? "light",
+  );
+
+  const handleThemeToggle = useCallback(() => {
+    const next = theme === "light" ? "dark" : "light";
+    document.documentElement.dataset.theme = next;
+    setTheme(next);
+    invoke("change_theme", { theme: next });
+  }, [theme]);
+
+  return (
+    <menu className={styles.toolMenu}>
+      <div className={styles.container}>
+        <label>Ferr.</label>
+        {MENU_ITEMS.map((item) => {
+          if (item.type === "divider") {
+            return <div key="divider" className={styles.divider} />;
+          }
+          const { tool, label } = item;
+          const isMulti = tool === TOOL.MULTI;
+          const resolvedLabel = isMulti ? modeLabels[currentMode] : label;
+          const resolvedIcon = isMulti
+            ? modeIcons[currentMode]
+            : toolIcons[tool];
+
+          return (
+            <div key={tool} className={styles.toolWrapper}>
+              <button
+                data-tool={tool}
+                className={`${styles.btn} ${isMulti ? styles.hasSubmenu : ""} ${activeTool === tool ? styles.active : ""}`}
+                aria-label={resolvedLabel}
+                  {...(isMulti
+                    ? {
+                        onPointerDown: handleMultiPointerDown,
+                        onPointerUp: handleMultiPointerUp,
+                        onPointerLeave: handleMultiPointerLeave,
+                        onContextMenu: handleMultiContextMenu,
+                      }
+                    : { onClick: () => handleToolClick(tool) })}
+              >
+                <div
+                  className={styles.icon}
+                  style={
+                    {
+                      "--icon-url": `url("${resolvedIcon}")`,
+                    } as React.CSSProperties
+                  }
+                />
+              </button>
+              {isMulti && showModeMenu && (
+                <>
+                  <div
+                    className={styles.menuBackdrop}
+                    onClick={() => setShowModeMenu(false)}
+                  />
+                  <div className={styles.modeMenu}>
+                    {MODE_OPTIONS.map(({ mode, label, icon }) => (
+                      <button
+                        key={mode}
+                        className={`${styles.modeOption} ${currentMode === mode ? styles.modeOptionActive : ""}`}
+                        onClick={() => handleModeSelect(mode)}
+                      >
+                        <div
+                          className={styles.icon}
+                          style={
+                            {
+                              "--icon-url": `url("${icon}")`,
+                            } as React.CSSProperties
+                          }
+                        />
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+        <button
+          className={`${styles.btn} ${styles.themeBtn}`}
+          aria-label="Alternar tema claro/escuro"
+          onClick={handleThemeToggle}
+        >
+          <div
+            className={styles.icon}
+            style={
+              {
+                "--icon-url": `url("data:image/svg+xml,${encodeURIComponent(
+                  theme === "light"
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+                    : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
+                )}")`,
+              } as React.CSSProperties
+            }
+          />
+        </button>
+      </div>
+    </menu>
+  );
+};
+
+export default ToolMenu;
