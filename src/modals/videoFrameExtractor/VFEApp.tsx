@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEventBus } from "src/hooks/useEventBus";
 import { EventBusProvider } from "src/contexts/EventBusContext";
-import AlertsProvider from "src/components/Alerts/AlertsProvider";
+import AlertsProvider from "src/components/alerts/AlertsProvider";
 import { EventBus } from "src/utils/eventBus";
 import SliderControl from "src/components/SliderControl/SliderControl";
 import SelectInput from "src/components/SelectInput/SelectInput";
