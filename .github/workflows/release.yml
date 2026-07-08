@@ -65,35 +65,23 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # Version must match ffmpeg-next's wrapped FFMPEG API version
-          $ffmpegVersion = "7.1"
+          $ffmpegVersion = "8.1.2"
           $temp = "$env:RUNNER_TEMP"
           $ffmpegDir = "$temp\ffmpeg"
 
-          # Download dev package (headers + .lib)
-          $devUrl = "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-${ffmpegVersion}-full_build-dev.7z"
-          Write-Host "Downloading FFMPEG dev package..."
-          Invoke-WebRequest -Uri $devUrl -OutFile "$temp\ffmpeg-dev.7z"
-          7z x "$temp\ffmpeg-dev.7z" -o"$ffmpegDir" -y | Out-Null
-
-          # Download shared package (DLLs)
+          # Download shared build (includes DLLs, headers, and .lib)
           $sharedUrl = "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-${ffmpegVersion}-full_build-shared.7z"
-          Write-Host "Downloading FFMPEG shared package..."
+          Write-Host "Downloading FFMPEG shared build..."
           Invoke-WebRequest -Uri $sharedUrl -OutFile "$temp\ffmpeg-shared.7z"
           7z x "$temp\ffmpeg-shared.7z" -o"$ffmpegDir" -y | Out-Null
 
-          # Merge shared DLLs into dev directory + copy to bundle resources
-          $dev = Get-ChildItem "$ffmpegDir" -Directory | Where-Object Name -like "*dev*" | Select-Object -First 1
           $shared = Get-ChildItem "$ffmpegDir" -Directory | Where-Object Name -like "*shared*" | Select-Object -First 1
-          Copy-Item "$($shared.FullName)\bin\*.dll" -Destination "$($dev.FullName)\bin\" -Force
 
-          # Copy DLLs to bundle resources (overwrites committed DLLs with matching version)
+          # Copy DLLs to bundle resources
           Copy-Item "$($shared.FullName)\bin\*.dll" -Destination "src-tauri\resources\" -Force
 
-          # Set FFMPEG_DIR so ffmpeg-next finds it
-          "FFMPEG_DIR=$($dev.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        env:
-          FFMPEG_VERSION: "7.1"
+          # Set FFMPEG_DIR so ffmpeg-sys-next finds it (shared build includes include/ + lib/)
+          "FFMPEG_DIR=$($shared.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install npm dependencies
         run: npm ci
