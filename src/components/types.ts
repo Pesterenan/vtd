@@ -15,7 +15,22 @@ export interface IElementData {
   layerName: string;
   filters: FilterProperties[];
 }
-export type ElementType = "text" | "image" | "gradient" | "group";
+export type ElementType = "text" | "image" | "gradient" | "group" | "path";
+
+export interface Point {
+  position: Position,
+}
+
+export interface IPathElementData extends IElementData {
+  type: "path";
+  points: Point[],
+  isClosed: boolean,
+  hasFill: boolean,
+  hasStroke: boolean,
+  fillColor: string,
+  strokeColor: string,
+  strokeWidth: number,
+}
 
 export interface ITextElementData extends IElementData {
   type: "text";
