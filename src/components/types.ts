@@ -86,10 +86,11 @@ export interface Layer {
 }
 
 export type TElementData =
-  | IImageElementData
-  | ITextElementData
+  | IElementGroupData
   | IGradientElementData
-  | IElementGroupData;
+  | IImageElementData
+  | IPathElementData
+  | ITextElementData;
 
 export interface IProjectData {
   createDate: string;
@@ -131,6 +132,8 @@ export enum TOOL {
   GRADIENT = "gradient-tool",
   /** @prop HAND - Mover área de trabalho */
   HAND = "hand-tool",
+  /** @prop PEN - Desenhar caminhos */
+  PEN = "pen-tool",
   /** @prop ZOOM - Modificar zoom */
   ZOOM = "zoom-tool",
 }

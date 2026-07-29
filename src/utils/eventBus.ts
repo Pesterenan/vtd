@@ -5,6 +5,7 @@ import type {
   ElementType,
   IProjectData,
   Layer,
+  Point,
   Position,
   Scale,
   Size,
@@ -131,6 +132,14 @@ export interface EventBusMap {
   };
   "edit:gradientUpdateColorStops": {
     payload: unknown;
+    result: unknown;
+  };
+  "edit:path": {
+    payload: {
+      position: Position,
+      points: Point[],
+      isClosed: boolean,
+    };
     result: unknown;
   };
   "edit:text": {
