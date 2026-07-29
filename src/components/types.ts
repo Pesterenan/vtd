@@ -18,7 +18,8 @@ export interface IElementData {
 export type ElementType = "text" | "image" | "gradient" | "group" | "path";
 
 export interface Point {
-  position: Position,
+  x: number,
+  y: number,
 }
 
 export interface IPathElementData extends IElementData {

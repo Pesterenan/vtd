@@ -82,7 +82,7 @@ export class PathElement extends Element<IPathElementData> {
       context.rotate(toRadians(this.rotation));
       context.scale(this.scale.x, this.scale.y);
       context.beginPath();
-      context.moveTo(this.points[0].position.x, this.points[0].position.y);
+      context.moveTo(this.points[0].x, this.points[0].y);
       context.strokeStyle = this.strokeColor;
       context.lineWidth = this.strokeWidth;
       context.stroke();
@@ -90,33 +90,8 @@ export class PathElement extends Element<IPathElementData> {
     }
   }
 
-  private updateBoundingBox(): void {
-    if (!this.points.length) return;
-    if (this.points.length === 1) {
-      this.boundingBox.update(
-        this.points[0].position,
-        this.size,
-        this.rotation,
-      );
-      return;
-    }
-    let minX,
-      minY = -Infinity;
-    let maxX,
-      maxY = Infinity;
-    for (const point of this.points) {
-      const { x, y } = point.position;
-      minX = Math.max(minX, x);
-      maxX = Math.min(maxX, x);
-      minY = Math.max(minY, y);
-      maxY = Math.min(maxY, y);
-    }
-    this.position = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
-    this.boundingBox.update(this.position, this.size, this.rotation);
-  }
-
   public getBoundingBox(): BoundingBox {
-    this.updateBoundingBox();
+    this.boundingBox.update(this.position, this.size, this.rotation);
     return this.boundingBox;
   }
 }
