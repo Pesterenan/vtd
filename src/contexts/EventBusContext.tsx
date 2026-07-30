@@ -32,7 +32,11 @@ export const EventBusProvider = ({
     event: K,
     payload?: EventBusMap[K]["payload"],
   ) => {
-    eventBusRef.current.emit(event, payload);
+    if (payload === undefined) {
+      eventBusRef.current.emit(event);
+    } else {
+      eventBusRef.current.emit(event, payload);
+    }
   }, []);
 
   const on = useCallback(<K extends keyof EventBusMap>(

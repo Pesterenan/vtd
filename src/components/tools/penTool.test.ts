@@ -293,7 +293,7 @@ describe("PenTool", () => {
 
     penTool.onMouseMove(mouseMoveEvent);
 
-    // workarea:update is emitted without payload
+    expect(eventBus.emit).toHaveBeenCalledWith("workarea:update");
   });
 
   it("should not finalize path when unequip with only 1 point", () => {
