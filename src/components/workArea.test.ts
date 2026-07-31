@@ -26,28 +26,34 @@ describe("WorkArea - Path Integration", () => {
   describe("handleEditPath", () => {
     it("should create a PathElement and add to elements on edit:path event", () => {
       const position: Position = { x: 400, y: 300 };
-      const points: Point[] = [
+      const absolutePoints: Point[] = [
+        { x: 350, y: 250 },
+        { x: 450, y: 250 },
+        { x: 450, y: 350 },
+        { x: 350, y: 350 },
+      ];
+      const expectedRelative: Point[] = [
         { x: -50, y: -50 },
         { x: 50, y: -50 },
         { x: 50, y: 50 },
         { x: -50, y: 50 },
       ];
 
-      eventBus.emit("edit:path", { position, points, isClosed: true });
+      eventBus.emit("edit:path", { position, points: absolutePoints, isClosed: true });
 
       expect(workArea.elements.length).toBe(1);
       const element = workArea.elements[0];
       expect(element).toBeInstanceOf(PathElement);
       const pathElement = element as PathElement;
-      expect(pathElement.points).toEqual(points);
+      expect(pathElement.points).toEqual(expectedRelative);
       expect(pathElement.isClosed).toBe(true);
     });
 
     it("should emit workarea:addElement with type 'path'", () => {
       const position: Position = { x: 400, y: 300 };
       const points: Point[] = [
-        { x: -50, y: -50 },
-        { x: 50, y: 50 },
+        { x: 350, y: 250 },
+        { x: 450, y: 350 },
       ];
 
       eventBus.emit("edit:path", { position, points, isClosed: false });
@@ -60,7 +66,7 @@ describe("WorkArea - Path Integration", () => {
 
     it("should emit workarea:update after path creation", () => {
       const position: Position = { x: 400, y: 300 };
-      const points: Point[] = [{ x: -50, y: -50 }, { x: 50, y: 50 }];
+      const points: Point[] = [{ x: 350, y: 250 }, { x: 450, y: 350 }];
 
       eventBus.emit("edit:path", { position, points, isClosed: false });
 
@@ -69,7 +75,7 @@ describe("WorkArea - Path Integration", () => {
 
     it("should select the path element after creation", () => {
       const position: Position = { x: 400, y: 300 };
-      const points: Point[] = [{ x: -50, y: -50 }, { x: 50, y: 50 }];
+      const points: Point[] = [{ x: 350, y: 250 }, { x: 450, y: 350 }];
 
       eventBus.emit("edit:path", { position, points, isClosed: false });
 
@@ -79,9 +85,9 @@ describe("WorkArea - Path Integration", () => {
     it("should handle closed path correctly", () => {
       const position: Position = { x: 200, y: 150 };
       const points: Point[] = [
-        { x: -30, y: -30 },
-        { x: 30, y: -30 },
-        { x: 0, y: 30 },
+        { x: 170, y: 120 },
+        { x: 230, y: 120 },
+        { x: 200, y: 180 },
       ];
 
       eventBus.emit("edit:path", { position, points, isClosed: true });
@@ -91,23 +97,25 @@ describe("WorkArea - Path Integration", () => {
     });
 
     it("should handle multiple path creations sequentially", () => {
-      const path1Points: Point[] = [{ x: -10, y: -10 }, { x: 10, y: 10 }];
-      const path2Points: Point[] = [{ x: -20, y: -20 }, { x: 20, y: 20 }];
+      const path1Absolute: Point[] = [{ x: 90, y: 90 }, { x: 110, y: 110 }];
+      const path1Expected: Point[] = [{ x: -10, y: -10 }, { x: 10, y: 10 }];
+      const path2Absolute: Point[] = [{ x: 180, y: 180 }, { x: 220, y: 220 }];
+      const path2Expected: Point[] = [{ x: -20, y: -20 }, { x: 20, y: 20 }];
 
       eventBus.emit("edit:path", {
         position: { x: 100, y: 100 },
-        points: path1Points,
+        points: path1Absolute,
         isClosed: false,
       });
       eventBus.emit("edit:path", {
         position: { x: 200, y: 200 },
-        points: path2Points,
+        points: path2Absolute,
         isClosed: true,
       });
 
       expect(workArea.elements.length).toBe(2);
-      expect((workArea.elements[0] as PathElement).points).toEqual(path1Points);
-      expect((workArea.elements[1] as PathElement).points).toEqual(path2Points);
+      expect((workArea.elements[0] as PathElement).points).toEqual(path1Expected);
+      expect((workArea.elements[1] as PathElement).points).toEqual(path2Expected);
       expect((workArea.elements[1] as PathElement).isClosed).toBe(true);
     });
   });

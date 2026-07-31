@@ -186,7 +186,10 @@ export class WorkArea {
   private handleEditPath = ({ position, points, isClosed }: PathPayload): void => {
     const size = this.calculatePathSize(points);
     const newElement = new PathElement(position, size, this.elements.length);
-    newElement.points = points;
+    newElement.points = points.map(p => ({
+      x: p.x - position.x,
+      y: p.y - position.y,
+    }));
     newElement.isClosed = isClosed;
 
     this.elements.push(newElement as Element<TElementData>);
@@ -197,7 +200,9 @@ export class WorkArea {
       layerName: newElement.layerName,
       type: 'path',
     });
-    this.selectElementsAt({ firstPoint: position });
+    this.eventBus.emit("workarea:selectById", {
+      elementsId: new Set([newElement.elementId]),
+    });
     this.eventBus.emit("workarea:update");
   }
 

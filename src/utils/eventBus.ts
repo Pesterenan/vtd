@@ -470,7 +470,11 @@ export class EventBus {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       for (const cb of eventListeners) {
-        cb(payload);
+        try {
+          cb(payload);
+        } catch (e) {
+          console.error(`EventBus: error in handler for "${String(event)}":`, e);
+        }
       }
     }
   }
@@ -484,7 +488,11 @@ export class EventBus {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       for (const cb of eventListeners) {
-        out.push(cb(payload));
+        try {
+          out.push(cb(payload));
+        } catch (e) {
+          console.error(`EventBus: error in request handler for "${String(event)}":`, e);
+        }
       }
     }
     return out;

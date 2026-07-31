@@ -83,9 +83,21 @@ export class PathElement extends Element<IPathElementData> {
       context.scale(this.scale.x, this.scale.y);
       context.beginPath();
       context.moveTo(this.points[0].x, this.points[0].y);
-      context.strokeStyle = this.strokeColor;
-      context.lineWidth = this.strokeWidth;
-      context.stroke();
+      for (let i = 1; i < this.points.length; i++) {
+        context.lineTo(this.points[i].x, this.points[i].y);
+      }
+      if (this.isClosed) {
+        context.closePath();
+      }
+      if (this.hasFill) {
+        context.fillStyle = this.fillColor;
+        context.fill();
+      }
+      if (this.hasStroke) {
+        context.strokeStyle = this.strokeColor;
+        context.lineWidth = this.strokeWidth;
+        context.stroke();
+      }
       context.restore();
     }
   }

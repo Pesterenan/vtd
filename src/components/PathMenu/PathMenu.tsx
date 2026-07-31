@@ -155,7 +155,7 @@ const PathMenu = () => {
       </div>
       <SliderControl
         id={"path-stroke-width"}
-        disabled={isDisabled || pathProps.hasStroke}
+        disabled={isDisabled || !pathProps.hasStroke}
         label={"Espessura"}
         min={1}
         max={128}

@@ -38,54 +38,66 @@ export class PenTool extends Tool {
   }
 
   private finalizePath(isClosed: boolean) {
-    let minX = -Infinity;
-    let minY = -Infinity;
-    let maxX = Infinity;
-    let maxY = Infinity;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
     this.points.forEach((p) => {
-      minX = Math.max(minX, p.x);
-      minY = Math.max(minY, p.y);
-      maxX = Math.min(maxX, p.x);
-      maxY = Math.min(maxY, p.y);
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x);
+      maxY = Math.max(maxY, p.y);
     });
     const [center] = this.eventBus.request("workarea:adjustForCanvas", {
       position: { x: (minX + maxX) / 2, y: (minY + maxY) / 2 },
     });
-    const [points] = this.points.map((p) =>
-      this.eventBus.request("workarea:adjustForCanvas", {
+    const points = this.points.map((p) => {
+      const [pt] = this.eventBus.request("workarea:adjustForCanvas", {
         position: { x: p.x, y: p.y },
-      }),
-    );
+      });
+      return pt;
+    });
+    this.points = [];
+    this.cursorPos = null;
+    this.state = "IDLE";
+    this.isClosing = false;
     this.eventBus.emit("edit:path", { position: center, points, isClosed });
   }
 
   public draw(): void {
     this.context.save();
-    this.context.beginPath();
-    for (const { x, y } of this.points) {
+
+    if (this.points.length >= 1) {
+      this.context.beginPath();
+      this.context.moveTo(this.points[0].x, this.points[0].y);
+      for (let i = 1; i < this.points.length; i++) {
+        this.context.lineTo(this.points[i].x, this.points[i].y);
+      }
+      if (this.cursorPos) {
+        const lastPt = this.points[this.points.length - 1];
+        this.context.moveTo(lastPt.x, lastPt.y);
+        this.context.globalAlpha = 0.5;
+        this.context.setLineDash([5, 5]);
+        this.context.lineTo(this.cursorPos.x, this.cursorPos.y);
+      }
       this.context.strokeStyle = "#202020";
       this.context.lineWidth = 2;
-      this.context.lineTo(x, y);
+      this.context.stroke();
+      this.context.setLineDash([]);
+      this.context.globalAlpha = 1;
+    }
 
-      this.context.strokeStyle = "#000000";
-      this.context.fillStyle = "#FFFFFF";
+    for (const { x, y } of this.points) {
+      this.context.beginPath();
       this.context.arc(x, y, 3, 0, 2 * Math.PI);
+      this.context.fillStyle = "#FFFFFF";
       this.context.fill();
-      this.context.stroke();
-    }
-
-    if (this.cursorPos) {
-      this.context.globalAlpha = 0.5;
-      this.context.setLineDash([5, 5]);
-      this.context.lineWidth = 2;
-      this.context.lineTo(this.cursorPos.x, this.cursorPos.y);
       this.context.strokeStyle = "#000000";
       this.context.stroke();
     }
 
-    this.context.closePath();
-    // Check if its closing the path
-    if (this.isClosing) {
+    if (this.isClosing && this.points.length > 0) {
+      this.context.beginPath();
       this.context.strokeStyle = "#000000";
       this.context.fillStyle = "#0078D7";
       this.context.arc(this.points[0].x, this.points[0].y, 6, 0, 2 * Math.PI);
@@ -96,7 +108,7 @@ export class PenTool extends Tool {
   }
 
   public onKeyDown(evt: KeyboardEvent): void {
-    if (evt.code === "Enter") {
+    if (evt.code === "Enter" && this.state === "DRAWING" && this.points.length >= 2) {
       this.finalizePath(false);
     }
     if (evt.code === "Escape") {
@@ -122,10 +134,10 @@ export class PenTool extends Tool {
       const dx = this.points[0].x - evt.offsetX;
       const dy = this.points[0].y - evt.offsetY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      this.isClosing = dist <= this.CLOSE_DISTANCE && this.points.length >= 2;
-      this.points.push({ x: evt.offsetX, y: evt.offsetY });
-      if (this.isClosing) {
+      if (dist <= this.CLOSE_DISTANCE && this.points.length >= 2) {
         this.finalizePath(true);
+      } else {
+        this.points.push({ x: evt.offsetX, y: evt.offsetY });
       }
     }
   }
@@ -134,6 +146,10 @@ export class PenTool extends Tool {
     const { offsetX, offsetY } = evt;
     this.cursorPos = { x: offsetX, y: offsetY };
     if (this.state === "DRAWING") {
+      const dx = this.points[0].x - offsetX;
+      const dy = this.points[0].y - offsetY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      this.isClosing = dist <= this.CLOSE_DISTANCE && this.points.length >= 2;
       this.eventBus.emit("workarea:update");
     }
   }
