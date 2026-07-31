@@ -13,6 +13,7 @@ export class PenTool extends Tool {
     super.equip();
     if (this.canvas) this.canvas.style.cursor = "crosshair";
   }
+
   public unequip(): void {
     if (this.state === "DRAWING" && this.points.length >= 2) {
       this.finalizePath(false);
@@ -22,6 +23,7 @@ export class PenTool extends Tool {
     if (this.canvas) this.canvas.style.cursor = "";
     super.unequip();
   }
+
   private discardPath() {
     if (this.state === "DRAWING" && this.points.length >= 2) {
       this.eventBus.emit("alert:add", {
@@ -34,6 +36,7 @@ export class PenTool extends Tool {
       this.eventBus.emit("workarea:update");
     }
   }
+
   private finalizePath(isClosed: boolean) {
     let minX = -Infinity;
     let minY = -Infinity;
@@ -71,12 +74,15 @@ export class PenTool extends Tool {
       this.context.stroke();
     }
 
-    this.context.globalAlpha = 0.5;
-    this.context.setLineDash([5, 5]);
-    this.context.lineWidth = 2;
-    this.context.lineTo(this.cursorPos.x, this.cursorPos.y);
-    this.context.strokeStyle = "#000000";
-    this.context.stroke();
+    if (this.cursorPos) {
+      this.context.globalAlpha = 0.5;
+      this.context.setLineDash([5, 5]);
+      this.context.lineWidth = 2;
+      this.context.lineTo(this.cursorPos.x, this.cursorPos.y);
+      this.context.strokeStyle = "#000000";
+      this.context.stroke();
+    }
+
     this.context.closePath();
     // Check if its closing the path
     if (this.isClosing) {
