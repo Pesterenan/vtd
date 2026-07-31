@@ -1,12 +1,14 @@
 import type { Element } from "src/components/elements/element";
 import { GradientElement } from "src/components/elements/gradientElement";
 import { ImageElement } from "src/components/elements/imageElement";
+import { PathElement } from "./elements/pathElement";
 import { TextElement } from "src/components/elements/textElement";
-import type { Layer, Position, Size, TElementData } from "src/components/types";
+import type { Layer, Point, Position, Size, TElementData } from "src/components/types";
 import type {
   EventBus,
   ExportCanvasToStringPayload,
   ExportLayerToClipBoardPayload,
+  PathPayload,
   PositionPayload,
   ReorganizeLayersPayload,
   SelectElementsAtPayload,
@@ -48,6 +50,7 @@ export class WorkArea {
 
   private addEvents(): void {
     this.eventBus.on("edit:gradient", this.handleEditGradient);
+    this.eventBus.on("edit:path", this.handleEditPath);
     this.eventBus.on("edit:text", this.handleEditText);
     this.eventBus.on("workarea:addGroupElement", this.handleAddGroupElement);
     this.eventBus.on("workarea:canvas:getBlob", this.handleRequestCanvasBlob);
@@ -81,6 +84,7 @@ export class WorkArea {
 
   public removeEvents(): void {
     this.eventBus.off("edit:gradient", this.handleEditGradient);
+    this.eventBus.off("edit:path", this.handleEditPath);
     this.eventBus.off("edit:text", this.handleEditText);
     this.eventBus.off("workarea:addGroupElement", this.handleAddGroupElement);
     this.eventBus.off("workarea:canvas:getBlob", this.handleRequestCanvasBlob);
@@ -168,6 +172,34 @@ export class WorkArea {
       this.selectElementsAt({ firstPoint: position });
     }
   };
+
+  private calculatePathSize = (points: Point[]) => {
+    if (points.length === 0) return { width: 0, height: 0 };
+    const xs = points.map(p => p.x);
+    const ys = points.map(p => p.y);
+    return {
+      width: Math.max(...xs) - Math.min(...xs) || 1,
+      height: Math.max(...ys) - Math.min(...ys) || 1,
+    };
+  }
+
+  private handleEditPath = ({ position, points, isClosed }: PathPayload): void => {
+    const size = this.calculatePathSize(points);
+    const newElement = new PathElement(position, size, this.elements.length);
+    newElement.points = points;
+    newElement.isClosed = isClosed;
+
+    this.elements.push(newElement as Element<TElementData>);
+    this.eventBus.emit("workarea:addElement", {
+      elementId: newElement.elementId,
+      isLocked: newElement.isLocked,
+      isVisible: newElement.isVisible,
+      layerName: newElement.layerName,
+      type: 'path',
+    });
+    this.selectElementsAt({ firstPoint: position });
+    this.eventBus.emit("workarea:update");
+  }
 
   private createTransformBox = (): void => {
     this.removeTransformBox();
@@ -313,6 +345,13 @@ export class WorkArea {
     switch (elData.type) {
       case "image":
         newElement = new ImageElement(
+          elData.position,
+          elData.size,
+          elData.zDepth,
+        ) as Element<TElementData>;
+        break;
+      case "path":
+        newElement = new PathElement(
           elData.position,
           elData.size,
           elData.zDepth,

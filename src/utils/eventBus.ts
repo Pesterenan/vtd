@@ -78,6 +78,12 @@ export type PositionPayload = {
   position: Position;
 };
 
+export type PathPayload = {
+  position: Position;
+  points: Point[];
+  isClosed: boolean;
+};
+
 export type SelectElementsAtPayload = {
   firstPoint?: Position | null;
   secondPoint?: Position | null;
@@ -135,11 +141,7 @@ export interface EventBusMap {
     result: unknown;
   };
   "edit:path": {
-    payload: {
-      position: Position,
-      points: Point[],
-      isClosed: boolean,
-    };
+    payload: PathPayload;
     result: unknown;
   };
   "edit:text": {
@@ -306,7 +308,12 @@ export interface EventBusMap {
     result: unknown;
   };
   "vfe:metadata-loaded": {
-    payload: { info: string; totalFrames: number; frameRate: number; filePath: string };
+    payload: {
+      info: string;
+      totalFrames: number;
+      frameRate: number;
+      filePath: string;
+    };
     result: unknown;
   };
   "workarea:addImage": {
@@ -342,7 +349,7 @@ export interface EventBusMap {
   };
   "workarea:canvas:getBlob": {
     payload: ExportCanvasToStringPayload;
-    result: Promise<{ blob: Blob, dataURL: string } | undefined>;
+    result: Promise<{ blob: Blob; dataURL: string } | undefined>;
   };
   "workarea:clear": {
     payload: unknown;
