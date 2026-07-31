@@ -9,6 +9,7 @@ import TransformMenu from "./components/TransformMenu/TransformMenu";
 import LayersMenu from "./components/LayersMenu/LayersMenu";
 import TextMenu from "./components/TextMenu/TextMenu";
 import GradientMenu from "./components/GradientMenu/GradientMenu";
+import PathMenu from "./components/PathMenu/PathMenu";
 import DialogController from "./components/dialogs/DialogController";
 import AlertsProvider from "./components/alerts/AlertsProvider";
 import LoadingProvider from "./components/LoadingOverlay/LoadingProvider";
@@ -63,6 +64,7 @@ const App = () => {
               <LayersMenu />
               <TextMenu />
               <GradientMenu />
+              <PathMenu />
             </SideMenu>
           </main>
         </LoadingProvider>
