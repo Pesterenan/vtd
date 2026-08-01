@@ -1,10 +1,53 @@
 import { PenTool } from "./penTool";
 import { EventBus } from "../../utils/eventBus";
+import { PathElement } from "../elements/pathElement";
+import { rotatePoint } from "src/utils/transforms";
+import type { Point, Position } from "../types";
+
+type MouseEventWithOffset = MouseEvent & {
+  offsetX: number;
+  offsetY: number;
+};
+
+function createMouseEvent(
+  offsetX: number,
+  offsetY: number,
+  init: MouseEventInit = {},
+): MouseEventWithOffset {
+  const evt = new MouseEvent("mousedown", {
+    bubbles: true,
+    cancelable: false,
+    ...init,
+  }) as MouseEventWithOffset;
+  Object.defineProperty(evt, "offsetX", { value: offsetX });
+  Object.defineProperty(evt, "offsetY", { value: offsetY });
+  return evt;
+}
 
 describe("PenTool", () => {
   let canvas: HTMLCanvasElement;
   let eventBus: EventBus;
   let penTool: PenTool;
+
+  function mockSelected(selected: unknown[] | null = null) {
+    vi.mocked(eventBus.request).mockImplementation((event, payload) => {
+      const pos = (payload as { position?: { x?: number; y?: number } })
+        ?.position;
+      if (event === "workarea:selected:get") {
+        return selected === null ? [[]] : [selected];
+      }
+      if (event === "workarea:adjustForCanvas") {
+        return [{ x: pos?.x || 0, y: pos?.y || 0 }];
+      }
+      if (event === "workarea:adjustForScreen") {
+        return [{ x: pos?.x || 0, y: pos?.y || 0 }];
+      }
+      if (event === "zoomLevel:get") {
+        return [1];
+      }
+      return [];
+    });
+  }
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -14,10 +57,22 @@ describe("PenTool", () => {
     eventBus = new EventBus();
     penTool = new PenTool(canvas, eventBus);
     vi.spyOn(eventBus, "emit");
-    // Mock adjustForCanvas para retornar Position (objeto {x, y})
+    // Mock request: adjustForCanvas/adjustForScreen retornam identidade
+    // e selected:get retorna seleção vazia por padrão
     vi.spyOn(eventBus, "request").mockImplementation((event, payload) => {
+      const pos = (payload as { position?: { x?: number; y?: number } })
+        ?.position;
+      if (event === "workarea:selected:get") {
+        return [[]];
+      }
       if (event === "workarea:adjustForCanvas") {
-        return [{ x: payload?.position.x || 0, y: payload?.position.y || 0 }];
+        return [{ x: pos?.x || 0, y: pos?.y || 0 }];
+      }
+      if (event === "workarea:adjustForScreen") {
+        return [{ x: pos?.x || 0, y: pos?.y || 0 }];
+      }
+      if (event === "zoomLevel:get") {
+        return [1];
       }
       return [];
     });
@@ -36,67 +91,22 @@ describe("PenTool", () => {
   });
 
   it("onMouseDown in IDLE state should start path and transition to DRAWING", () => {
-    const evt = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt, "offsetX", { value: 100 });
-    Object.defineProperty(evt, "offsetY", { value: 200 });
+    penTool.onMouseDown(createMouseEvent(100, 200));
 
-    penTool.onMouseDown(evt);
-
-    expect(penTool.state).toBe("DRAWING");
+    expect(penTool["state"]).toBe("DRAWING");
   });
 
   it("onMouseDown in DRAWING state should add point to screenPoints", () => {
-    const evt1 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt1, "offsetX", { value: 100 });
-    Object.defineProperty(evt1, "offsetY", { value: 200 });
+    penTool.onMouseDown(createMouseEvent(100, 200));
+    penTool.onMouseDown(createMouseEvent(300, 400));
 
-    penTool.onMouseDown(evt1);
-
-    const evt2 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt2, "offsetX", { value: 300 });
-    Object.defineProperty(evt2, "offsetY", { value: 400 });
-
-    penTool.onMouseDown(evt2);
-
-    expect(penTool.state).toBe("DRAWING");
+    expect(penTool["state"]).toBe("DRAWING");
   });
 
   it("should auto-close path when click is within 8px of first point", () => {
-    // First click at (100, 200)
-    const evt1 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt1, "offsetX", { value: 100 });
-    Object.defineProperty(evt1, "offsetY", { value: 200 });
-    penTool.onMouseDown(evt1);
-
-    // Second click far away (>8px from first point)
-    const evt2 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt2, "offsetX", { value: 500 });
-    Object.defineProperty(evt2, "offsetY", { value: 600 });
-    penTool.onMouseDown(evt2);
-
-    // Third click within 8px of first point → should auto-close
-    const evt3 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt3, "offsetX", { value: 104 });
-    Object.defineProperty(evt3, "offsetY", { value: 204 });
-    penTool.onMouseDown(evt3);
+    penTool.onMouseDown(createMouseEvent(100, 200));
+    penTool.onMouseDown(createMouseEvent(500, 600));
+    penTool.onMouseDown(createMouseEvent(104, 204));
 
     expect(eventBus.emit).toHaveBeenCalledWith("edit:path", {
       position: expect.anything(),
@@ -106,26 +116,9 @@ describe("PenTool", () => {
   });
 
   it("should finalize path as open when Enter is pressed with >= 2 points", () => {
-    const evt1 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt1, "offsetX", { value: 100 });
-    Object.defineProperty(evt1, "offsetY", { value: 200 });
+    penTool.onMouseDown(createMouseEvent(100, 200));
+    penTool.onMouseDown(createMouseEvent(500, 600));
 
-    penTool.onMouseDown(evt1);
-
-    // Segundo ponto muito distante (>8px) para evitar fechamento automático
-    const evt2 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt2, "offsetX", { value: 500 });
-    Object.defineProperty(evt2, "offsetY", { value: 600 });
-
-    penTool.onMouseDown(evt2);
-
-    // Enter finaliza o caminho como aberto (isClosed=false)
     const keydownEvent = new KeyboardEvent("keydown", { code: "Enter" });
     penTool.onKeyDown(keydownEvent);
 
@@ -137,67 +130,27 @@ describe("PenTool", () => {
   });
 
   it("should discard path when Escape is pressed", () => {
-    const evt1 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt1, "offsetX", { value: 100 });
-    Object.defineProperty(evt1, "offsetY", { value: 200 });
+    penTool.onMouseDown(createMouseEvent(100, 200));
+    penTool.onMouseDown(createMouseEvent(300, 400));
 
-    penTool.onMouseDown(evt1);
-
-    const evt2 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt2, "offsetX", { value: 300 });
-    Object.defineProperty(evt2, "offsetY", { value: 400 });
-
-    penTool.onMouseDown(evt2);
-
-    // Escape descarta o caminho e volta a IDLE
     const keydownEvent = new KeyboardEvent("keydown", { code: "Escape" });
     penTool.onKeyDown(keydownEvent);
 
-    expect(penTool.state).toBe("IDLE");
+    expect(penTool["state"]).toBe("IDLE");
   });
 
   it("Backspace should remove last point and return to IDLE when empty", () => {
-    const evt1 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt1, "offsetX", { value: 100 });
-    Object.defineProperty(evt1, "offsetY", { value: 200 });
+    penTool.onMouseDown(createMouseEvent(100, 200));
 
-    penTool.onMouseDown(evt1);
-
-    // Backspace remove o último ponto e volta a IDLE quando vazio
     const keydownEvent = new KeyboardEvent("keydown", { code: "Backspace" });
     penTool.onKeyDown(keydownEvent);
 
-    expect(penTool.state).toBe("IDLE");
+    expect(penTool["state"]).toBe("IDLE");
   });
 
   it("unequip during DRAWING should finalize path as open if >= 2 points", () => {
-    const evt1 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt1, "offsetX", { value: 100 });
-    Object.defineProperty(evt1, "offsetY", { value: 200 });
-
-    penTool.onMouseDown(evt1);
-
-    // Segundo ponto muito distante (>8px) para evitar fechamento automático
-    const evt2 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt2, "offsetX", { value: 500 });
-    Object.defineProperty(evt2, "offsetY", { value: 600 });
-
-    penTool.onMouseDown(evt2);
+    penTool.onMouseDown(createMouseEvent(100, 200));
+    penTool.onMouseDown(createMouseEvent(500, 600));
 
     const unequipSpy = vi.spyOn(penTool, "unequip");
     penTool.unequip();
@@ -211,36 +164,10 @@ describe("PenTool", () => {
   });
 
   it("draw() should call canvas context methods for path preview", () => {
-    // Setup: add points with distance >8px to avoid auto-close
-    const evt1 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt1, "offsetX", { value: 100 });
-    Object.defineProperty(evt1, "offsetY", { value: 200 });
+    penTool.onMouseDown(createMouseEvent(100, 200));
+    penTool.onMouseDown(createMouseEvent(500, 600));
+    penTool.onMouseMove(createMouseEvent(800, 900));
 
-    penTool.onMouseDown(evt1);
-
-    const evt2 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt2, "offsetX", { value: 500 });
-    Object.defineProperty(evt2, "offsetY", { value: 600 });
-
-    penTool.onMouseDown(evt2);
-
-    // Set cursor position (simulating mouse move)
-    const mouseMoveEvent = new MouseEvent("mousemove") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(mouseMoveEvent, "offsetX", { value: 800 });
-    Object.defineProperty(mouseMoveEvent, "offsetY", { value: 900 });
-
-    penTool.onMouseMove(mouseMoveEvent);
-
-    // Spy on the real canvas context methods
     const context = canvas.getContext("2d")!;
     const beginPathSpy = vi.spyOn(context, "beginPath");
     const lineToSpy = vi.spyOn(context, "lineTo");
@@ -256,61 +183,341 @@ describe("PenTool", () => {
   });
 
   it("should handle right-click by ignoring in onMouseDown", () => {
-    const evt = new MouseEvent("mousedown", {
-      bubbles: true,
-      cancelable: false,
-      button: 2, // right-click
-    }) as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt, "offsetX", { value: 100 });
-    Object.defineProperty(evt, "offsetY", { value: 200 });
+    const evt = createMouseEvent(100, 200, { button: 2 });
 
     penTool.onMouseDown(evt);
 
-    expect(penTool.state).toBe("IDLE");
-    // Right-click should not add any points or emit events
+    expect(penTool["state"]).toBe("IDLE");
     expect(eventBus.emit).not.toHaveBeenCalled();
   });
 
   it("onMouseMove should update cursor position and emit workarea:update in DRAWING state", () => {
-    const evt1 = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt1, "offsetX", { value: 100 });
-    Object.defineProperty(evt1, "offsetY", { value: 200 });
-
-    penTool.onMouseDown(evt1);
-
-    const mouseMoveEvent = new MouseEvent("mousemove") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(mouseMoveEvent, "offsetX", { value: 300 });
-    Object.defineProperty(mouseMoveEvent, "offsetY", { value: 400 });
-
-    penTool.onMouseMove(mouseMoveEvent);
+    penTool.onMouseDown(createMouseEvent(100, 200));
+    penTool.onMouseMove(createMouseEvent(300, 400));
 
     expect(eventBus.emit).toHaveBeenCalledWith("workarea:update");
   });
 
   it("should not finalize path when unequip with only 1 point", () => {
-    const evt = new MouseEvent("mousedown") as MouseEvent & {
-      offsetX: number;
-      offsetY: number;
-    };
-    Object.defineProperty(evt, "offsetX", { value: 100 });
-    Object.defineProperty(evt, "offsetY", { value: 200 });
-
-    penTool.onMouseDown(evt);
+    penTool.onMouseDown(createMouseEvent(100, 200));
 
     const unequipSpy = vi.spyOn(penTool, "unequip");
     penTool.unequip();
 
     expect(unequipSpy).toHaveBeenCalled();
-    // Should not emit edit:path since only 1 point (discardPath is called instead)
-    expect(eventBus.emit).not.toHaveBeenCalledWith("edit:path", expect.any(Object));
+    expect(eventBus.emit).not.toHaveBeenCalledWith(
+      "edit:path",
+      expect.any(Object),
+    );
+  });
+
+  describe("point editing", () => {
+    let pathElement: PathElement;
+
+    beforeEach(() => {
+      pathElement = new PathElement(
+        { x: 400, y: 300 },
+        { width: 600, height: 400 },
+        1,
+      );
+      // Pontos RELATIVOS ao position (400,300):
+      // canvas abs: (200,150), (600,150), (600,450)
+      pathElement.points = [
+        { x: -200, y: -150 },
+        { x: 200, y: -150 },
+        { x: 200, y: 150 },
+      ];
+    });
+
+    it("should NOT enter edit mode automatically on equip", () => {
+      mockSelected([pathElement]);
+      penTool.equip();
+
+      expect(penTool["activePointIndex"]).toBeNull();
+      expect(penTool["editElementId"]).toBeNull();
+    });
+
+    it("plain click draws a new path even with a path selected", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(100, 100));
+
+      expect(penTool["state"]).toBe("DRAWING");
+    });
+
+    it("CTRL+click on a point enters EDIT_MOVING", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
+
+      expect(penTool["state"]).toBe("EDIT_MOVING");
+      expect(penTool["activePointIndex"]).toBe(0);
+    });
+
+    it("CTRL+click far from any point draws instead", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(1000, 900, { ctrlKey: true }));
+
+      expect(penTool["state"]).toBe("DRAWING");
+    });
+
+    it("CTRL+click with no path selected draws instead", () => {
+      mockSelected();
+      penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
+
+      expect(penTool["state"]).toBe("DRAWING");
+    });
+
+    it("EDIT_MOVING: mouse move updates the point using canvas coordinates", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
+      penTool.onMouseMove(createMouseEvent(300, 250));
+
+      // canvasPos (300,250) convertido para local: (300-400, 250-300) = (-100,-50)
+      expect(pathElement.points[0]).toEqual({ x: -100, y: -50 });
+      expect(eventBus.emit).toHaveBeenCalledWith("workarea:update");
+    });
+
+    it("EDIT_MOVING: mouse up keeps active point selected", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
+      penTool.onMouseUp(new MouseEvent("mouseup"));
+
+      expect(penTool["state"]).toBe("IDLE");
+      expect(penTool["activePointIndex"]).toBe(0);
+    });
+
+    it("SHIFT+click enters EDIT_ADDING and appends new point on mouse up", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(400, 300, { shiftKey: true }));
+
+      expect(penTool["state"]).toBe("EDIT_ADDING");
+
+      penTool.onMouseUp(new MouseEvent("mouseup"));
+
+      expect(pathElement.points.length).toBe(4);
+      // canvasPos (400,300) convertido para local: (0,0)
+      expect(pathElement.points[3]).toEqual({ x: 0, y: 0 });
+    });
+
+    it("SHIFT+click without selection draws instead", () => {
+      mockSelected();
+      penTool.onMouseDown(createMouseEvent(400, 300, { shiftKey: true }));
+
+      expect(penTool["state"]).toBe("DRAWING");
+    });
+
+    it("ALT+click on a point removes it", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(200, 150, { altKey: true }));
+
+      expect(pathElement.points.length).toBe(2);
+    });
+
+    it("ALT+click far from points draws instead", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(1000, 900, { altKey: true }));
+
+      expect(penTool["state"]).toBe("DRAWING");
+    });
+
+    it("should not remove the last point of a path", () => {
+      const single = new PathElement({ x: 0, y: 0 }, { width: 10, height: 10 }, 2);
+      single.points = [{ x: 10, y: 10 }];
+
+      mockSelected([single]);
+      penTool.onMouseDown(createMouseEvent(10, 10, { altKey: true }));
+
+      expect(single.points.length).toBe(1);
+    });
+
+    it("Backspace removes the active point after selection", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
+      penTool.onMouseUp(new MouseEvent("mouseup"));
+      penTool.onKeyDown(new KeyboardEvent("keydown", { code: "Backspace" }));
+
+      expect(pathElement.points.length).toBe(2);
+    });
+
+    it("Delete removes the active point", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(600, 150, { ctrlKey: true }));
+      penTool.onMouseUp(new MouseEvent("mouseup"));
+      penTool.onKeyDown(new KeyboardEvent("keydown", { code: "Delete" }));
+
+      expect(pathElement.points.length).toBe(2);
+    });
+
+    it("Escape clears the active point selection", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
+      penTool.onMouseUp(new MouseEvent("mouseup"));
+      penTool.onKeyDown(new KeyboardEvent("keydown", { code: "Escape" }));
+
+      expect(penTool["activePointIndex"]).toBeNull();
+      expect(penTool["editElementId"]).toBeNull();
+    });
+
+    it("unequip clears edit state without touching the path", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
+      const pointsBefore = pathElement.points.length;
+
+      penTool.unequip();
+
+      expect(penTool["activePointIndex"]).toBeNull();
+      expect(penTool["editElementId"]).toBeNull();
+      expect(pathElement.points.length).toBe(pointsBefore);
+    });
+
+    it("serialize() does not contain edit state", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
+
+      const serialized = pathElement.serialize();
+
+      expect(serialized).not.toHaveProperty("activePointIndex");
+    });
+
+    it("draw() renders edit handles for the selected path", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
+
+      const context = canvas.getContext("2d")!;
+      const arcSpy = vi.spyOn(context, "arc");
+
+      penTool.draw();
+
+      // 3 pontos do path + 1 ponto ativo
+      expect(arcSpy).toHaveBeenCalledTimes(4);
+    });
+
+    it("draw() renders the active handle at position-computed canvas coords", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
+
+      const context = canvas.getContext("2d")!;
+      const arcCalls: Array<{ x: number; y: number; r: number }> = [];
+      vi.spyOn(context, "arc").mockImplementation((x, y, r) => {
+        arcCalls.push({ x, y, r });
+      });
+
+      penTool.draw();
+
+      // ponto ativo (raio 6) = ponto local (-200,-150) + position (400,300)
+      const active = arcCalls.find((call) => call.r > 3);
+      expect(active).toBeDefined();
+      expect(active!.x).toBe(200);
+      expect(active!.y).toBe(150);
+    });
+
+    it("findClosestPoint hit-test scales the threshold by zoom level", () => {
+      vi.mocked(eventBus.request).mockImplementation((event, payload) => {
+        const pos = (payload as { position?: { x?: number; y?: number } })
+          ?.position;
+        if (event === "workarea:selected:get") return [[pathElement]];
+        if (event === "zoomLevel:get") return [0.5];
+        if (event === "workarea:adjustForCanvas")
+          return [{ x: pos?.x || 0, y: pos?.y || 0 }];
+        return [];
+      });
+
+      // ponto 0 no canvas (200,150); clique a 10px (fora dos 8px a zoom 1)
+      penTool.onMouseDown(createMouseEvent(200, 160, { ctrlKey: true }));
+
+      // zoom 0.5 → threshold 16 → entra EDIT_MOVING
+      expect(penTool["state"]).toBe("EDIT_MOVING");
+      expect(penTool["activePointIndex"]).toBe(0);
+    });
+
+    it("click at 10px from a point draws at zoom 1", () => {
+      mockSelected([pathElement]);
+
+      penTool.onMouseDown(createMouseEvent(200, 160, { ctrlKey: true }));
+
+      expect(penTool["state"]).toBe("DRAWING");
+    });
+
+    it("Escape during EDIT_MOVING returns to IDLE and clears selection", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
+      expect(penTool["state"]).toBe("EDIT_MOVING");
+
+      penTool.onKeyDown(new KeyboardEvent("keydown", { code: "Escape" }));
+
+      expect(penTool["state"]).toBe("IDLE");
+      expect(penTool["activePointIndex"]).toBeNull();
+      expect(penTool["editElementId"]).toBeNull();
+    });
+
+    it("recomputeBounds recentralizes points, adjusts position and updates size", () => {
+      const p = new PathElement({ x: 860, y: 422 }, { width: 10, height: 10 }, 1);
+      p.points = [
+        { x: 100, y: 119 },
+        { x: -392, y: -222 },
+        { x: 291, y: -290 },
+        { x: 393, y: 222 },
+        { x: -324, y: 290 },
+      ];
+
+      penTool["recomputeBounds"](p);
+
+      expect(p.position).toEqual({ x: 860.5, y: 422 });
+      expect(p.size).toEqual({ width: 785, height: 580 });
+      expect(p.points[0]).toEqual({ x: 99.5, y: 119 });
+      expect(p.points[3]).toEqual({ x: 392.5, y: 222 });
+      expect(p.points[4]).toEqual({ x: -324.5, y: 290 });
+    });
+
+    it("recomputeBounds preserves the rendered path with scale and rotation", () => {
+      const p = new PathElement(
+        { x: 500, y: 300 },
+        { width: 10, height: 10 },
+        1,
+      );
+      p.scale = { x: 2, y: 1 };
+      p.rotation = 90;
+      p.points = [
+        { x: 10, y: 0 },
+        { x: -10, y: 0 },
+        { x: 0, y: 20 },
+      ];
+
+      const render = (position: Position, points: Point[]) =>
+        points.map((pt) => {
+          const scaled = { x: pt.x * 2, y: pt.y * 1 };
+          const rotated = rotatePoint(scaled, { x: 0, y: 0 }, 90);
+          return { x: rotated.x + position.x, y: rotated.y + position.y };
+        });
+      const before = render(p.position, p.points);
+
+      penTool["recomputeBounds"](p);
+
+      expect(render(p.position, p.points)).toEqual(before);
+      expect(p.position).toEqual({ x: 490, y: 300 });
+      expect(p.size).toEqual({ width: 20, height: 20 });
+    });
+
+    it("mouse up after moving a point recomputes the path bounds", () => {
+      const p = new PathElement(
+        { x: 400, y: 300 },
+        { width: 600, height: 400 },
+        1,
+      );
+      p.points = [
+        { x: -200, y: -150 },
+        { x: 200, y: -150 },
+        { x: 200, y: 150 },
+      ];
+      mockSelected([p]);
+
+      penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
+      penTool.onMouseMove(createMouseEvent(100, 450));
+      penTool.onMouseUp(new MouseEvent("mouseup"));
+
+      // ponto 0 foi para o canvas (100,450) → local (-300,150)
+      expect(p.position).toEqual({ x: 350, y: 300 });
+      expect(p.size).toEqual({ width: 500, height: 300 });
+      expect(p.points[0]).toEqual({ x: -250, y: 150 });
+    });
   });
 });

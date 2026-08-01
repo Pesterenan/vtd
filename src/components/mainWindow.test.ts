@@ -7,7 +7,7 @@ import { PenTool } from "src/components/tools/penTool";
 import { MainWindow } from "./mainWindow";
 
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(() => Promise.resolve(() => {})),
+  listen: vi.fn(() => Promise.resolve(() => undefined)),
 }));
 
 vi.mock("@tauri-apps/api/window", () => ({

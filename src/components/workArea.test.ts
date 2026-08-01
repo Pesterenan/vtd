@@ -16,8 +16,10 @@ describe("WorkArea - Path Integration", () => {
     workArea.setWorkAreaSize({ width: 800, height: 600 });
     vi.spyOn(eventBus, "emit");
     vi.spyOn(eventBus, "request").mockImplementation((event, payload) => {
+      const pos = (payload as { position?: { x?: number; y?: number } })
+        ?.position;
       if (event === "workarea:adjustForCanvas") {
-        return [{ x: payload?.position?.x || 0, y: payload?.position?.y || 0 }];
+        return [{ x: pos?.x || 0, y: pos?.y || 0 }];
       }
       return [];
     });

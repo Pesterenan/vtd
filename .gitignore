@@ -98,3 +98,6 @@ GEMINI.MD
 
 # Playwright MCP output (screenshots, snapshots)
 .playwright-mcp/
+
+# Planning handoff artifacts (specs, plans, TDD reports)
+.plans/

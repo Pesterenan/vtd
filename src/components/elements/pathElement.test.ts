@@ -104,8 +104,15 @@ describe("PathElement", () => {
       const data: IPathElementData = {
         type: "path",
         position: { x: 200, y: 400 },
+        scale: { x: 1, y: 1 },
         size: { width: 600, height: 300 },
+        rotation: 0,
+        opacity: 1,
         zDepth: 10,
+        isLocked: false,
+        isVisible: true,
+        layerName: "",
+        filters: [],
         points: [
           { x: 50, y: -75 },
           { x: 100, y: 25 },
