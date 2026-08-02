@@ -252,18 +252,18 @@ describe("PenTool", () => {
       expect(penTool["activePointIndex"]).toBe(0);
     });
 
-    it("CTRL+click far from any point draws instead", () => {
+    it("CTRL+click far from any point does nothing (stays IDLE)", () => {
       mockSelected([pathElement]);
       penTool.onMouseDown(createMouseEvent(1000, 900, { ctrlKey: true }));
 
-      expect(penTool["state"]).toBe("DRAWING");
+      expect(penTool["state"]).toBe("IDLE");
     });
 
-    it("CTRL+click with no path selected draws instead", () => {
+    it("CTRL+click with no path selected stays IDLE", () => {
       mockSelected();
       penTool.onMouseDown(createMouseEvent(200, 150, { ctrlKey: true }));
 
-      expect(penTool["state"]).toBe("DRAWING");
+      expect(penTool["state"]).toBe("IDLE");
     });
 
     it("EDIT_MOVING: mouse move updates the point using canvas coordinates", () => {
@@ -285,24 +285,29 @@ describe("PenTool", () => {
       expect(penTool["activePointIndex"]).toBe(0);
     });
 
-    it("SHIFT+click enters EDIT_ADDING and appends new point on mouse up", () => {
+    it("SHIFT+click on a segment sets insert target and splices on mouse up", () => {
       mockSelected([pathElement]);
-      penTool.onMouseDown(createMouseEvent(400, 300, { shiftKey: true }));
+      penTool.onMouseDown(createMouseEvent(600, 300, { shiftKey: true }));
 
-      expect(penTool["state"]).toBe("EDIT_ADDING");
+      expect(penTool["insertMode"]).toBe(true);
+      expect(penTool["insertPath"]).toBe(pathElement);
+      expect(penTool["insertTargetIndex"]).not.toBeNull();
+      expect(penTool["insertPointPos"]).toEqual({ x: 600, y: 300 });
 
       penTool.onMouseUp(new MouseEvent("mouseup"));
 
+      // segment1 = vertical (600,150)-(600,450); clique (600,300) → insert no índice 2
       expect(pathElement.points.length).toBe(4);
-      // canvasPos (400,300) convertido para local: (0,0)
-      expect(pathElement.points[3]).toEqual({ x: 0, y: 0 });
+      expect(pathElement.points[2]).toEqual({ x: 200, y: 0 });
+      expect(penTool["insertMode"]).toBe(false);
     });
 
-    it("SHIFT+click without selection draws instead", () => {
+    it("SHIFT+click without a nearby target stays IDLE", () => {
       mockSelected();
-      penTool.onMouseDown(createMouseEvent(400, 300, { shiftKey: true }));
+      penTool.onMouseDown(createMouseEvent(1000, 900, { shiftKey: true }));
 
-      expect(penTool["state"]).toBe("DRAWING");
+      expect(penTool["state"]).toBe("IDLE");
+      expect(penTool["insertMode"]).toBe(false);
     });
 
     it("ALT+click on a point removes it", () => {
@@ -312,11 +317,11 @@ describe("PenTool", () => {
       expect(pathElement.points.length).toBe(2);
     });
 
-    it("ALT+click far from points draws instead", () => {
+    it("ALT+click far from points stays IDLE", () => {
       mockSelected([pathElement]);
       penTool.onMouseDown(createMouseEvent(1000, 900, { altKey: true }));
 
-      expect(penTool["state"]).toBe("DRAWING");
+      expect(penTool["state"]).toBe("IDLE");
     });
 
     it("should not remove the last point of a path", () => {
@@ -429,12 +434,13 @@ describe("PenTool", () => {
       expect(penTool["activePointIndex"]).toBe(0);
     });
 
-    it("click at 10px from a point draws at zoom 1", () => {
+    it("CTRL+click 10px from a point with no path near stays IDLE", () => {
       mockSelected([pathElement]);
 
       penTool.onMouseDown(createMouseEvent(200, 160, { ctrlKey: true }));
 
-      expect(penTool["state"]).toBe("DRAWING");
+      // (200,160) está a 10px de um ponto, fora dos 8px (zoom 1) → sem hit
+      expect(penTool["state"]).toBe("IDLE");
     });
 
     it("Escape during EDIT_MOVING returns to IDLE and clears selection", () => {
@@ -518,6 +524,130 @@ describe("PenTool", () => {
       expect(p.position).toEqual({ x: 350, y: 300 });
       expect(p.size).toEqual({ width: 500, height: 300 });
       expect(p.points[0]).toEqual({ x: -250, y: 150 });
+    });
+
+    it("SHIFT+click on a segment inserts a point on that segment (not a new path)", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(400, 150, { shiftKey: true }));
+
+      expect(penTool["state"]).toBe("IDLE");
+      expect(penTool["insertMode"]).toBe(true);
+
+      penTool.onMouseUp(new MouseEvent("mouseup"));
+
+      // segment0 = (200,150)-(600,150); clique em (400,150) → projeta (400,150)
+      // local = (400-400, 150-300) = (0,-150), inserido no índice 1
+      expect(pathElement.points.length).toBe(4);
+      expect(pathElement.points[1]).toEqual({ x: 0, y: -150 });
+      expect(penTool["insertMode"]).toBe(false);
+      expect(penTool["insertPointPos"]).toBeNull();
+      expect(penTool["insertTargetIndex"]).toBeNull();
+    });
+
+    it("insert mouseup does not throw and keeps the same selected path only", () => {
+      mockSelected([pathElement]);
+      const before = pathElement.elementId;
+
+      penTool.onMouseDown(createMouseEvent(600, 300, { shiftKey: true }));
+      penTool.onMouseUp(new MouseEvent("mouseup"));
+
+      // segment1 = vertical (600,150)-(600,450); clique (600,300) → inserido ali
+      expect(pathElement.elementId).toBe(before);
+      expect(pathElement.points.length).toBe(4);
+      expect(penTool["state"]).toBe("IDLE");
+    });
+
+    it("SHIFT+click exactly at a point still enables insert mode", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(600, 150, { shiftKey: true }));
+      penTool.onMouseUp(new MouseEvent("mouseup"));
+
+      // SHIFT sempre insere no segmento mais próximo, mesmo sobre um vértice
+      expect(penTool["state"]).toBe("IDLE");
+      expect(pathElement.points.length).toBe(4);
+    });
+
+    it("SHIFT+click on the closing segment of a closed path inserts a point", () => {
+      const closed = new PathElement({ x: 400, y: 300 }, { width: 200, height: 300 }, 1);
+      closed.isClosed = true;
+      closed.points = [
+        { x: -100, y: -150 },
+        { x: 100, y: -150 },
+        { x: 0, y: 150 },
+      ];
+
+      mockSelected([closed]);
+      // segmento que fecha (p2->p0): canvas (400,450)-(300,150); ponto médio (350,300)
+      penTool.onMouseDown(createMouseEvent(350, 300, { shiftKey: true }));
+
+      expect(penTool["insertMode"]).toBe(true);
+      penTool.onMouseUp(new MouseEvent("mouseup"));
+
+      expect(closed.points.length).toBe(4);
+      // local de (350,300) = (-50,0), inserido ao final (entre p2 e p0)
+      expect(closed.points[3]).toEqual({ x: -50, y: 0 });
+    });
+
+    it("SHIFT-only hover (sem clique) mostra preview de inserção", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseMove(createMouseEvent(400, 150, { shiftKey: true }));
+
+      expect(penTool["previewPath"]).toBe(pathElement);
+      expect(penTool["previewIndex"]).toBe(0);
+      expect(penTool["previewPos"]).toEqual({ x: 400, y: 150 });
+      // ainda não é um insert ativo
+      expect(penTool["insertMode"]).toBe(false);
+    });
+
+    it("soltar o SHIFT limpa o preview", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseMove(createMouseEvent(400, 150, { shiftKey: true }));
+      expect(penTool["previewPath"]).not.toBeNull();
+
+      penTool.onMouseMove(createMouseEvent(400, 150, {}));
+
+      expect(penTool["previewPath"]).toBeNull();
+      expect(penTool["previewPos"]).toBeNull();
+    });
+
+    it("insere o ponto exatamente onde o mouse está (sem projetar na linha)", () => {
+      mockSelected([pathElement]);
+      // (394,156) está a ~10px do segmento0 (y=150) - perto o bastante para hit,
+      // mas fora da linha - o ponto deve ser inserido na posição do cursor.
+      penTool.onMouseDown(createMouseEvent(394, 156, { shiftKey: true }));
+      penTool.onMouseUp(new MouseEvent("mouseup"));
+
+      expect(pathElement.points.length).toBe(4);
+      // local de (394,156) = (394-400, 156-300) = (-6,-144)
+      expect(pathElement.points[1]).toEqual({ x: -6, y: -144 });
+    });
+
+    it("unequip during insert mode clears insertion state completely", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(400, 150, { shiftKey: true }));
+      expect(penTool["insertMode"]).toBe(true);
+
+      penTool.unequip();
+
+      expect(penTool["state"]).toBe("IDLE");
+      expect(penTool["insertMode"]).toBe(false);
+      expect(penTool["insertPointPos"]).toBeNull();
+      expect(penTool["insertTargetIndex"]).toBeNull();
+      expect(penTool["activePointIndex"]).toBeNull();
+      expect(penTool["editElementId"]).toBeNull();
+    });
+
+    it("draw() renders edit handles for a selected path without a prior click", () => {
+      mockSelected([pathElement]);
+      penTool.equip();
+
+      const context = canvas.getContext("2d")!;
+      const arcSpy = vi.spyOn(context, "arc");
+
+      penTool.draw();
+
+      // 3 pontos do path, sem ponto ativo
+      expect(arcSpy).toHaveBeenCalledTimes(3);
     });
   });
 });
