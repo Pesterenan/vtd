@@ -768,6 +768,7 @@ public unequip(): void {
         const localPos = this.canvasToLocal(path, this.insertPointPos);
         path.points.splice(this.insertTargetIndex + 1, 0, localPos);
         this.recomputeBounds(path);
+        this.refreshTransformBox(path);
       }
       this.state = "IDLE";
       this.insertMode = false;
@@ -784,8 +785,15 @@ public unequip(): void {
       const path = this.editPath ?? this.getSelectedPath();
       if (path && path.elementId === this.editElementId) {
         this.recomputeBounds(path);
+        this.refreshTransformBox(path);
       }
       this.eventBus.emit("workarea:update");
     }
+  }
+
+  private refreshTransformBox(path: PathElement): void {
+    this.eventBus.emit("workarea:selectById", {
+      elementsId: new Set([path.elementId]),
+    });
   }
 }

@@ -622,6 +622,16 @@ describe("PenTool", () => {
       expect(pathElement.points[1]).toEqual({ x: -6, y: -144 });
     });
 
+    it("insert mouseup re-seliciona o path para recalcular o transform box", () => {
+      mockSelected([pathElement]);
+      penTool.onMouseDown(createMouseEvent(400, 150, { shiftKey: true }));
+      penTool.onMouseUp(new MouseEvent("mouseup"));
+
+      expect(eventBus.emit).toHaveBeenCalledWith("workarea:selectById", {
+        elementsId: new Set([pathElement.elementId]),
+      });
+    });
+
     it("unequip during insert mode clears insertion state completely", () => {
       mockSelected([pathElement]);
       penTool.onMouseDown(createMouseEvent(400, 150, { shiftKey: true }));
