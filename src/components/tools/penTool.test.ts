@@ -141,11 +141,14 @@ describe("PenTool", () => {
 
   it("Backspace should remove last point and return to IDLE when empty", () => {
     penTool.onMouseDown(createMouseEvent(100, 200));
+    penTool.onMouseMove(createMouseEvent(150, 250));
 
     const keydownEvent = new KeyboardEvent("keydown", { code: "Backspace" });
     penTool.onKeyDown(keydownEvent);
 
     expect(penTool["state"]).toBe("IDLE");
+    expect(penTool["points"]).toEqual([]);
+    expect(penTool["cursorPos"]).toBeNull();
   });
 
   it("unequip during DRAWING should finalize path as open if >= 2 points", () => {
@@ -332,6 +335,20 @@ describe("PenTool", () => {
       penTool.onMouseDown(createMouseEvent(10, 10, { altKey: true }));
 
       expect(single.points.length).toBe(1);
+    });
+
+    it("ALT cannot reduce a 2-point path to 1 point", () => {
+      const two = new PathElement({ x: 0, y: 0 }, { width: 20, height: 20 }, 2);
+      two.points = [
+        { x: 10, y: 10 },
+        { x: -10, y: -10 },
+      ];
+
+      mockSelected([two]);
+      penTool.onMouseDown(createMouseEvent(10, 10, { altKey: true }));
+
+      // mantém os 2 pontos: um path precisa de >= 2 para ser desenhável
+      expect(two.points.length).toBe(2);
     });
 
     it("Backspace removes the active point after selection", () => {

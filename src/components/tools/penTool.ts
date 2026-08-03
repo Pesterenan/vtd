@@ -523,7 +523,9 @@ public unequip(): void {
   }
 
   private removePoint(path: PathElement, index: number): void {
-    if (path.points.length <= 1) return;
+    // Um path precisa de ao menos 2 pontos para ser desenhável; não remove o
+    // penúltimo ponto (impede deixar o path com só 1 ponto).
+    if (path.points.length <= 2) return;
     path.points.splice(index, 1);
     if (this.activePointIndex !== null) {
       if (this.activePointIndex === index) {
@@ -534,6 +536,7 @@ public unequip(): void {
       }
     }
     this.recomputeBounds(path);
+    this.refreshTransformBox(path);
     this.eventBus.emit("workarea:update");
   }
 
@@ -548,7 +551,10 @@ public unequip(): void {
       if (evt.code === "Backspace") {
         this.points.pop();
         if (this.points.length === 0) {
-          this.state = "IDLE";
+          // Voltou a zero pontos: descarta o desenho em andamento e limpa o preview
+          this.discardPath(true);
+        } else {
+          this.eventBus.emit("workarea:update");
         }
       }
       return;
