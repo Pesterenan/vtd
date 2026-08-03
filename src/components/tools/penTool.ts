@@ -172,11 +172,15 @@ public unequip(): void {
     const p1Canvas = pair.p1;
     const p2Canvas = pair.p2;
 
-    // Desenha o segmento onde o ponto será inserido
     const p1 = this.screen(p1Canvas);
     const p2 = this.screen(p2Canvas);
+    const screenPos = this.screen(pos);
+
+    // Mostra como ficará a nova polilinha: de p1 -> novo ponto -> p2.
     this.context.beginPath();
     this.context.moveTo(p1.x, p1.y);
+    this.context.lineTo(screenPos.x, screenPos.y);
+    this.context.moveTo(screenPos.x, screenPos.y);
     this.context.lineTo(p2.x, p2.y);
     this.context.strokeStyle = "#0078D7";
     this.context.lineWidth = 1;
@@ -184,19 +188,7 @@ public unequip(): void {
     this.context.stroke();
     this.context.setLineDash([]);
 
-    // Desenha linha fantasma do segundo ponto do segmento até a inserção
-    this.context.beginPath();
-    this.context.moveTo(p2.x, p2.y);
-    const ghost = this.screen(pos);
-    this.context.lineTo(ghost.x, ghost.y);
-    this.context.strokeStyle = "#0078D7";
-    this.context.lineWidth = 1;
-    this.context.setLineDash([4, 4]);
-    this.context.stroke();
-    this.context.setLineDash([]);
-
     // Desenha ponto fantasma (maior que os pontos normais) na posição de inserção
-    const screenPos = this.screen(pos);
     this.context.beginPath();
     this.context.arc(screenPos.x, screenPos.y, 6, 0, 2 * Math.PI);
     this.context.fillStyle = "#0078D7";
