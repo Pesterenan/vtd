@@ -52,6 +52,31 @@ export class PathElement extends Element<IPathElementData> {
     if (value <= 0)  return;
     this.properties.set("strokeWidth", value);
   }
+  public get lineCap(): IPathElementData["lineCap"] {
+    return this.properties.get("lineCap") as IPathElementData["lineCap"];
+  }
+  public set lineCap(value: IPathElementData["lineCap"]) {
+    this.properties.set("lineCap", value);
+  }
+  public get lineJoin(): IPathElementData["lineJoin"] {
+    return this.properties.get("lineJoin") as IPathElementData["lineJoin"];
+  }
+  public set lineJoin(value: IPathElementData["lineJoin"]) {
+    this.properties.set("lineJoin", value);
+  }
+  public get lineDash(): IPathElementData["lineDash"] {
+    return this.properties.get("lineDash") as IPathElementData["lineDash"];
+  }
+  public set lineDash(value: IPathElementData["lineDash"]) {
+    this.properties.set("lineDash", value);
+  }
+  public get miterLimit(): IPathElementData["miterLimit"] {
+    return this.properties.get("miterLimit") as IPathElementData["miterLimit"];
+  }
+  public set miterLimit(value: number) {
+    if (value <= 0)  return;
+    this.properties.set("miterLimit", value);
+  }
 
   private boundingBox: BoundingBox;
   public constructor(position: Position, size: Size, z: number) {
@@ -64,13 +89,19 @@ export class PathElement extends Element<IPathElementData> {
     this.strokeWidth = 3;
     this.hasFill = false;
     this.hasStroke = true;
+    this.lineCap = "round";
+    this.lineJoin = "miter";
+    this.lineDash = "solid";
+    this.miterLimit = 10;
     this.boundingBox = new BoundingBox(position, size, this.rotation);
   }
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible || !this.points.length) return;
     context.globalAlpha = this.opacity;
     if (this.filters.length > 0) {
-      FilterRenderer.applyFilters(context, this.filters, this.drawPath);
+      FilterRenderer.applyFilters(context, this.filters, (ctx) =>
+        this.drawPath(ctx),
+      );
     } else {
       this.drawPath(context);
     }
@@ -97,7 +128,16 @@ export class PathElement extends Element<IPathElementData> {
       if (this.hasStroke) {
         context.strokeStyle = this.strokeColor;
         context.lineWidth = this.strokeWidth;
+        context.lineCap = this.lineCap;
+        context.lineJoin = this.lineJoin;
+        context.miterLimit = this.miterLimit;
+        if (this.lineDash !== "solid") {
+          context.setLineDash(this.lineDash === "dashed" ? [8, 6] : [1, 4]);
+        }
         context.stroke();
+        if (this.lineDash !== "solid") {
+          context.setLineDash([]);
+        }
       }
       context.restore();
     }

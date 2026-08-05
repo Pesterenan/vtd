@@ -5,6 +5,8 @@ import styles from "./PathMenu.module.css";
 import CheckboxInput from "../CheckboxInput/CheckboxInput";
 import ColorPicker from "../ColorPicker/ColorPicker";
 import SliderControl from "../SliderControl/SliderControl";
+import SelectInput from "../SelectInput/SelectInput";
+import type { ISelectOption } from "../SelectInput/SelectInput";
 import type { Point } from "../types";
 
 interface PathMenuState {
@@ -12,6 +14,10 @@ interface PathMenuState {
   hasFill: boolean;
   hasStroke: boolean;
   isClosed: boolean;
+  lineCap: "butt" | "round" | "square";
+  lineDash: "solid" | "dashed" | "dotted";
+  lineJoin: "miter" | "round" | "bevel";
+  miterLimit: number;
   points: Point[];
   strokeColor: string;
   strokeWidth: number;
@@ -22,10 +28,32 @@ const DEFAULT_PROPS: PathMenuState = {
   hasFill: false,
   hasStroke: true,
   isClosed: false,
+  lineCap: "round",
+  lineDash: "solid",
+  lineJoin: "miter",
+  miterLimit: 10,
   points: [],
   strokeColor: "#000000",
   strokeWidth: 2,
 };
+
+const LINE_CAP_OPTIONS: ISelectOption[] = [
+  { label: "Butt", value: "butt" },
+  { label: "Round", value: "round" },
+  { label: "Square", value: "square" },
+];
+
+const LINE_JOIN_OPTIONS: ISelectOption[] = [
+  { label: "Miter", value: "miter" },
+  { label: "Round", value: "round" },
+  { label: "Bevel", value: "bevel" },
+];
+
+const LINE_DASH_OPTIONS: ISelectOption[] = [
+  { label: "Sólido", value: "solid" },
+  { label: "Tracejado", value: "dashed" },
+  { label: "Pontilhado", value: "dotted" },
+];
 
 const PathMenu = () => {
   const { on, emit } = useEventBus();
@@ -54,6 +82,10 @@ const PathMenu = () => {
           hasFill: pathElement.hasFill,
           hasStroke: pathElement.hasStroke,
           isClosed: pathElement.isClosed,
+          lineCap: pathElement.lineCap,
+          lineDash: pathElement.lineDash,
+          lineJoin: pathElement.lineJoin,
+          miterLimit: pathElement.miterLimit,
           points: pathElement.points,
           strokeColor: pathElement.strokeColor,
           strokeWidth: pathElement.strokeWidth,
@@ -118,6 +150,41 @@ const PathMenu = () => {
     }
   };
 
+  const handleChangeLineCap = (value: string) => {
+    const lineCap = value as PathMenuState["lineCap"];
+    updateProp("lineCap", lineCap);
+    if (activeElementRef.current) {
+      activeElementRef.current.lineCap = lineCap;
+      emit("workarea:update");
+    }
+  };
+
+  const handleChangeLineJoin = (value: string) => {
+    const lineJoin = value as PathMenuState["lineJoin"];
+    updateProp("lineJoin", lineJoin);
+    if (activeElementRef.current) {
+      activeElementRef.current.lineJoin = lineJoin;
+      emit("workarea:update");
+    }
+  };
+
+  const handleChangeLineDash = (value: string) => {
+    const lineDash = value as PathMenuState["lineDash"];
+    updateProp("lineDash", lineDash);
+    if (activeElementRef.current) {
+      activeElementRef.current.lineDash = lineDash;
+      emit("workarea:update");
+    }
+  };
+
+  const handleChangeMiterLimit = (value: number) => {
+    updateProp("miterLimit", value);
+    if (activeElementRef.current) {
+      activeElementRef.current.miterLimit = value;
+      emit("workarea:update");
+    }
+  };
+
   const isDisabled = disabled || !selected;
 
   return (
@@ -134,6 +201,7 @@ const PathMenu = () => {
         <ColorPicker
           id={"path-fill-color"}
           label={"Cor"}
+          value={pathProps.fillColor}
           disabled={isDisabled || !pathProps.hasFill}
           onChange={handleChangeFillColor}
         />
@@ -149,6 +217,7 @@ const PathMenu = () => {
         <ColorPicker
           id={"path-stroke-color"}
           label={"Cor"}
+          value={pathProps.strokeColor}
           disabled={isDisabled || !pathProps.hasStroke}
           onChange={handleChangeStrokeColor}
         />
@@ -162,6 +231,40 @@ const PathMenu = () => {
         step={1}
         value={pathProps.strokeWidth}
         onChange={handleChangeStrokeWidth}
+      />
+      <SelectInput
+        id={"path-line-cap"}
+        label={"Extremidade"}
+        options={LINE_CAP_OPTIONS}
+        value={pathProps.lineCap}
+        disabled={isDisabled || !pathProps.hasStroke}
+        onChange={handleChangeLineCap}
+      />
+      <SelectInput
+        id={"path-line-join"}
+        label={"Junção"}
+        options={LINE_JOIN_OPTIONS}
+        value={pathProps.lineJoin}
+        disabled={isDisabled || !pathProps.hasStroke}
+        onChange={handleChangeLineJoin}
+      />
+      <SelectInput
+        id={"path-line-dash"}
+        label={"Tracejado"}
+        options={LINE_DASH_OPTIONS}
+        value={pathProps.lineDash}
+        disabled={isDisabled || !pathProps.hasStroke}
+        onChange={handleChangeLineDash}
+      />
+      <SliderControl
+        id={"path-miter-limit"}
+        disabled={isDisabled || !pathProps.hasStroke || pathProps.lineJoin !== "miter"}
+        label={"Limite do Miter"}
+        min={1}
+        max={40}
+        step={1}
+        value={pathProps.miterLimit}
+        onChange={handleChangeMiterLimit}
       />
       <span>
         Status: {pathProps.isClosed ? "Polígono fechado" : "Polilinha aberta"} (

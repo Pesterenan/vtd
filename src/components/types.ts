@@ -31,6 +31,10 @@ export interface IPathElementData extends IElementData {
   fillColor: string,
   strokeColor: string,
   strokeWidth: number,
+  lineCap: "butt" | "round" | "square",
+  lineJoin: "miter" | "round" | "bevel",
+  lineDash: "solid" | "dashed" | "dotted",
+  miterLimit: number,
 }
 
 export interface ITextElementData extends IElementData {

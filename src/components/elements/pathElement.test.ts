@@ -80,6 +80,46 @@ describe("PathElement", () => {
       element.strokeWidth = 10;
       expect(element.strokeWidth).toBe(10);
     });
+
+    it("should have default lineCap 'round' and allow changing", () => {
+      expect(element.lineCap).toBe("round");
+
+      element.lineCap = "square";
+      expect(element.lineCap).toBe("square");
+      expect(element.serialize().lineCap).toBe("square");
+    });
+
+    it("should have default lineJoin 'miter' and allow changing", () => {
+      expect(element.lineJoin).toBe("miter");
+
+      element.lineJoin = "bevel";
+      expect(element.lineJoin).toBe("bevel");
+      expect(element.serialize().lineJoin).toBe("bevel");
+    });
+
+    it("should have default lineDash 'solid' and allow changing", () => {
+      expect(element.lineDash).toBe("solid");
+
+      element.lineDash = "dashed";
+      expect(element.lineDash).toBe("dashed");
+      expect(element.serialize().lineDash).toBe("dashed");
+    });
+
+    it("should have default miterLimit 10 and allow changing", () => {
+      expect(element.miterLimit).toBe(10);
+
+      element.miterLimit = 25;
+      expect(element.miterLimit).toBe(25);
+      expect(element.serialize().miterLimit).toBe(25);
+    });
+
+    it("should ignore miterLimit <= 0", () => {
+      element.miterLimit = 0;
+      expect(element.miterLimit).toBe(10);
+
+      element.miterLimit = -5;
+      expect(element.miterLimit).toBe(10);
+    });
   });
 
   describe("serialize/deserialize", () => {
@@ -98,6 +138,10 @@ describe("PathElement", () => {
       expect(data.strokeColor).toBe("#202020");
       expect(data.hasStroke).toBe(true);
       expect(data.strokeWidth).toBe(3);
+      expect(data.lineCap).toBe("round");
+      expect(data.lineJoin).toBe("miter");
+      expect(data.lineDash).toBe("solid");
+      expect(data.miterLimit).toBe(10);
     });
 
     it("should deserialize and restore all properties", () => {
@@ -123,6 +167,10 @@ describe("PathElement", () => {
         strokeColor: "#0088cc",
         hasStroke: false,
         strokeWidth: 7,
+        lineCap: "square",
+        lineJoin: "round",
+        lineDash: "dotted",
+        miterLimit: 20,
       };
 
       element.deserialize(data);
@@ -142,9 +190,17 @@ describe("PathElement", () => {
       expect(element.strokeColor).toBe("#0088cc");
       expect(element.hasStroke).toBe(false);
       expect(element.strokeWidth).toBe(7);
+      expect(element.lineCap).toBe("square");
+      expect(element.lineJoin).toBe("round");
+      expect(element.lineDash).toBe("dotted");
+      expect(element.miterLimit).toBe(20);
     });
 
     it("should remain a PathElement after serialize/deserialize cycle", () => {
+      element.lineCap = "square";
+      element.lineJoin = "round";
+      element.lineDash = "dashed";
+      element.miterLimit = 30;
       const data = element.serialize();
 
       // Create new instance and deserialize
@@ -153,6 +209,10 @@ describe("PathElement", () => {
       cloned.deserialize(newData);
 
       expect(cloned.constructor.name).toBe("PathElement");
+      expect(cloned.lineCap).toBe("square");
+      expect(cloned.lineJoin).toBe("round");
+      expect(cloned.lineDash).toBe("dashed");
+      expect(cloned.miterLimit).toBe(30);
     });
   });
 
