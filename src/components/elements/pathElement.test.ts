@@ -198,6 +198,21 @@ describe("PathElement", () => {
       expect(box.center.y).toBe(position.y);
     });
 
+    it("should center the box at position + local center when points are not centered", () => {
+      element.position = { x: 100, y: 200 };
+      element.points = [
+        { x: 30, y: -40 },
+        { x: -20, y: 50 },
+      ];
+
+      const box = element.getBoundingBox();
+      // Centro local = média dos pontos = (5, 5); centro do box = position + (5, 5)
+      expect(box.center.x).toBeCloseTo(105);
+      expect(box.center.y).toBeCloseTo(205);
+      expect(box.bottomRight.x).toBeGreaterThan(105);
+      expect(box.topLeft.x).toBeLessThan(105);
+    });
+
     describe("should recalculate based on points", () => {
       it.each([0, 1, 5])("%d points should be handled", (pointCount) => {
         const relativePoints: Position[] = [];
@@ -225,11 +240,34 @@ describe("PathElement", () => {
 
         const box = element.getBoundingBox();
 
-        // Bounding box should expand based on points added
-        expect(box.topLeft.x).toBeLessThan(position.x);
-        expect(box.bottomRight.x).toBeGreaterThan(position.x);
-        expect(box.topLeft.y).toBeLessThan(position.y);
-        expect(box.bottomRight.y).toBeGreaterThan(position.y);
+        // Bounding box should expand based on points added (considering points extents)
+        if (pointCount === 0) {
+          // Sem pontos, usa position/size originais
+          expect(box.topLeft.x).toEqual(position.x - initialSize.width / 2);
+          expect(box.bottomRight.x).toEqual(position.x + initialSize.width / 2);
+          expect(box.topLeft.y).toEqual(position.y - initialSize.height / 2);
+          expect(box.bottomRight.y).toEqual(position.y + initialSize.height / 2);
+        } else if (pointCount === 1) {
+          // Um ponto: usa position/size originais como fallback
+          const expectedTopLeftX = position.x - initialSize.width / 2;
+          const expectedBottomRightX = position.x + initialSize.width / 2;
+          const expectedTopLeftY = position.y - initialSize.height / 2;
+          const expectedBottomRightY = position.y + initialSize.height / 2;
+
+          expect(box.topLeft.x).toEqual(expectedTopLeftX);
+          expect(box.bottomRight.x).toEqual(expectedBottomRightX);
+          expect(box.topLeft.y).toEqual(expectedTopLeftY);
+          expect(box.bottomRight.y).toEqual(expectedBottomRightY);
+        } else {
+          // Múltiplos pontos: usa extents dos pontos reais
+          const minX = Math.min(...relativePoints.map(p => p.x));
+          const minY = Math.min(...relativePoints.map(p => p.y));
+
+          expect(box.topLeft.x).toBeLessThanOrEqual(position.x + minX);
+          expect(box.bottomRight.x).toBeGreaterThanOrEqual(position.x + minX);
+          expect(box.topLeft.y).toBeLessThanOrEqual(position.y + minY);
+          expect(box.bottomRight.y).toBeGreaterThanOrEqual(position.y + minY);
+        }
       });
     });
   });

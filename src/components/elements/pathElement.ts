@@ -49,6 +49,7 @@ export class PathElement extends Element<IPathElementData> {
     ) as IPathElementData["strokeWidth"];
   }
   public set strokeWidth(value: number) {
+    if (value <= 0)  return;
     this.properties.set("strokeWidth", value);
   }
 
@@ -102,8 +103,42 @@ export class PathElement extends Element<IPathElementData> {
     }
   }
 
+  /**
+   * Calcula o bounding box baseado na posição e tamanho do elemento.
+   * Considera também os pontos reais do path quando disponíveis para recálculo.
+   */
   public getBoundingBox(): BoundingBox {
-    this.boundingBox.update(this.position, this.size, this.rotation);
+    // Com 0 ou 1 ponto não há extents confiáveis; usa position/size (fallback).
+    if (this.points.length <= 1) {
+      this.boundingBox.update(this.position, this.size, this.rotation);
+      return this.boundingBox;
+    }
+
+    // Extents dos pontos (coordenadas locais, relativas a position).
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const p of this.points) {
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x);
+      maxY = Math.max(maxY, p.y);
+    }
+
+    const width = maxX - minX;
+    const height = maxY - minY;
+
+    // O centro do box deve estar em coordenadas do mundo: position + centro local.
+    this.boundingBox.update(
+      {
+        x: this.position.x + (minX + maxX) / 2,
+        y: this.position.y + (minY + maxY) / 2,
+      },
+      { width, height },
+      this.rotation,
+    );
+
     return this.boundingBox;
   }
 }
