@@ -7,10 +7,12 @@ export abstract class Tool {
   protected canvas: HTMLCanvasElement;
   protected context: CanvasRenderingContext2D | null;
   protected eventBus: EventBus;
+  /** Posição do mouse em espaço de tela (relativa ao canvas). Usar apenas para desenhar overlays. */
   protected get mousePos(): Position | null {
     return this.eventBus.request("mouse:position:get")[0] ?? null;
   }
-  protected toolPos: Position | null = null;
+  /** Posição do mouse ajustada para o espaço do canvas (workArea). Usar em toda operação semântica e payloads de eventos. */
+  protected canvasPos: Position | null = null;
   protected get workAreaOffset(): Position | null {
     return this.eventBus.request("workarea:offset:get")[0] ?? { x: 0, y: 0 };
   }
@@ -71,8 +73,22 @@ export abstract class Tool {
     const position =
       this.mousePos ?? (evt ? { x: evt.offsetX, y: evt.offsetY } : null);
     if (!position) return;
-    this.toolPos = this.eventBus.request("workarea:adjustForCanvas", {
-      position,
-    })[0] ?? { x: 0, y: 0 };
+    this.canvasPos = this.toCanvas(position);
+  }
+
+  /** Converte uma posição do espaço do canvas para o espaço de tela. */
+  protected toScreen(world: Position): Position | null {
+    return (
+      this.eventBus.request("workarea:adjustForScreen", { position: world })[0] ??
+      null
+    );
+  }
+
+  /** Converte uma posição do espaço de tela para o espaço do canvas. */
+  protected toCanvas(screen: Position): Position | null {
+    return (
+      this.eventBus.request("workarea:adjustForCanvas", { position: screen })[0] ??
+      null
+    );
   }
 }

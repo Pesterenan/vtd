@@ -173,31 +173,17 @@ export class WorkArea {
     }
   };
 
-  private calculatePathSize = (points: Point[]) => {
-    if (points.length === 0) return { width: 0, height: 0 };
-    const xs = points.map(p => p.x);
-    const ys = points.map(p => p.y);
-    return {
-      width: Math.max(...xs) - Math.min(...xs) || 1,
-      height: Math.max(...ys) - Math.min(...ys) || 1,
-    };
-  }
-
-  private addPathElement = (position: Position): void => {
+  private addPathElement = (
+    position: Position,
+    points: Point[] = [],
+    isClosed = false,
+  ): void => {
     const width = 10;
     const height = 10;
-    let adjustedPosition = null;
-    if (position) {
-      adjustedPosition = this.eventBus.request("workarea:adjustForCanvas", {
-        position,
-      })[0];
-    } else {
-      adjustedPosition = {
-        x: Math.floor(0.5 * (this.canvas?.width || 0)) - width,
-        y: Math.floor(0.5 * (this.canvas?.height || 0)) - height,
-      };
-    }
-    const newElement = new PathElement(adjustedPosition, { width, height }, this.elements.length);
+    const newElement = new PathElement(position, { width, height }, this.elements.length);
+    newElement.points = points.map((point) => newElement.toLocal(point));
+    newElement.isClosed = isClosed;
+    newElement.recalculateSize();
 
     this.elements.push(newElement as Element<TElementData>);
     this.eventBus.emit("workarea:addElement", {
@@ -213,11 +199,11 @@ export class WorkArea {
     this.eventBus.emit("workarea:update");
   }
 
-  private handleEditPath = ({ position }: PositionPayload): void => {
+  private handleEditPath = ({ position, points, isClosed }: PathPayload): void => {
     this.selectElementsAt({ firstPoint: position });
     const elements = this.getSelectedElements();
     if (!elements || !(elements[0] instanceof PathElement)) {
-      this.addPathElement(position);
+      this.addPathElement(position, points ?? [], isClosed ?? false);
       this.selectElementsAt({ firstPoint: position });
     }
   };
@@ -482,23 +468,18 @@ export class WorkArea {
   }: SelectElementsAtPayload): void => {
     let selectedElements: Element<TElementData>[] = isAddingToSelection ? this.getSelectedElements() : [];
     if (firstPoint) {
-      const [adjustedFirstPoint] = this.eventBus.request(
-        "workarea:adjustForCanvas",
-        { position: firstPoint },
-      );
-      console.log(firstPoint, adjustedFirstPoint, 'fp', 'adj');
       const firstElement = this.elements.findLast((el) => {
         if (el instanceof ElementGroup) {
           return (
             el.isVisible &&
             !el.isLocked &&
-            el.getBoundingBox().isPointInside(adjustedFirstPoint)
+            el.getBoundingBox().isPointInside(firstPoint)
           );
         }
         return (
           el.isVisible &&
           !el.isLocked &&
-          el.getBoundingBox().isPointInside(adjustedFirstPoint)
+          el.getBoundingBox().isPointInside(firstPoint)
         );
       });
       if (
@@ -534,10 +515,6 @@ export class WorkArea {
         }
       }
       if (secondPoint) {
-        const [adjustedSecondPoint] = this.eventBus.request(
-          "workarea:adjustForCanvas",
-          { position: secondPoint },
-        );
         for (const el of this.elements) {
           if (el instanceof ElementGroup) {
             const unlockedChildren =
@@ -546,7 +523,7 @@ export class WorkArea {
               unlockedChildren.some((child) =>
                 child
                   .getBoundingBox()
-                  .isWithinBounds(adjustedFirstPoint, adjustedSecondPoint),
+                  .isWithinBounds(firstPoint, secondPoint),
               )
             ) {
               selectedElements = [...selectedElements, ...unlockedChildren];
@@ -557,7 +534,7 @@ export class WorkArea {
               !el.isLocked &&
               el
                 .getBoundingBox()
-                .isWithinBounds(adjustedFirstPoint, adjustedSecondPoint)
+                .isWithinBounds(firstPoint, secondPoint)
             ) {
               selectedElements.push(el);
             }
@@ -590,23 +567,12 @@ export class WorkArea {
     }
   }
 
-  public addGradientElement(position?: Position): void {
+  public addGradientElement(position: Position): void {
     if (!this.canvas) return;
     const width = this.canvas.width;
     const height = this.canvas.height;
-    let adjustedPosition = null;
-    if (position) {
-      adjustedPosition = this.eventBus.request("workarea:adjustForCanvas", {
-        position,
-      })[0];
-    } else {
-      adjustedPosition = {
-        x: Math.floor(0.5 * (this.canvas?.width || 0)) - width,
-        y: Math.floor(0.5 * (this.canvas?.height || 0)) - height,
-      };
-    }
     const newElement = new GradientElement(
-      adjustedPosition,
+      position,
       { width, height },
       this.elements.length,
     );
@@ -621,22 +587,11 @@ export class WorkArea {
     this.eventBus.emit("workarea:update");
   }
 
-  public addTextElement(position?: Position): TextElement {
+  public addTextElement(position: Position): TextElement {
     const width = 10;
     const height = 10;
-    let adjustedPosition = null;
-    if (position) {
-      adjustedPosition = this.eventBus.request("workarea:adjustForCanvas", {
-        position,
-      })[0];
-    } else {
-      adjustedPosition = {
-        x: Math.floor(0.5 * (this.canvas?.width || 0)) - width,
-        y: Math.floor(0.5 * (this.canvas?.height || 0)) - height,
-      };
-    }
     const newElement = new TextElement(
-      adjustedPosition,
+      position,
       { width, height },
       this.elements.length,
     );

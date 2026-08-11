@@ -77,26 +77,21 @@ export class GradientTool extends Tool {
       this.context &&
       this.colorsStops
     ) {
+      const start = this.toScreen(this.startPosition);
+      const end = this.toScreen(this.endPosition);
+      if (!start || !end) return;
       this.context.save();
       for (const cs of this.colorsStops) {
-        const posX = linearInterpolation(
-          this.startPosition.x,
-          this.endPosition.x,
-          cs.portion,
-        );
-        const posY = linearInterpolation(
-          this.startPosition.y,
-          this.endPosition.y,
-          cs.portion,
-        );
+        const posX = linearInterpolation(start.x, end.x, cs.portion);
+        const posY = linearInterpolation(start.y, end.y, cs.portion);
         this.drawColorStop(this.context, { x: posX, y: posY }, cs.color);
       }
       this.context.restore();
     }
   }
 
-  protected handleMouseDown({ offsetX, offsetY }: MouseEvent): void {
-    this.firstPoint = { x: offsetX, y: offsetY };
+  protected handleMouseDown(_evt: MouseEvent): void {
+    this.firstPoint = this.canvasPos;
 
     if (this.activeGradientElement) {
       if (this.isHoveringStart || this.isHoveringEnd) {
@@ -116,8 +111,11 @@ export class GradientTool extends Tool {
     this.firstPoint = null;
   }
 
-  protected handleMouseMove({ offsetX, offsetY, shiftKey }: MouseEvent): void {
-    const mousePosition = new Vector({ x: offsetX, y: offsetY });
+  protected handleMouseMove({ shiftKey }: MouseEvent): void {
+    if (!this.canvasPos) return;
+    const mousePosition = new Vector(this.canvasPos);
+    const hitRadius = this.hitRadius();
+
     if (
       this.firstPoint &&
       !this.isDraggingEndPoints &&
@@ -125,20 +123,20 @@ export class GradientTool extends Tool {
     ) {
       const distance = mousePosition.distance(this.firstPoint);
 
-      if (distance > Tool.DRAGGING_DISTANCE) {
+      if (distance > Tool.DRAGGING_DISTANCE / (this.zoomLevel || 1)) {
         if (!this.activeGradientElement && this.isCreating) {
           this.eventBus.emit("edit:gradient", {
             position: this.firstPoint,
           });
           this.selectActiveGradient();
           this.startPosition = this.firstPoint;
-          this.endPosition = mousePosition;
+          this.endPosition = this.canvasPos;
           this.modifyGradientPoints();
           this.isCreating = false;
           this.eventBus.emit("workarea:update");
         } else if (!this.isHoveringEnd || !this.isHoveringStart) {
           this.startPosition = this.firstPoint;
-          this.endPosition = mousePosition;
+          this.endPosition = this.canvasPos;
           this.modifyGradientPoints();
         }
       }
@@ -146,9 +144,10 @@ export class GradientTool extends Tool {
 
     // Hovering Points Logic
     if (this.startPosition && this.endPosition) {
-      this.isHoveringEnd = mousePosition.distance(this.endPosition) < 30;
+      this.isHoveringEnd = mousePosition.distance(this.endPosition) < hitRadius;
       this.isHoveringStart =
-        !this.isHoveringEnd && mousePosition.distance(this.startPosition) < 30;
+        !this.isHoveringEnd &&
+        mousePosition.distance(this.startPosition) < hitRadius;
 
       if (this.colorsStops) {
         for (let i = 1; i < this.colorsStops.length - 1; i++) {
@@ -165,7 +164,7 @@ export class GradientTool extends Tool {
               cs.portion,
             ),
           };
-          if (mousePosition.distance(colorStopPos) < 30) {
+          if (mousePosition.distance(colorStopPos) < hitRadius) {
             this.activeColorStop = i;
             break;
           }
@@ -178,25 +177,27 @@ export class GradientTool extends Tool {
     if (this.isDraggingEndPoints) {
       if (this.isHoveringStart) {
         if (this.endPosition) {
+          const snap = 40 / (this.zoomLevel || 1);
           const isBoundToX =
-            shiftKey && Math.abs(offsetX - this.endPosition.x) < 40;
+            shiftKey && Math.abs(this.canvasPos.x - this.endPosition.x) < snap;
           const isBoundToY =
-            shiftKey && Math.abs(offsetY - this.endPosition.y) < 40;
+            shiftKey && Math.abs(this.canvasPos.y - this.endPosition.y) < snap;
           this.startPosition = {
-            x: isBoundToX ? this.endPosition.x : offsetX,
-            y: isBoundToY ? this.endPosition.y : offsetY,
+            x: isBoundToX ? this.endPosition.x : this.canvasPos.x,
+            y: isBoundToY ? this.endPosition.y : this.canvasPos.y,
           };
         }
       }
       if (this.isHoveringEnd) {
         if (this.startPosition) {
+          const snap = 40 / (this.zoomLevel || 1);
           const isBoundToX =
-            shiftKey && Math.abs(offsetX - this.startPosition.x) < 40;
+            shiftKey && Math.abs(this.canvasPos.x - this.startPosition.x) < snap;
           const isBoundToY =
-            shiftKey && Math.abs(offsetY - this.startPosition.y) < 40;
+            shiftKey && Math.abs(this.canvasPos.y - this.startPosition.y) < snap;
           this.endPosition = {
-            x: isBoundToX ? this.startPosition.x : offsetX,
-            y: isBoundToY ? this.startPosition.y : offsetY,
+            x: isBoundToX ? this.startPosition.x : this.canvasPos.x,
+            y: isBoundToY ? this.startPosition.y : this.canvasPos.y,
           };
         }
       }
@@ -233,15 +234,9 @@ export class GradientTool extends Tool {
       selectedElements[0] instanceof GradientElement
     ) {
       this.activeGradientElement = selectedElements[0];
-      const [startPos] = this.eventBus.request("workarea:adjustForScreen", {
-        position: this.activeGradientElement.startPosition,
-      });
-      const [endPos] = this.eventBus.request("workarea:adjustForScreen", {
-        position: this.activeGradientElement.endPosition,
-      });
       this.colorsStops = this.activeGradientElement.colorStops;
-      this.startPosition = startPos;
-      this.endPosition = endPos;
+      this.startPosition = { ...this.activeGradientElement.startPosition };
+      this.endPosition = { ...this.activeGradientElement.endPosition };
       this.eventBus.emit("workarea:update");
     }
   };
@@ -249,15 +244,14 @@ export class GradientTool extends Tool {
   private modifyGradientPoints = (): void => {
     if (this.activeGradientElement === null) return;
     if (this.startPosition && this.endPosition) {
-      const [gradStartPos] = this.eventBus.request("workarea:adjustForCanvas", {
-        position: this.startPosition,
-      });
-      const [gradEndPos] = this.eventBus.request("workarea:adjustForCanvas", {
-        position: this.endPosition,
-      });
-      this.activeGradientElement.startPosition = gradStartPos;
-      this.activeGradientElement.endPosition = gradEndPos;
+      this.activeGradientElement.startPosition = { ...this.startPosition };
+      this.activeGradientElement.endPosition = { ...this.endPosition };
       this.colorsStops = this.activeGradientElement.colorStops;
     }
   };
+
+  /** Raio de hover em espaço de tela, convertido para o espaço do canvas. */
+  private hitRadius(): number {
+    return 30 / (this.zoomLevel || 1);
+  }
 }

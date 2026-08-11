@@ -74,14 +74,20 @@ export type UpdateScalePayload = {
   anchor?: Position;
 };
 
+/** Convenção: `position` está no espaço do canvas (workArea). */
 export type PositionPayload = {
   position: Position;
 };
 
+/**
+ * Payload de criação/edição de path.
+ * Convenção de coordenadas: `position` e `points` são no espaço do canvas (workArea);
+ * `points` são absolutos (são convertidos para locais relativos a `position` pelo PathElement).
+ */
 export type PathPayload = {
   position: Position;
-  points: Point[];
-  isClosed: boolean;
+  points?: Point[];
+  isClosed?: boolean;
 };
 
 export type SelectElementsAtPayload = {

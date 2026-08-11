@@ -24,7 +24,9 @@ export class TextTool extends Tool {
 
   protected handleMouseDown(evt: MouseEvent): void {
     this.eventBus.emit("edit:text", {
-      position: this.mousePos ?? { x: evt.offsetX, y: evt.offsetY },
+      position:
+        this.canvasPos ??
+        this.toCanvas({ x: evt.offsetX, y: evt.offsetY }) ?? { x: 0, y: 0 },
     });
   }
 
