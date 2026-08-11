@@ -731,7 +731,10 @@ export class MainWindow {
           if (this.currentTool !== TOOL.MULTI) {
             tool = TOOL.MULTI;
           }
-        break;
+          break;
+        case "KeyP":
+          tool = TOOL.PEN;
+          break;
       }
       if (tool) {
         this.currentTool = tool;

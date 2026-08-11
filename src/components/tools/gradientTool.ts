@@ -95,7 +95,7 @@ export class GradientTool extends Tool {
     }
   }
 
-  public onMouseDown({ offsetX, offsetY }: MouseEvent): void {
+  protected handleMouseDown({ offsetX, offsetY }: MouseEvent): void {
     this.firstPoint = { x: offsetX, y: offsetY };
 
     if (this.activeGradientElement) {
@@ -109,15 +109,14 @@ export class GradientTool extends Tool {
     }
   }
 
-  public onMouseUp(): void {
+  protected handleMouseUp(_evt: MouseEvent): void {
     this.isDraggingEndPoints = false;
     this.isDraggingColorStop = false;
     this.activeColorStop = null;
     this.firstPoint = null;
-    this.eventBus.emit("workarea:update");
   }
 
-  public onMouseMove({ offsetX, offsetY, shiftKey }: MouseEvent): void {
+  protected handleMouseMove({ offsetX, offsetY, shiftKey }: MouseEvent): void {
     const mousePosition = new Vector({ x: offsetX, y: offsetY });
     if (
       this.firstPoint &&
@@ -225,7 +224,6 @@ export class GradientTool extends Tool {
         this.eventBus.emit("edit:gradientUpdateColorStops");
       }
     }
-    this.eventBus.emit("workarea:update");
   }
 
   private selectActiveGradient = (): void => {
@@ -262,9 +260,4 @@ export class GradientTool extends Tool {
       this.colorsStops = this.activeGradientElement.colorStops;
     }
   };
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public onKeyDown(): void {}
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public onKeyUp(): void {}
 }

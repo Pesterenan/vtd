@@ -180,6 +180,10 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "mouse:position:get": {
+    payload: unknown;
+    result: Position;
+  };
   "multiTool:modeChange": {
     payload: "select" | "move" | "rotate" | "scale";
     result: unknown;

@@ -183,14 +183,21 @@ export class WorkArea {
     };
   }
 
-  private handleEditPath = ({ position, points, isClosed }: PathPayload): void => {
-    const size = this.calculatePathSize(points);
-    const newElement = new PathElement(position, size, this.elements.length);
-    newElement.points = points.map(p => ({
-      x: p.x - position.x,
-      y: p.y - position.y,
-    }));
-    newElement.isClosed = isClosed;
+  private addPathElement = (position: Position): void => {
+    const width = 10;
+    const height = 10;
+    let adjustedPosition = null;
+    if (position) {
+      adjustedPosition = this.eventBus.request("workarea:adjustForCanvas", {
+        position,
+      })[0];
+    } else {
+      adjustedPosition = {
+        x: Math.floor(0.5 * (this.canvas?.width || 0)) - width,
+        y: Math.floor(0.5 * (this.canvas?.height || 0)) - height,
+      };
+    }
+    const newElement = new PathElement(adjustedPosition, { width, height }, this.elements.length);
 
     this.elements.push(newElement as Element<TElementData>);
     this.eventBus.emit("workarea:addElement", {
@@ -205,6 +212,15 @@ export class WorkArea {
     });
     this.eventBus.emit("workarea:update");
   }
+
+  private handleEditPath = ({ position }: PositionPayload): void => {
+    this.selectElementsAt({ firstPoint: position });
+    const elements = this.getSelectedElements();
+    if (!elements || !(elements[0] instanceof PathElement)) {
+      this.addPathElement(position);
+      this.selectElementsAt({ firstPoint: position });
+    }
+  };
 
   private createTransformBox = (): void => {
     this.removeTransformBox();
@@ -470,6 +486,7 @@ export class WorkArea {
         "workarea:adjustForCanvas",
         { position: firstPoint },
       );
+      console.log(firstPoint, adjustedFirstPoint, 'fp', 'adj');
       const firstElement = this.elements.findLast((el) => {
         if (el instanceof ElementGroup) {
           return (
@@ -502,7 +519,7 @@ export class WorkArea {
         } else {
           selectedElements = groupChildren;
         }
-      } else if (firstElement) {
+      } else if (firstElement && !(firstElement instanceof ElementGroup)) {
         if (isAddingToSelection) {
           const idx = selectedElements.findIndex(
             (el) => el.elementId === firstElement.elementId,

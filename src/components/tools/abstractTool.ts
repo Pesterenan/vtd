@@ -1,10 +1,22 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 import type { EventBus } from "src/utils/eventBus";
+import type { Position } from "../types";
 
 export abstract class Tool {
   protected static DRAGGING_DISTANCE = 5;
   protected canvas: HTMLCanvasElement;
   protected context: CanvasRenderingContext2D | null;
   protected eventBus: EventBus;
+  protected get mousePos(): Position | null {
+    return this.eventBus.request("mouse:position:get")[0] ?? null;
+  }
+  protected toolPos: Position | null = null;
+  protected get workAreaOffset(): Position | null {
+    return this.eventBus.request("workarea:offset:get")[0] ?? { x: 0, y: 0 };
+  }
+  protected get zoomLevel() {
+    return this.eventBus.request("zoomLevel:get")[0] ?? 1;
+  }
 
   constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
     this.canvas = canvas;
@@ -14,18 +26,53 @@ export abstract class Tool {
 
   public equip(): void {
     this.eventBus.emit("tool:equipped", this);
+    this.updatePos();
     this.eventBus.emit("workarea:update");
   }
 
   public unequip(): void {
     this.eventBus.emit("tool:unequipped", this);
-    this.eventBus.emit("workarea:update");
   }
 
   public abstract draw(): void;
-  public abstract onKeyDown(evt: KeyboardEvent): void;
-  public abstract onKeyUp(evt: KeyboardEvent): void;
-  public abstract onMouseDown(evt: MouseEvent): void;
-  public abstract onMouseMove(evt: MouseEvent): void;
-  public abstract onMouseUp(evt: MouseEvent): void;
+
+  public onKeyDown(evt: KeyboardEvent): void {
+    this.handleKeyDown(evt);
+    this.eventBus.emit("workarea:update");
+  }
+  public onKeyUp(evt: KeyboardEvent): void {
+    this.handleKeyUp(evt);
+    this.eventBus.emit("workarea:update");
+  }
+
+  public onMouseDown(evt: MouseEvent): void {
+    this.updatePos(evt);
+    this.handleMouseDown(evt);
+    this.eventBus.emit("workarea:update");
+  }
+  public onMouseMove(evt: MouseEvent): void {
+    this.updatePos(evt);
+    this.handleMouseMove(evt);
+    this.eventBus.emit("workarea:update");
+  }
+  public onMouseUp(evt: MouseEvent): void {
+    this.updatePos(evt);
+    this.handleMouseUp(evt);
+    this.eventBus.emit("workarea:update");
+  }
+
+  protected handleKeyDown(_evt: KeyboardEvent): void {}
+  protected handleKeyUp(_evt: KeyboardEvent): void {}
+  protected handleMouseDown(_evt: MouseEvent): void {}
+  protected handleMouseUp(_evt: MouseEvent): void {}
+  protected handleMouseMove(_evt: MouseEvent): void {}
+
+  private updatePos(evt?: MouseEvent): void {
+    const position =
+      this.mousePos ?? (evt ? { x: evt.offsetX, y: evt.offsetY } : null);
+    if (!position) return;
+    this.toolPos = this.eventBus.request("workarea:adjustForCanvas", {
+      position,
+    })[0] ?? { x: 0, y: 0 };
+  }
 }
