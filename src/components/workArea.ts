@@ -8,7 +8,6 @@ import type {
   EventBus,
   ExportCanvasToStringPayload,
   ExportLayerToClipBoardPayload,
-  PathPayload,
   PositionPayload,
   ReorganizeLayersPayload,
   SelectElementsAtPayload,
@@ -173,16 +172,11 @@ export class WorkArea {
     }
   };
 
-  private addPathElement = (
-    position: Position,
-    points: Point[] = [],
-    isClosed = false,
-  ): void => {
+  private addPathElement = (position: Position): void => {
+    if (!this.canvas) return;
     const width = 10;
     const height = 10;
     const newElement = new PathElement(position, { width, height }, this.elements.length);
-    newElement.points = points.map((point) => newElement.toLocal(point));
-    newElement.isClosed = isClosed;
     newElement.recalculateSize();
 
     this.elements.push(newElement as Element<TElementData>);
@@ -193,17 +187,14 @@ export class WorkArea {
       layerName: newElement.layerName,
       type: 'path',
     });
-    this.eventBus.emit("workarea:selectById", {
-      elementsId: new Set([newElement.elementId]),
-    });
     this.eventBus.emit("workarea:update");
   }
 
-  private handleEditPath = ({ position, points, isClosed }: PathPayload): void => {
+  private handleEditPath = ({ position }: PositionPayload): void => {
     this.selectElementsAt({ firstPoint: position });
     const elements = this.getSelectedElements();
     if (!elements || !(elements[0] instanceof PathElement)) {
-      this.addPathElement(position, points ?? [], isClosed ?? false);
+      this.addPathElement(position);
       this.selectElementsAt({ firstPoint: position });
     }
   };

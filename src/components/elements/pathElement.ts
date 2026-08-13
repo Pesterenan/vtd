@@ -78,6 +78,52 @@ export class PathElement extends Element<IPathElementData> {
     this.properties.set("miterLimit", value);
   }
 
+  /** Converte um ponto local (relativo a position) para o espaço do canvas (mundo). */
+  public toWorld(local: Point): Position {
+    return { x: this.position.x + local.x, y: this.position.y + local.y };
+  }
+
+  /** Converte uma posição do canvas (mundo) para coordenada local (relativa a position). */
+  public toLocal(world: Position): Point {
+    return { x: world.x - this.position.x, y: world.y - this.position.y };
+  }
+
+  /** Adiciona um ponto em coordenadas do mundo ao path (no índice fornecido ou ao final). */
+  public addPoint(world: Position, index?: number): void {
+    const point = this.toLocal(world);
+    if (index === undefined) {
+      this.points.push(point);
+    } else {
+      this.points.splice(index, 0, point);
+    }
+    this.recalculateSize();
+  }
+
+  /** Atualiza a posição (mundo) de um ponto existente. */
+  public updatePoint(index: number, world: Position): void {
+    if (index < 0 || index >= this.points.length) return;
+    this.points[index] = this.toLocal(world);
+    this.recalculateSize();
+  }
+
+  /** Remove um ponto do path. */
+  public removePoint(index: number): void {
+    if (index < 0 || index >= this.points.length) return;
+    this.points.splice(index, 1);
+    this.recalculateSize();
+  }
+
+  /** Recalcula o size do elemento com base nos extents dos pontos locais. */
+  public recalculateSize(): void {
+    if (this.points.length <= 1) return;
+    const xs = this.points.map((p) => p.x);
+    const ys = this.points.map((p) => p.y);
+    this.size = {
+      width: Math.max(...xs) - Math.min(...xs) || 1,
+      height: Math.max(...ys) - Math.min(...ys) || 1,
+    };
+  }
+
   private boundingBox: BoundingBox;
   public constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
@@ -147,8 +193,7 @@ export class PathElement extends Element<IPathElementData> {
    * Calcula o bounding box baseado na posição e tamanho do elemento.
    * Considera também os pontos reais do path quando disponíveis para recálculo.
    */
-  public getBoundingBox(): BoundingBox {
-    // Com 0 ou 1 ponto não há extents confiáveis; usa position/size (fallback).
+  public getBoundingBox(): BoundingBox {    // Com 0 ou 1 ponto não há extents confiáveis; usa position/size (fallback).
     if (this.points.length <= 1) {
       this.boundingBox.update(this.position, this.size, this.rotation);
       return this.boundingBox;

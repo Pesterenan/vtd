@@ -79,17 +79,6 @@ export type PositionPayload = {
   position: Position;
 };
 
-/**
- * Payload de criação/edição de path.
- * Convenção de coordenadas: `position` e `points` são no espaço do canvas (workArea);
- * `points` são absolutos (são convertidos para locais relativos a `position` pelo PathElement).
- */
-export type PathPayload = {
-  position: Position;
-  points?: Point[];
-  isClosed?: boolean;
-};
-
 export type SelectElementsAtPayload = {
   firstPoint?: Position | null;
   secondPoint?: Position | null;
@@ -147,7 +136,7 @@ export interface EventBusMap {
     result: unknown;
   };
   "edit:path": {
-    payload: PathPayload;
+    payload: PositionPayload;
     result: unknown;
   };
   "edit:text": {
