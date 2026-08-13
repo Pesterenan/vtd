@@ -49,7 +49,7 @@ export class PathElement extends Element<IPathElementData> {
     ) as IPathElementData["strokeWidth"];
   }
   public set strokeWidth(value: number) {
-    if (value <= 0)  return;
+    if (value <= 0) return;
     this.properties.set("strokeWidth", value);
   }
   public get lineCap(): IPathElementData["lineCap"] {
@@ -74,7 +74,7 @@ export class PathElement extends Element<IPathElementData> {
     return this.properties.get("miterLimit") as IPathElementData["miterLimit"];
   }
   public set miterLimit(value: number) {
-    if (value <= 0)  return;
+    if (value <= 0) return;
     this.properties.set("miterLimit", value);
   }
 
@@ -139,61 +139,78 @@ export class PathElement extends Element<IPathElementData> {
     this.lineJoin = "miter";
     this.lineDash = "solid";
     this.miterLimit = 10;
+    this.addPoint(position);
     this.boundingBox = new BoundingBox(position, size, this.rotation);
   }
+
   public draw(context: CanvasRenderingContext2D): void {
     if (!this.isVisible || !this.points.length) return;
     context.globalAlpha = this.opacity;
     if (this.filters.length > 0) {
-      FilterRenderer.applyFilters(context, this.filters, (ctx) =>
-        this.drawPath(ctx),
-      );
+      FilterRenderer.applyFilters(context, this.filters, (ctx) => {
+        this.drawPath(ctx);
+      });
     } else {
       this.drawPath(context);
     }
   }
 
-  private drawPath(context: CanvasRenderingContext2D) {
-    if (this.points.length) {
-      context.save();
-      context.translate(this.position.x, this.position.y);
-      context.rotate(toRadians(this.rotation));
-      context.scale(this.scale.x, this.scale.y);
-      context.beginPath();
-      context.moveTo(this.points[0].x, this.points[0].y);
+  private drawPath(ctx: CanvasRenderingContext2D): void {
+    if (!this.points.length) return;
+
+    ctx.save();
+    ctx.translate(this.position.x, this.position.y);
+    ctx.rotate(toRadians(this.rotation));
+    ctx.scale(this.scale.x, this.scale.y);
+
+    // Desenha a linha do path principal
+    ctx.beginPath();
+    if (this.points.length > 0) {
+      ctx.moveTo(this.points[0].x, this.points[0].y);
       for (let i = 1; i < this.points.length; i++) {
-        context.lineTo(this.points[i].x, this.points[i].y);
+        ctx.lineTo(this.points[i].x, this.points[i].y);
       }
+
       if (this.isClosed) {
-        context.closePath();
+        ctx.closePath();
       }
-      if (this.hasFill) {
-        context.fillStyle = this.fillColor;
-        context.fill();
+
+      // Preenchimento (se habilitado)
+      if (this.hasFill && this.points.length > 1) {
+        ctx.fillStyle = this.fillColor;
+        ctx.fill();
       }
+
+      // Stroke da linha principal
       if (this.hasStroke) {
-        context.strokeStyle = this.strokeColor;
-        context.lineWidth = this.strokeWidth;
-        context.lineCap = this.lineCap;
-        context.lineJoin = this.lineJoin;
-        context.miterLimit = this.miterLimit;
+        ctx.strokeStyle = this.strokeColor;
+        ctx.lineWidth = this.strokeWidth;
+        ctx.lineCap = this.lineCap;
+        ctx.lineJoin = this.lineJoin;
+        ctx.miterLimit = this.miterLimit;
+
         if (this.lineDash !== "solid") {
-          context.setLineDash(this.lineDash === "dashed" ? [8, 6] : [1, 4]);
+          ctx.setLineDash(
+            this.lineDash === "dashed" ? [8, 6] : [1, 4],
+          );
         }
-        context.stroke();
+
+        ctx.stroke();
+
         if (this.lineDash !== "solid") {
-          context.setLineDash([]);
+          ctx.setLineDash([]);
         }
       }
-      context.restore();
     }
+
+    ctx.restore();
   }
 
   /**
    * Calcula o bounding box baseado na posição e tamanho do elemento.
    * Considera também os pontos reais do path quando disponíveis para recálculo.
    */
-  public getBoundingBox(): BoundingBox {    // Com 0 ou 1 ponto não há extents confiáveis; usa position/size (fallback).
+  public getBoundingBox(): BoundingBox {
     if (this.points.length <= 1) {
       this.boundingBox.update(this.position, this.size, this.rotation);
       return this.boundingBox;

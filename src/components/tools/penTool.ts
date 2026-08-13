@@ -5,11 +5,13 @@ import type { EventBus } from "src/utils/eventBus";
 import penIconSvg from "src/assets/icons/pen-tool.svg?raw";
 import { svgToCanvasPath, ICON_SIZE } from "src/utils/icons";
 import { PathElement } from "../elements/pathElement";
+import { Vector } from "src/utils/vector";
 
 export class PenTool extends Tool {
   private points: Point[] = [];
   private activePathElement: PathElement | null = null;
   private selectedPointIndex = -1;
+  private isClosing = false;
 
   constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
     super(canvas, eventBus);
@@ -26,6 +28,13 @@ export class PenTool extends Tool {
     this.eventBus.off("workarea:selectById", this.selectActivePath);
     this.eventBus.off("workarea:selectAt", this.selectActivePath);
     this.canvas.style.cursor = "";
+    this.reset();
+  }
+  private reset(): void {
+    this.points= [];
+    this.activePathElement= null;
+    this.selectedPointIndex = -1;
+    this.isClosing = false;
   }
 
   private selectActivePath = (): void => {
@@ -34,10 +43,14 @@ export class PenTool extends Tool {
       selectedElements?.length === 1 &&
       selectedElements[0] instanceof PathElement
     ) {
+      this.reset();
       this.activePathElement = selectedElements[0];
       this.updatePointsOverlay();
+    } else {
+      this.reset();
     }
   };
+
   private updatePointsOverlay = (): void => {
     if (this.activePathElement) {
       this.points = this.activePathElement.points.map(
@@ -47,6 +60,22 @@ export class PenTool extends Tool {
       this.eventBus.emit("workarea:update");
     }
   };
+
+  private drawClosingIndicator(): void {
+    if (this.isClosing && this.activePathElement && this.points.length > 0) {
+      const firstPoint = this.toScreen(this.activePathElement.points[0]) ?? this.points[0];
+      const ctx = this.context;
+      if (!ctx || !firstPoint) return;
+
+      ctx.save();
+      ctx.translate(firstPoint.x, firstPoint.y);
+      ctx.fillStyle = "blue";
+      ctx.beginPath();
+      ctx.arc(0, 0, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
 
   public draw(): void {
     const mousePos = this.mousePos;
@@ -79,14 +108,15 @@ export class PenTool extends Tool {
       });
     }
     // Move to last point
-    ctx.moveTo(
-      this.points[this.selectedPointIndex].x,
-      this.points[this.selectedPointIndex].y,
-    );
-    ctx.restore();
-
+    if (this.selectedPointIndex !== -1) {
+      ctx.moveTo(
+        this.points[this.selectedPointIndex].x,
+        this.points[this.selectedPointIndex].y,
+      );
+      ctx.restore();
+    }
     // Draw line to pen tool
-    if (this.selectedPointIndex !== -1 && this.points.length > 0) {
+    if (this.points.length > 0) {
       ctx.save();
       ctx.setLineDash([2, 2]);
       ctx.strokeStyle = "gray";
@@ -96,6 +126,8 @@ export class PenTool extends Tool {
     }
     // Draw pen icon
     drawPen(ctx, mousePos, penIcon);
+
+    this.drawClosingIndicator();
   }
 
   protected handleMouseDown(_evt: MouseEvent): void {
@@ -107,7 +139,22 @@ export class PenTool extends Tool {
       if (this.canvasPos) {
         this.activePathElement.addPoint(this.canvasPos);
         this.updatePointsOverlay();
+      } else if (this.isClosing && !this.activePathElement.isClosed) {
+        this.activePathElement.isClosed = true;
+        this.updatePointsOverlay();
       }
+    }
+  }
+
+  protected handleMouseMove(): void {
+    if (this.mousePos && this.activePathElement) {
+      const firstPointScreen = this.toScreen(this.activePathElement.points[0]) ?? this.points[0];
+      const distOffseted = new Vector(
+        { x: this.mousePos.x + (this.workAreaOffset?.x ?? 0), y: this.mousePos.y + (this.workAreaOffset?.y ?? 0) }
+      ).distance(firstPointScreen as Position);
+      this.isClosing = distOffseted <= PenTool.DRAGGING_DISTANCE;
+    } else {
+      this.isClosing = false;
     }
   }
 }
