@@ -270,6 +270,10 @@ export interface EventBusMap {
     payload: unknown;
     result: Position;
   };
+  "transformBox:refresh": {
+    payload: unknown;
+    result: unknown;
+  };
   "transformBox:rotation": {
     payload: unknown;
     result: number;

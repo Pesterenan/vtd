@@ -327,4 +327,132 @@ describe("PenTool", () => {
       expect(arcSpy).toHaveBeenCalledTimes(4);
     });
   });
+
+  describe("seleção e arraste de pontos", () => {
+    it("clique em um ponto existente o seleciona sem mover", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 150, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(penTool["selectedPointIndex"]).toBe(1);
+      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 100 });
+    });
+
+    it("arrastar um ponto o move preservando a geometria dos demais", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 150, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      setMouse({ x: 200, y: 130 });
+      penTool.onMouseMove(createMouseEvent(0, 0));
+      penTool.onMouseUp(createMouseEvent(0, 0));
+
+      expect(p.points).toHaveLength(3);
+      expect(p.toWorld(p.points[1])).toEqual({ x: 200, y: 130 });
+      expect(p.toWorld(p.points[0])).toEqual({ x: 100, y: 100 });
+      expect(p.toWorld(p.points[2])).toEqual({ x: 150, y: 150 });
+    });
+
+    it("movimento pequeno dentro do limiar não move o ponto", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 150, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      setMouse({ x: 152, y: 102 });
+      penTool.onMouseMove(createMouseEvent(0, 0));
+      penTool.onMouseUp(createMouseEvent(0, 0));
+
+      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 100 });
+      expect(penTool["selectedPointIndex"]).toBe(1);
+    });
+
+    it("o primeiro ponto não é arrastável (fechamento preservado)", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 150, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      penTool.onMouseUp(createMouseEvent(0, 0));
+      const before = p.points.length;
+
+      setMouse({ x: 100, y: 100 });
+      penTool.onMouseMove(createMouseEvent(0, 0));
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(penTool["isClosing"]).toBe(true);
+      expect(p.isClosed).toBe(true);
+      expect(p.points).toHaveLength(before);
+    });
+
+    it("adicionar ponto emite transformBox:refresh", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 300, y: 300 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(eventBus.emit).toHaveBeenCalledWith("transformBox:refresh");
+    });
+  });
+
+  describe("remoção e deslocamento por teclado", () => {
+    function selectSecondPoint(): void {
+      setMouse({ x: 150, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+    }
+
+    beforeEach(() => {
+      const p = makePath();
+      activatePath(p);
+      selectSecondPoint();
+    });
+
+    it("Delete remove o ponto selecionado", () => {
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Delete" }));
+
+      expect(penTool["activePathElement"]!.points).toHaveLength(2);
+      expect(penTool["selectedPointIndex"]).toBe(1);
+    });
+
+    it("Backspace também remove o ponto selecionado", () => {
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Backspace" }));
+
+      expect(penTool["activePathElement"]!.points).toHaveLength(2);
+    });
+
+    it("Delete com um único ponto não remove", () => {
+      const single = new PathElement(
+        { x: 100, y: 100 },
+        { width: 10, height: 10 },
+        1,
+      );
+      single.points = [{ x: 0, y: 0 }];
+      activatePath(single);
+      setMouse({ x: 100, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Delete" }));
+
+      expect(single.points).toHaveLength(1);
+    });
+
+    it("setas movem o ponto selecionado", () => {
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "ArrowRight" }));
+      expect(penTool["activePathElement"]!.toWorld(penTool["activePathElement"]!.points[1])).toEqual({
+        x: 151,
+        y: 100,
+      });
+    });
+
+    it("Shift+seta move o ponto selecionado em passos maiores", () => {
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "ArrowDown", shiftKey: true }),
+      );
+      expect(penTool["activePathElement"]!.toWorld(penTool["activePathElement"]!.points[1])).toEqual({
+        x: 150,
+        y: 110,
+      });
+    });
+  });
 });
