@@ -3,7 +3,7 @@ import { GradientElement } from "src/components/elements/gradientElement";
 import { ImageElement } from "src/components/elements/imageElement";
 import { PathElement } from "./elements/pathElement";
 import { TextElement } from "src/components/elements/textElement";
-import type { Layer, Point, Position, Size, TElementData } from "src/components/types";
+import type { Layer, Position, Size, TElementData } from "src/components/types";
 import type {
   EventBus,
   ExportCanvasToStringPayload,
@@ -177,7 +177,6 @@ export class WorkArea {
     const width = 10;
     const height = 10;
     const newElement = new PathElement(position, { width, height }, this.elements.length);
-    newElement.recalculateSize();
 
     this.elements.push(newElement as Element<TElementData>);
     this.eventBus.emit("workarea:addElement", {

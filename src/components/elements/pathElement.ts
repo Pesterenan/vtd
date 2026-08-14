@@ -2,7 +2,7 @@ import { BoundingBox } from "src/utils/boundingBox";
 import type { IPathElementData, Point, Position, Size } from "../types";
 import { Element } from "./element";
 import { FilterRenderer } from "src/filters/filterRenderer";
-import { toRadians } from "src/utils/transforms";
+import { rotatePoint, toRadians } from "src/utils/transforms";
 
 export class PathElement extends Element<IPathElementData> {
   public get points(): IPathElementData["points"] {
@@ -96,32 +96,64 @@ export class PathElement extends Element<IPathElementData> {
     } else {
       this.points.splice(index, 0, point);
     }
-    this.recalculateSize();
+    this.recomputeBounds();
   }
 
   /** Atualiza a posição (mundo) de um ponto existente. */
   public updatePoint(index: number, world: Position): void {
     if (index < 0 || index >= this.points.length) return;
     this.points[index] = this.toLocal(world);
-    this.recalculateSize();
+    this.recomputeBounds();
   }
 
   /** Remove um ponto do path. */
   public removePoint(index: number): void {
     if (index < 0 || index >= this.points.length) return;
     this.points.splice(index, 1);
-    this.recalculateSize();
+    this.recomputeBounds();
   }
 
-  /** Recalcula o size do elemento com base nos extents dos pontos locais. */
-  public recalculateSize(): void {
+  /**
+   * Recentra os pontos do path no seu centro geométrico: o `position` passa a
+   * ser o centro da bounding box e os pontos locais são deslocados na mesma
+   * proporção. Como a geometria no espaço do mundo é preservada, o path
+   * permanece "no mesmo lugar" visualmente, mas a caixa de seleção/transformação
+   * passa a envolver o path corretamente. Leva em conta escala e rotação.
+   */
+  public recomputeBounds(): void {
     if (this.points.length <= 1) return;
+
     const xs = this.points.map((p) => p.x);
     const ys = this.points.map((p) => p.y);
-    this.size = {
-      width: Math.max(...xs) - Math.min(...xs) || 1,
-      height: Math.max(...ys) - Math.min(...ys) || 1,
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const maxX = Math.max(...xs);
+    const maxY = Math.max(...ys);
+
+    const center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+
+    // O position é deslocado pelo centro local transformado por rot+escala,
+    // mantendo a posição renderizada de cada ponto inalterada.
+    const rotatedCenter = rotatePoint(
+      { x: center.x * this.scale.x, y: center.y * this.scale.y },
+      { x: 0, y: 0 },
+      this.rotation,
+    );
+    this.position = {
+      x: this.position.x + rotatedCenter.x,
+      y: this.position.y + rotatedCenter.y,
     };
+
+    this.points = this.points.map((p) => ({
+      x: p.x - center.x,
+      y: p.y - center.y,
+    }));
+
+    this.size = {
+      width: maxX - minX || 1,
+      height: maxY - minY || 1,
+    };
+    this.boundingBox.update(this.position,this.size,this.rotation);
   }
 
   private boundingBox: BoundingBox;

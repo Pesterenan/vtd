@@ -7,6 +7,8 @@ import { svgToCanvasPath, ICON_SIZE } from "src/utils/icons";
 import { PathElement } from "../elements/pathElement";
 import { Vector } from "src/utils/vector";
 
+const CLOSING_DISTANCE = 20;
+
 export class PenTool extends Tool {
   private points: Point[] = [];
   private activePathElement: PathElement | null = null;
@@ -19,22 +21,29 @@ export class PenTool extends Tool {
 
   public equip(): void {
     super.equip();
+    this.resetTool();
+    this.selectActivePath();
     this.eventBus.on("workarea:selectById", this.selectActivePath);
     this.eventBus.on("workarea:selectAt", this.selectActivePath);
+    this.eventBus.on("workarea:deleteElement", this.resetTool);
     this.canvas.style.cursor = "none";
   }
 
   public unequip(): void {
+    this.resetTool();
+    super.unequip();
     this.eventBus.off("workarea:selectById", this.selectActivePath);
     this.eventBus.off("workarea:selectAt", this.selectActivePath);
+    this.eventBus.off("workarea:deleteElement", this.resetTool);
     this.canvas.style.cursor = "";
-    this.reset();
+    this.resetTool();
   }
-  private reset(): void {
+  private resetTool(): void {
     this.points= [];
     this.activePathElement= null;
     this.selectedPointIndex = -1;
     this.isClosing = false;
+    this.eventBus.emit("workarea:update");
   }
 
   private selectActivePath = (): void => {
@@ -43,11 +52,10 @@ export class PenTool extends Tool {
       selectedElements?.length === 1 &&
       selectedElements[0] instanceof PathElement
     ) {
-      this.reset();
       this.activePathElement = selectedElements[0];
       this.updatePointsOverlay();
     } else {
-      this.reset();
+      this.resetTool();
     }
   };
 
@@ -63,7 +71,10 @@ export class PenTool extends Tool {
 
   private drawClosingIndicator(): void {
     if (this.isClosing && this.activePathElement && this.points.length > 0) {
-      const firstPoint = this.toScreen(this.activePathElement.points[0]) ?? this.points[0];
+      const firstPointWorld = this.activePathElement.toWorld(
+        this.activePathElement.points[0],
+      );
+      const firstPoint = this.toScreen(firstPointWorld) ?? this.points[0];
       const ctx = this.context;
       if (!ctx || !firstPoint) return;
 
@@ -94,14 +105,8 @@ export class PenTool extends Tool {
         );
       }
     }
-    // Draw path lines
-    if (this.points.length >= 2) {
-      ctx.beginPath();
-      drawLine(ctx, this.points);
-      ctx.closePath();
-    }
 
-    // Draw points on top of lines
+    // Draw points
     if (this.points.length > 0) {
       this.points.forEach((point, index) => {
         drawPoint(ctx, point, index, this.selectedPointIndex);
@@ -116,7 +121,7 @@ export class PenTool extends Tool {
       ctx.restore();
     }
     // Draw line to pen tool
-    if (this.points.length > 0) {
+    if (this.points.length > 0 && !this.activePathElement?.isClosed) {
       ctx.save();
       ctx.setLineDash([2, 2]);
       ctx.strokeStyle = "gray";
@@ -136,11 +141,15 @@ export class PenTool extends Tool {
         position: this.canvasPos ?? { x: 0, y: 0 },
       });
     } else {
-      if (this.canvasPos) {
-        this.activePathElement.addPoint(this.canvasPos);
-        this.updatePointsOverlay();
-      } else if (this.isClosing && !this.activePathElement.isClosed) {
+      if (this.isClosing &&
+        !this.activePathElement.isClosed &&
+        this.activePathElement.points.length >= 2
+      ) {
         this.activePathElement.isClosed = true;
+        this.selectedPointIndex = -1;
+        this.updatePointsOverlay();
+      } else if (this.canvasPos) {
+        this.activePathElement.addPoint(this.canvasPos);
         this.updatePointsOverlay();
       }
     }
@@ -148,11 +157,14 @@ export class PenTool extends Tool {
 
   protected handleMouseMove(): void {
     if (this.mousePos && this.activePathElement) {
-      const firstPointScreen = this.toScreen(this.activePathElement.points[0]) ?? this.points[0];
-      const distOffseted = new Vector(
-        { x: this.mousePos.x + (this.workAreaOffset?.x ?? 0), y: this.mousePos.y + (this.workAreaOffset?.y ?? 0) }
-      ).distance(firstPointScreen as Position);
-      this.isClosing = distOffseted <= PenTool.DRAGGING_DISTANCE;
+      const firstPointWorld = this.activePathElement.toWorld(
+        this.activePathElement.points[0],
+      );
+      const firstPointScreen = this.toScreen(firstPointWorld) ?? this.points[0];
+      const dist = new Vector(this.mousePos).distance(
+        firstPointScreen as Position,
+      );
+      this.isClosing = dist <= CLOSING_DISTANCE;
     } else {
       this.isClosing = false;
     }
@@ -193,16 +205,5 @@ function drawPoint(
   ctx.arc(0, 0, 2, 0, Math.PI * 2);
   ctx.stroke();
   ctx.fill();
-  ctx.restore();
-}
-
-function drawLine(ctx: CanvasRenderingContext2D, points: Point[]) {
-  ctx.save();
-  ctx.strokeStyle = "black";
-  ctx.lineWidth = 2;
-  for (const point of points) {
-    ctx.lineTo(point.x, point.y);
-    ctx.stroke();
-  }
   ctx.restore();
 }

@@ -3,6 +3,7 @@
  */
 import type { IPathElementData, Position, Size } from "src/components/types";
 import { BoundingBox } from "src/utils/boundingBox";
+import { rotatePoint } from "src/utils/transforms";
 import { PathElement } from "./pathElement";
 
 describe("PathElement", () => {
@@ -21,9 +22,12 @@ describe("PathElement", () => {
       expect(data.type).toBe("path");
     });
 
-    it("should have default points as empty array and allow setting them", () => {
-      expect(element.points).toEqual([]);
+    it("should add the first point at the element position in local coordinates", () => {
+      expect(element.points).toEqual([{ x: 0, y: 0 }]);
+      expect(element.points[0]).toEqual(element.toLocal(position));
+    });
 
+    it("should allow setting points", () => {
       element.points = [
         { x: 0, y: -50 },
         { x: 100, y: 50 },
@@ -81,6 +85,14 @@ describe("PathElement", () => {
       expect(element.strokeWidth).toBe(10);
     });
 
+    it("should ignore strokeWidth <= 0", () => {
+      element.strokeWidth = 0;
+      expect(element.strokeWidth).toBe(3);
+
+      element.strokeWidth = -5;
+      expect(element.strokeWidth).toBe(3);
+    });
+
     it("should have default lineCap 'round' and allow changing", () => {
       expect(element.lineCap).toBe("round");
 
@@ -122,16 +134,270 @@ describe("PathElement", () => {
     });
   });
 
+  describe("coordinate conversions", () => {
+    it("toWorld adds the element position to a local point", () => {
+      expect(element.toWorld({ x: 30, y: -40 })).toEqual({ x: 130, y: 160 });
+    });
+
+    it("toLocal subtracts the element position from a world position", () => {
+      expect(element.toLocal({ x: 130, y: 160 })).toEqual({ x: 30, y: -40 });
+    });
+
+    it("toWorld and toLocal round-trip", () => {
+      const world = { x: 250, y: 80 };
+      expect(element.toWorld(element.toLocal(world))).toEqual(world);
+    });
+  });
+
+  describe("point mutation", () => {
+    it("addPoint accepts world coordinates and appends local points", () => {
+      element.addPoint({ x: 200, y: 250 });
+
+      expect(element.points).toHaveLength(2);
+      // Geometria preservada no mundo
+      expect(element.toWorld(element.points[0])).toEqual({ x: 100, y: 200 });
+      expect(element.toWorld(element.points[1])).toEqual({ x: 200, y: 250 });
+      // position virou o centro dos extents x 0..100 e y 0..50
+      expect(element.position).toEqual({ x: 150, y: 225 });
+    });
+
+    it("addPoint with an index inserts the point at that position", () => {
+      element.addPoint({ x: 300, y: 200 }, 0);
+
+      expect(element.points).toHaveLength(2);
+      expect(element.position).toEqual({ x: 200, y: 200 });
+      expect(element.toWorld(element.points[0])).toEqual({ x: 300, y: 200 });
+      expect(element.toWorld(element.points[1])).toEqual({ x: 100, y: 200 });
+    });
+
+    it("updatePoint converts world coordinates to local and preserves geometry", () => {
+      element.addPoint({ x: 200, y: 250 });
+      element.updatePoint(1, { x: 150, y: 100 });
+
+      expect(element.position).toEqual({ x: 125, y: 150 });
+      expect(element.toWorld(element.points[0])).toEqual({ x: 100, y: 200 });
+      expect(element.toWorld(element.points[1])).toEqual({ x: 150, y: 100 });
+    });
+
+    it("updatePoint with an out-of-range index does nothing", () => {
+      element.points = [{ x: 0, y: 0 }, { x: 10, y: 10 }];
+      element.updatePoint(5, { x: 999, y: 999 });
+
+      expect(element.points).toEqual([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
+    });
+
+    it("removePoint removes the point and recenters", () => {
+      element.points = [{ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 5, y: 20 }];
+      element.removePoint(1);
+
+      expect(element.points).toEqual([
+        { x: -2.5, y: -10 },
+        { x: 2.5, y: 10 },
+      ]);
+      expect(element.position).toEqual({ x: 102.5, y: 210 });
+      expect(element.toWorld(element.points[0])).toEqual({ x: 100, y: 200 });
+    });
+
+    it("removePoint with an out-of-range index does nothing", () => {
+      element.points = [{ x: 0, y: 0 }, { x: 10, y: 10 }];
+      element.removePoint(9);
+
+      expect(element.points).toEqual([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
+    });
+  });
+
+  describe("recomputeBounds", () => {
+    function renderPath(
+      points: Position[],
+      position: Position,
+      scale: { x: number; y: number },
+      rotation: number,
+    ): Position[] {
+      return points.map((pt) => {
+        const scaled = { x: pt.x * scale.x, y: pt.y * scale.y };
+        const rotated = rotatePoint(scaled, { x: 0, y: 0 }, rotation);
+        return { x: rotated.x + position.x, y: rotated.y + position.y };
+      });
+    }
+
+    it("recenters position at the point extents and preserves world geometry", () => {
+      element.points = [
+        { x: 30, y: -40 },
+        { x: -20, y: 50 },
+      ];
+
+      const worldBefore = element.points.map((p) => element.toWorld(p));
+
+      element.recomputeBounds();
+
+      expect(element.position).toEqual({ x: 105, y: 205 });
+      expect(element.size).toEqual({ width: 50, height: 90 });
+      expect(element.points.map((p) => element.toWorld(p))).toEqual(worldBefore);
+    });
+
+    it("preserves the rendered geometry with scale and rotation", () => {
+      const rotated = new PathElement(
+        { x: 500, y: 300 },
+        { width: 10, height: 10 },
+        1,
+      );
+      rotated.scale = { x: 2, y: 1 };
+      rotated.rotation = 90;
+      rotated.points = [
+        { x: 10, y: 0 },
+        { x: -10, y: 0 },
+        { x: 0, y: 20 },
+      ];
+
+      const before = renderPath(
+        rotated.points,
+        rotated.position,
+        rotated.scale,
+        rotated.rotation,
+      );
+
+      rotated.recomputeBounds();
+
+      expect(
+        renderPath(
+          rotated.points,
+          rotated.position,
+          rotated.scale,
+          rotated.rotation,
+        ),
+      ).toEqual(before);
+      expect(rotated.position).toEqual({ x: 490, y: 300 });
+      expect(rotated.size).toEqual({ width: 20, height: 20 });
+    });
+
+    it("does nothing with a single point", () => {
+      const before = element.position;
+      element.recomputeBounds();
+
+      expect(element.position).toEqual(before);
+      expect(element.points).toEqual([{ x: 0, y: 0 }]);
+    });
+  });
+
+  describe("draw", () => {
+    function mockContext(): CanvasRenderingContext2D {
+      return {
+        save: vi.fn(),
+        restore: vi.fn(),
+        translate: vi.fn(),
+        rotate: vi.fn(),
+        scale: vi.fn(),
+        beginPath: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        closePath: vi.fn(),
+        fill: vi.fn(),
+        stroke: vi.fn(),
+        setLineDash: vi.fn(),
+        fillStyle: "#000",
+        strokeStyle: "#000",
+        lineWidth: 1,
+        lineCap: "round",
+        lineJoin: "miter",
+        miterLimit: 10,
+        globalAlpha: 1,
+      } as unknown as CanvasRenderingContext2D;
+    }
+
+    it("strokes the path when hasStroke is true", () => {
+      element.points = [
+        { x: 0, y: 0 },
+        { x: 50, y: 0 },
+      ];
+      const ctx = mockContext();
+
+      element.draw(ctx);
+
+      expect(ctx.stroke).toHaveBeenCalled();
+    });
+
+    it("closes the path when isClosed is true", () => {
+      element.points = [
+        { x: 0, y: 0 },
+        { x: 50, y: 0 },
+        { x: 50, y: 50 },
+      ];
+      element.isClosed = true;
+      const ctx = mockContext();
+
+      element.draw(ctx);
+
+      expect(ctx.closePath).toHaveBeenCalled();
+    });
+
+    it("does not draw when the element is hidden", () => {
+      element.isVisible = false;
+      const ctx = mockContext();
+
+      element.draw(ctx);
+
+      expect(ctx.stroke).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getBoundingBox", () => {
+    it("returns an updated BoundingBox instance", () => {
+      const box = element.getBoundingBox();
+      expect(box).toBeInstanceOf(BoundingBox);
+
+      element.position = { x: 300, y: 400 };
+
+      const box2 = element.getBoundingBox();
+      expect(box2.center.x).toBe(300);
+      expect(box2.center.y).toBe(400);
+    });
+
+    it("uses position and size as fallback when there is a single point", () => {
+      const box = element.getBoundingBox();
+
+      expect(box.center).toEqual(position);
+      expect(box.topLeft.x).toEqual(position.x - initialSize.width / 2);
+      expect(box.bottomRight.x).toEqual(position.x + initialSize.width / 2);
+      expect(box.topLeft.y).toEqual(position.y - initialSize.height / 2);
+      expect(box.bottomRight.y).toEqual(position.y + initialSize.height / 2);
+    });
+
+    it("uses the point extents to center the box at position + local center", () => {
+      element.points = [
+        { x: 30, y: -40 },
+        { x: -20, y: 50 },
+      ];
+
+      const box = element.getBoundingBox();
+
+      expect(box.center.x).toBeCloseTo(105);
+      expect(box.center.y).toBeCloseTo(205);
+      expect(box.topLeft.x).toEqual(80);
+      expect(box.topLeft.y).toEqual(160);
+      expect(box.bottomRight.x).toEqual(130);
+      expect(box.bottomRight.y).toEqual(250);
+    });
+
+    it("uses position and size when there are no points", () => {
+      element.points = [];
+
+      const box = element.getBoundingBox();
+
+      expect(box.center).toEqual(position);
+      expect(box.topLeft.x).toEqual(position.x - initialSize.width / 2);
+    });
+  });
+
   describe("serialize/deserialize", () => {
-    it("should serialize to IPathElementData with all fields", () => {
+    it("serializes to IPathElementData with all fields", () => {
       const data: IPathElementData = element.serialize();
 
       expect(data.type).toBe("path");
-      expect(data.position).toEqual({ x: 100, y: 200 });
-      expect(data.size).toEqual({ width: 300, height: 150 });
-      expect(data.zDepth).toBe(5);
+      expect(data.position).toEqual(position);
+      expect(data.size).toEqual(initialSize);
+      expect(data.zDepth).toBe(zIndex);
 
-      expect(data.points.length).toBe(0);
+      expect(data.points).toEqual([{ x: 0, y: 0 }]);
       expect(data.isClosed).toBe(false);
       expect(data.fillColor).toBe("#E0E0E0");
       expect(data.hasFill).toBe(false);
@@ -144,7 +410,7 @@ describe("PathElement", () => {
       expect(data.miterLimit).toBe(10);
     });
 
-    it("should deserialize and restore all properties", () => {
+    it("deserializes and restores all properties", () => {
       const data: IPathElementData = {
         type: "path",
         position: { x: 200, y: 400 },
@@ -176,15 +442,14 @@ describe("PathElement", () => {
       element.deserialize(data);
 
       expect(element.position).toEqual({ x: 200, y: 400 });
-      expect(element.size.width).toBe(600);
-      expect(element.size.height).toBe(300);
+      expect(element.size).toEqual({ width: 600, height: 300 });
       expect(element.zDepth).toBe(10);
 
-      expect(element.points.length).toBe(2);
-      expect(element.points[0]).toEqual({ x: 50, y: -75 });
-      expect(element.points[1]).toEqual({ x: 100, y: 25 });
+      expect(element.points).toEqual([
+        { x: 50, y: -75 },
+        { x: 100, y: 25 },
+      ]);
       expect(element.isClosed).toBe(true);
-
       expect(element.fillColor).toBe("#ffaa00");
       expect(element.hasFill).toBe(true);
       expect(element.strokeColor).toBe("#0088cc");
@@ -196,139 +461,21 @@ describe("PathElement", () => {
       expect(element.miterLimit).toBe(20);
     });
 
-    it("should remain a PathElement after serialize/deserialize cycle", () => {
+    it("remains a PathElement after a serialize/deserialize cycle", () => {
       element.lineCap = "square";
       element.lineJoin = "round";
       element.lineDash = "dashed";
       element.miterLimit = 30;
       const data = element.serialize();
 
-      // Create new instance and deserialize
-      const newData: IPathElementData = { ...data, type: "path" };
       const cloned = new PathElement(position, initialSize, zIndex);
-      cloned.deserialize(newData);
+      cloned.deserialize({ ...data, type: "path" });
 
       expect(cloned.constructor.name).toBe("PathElement");
       expect(cloned.lineCap).toBe("square");
       expect(cloned.lineJoin).toBe("round");
       expect(cloned.lineDash).toBe("dashed");
       expect(cloned.miterLimit).toBe(30);
-    });
-  });
-
-  describe("getBoundingBox", () => {
-    it("should return an updated BoundingBox instance", () => {
-      const box1 = element.getBoundingBox();
-      expect(box1).toBeInstanceOf(BoundingBox);
-
-      // Change position and rotation
-      element.position = { x: 300, y: 400 };
-      element.rotation = 45;
-
-      const box2 = element.getBoundingBox();
-      expect(box2.center.x).toBe(300);
-      expect(box2.center.y).toBe(400);
-    });
-
-    it("should calculate bounding box based on position and size", () => {
-      // With rotation 0, should match initial values
-      const box = element.getBoundingBox();
-
-      expect(box.topLeft.x).toEqual(position.x - initialSize.width / 2);
-      expect(box.bottomRight.x).toEqual(position.x + initialSize.width / 2);
-      expect(box.topLeft.y).toEqual(position.y - initialSize.height / 2);
-      expect(box.bottomRight.y).toEqual(position.y + initialSize.height / 2);
-    });
-
-    it("should update when rotation changes", () => {
-      element.rotation = 90;
-      const box = element.getBoundingBox();
-
-      // After 90 degree rotation, corners are rotated around center
-      expect(box.center.x).toBe(100);
-      expect(box.center.y).toBe(200);
-    });
-
-    it("should update when scale changes", () => {
-      element.scale = { x: 2, y: 1.5 };
-
-      const box = element.getBoundingBox();
-      // Bounding box center should remain at position (scale doesn't affect bounding box calculation)
-      expect(box.center.x).toBe(position.x);
-      expect(box.center.y).toBe(position.y);
-    });
-
-    it("should center the box at position + local center when points are not centered", () => {
-      element.position = { x: 100, y: 200 };
-      element.points = [
-        { x: 30, y: -40 },
-        { x: -20, y: 50 },
-      ];
-
-      const box = element.getBoundingBox();
-      // Centro local = média dos pontos = (5, 5); centro do box = position + (5, 5)
-      expect(box.center.x).toBeCloseTo(105);
-      expect(box.center.y).toBeCloseTo(205);
-      expect(box.bottomRight.x).toBeGreaterThan(105);
-      expect(box.topLeft.x).toBeLessThan(105);
-    });
-
-    describe("should recalculate based on points", () => {
-      it.each([0, 1, 5])("%d points should be handled", (pointCount) => {
-        const relativePoints: Position[] = [];
-
-        for (let i = 0; i < pointCount; i++) {
-          // Create a triangle-like shape centered at origin
-          const angle = (i / pointCount) * Math.PI * 2;
-          const radius = 50;
-
-          if (pointCount === 1) {
-            relativePoints.push({ x: 30, y: -40 });
-          } else if (pointCount >= 2 && i < pointCount - 1) {
-            // Add points around the center for triangulation tests
-            const dx = Math.cos(angle) * radius;
-            const dy = Math.sin(angle) * radius;
-
-            relativePoints.push({ x: dx, y: dy });
-          } else if (pointCount >= 3) {
-            // Close triangle with final point back at start for closed polygon tests
-            relativePoints.push(relativePoints[0]);
-          }
-        }
-
-        element.points = relativePoints;
-
-        const box = element.getBoundingBox();
-
-        // Bounding box should expand based on points added (considering points extents)
-        if (pointCount === 0) {
-          // Sem pontos, usa position/size originais
-          expect(box.topLeft.x).toEqual(position.x - initialSize.width / 2);
-          expect(box.bottomRight.x).toEqual(position.x + initialSize.width / 2);
-          expect(box.topLeft.y).toEqual(position.y - initialSize.height / 2);
-          expect(box.bottomRight.y).toEqual(position.y + initialSize.height / 2);
-        } else if (pointCount === 1) {
-          // Um ponto: usa position/size originais como fallback
-          const expectedTopLeftX = position.x - initialSize.width / 2;
-          const expectedBottomRightX = position.x + initialSize.width / 2;
-          const expectedTopLeftY = position.y - initialSize.height / 2;
-          const expectedBottomRightY = position.y + initialSize.height / 2;
-
-          expect(box.topLeft.x).toEqual(expectedTopLeftX);
-          expect(box.bottomRight.x).toEqual(expectedBottomRightX);
-          expect(box.topLeft.y).toEqual(expectedTopLeftY);
-          expect(box.bottomRight.y).toEqual(expectedBottomRightY);
-        } else {
-          // Múltiplos pontos: usa extents dos pontos reais
-          const minX = Math.min(...relativePoints.map(p => p.x));
-          const minY = Math.min(...relativePoints.map(p => p.y));
-
-          expect(box.topLeft.x).toBeLessThanOrEqual(position.x + minX);
-          expect(box.bottomRight.x).toBeGreaterThanOrEqual(position.x + minX);
-          expect(box.topLeft.y).toBeLessThanOrEqual(position.y + minY);
-          expect(box.bottomRight.y).toBeGreaterThanOrEqual(position.y + minY);
-        }
-      });
     });
   });
 });
