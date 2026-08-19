@@ -245,6 +245,7 @@ export class MainWindow {
 
     // EventBus Listeners
     this.eventBus.on("tool:change", (tool: TOOL) => {
+      this.currentTool = tool;
       if (this.toolManager && this.tools) {
         this.toolManager.use(this.tools[tool]);
       }
@@ -708,7 +709,12 @@ export class MainWindow {
     if (isTyping) return;
 
     if (!evt.repeat) {
+      if (evt.ctrlKey || evt.metaKey) {
+        return;
+      }
+
       if (evt.code === "Delete") {
+        if (this.currentTool === TOOL.PEN) return;
         this.handleDeleteCommand();
       }
 

@@ -285,9 +285,11 @@ describe("PenTool", () => {
       setMouse({ x: 101, y: 100 });
       penTool.onMouseMove(createMouseEvent(0, 0));
       penTool.onMouseDown(createMouseEvent(0, 0));
+      penTool.onMouseUp(createMouseEvent(0, 0));
 
       expect(p.isClosed).toBe(true);
-      expect(p.points).toHaveLength(4);
+      expect(p.points).toHaveLength(3);
+      expect(penTool["selectedPointIndex"]).toBe(0);
     });
   });
 
@@ -386,6 +388,47 @@ describe("PenTool", () => {
       expect(p.points).toHaveLength(before);
     });
 
+    it("arrastar o primeiro ponto em um path fechado o move sem adicionar ponto", () => {
+      const p = makePath();
+      p.isClosed = true;
+      activatePath(p);
+      setMouse({ x: 100, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      setMouse({ x: 120, y: 140 });
+      penTool.onMouseMove(createMouseEvent(0, 0));
+      penTool.onMouseUp(createMouseEvent(0, 0));
+
+      expect(p.points).toHaveLength(3);
+      expect(p.toWorld(p.points[0])).toEqual({ x: 120, y: 140 });
+    });
+
+    it("clicar no primeiro ponto de um path fechado não insere vértice", () => {
+      const p = makePath();
+      p.isClosed = true;
+      activatePath(p);
+      setMouse({ x: 101, y: 100 });
+      penTool.onMouseMove(createMouseEvent(0, 0));
+
+      expect(penTool["isClosing"]).toBe(false);
+
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      penTool.onMouseUp(createMouseEvent(0, 0));
+
+      expect(p.points).toHaveLength(3);
+      expect(penTool["selectedPointIndex"]).toBe(0);
+    });
+
+    it("path fechado não exibe indicador de fechamento no primeiro ponto", () => {
+      const p = makePath();
+      p.isClosed = true;
+      activatePath(p);
+      setMouse({ x: 101, y: 100 });
+      penTool.onMouseMove(createMouseEvent(0, 0));
+
+      expect(penTool["isClosing"]).toBe(false);
+    });
+
     it("adicionar ponto emite transformBox:refresh", () => {
       const p = makePath();
       activatePath(p);
@@ -453,6 +496,307 @@ describe("PenTool", () => {
         x: 150,
         y: 110,
       });
+    });
+  });
+
+  describe("fechamento e cancelamento por teclado", () => {
+    it("Enter fecha um path aberto com 3 ou mais pontos", () => {
+      const p = makePath();
+      activatePath(p);
+
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Enter" }));
+
+      expect(p.isClosed).toBe(true);
+      expect(penTool["selectedPointIndex"]).toBe(-1);
+    });
+
+    it("Enter com menos de 3 pontos não fecha e emite alerta", () => {
+      const p = new PathElement(
+        { x: 100, y: 100 },
+        { width: 10, height: 10 },
+        1,
+      );
+      p.points = [
+        { x: 0, y: 0 },
+        { x: 50, y: 0 },
+      ];
+      activatePath(p);
+
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Enter" }));
+
+      expect(p.isClosed).toBe(false);
+      expect(eventBus.emit).toHaveBeenCalledWith("alert:add", {
+        message: "É preciso pelo menos 3 pontos para fechar a forma.",
+        type: "error",
+      });
+    });
+
+    it("Enter não tem efeito em um path já fechado", () => {
+      const p = makePath();
+      p.isClosed = true;
+      activatePath(p);
+
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Enter" }));
+
+      expect(p.isClosed).toBe(true);
+      expect(p.points).toHaveLength(3);
+    });
+
+    it("Esc restaura o snapshot do início da edição e limpa as pilhas", () => {
+      const p = makePath();
+      activatePath(p);
+      const pointsBefore = p.points.length;
+      setMouse({ x: 200, y: 150 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      expect(p.points).toHaveLength(pointsBefore + 1);
+
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Escape" }));
+
+      expect(p.points).toHaveLength(pointsBefore);
+      expect(p.isClosed).toBe(false);
+      expect(penTool["undoStack"]).toHaveLength(0);
+      expect(penTool["redoStack"]).toHaveLength(0);
+      expect(penTool["selectedPointIndex"]).toBe(-1);
+    });
+
+    it("Esc restaura também o estado de fechamento do path", () => {
+      const p = makePath();
+      activatePath(p);
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Enter" }));
+      expect(p.isClosed).toBe(true);
+      setMouse({ x: 300, y: 300 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      expect(p.points).toHaveLength(4);
+
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Escape" }));
+
+      expect(p.isClosed).toBe(false);
+      expect(p.points).toHaveLength(3);
+    });
+  });
+
+  describe("undo e redo", () => {
+    it("Ctrl+Z desfaz a adição de um ponto e Ctrl+Y refaz", () => {
+      const p = makePath();
+      activatePath(p);
+      const before = p.points.length;
+      setMouse({ x: 200, y: 150 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      expect(p.points).toHaveLength(before + 1);
+
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "z", ctrlKey: true }),
+      );
+      expect(p.points).toHaveLength(before);
+      expect(p.toWorld(p.points[0])).toEqual({ x: 100, y: 100 });
+
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "y", ctrlKey: true }),
+      );
+      expect(p.points).toHaveLength(before + 1);
+    });
+
+    it("Ctrl+Shift+Z também refaz", () => {
+      const p = makePath();
+      activatePath(p);
+      const before = p.points.length;
+      setMouse({ x: 200, y: 150 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "z", ctrlKey: true }),
+      );
+      expect(p.points).toHaveLength(before);
+
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", {
+          key: "z",
+          ctrlKey: true,
+          shiftKey: true,
+        }),
+      );
+      expect(p.points).toHaveLength(before + 1);
+    });
+
+    it("Ctrl+Z desfaz a remoção de um ponto via Delete", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 150, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      const before = p.points.length;
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Delete" }));
+      expect(p.points).toHaveLength(before - 1);
+
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "z", ctrlKey: true }),
+      );
+      expect(p.points).toHaveLength(before);
+      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 100 });
+    });
+
+    it("Ctrl+Z desfaz o deslocamento por seta", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 150, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "ArrowRight" }));
+      expect(p.toWorld(p.points[1])).toEqual({ x: 151, y: 100 });
+
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "z", ctrlKey: true }),
+      );
+      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 100 });
+    });
+
+    it("um arraste inteiro gera um único passo de undo", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 150, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      setMouse({ x: 200, y: 130 });
+      penTool.onMouseMove(createMouseEvent(0, 0));
+      setMouse({ x: 220, y: 160 });
+      penTool.onMouseMove(createMouseEvent(0, 0));
+      penTool.onMouseUp(createMouseEvent(0, 0));
+      expect(p.toWorld(p.points[1])).toEqual({ x: 220, y: 160 });
+
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "z", ctrlKey: true }),
+      );
+      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 100 });
+    });
+
+    it("uma nova edição limpa a pilha de redo", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 200, y: 150 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "z", ctrlKey: true }),
+      );
+      expect(p.points).toHaveLength(3);
+
+      setMouse({ x: 220, y: 150 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "y", ctrlKey: true }),
+      );
+
+      expect(p.points).toHaveLength(4);
+      expect(p.toWorld(p.points[3])).toEqual({ x: 220, y: 150 });
+    });
+  });
+
+  describe("constraint com Shift", () => {
+    it("Shift+clique alinha o novo ponto ao eixo dominante do último ponto", () => {
+      const p = makePath();
+      activatePath(p);
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift" }));
+      setMouse({ x: 300, y: 250 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(p.points).toHaveLength(4);
+      expect(p.toWorld(p.points[3])).toEqual({ x: 300, y: 150 });
+    });
+
+    it("Shift+clique alinha ao eixo vertical quando ele domina", () => {
+      const p = makePath();
+      activatePath(p);
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift" }));
+      setMouse({ x: 250, y: 300 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(p.points).toHaveLength(4);
+      expect(p.toWorld(p.points[3])).toEqual({ x: 150, y: 300 });
+    });
+
+    it("Shift durante o arraste restringe o ponto em relação à posição original", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 150, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift" }));
+      setMouse({ x: 220, y: 180 });
+      penTool.onMouseMove(createMouseEvent(0, 0));
+      penTool.onMouseUp(createMouseEvent(0, 0));
+
+      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 180 });
+    });
+
+    it("soltar Shift desliga o constraint", () => {
+      const p = makePath();
+      activatePath(p);
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift" }));
+      penTool.onKeyUp(new KeyboardEvent("keyup", { key: "Shift" }));
+      setMouse({ x: 300, y: 250 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(p.points).toHaveLength(4);
+      expect(p.toWorld(p.points[3])).toEqual({ x: 300, y: 250 });
+    });
+  });
+
+  describe("preview sólido ao fechar", () => {
+    it("desenha linha sólida quando isClosing", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 100, y: 101 });
+      penTool.onMouseMove(createMouseEvent(0, 0));
+      expect(penTool["isClosing"]).toBe(true);
+
+      const context = canvas.getContext("2d")!;
+      const dashSpy = vi.spyOn(context, "setLineDash").mockClear();
+
+      penTool.draw();
+
+      expect(dashSpy).toHaveBeenCalledWith([]);
+    });
+
+    it("desenha linha tracejada quando não está fechando", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 200, y: 200 });
+      penTool.onMouseMove(createMouseEvent(0, 0));
+      expect(penTool["isClosing"]).toBe(false);
+
+      const context = canvas.getContext("2d")!;
+      const dashSpy = vi.spyOn(context, "setLineDash").mockClear();
+
+      penTool.draw();
+
+      expect(dashSpy).toHaveBeenCalledWith([2, 2]);
+    });
+  });
+
+  describe("hint overlay", () => {
+    it("equip com path ativo emite pen:hint visível", () => {
+      const p = makePath();
+      configureRequest({ selected: [p] });
+      penTool.equip();
+
+      expect(eventBus.emit).toHaveBeenCalledWith("pen:hint", { visible: true });
+    });
+
+    it("unequip emite pen:hint escondido", () => {
+      const p = makePath();
+      configureRequest({ selected: [p] });
+      penTool.equip();
+      penTool.unequip();
+
+      expect(eventBus.emit).toHaveBeenCalledWith("pen:hint", {
+        visible: false,
+      });
+    });
+
+    it("deselecionar o path esconde o hint", () => {
+      const p = makePath();
+      configureRequest({ selected: [p] });
+      penTool.equip();
+      expect(penTool["hintVisible"]).toBe(true);
+
+      configureRequest({ selected: [{ type: "image" }] });
+      eventBus.emit("workarea:selectById", { elementsId: new Set([99]) });
+
+      expect(penTool["hintVisible"]).toBe(false);
     });
   });
 });

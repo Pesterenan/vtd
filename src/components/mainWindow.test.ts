@@ -64,4 +64,57 @@ describe("MainWindow - PenTool integration", () => {
 
     expect(eventBus.emit).toHaveBeenCalledWith("tool:equipped", expect.any(PenTool));
   });
+
+  it("Ctrl+Z não troca para a ferramenta de zoom", () => {
+    vi.spyOn(eventBus, "emit");
+    MainWindow.getInstance(eventBus, { canvas });
+    vi.mocked(eventBus.emit).mockClear();
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { code: "KeyZ", ctrlKey: true }),
+    );
+
+    expect(eventBus.emit).not.toHaveBeenCalledWith("tool:change", TOOL.ZOOM);
+  });
+
+  it("Delete com TOOL.PEN ativa não deleta o elemento selecionado", () => {
+    vi.spyOn(eventBus, "emit");
+    const instance = MainWindow.getInstance(eventBus, { canvas });
+    vi.mocked(eventBus.emit).mockClear();
+    vi.spyOn(eventBus, "request").mockImplementation((event) => {
+      if (event === "workarea:selected:get") {
+        return [[{ elementId: 1 }] as unknown[]] as never;
+      }
+      return [] as never;
+    });
+
+    (instance as unknown as { currentTool: TOOL }).currentTool = TOOL.PEN;
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: "Delete" }));
+
+    expect(eventBus.emit).not.toHaveBeenCalledWith("workarea:deleteElement", {
+      elementId: 1,
+    });
+  });
+
+  it("Delete com outra ferramenta deleta o elemento selecionado", () => {
+    vi.spyOn(eventBus, "emit");
+    const instance = MainWindow.getInstance(eventBus, { canvas });
+    vi.mocked(eventBus.emit).mockClear();
+    vi.spyOn(eventBus, "request").mockImplementation((event) => {
+      if (event === "workarea:selected:get") {
+        return [[{ elementId: 1 }] as unknown[]] as never;
+      }
+      return [] as never;
+    });
+
+    (instance as unknown as { currentTool: TOOL }).currentTool = TOOL.MULTI;
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: "Delete" }));
+
+    expect(eventBus.emit).toHaveBeenCalledWith("workarea:deleteElement", {
+      elementId: 1,
+    });
+  });
 });
+

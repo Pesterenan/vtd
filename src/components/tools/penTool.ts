@@ -13,6 +13,12 @@ const POINT_DRAG_DISTANCE = 5;
 const KEY_NUDGE_STEP = 1;
 const KEY_NUDGE_STEP_SHIFT = 10;
 
+interface PathState {
+  points: Point[];
+  isClosed: boolean;
+  position: Position;
+}
+
 export class PenTool extends Tool {
   private points: Point[] = [];
   private activePathElement: PathElement | null = null;
@@ -22,6 +28,12 @@ export class PenTool extends Tool {
   private mouseDownScreen: Position | null = null;
   private dragStarted = false;
   private isClosing = false;
+  private undoStack: PathState[] = [];
+  private redoStack: PathState[] = [];
+  private editingSnapshot: PathState | null = null;
+  private shiftPressed = false;
+  private dragOriginWorld: Position | null = null;
+  private hintVisible = false;
 
   constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
     super(canvas, eventBus);
@@ -55,6 +67,12 @@ export class PenTool extends Tool {
     this.mouseDownScreen = null;
     this.dragStarted = false;
     this.isClosing = false;
+    this.undoStack = [];
+    this.redoStack = [];
+    this.editingSnapshot = null;
+    this.shiftPressed = false;
+    this.dragOriginWorld = null;
+    this.setHint(false);
     this.eventBus.emit("workarea:update");
   }
 
@@ -64,9 +82,15 @@ export class PenTool extends Tool {
       selectedElements?.length === 1 &&
       selectedElements[0] instanceof PathElement
     ) {
+      if (this.activePathElement !== selectedElements[0]) {
+        this.undoStack = [];
+        this.redoStack = [];
+        this.editingSnapshot = this.captureState(selectedElements[0]);
+      }
       this.activePathElement = selectedElements[0];
       this.updatePointsOverlay();
       this.selectedPointIndex = this.points.length - 1;
+      this.setHint(true);
     } else {
       this.resetTool();
     }
@@ -92,6 +116,75 @@ export class PenTool extends Tool {
     this.updatePointsOverlay();
   };
 
+  private captureState(path: PathElement): PathState {
+    return {
+      points: path.points.map((p) => ({ ...p })),
+      isClosed: path.isClosed,
+      position: { ...path.position },
+    };
+  }
+
+  private applyState(path: PathElement, state: PathState): void {
+    path.points = state.points.map((p) => ({ ...p }));
+    path.isClosed = state.isClosed;
+    path.position = { ...state.position };
+    path.recomputeBounds();
+    this.refreshTransformBox();
+    this.updatePointsOverlay();
+  }
+
+  private pushUndo(path: PathElement): void {
+    this.undoStack.push(this.captureState(path));
+    this.redoStack.length = 0;
+  }
+
+  private undo(): void {
+    if (!this.activePathElement || this.undoStack.length === 0) return;
+    this.redoStack.push(this.captureState(this.activePathElement));
+    const state = this.undoStack.pop();
+    if (state) this.applyState(this.activePathElement, state);
+  }
+
+  private redo(): void {
+    if (!this.activePathElement || this.redoStack.length === 0) return;
+    this.undoStack.push(this.captureState(this.activePathElement));
+    const state = this.redoStack.pop();
+    if (state) this.applyState(this.activePathElement, state);
+  }
+
+  private cancelEditing(): void {
+    if (!this.activePathElement || !this.editingSnapshot) return;
+    this.applyState(this.activePathElement, this.editingSnapshot);
+    this.selectedPointIndex = -1;
+    this.undoStack.length = 0;
+    this.redoStack.length = 0;
+  }
+
+  private closeWithKeyboard(): void {
+    if (!this.activePathElement || this.activePathElement.isClosed) return;
+    if (this.activePathElement.points.length < 3) {
+      this.eventBus.emit("alert:add", {
+        message: "É preciso pelo menos 3 pontos para fechar a forma.",
+        type: "error",
+      });
+      return;
+    }
+    this.closePath();
+  }
+
+  private constrainAxis(position: Position, reference: Position): Position {
+    if (Math.abs(position.x - reference.x) >= Math.abs(position.y - reference.y)) {
+      return { x: position.x, y: reference.y };
+    }
+    return { x: reference.x, y: position.y };
+  }
+
+  private setHint(visible: boolean): void {
+    if (this.hintVisible === visible) return;
+    this.hintVisible = visible;
+    this.eventBus.emit("pen:hint", { visible });
+  }
+
   private pointScreenPosition(index: number): Position | null {
     if (!this.activePathElement) return null;
     return this.toScreen(
@@ -99,11 +192,12 @@ export class PenTool extends Tool {
     );
   }
 
-  /** Acha o ponto sob o cursor. O primeiro é reservado ao fechamento, então não conta. */
+  /** Acha o ponto sob o cursor. O primeiro é reservado ao fechamento enquanto o path está aberto. */
   private hitTestPoint(): number {
     const mousePos = this.mousePos;
     if (!mousePos || !this.activePathElement) return -1;
-    for (let i = 1; i < this.points.length; i++) {
+    const start = this.activePathElement.isClosed ? 0 : 1;
+    for (let i = start; i < this.points.length; i++) {
       const screen = this.pointScreenPosition(i);
       if (screen && new Vector(mousePos).distance(screen) <= POINT_HIT_DISTANCE) {
         return i;
@@ -162,8 +256,8 @@ export class PenTool extends Tool {
       !isDragging
     ) {
       const last = this.points[this.points.length - 1];
-      ctx.setLineDash([2, 2]);
-      ctx.strokeStyle = "gray";
+      ctx.setLineDash(this.isClosing ? [] : [2, 2]);
+      ctx.strokeStyle = this.isClosing ? "black" : "gray";
       ctx.beginPath();
       ctx.moveTo(last.x, last.y);
       if (this.isClosing) {
@@ -208,7 +302,15 @@ export class PenTool extends Tool {
     }
 
     if (this.canvasPos) {
-      this.activePathElement.addPoint(this.canvasPos);
+      let target: Position = this.canvasPos;
+      if (this.shiftPressed) {
+        const last = this.activePathElement.points[
+          this.activePathElement.points.length - 1
+        ];
+        target = this.constrainAxis(target, this.activePathElement.toWorld(last));
+      }
+      this.pushUndo(this.activePathElement);
+      this.activePathElement.addPoint(target);
       this.selectedPointIndex = this.activePathElement.points.length - 1;
       this.refreshTransformBox();
       this.updatePointsOverlay();
@@ -230,14 +332,19 @@ export class PenTool extends Tool {
         new Vector(mousePos).distance(this.mouseDownScreen) > POINT_DRAG_DISTANCE
       ) {
         this.dragStarted = true;
+        this.pushUndo(this.activePathElement);
+        this.dragOriginWorld = this.activePathElement.toWorld(
+          this.activePathElement.points[this.draggingPointIndex],
+        );
       }
       if (this.dragStarted && this.canvasPos) {
         this.isClosing = false;
         this.hoveredPointIndex = -1;
-        this.activePathElement.updatePoint(
-          this.draggingPointIndex,
-          this.canvasPos,
-        );
+        let target: Position = this.canvasPos;
+        if (this.shiftPressed && this.dragOriginWorld) {
+          target = this.constrainAxis(target, this.dragOriginWorld);
+        }
+        this.activePathElement.updatePoint(this.draggingPointIndex, target);
         this.refreshTransformBox();
         this.updatePointsOverlay();
       }
@@ -249,8 +356,9 @@ export class PenTool extends Tool {
     );
     const firstPointScreen = this.toScreen(firstPointWorld) ?? this.points[0];
     this.isClosing =
+      !this.activePathElement.isClosed &&
       new Vector(mousePos).distance(firstPointScreen as Position) <=
-      CLOSING_DISTANCE;
+        CLOSING_DISTANCE;
 
     this.hoveredPointIndex = this.hitTestPoint();
   }
@@ -259,15 +367,51 @@ export class PenTool extends Tool {
     this.draggingPointIndex = -1;
     this.mouseDownScreen = null;
     this.dragStarted = false;
+    this.dragOriginWorld = null;
     this.updatePointsOverlay();
   }
 
   protected handleKeyDown(evt: KeyboardEvent): void {
-    if (!this.activePathElement || this.selectedPointIndex < 0) return;
+    if (!this.activePathElement) return;
+
+    if (evt.key === "Shift") {
+      this.shiftPressed = true;
+    }
+
+    if (evt.key === "Escape") {
+      evt.preventDefault();
+      this.cancelEditing();
+      return;
+    }
+
+    if (evt.key === "Enter") {
+      evt.preventDefault();
+      this.closeWithKeyboard();
+      return;
+    }
+
+    if ((evt.ctrlKey || evt.metaKey) && evt.key.toLowerCase() === "z") {
+      evt.preventDefault();
+      if (evt.shiftKey) {
+        this.redo();
+      } else {
+        this.undo();
+      }
+      return;
+    }
+
+    if ((evt.ctrlKey || evt.metaKey) && evt.key.toLowerCase() === "y") {
+      evt.preventDefault();
+      this.redo();
+      return;
+    }
+
+    if (this.selectedPointIndex < 0) return;
 
     if (evt.key === "Delete" || evt.key === "Backspace") {
       evt.preventDefault();
       if (this.activePathElement.points.length > 1) {
+        this.pushUndo(this.activePathElement);
         this.activePathElement.removePoint(this.selectedPointIndex);
         this.selectedPointIndex = Math.min(
           this.selectedPointIndex,
@@ -289,6 +433,7 @@ export class PenTool extends Tool {
     const delta = deltas[evt.key];
     if (delta) {
       evt.preventDefault();
+      this.pushUndo(this.activePathElement);
       const world = this.activePathElement.toWorld(
         this.activePathElement.points[this.selectedPointIndex],
       );
@@ -298,6 +443,12 @@ export class PenTool extends Tool {
       });
       this.refreshTransformBox();
       this.updatePointsOverlay();
+    }
+  }
+
+  protected handleKeyUp(evt: KeyboardEvent): void {
+    if (evt.key === "Shift") {
+      this.shiftPressed = false;
     }
   }
 }

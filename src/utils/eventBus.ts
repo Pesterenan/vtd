@@ -5,7 +5,6 @@ import type {
   ElementType,
   IProjectData,
   Layer,
-  Point,
   Position,
   Scale,
   Size,
@@ -178,6 +177,10 @@ export interface EventBusMap {
   "mouse:position:get": {
     payload: unknown;
     result: Position;
+  };
+  "pen:hint": {
+    payload: { visible: boolean };
+    result: unknown;
   };
   "multiTool:modeChange": {
     payload: "select" | "move" | "rotate" | "scale";

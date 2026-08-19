@@ -3,6 +3,7 @@ import { EventBus } from "./utils/eventBus";
 import { EventBusProvider } from "./contexts/EventBusContext";
 import { MainWindow } from "./components/mainWindow";
 import CanvasShell from "./components/CanvasShell/CanvasShell";
+import PenHintOverlay from "./components/PenHintOverlay/PenHintOverlay";
 import ToolMenu from "./components/ToolMenu/ToolMenu";
 import SideMenu from "./components/SideMenu/SideMenu";
 import TransformMenu from "./components/TransformMenu/TransformMenu";
@@ -57,6 +58,7 @@ const App = () => {
 
             <div style={{ flex: 1, position: "relative" }}>
               <CanvasShell ref={canvasRef} />
+              <PenHintOverlay />
             </div>
 
             <SideMenu>
