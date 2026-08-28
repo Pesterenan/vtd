@@ -6,6 +6,11 @@ import penIconSvg from "src/assets/icons/pen-tool.svg?raw";
 import { svgToCanvasPath, ICON_SIZE } from "src/utils/icons";
 import { PathElement } from "../elements/pathElement";
 import { Vector } from "src/utils/vector";
+import {
+  closestPointOnSegment,
+  hitTestSegments,
+  constrainAxis as constrainAxisUtil,
+} from "src/utils/pathMath";
 
 const CLOSING_DISTANCE = 20;
 const POINT_HIT_DISTANCE = 8;
@@ -20,7 +25,8 @@ interface PathState {
 }
 
 export class PenTool extends Tool {
-  private points: Point[] = [];
+  /** Pontos em espaço de TELA — cache de `activePathElement.points` convertido via toWorld+toScreen. */
+  private points: Position[] = [];
   private activePathElement: PathElement | null = null;
   private selectedPointIndex = -1;
   private hoveredPointIndex = -1;
@@ -58,6 +64,7 @@ export class PenTool extends Tool {
     this.canvas.style.cursor = "";
     this.resetTool();
   }
+
   private resetTool(): void {
     this.points = [];
     this.activePathElement = null;
@@ -96,13 +103,19 @@ export class PenTool extends Tool {
     }
   };
 
+  /**
+   * Converte todos os pontos locais do path para espaço de tela.
+   * Regra de ouro: SEMPRE `local -> world -> screen` (nunca local -> screen direto).
+   */
   private updatePointsOverlay = (): void => {
-    if (this.activePathElement) {
-      this.points = this.activePathElement.points.map(
-        (local) => this.toScreen(local) as Position,
-      );
-      this.eventBus.emit("workarea:update");
-    }
+    if (!this.activePathElement) return;
+    this.points = this.activePathElement.points
+      .map((local) => {
+        const world = this.activePathElement!.toWorld(local);
+        return this.toScreen(world);
+      })
+      .filter((p): p is Position => p !== null);
+    this.eventBus.emit("workarea:update");
   };
 
   private refreshTransformBox = (): void => {
@@ -173,10 +186,7 @@ export class PenTool extends Tool {
   }
 
   private constrainAxis(position: Position, reference: Position): Position {
-    if (Math.abs(position.x - reference.x) >= Math.abs(position.y - reference.y)) {
-      return { x: position.x, y: reference.y };
-    }
-    return { x: reference.x, y: position.y };
+    return constrainAxisUtil(position, reference);
   }
 
   private setHint(visible: boolean): void {
@@ -186,20 +196,28 @@ export class PenTool extends Tool {
   }
 
   private pointScreenPosition(index: number): Position | null {
-    if (!this.activePathElement) return null;
+    if (
+      !this.activePathElement ||
+      index === -1 ||
+      index >= this.activePathElement.points.length
+    )
+      return null;
     return this.toScreen(
       this.activePathElement.toWorld(this.activePathElement.points[index]),
     );
   }
 
-  /** Acha o ponto sob o cursor. O primeiro é reservado ao fechamento enquanto o path está aberto. */
+  /** Acha o vértice sob o cursor. O primeiro é reservado ao fechamento enquanto o path está aberto. */
   private hitTestPoint(): number {
     const mousePos = this.mousePos;
     if (!mousePos || !this.activePathElement) return -1;
     const start = this.activePathElement.isClosed ? 0 : 1;
     for (let i = start; i < this.points.length; i++) {
       const screen = this.pointScreenPosition(i);
-      if (screen && new Vector(mousePos).distance(screen) <= POINT_HIT_DISTANCE) {
+      if (
+        screen &&
+        new Vector(mousePos).distance(screen) <= POINT_HIT_DISTANCE
+      ) {
         return i;
       }
     }
@@ -211,33 +229,38 @@ export class PenTool extends Tool {
       const firstPoint = this.pointScreenPosition(0) ?? this.points[0];
       const ctx = this.context;
       if (!ctx || !firstPoint) return;
-
       drawPoint(ctx, firstPoint, 0, this.selectedPointIndex, "blue");
     }
   }
 
   public draw(): void {
     const mousePos = this.mousePos;
-    const canvasPos = this.canvasPos;
-    const penIcon = svgToCanvasPath(penIconSvg);
     const ctx = this.context;
-    if (!ctx || !mousePos || !penIcon || !canvasPos) return;
+    const penIcon = svgToCanvasPath(penIconSvg);
+    if (!ctx || !mousePos || !penIcon) return;
 
     const isDragging = this.draggingPointIndex !== -1 && this.dragStarted;
 
-    ctx.save();
-    let translateX = 0;
-    let translateY = 0;
-    if (this.activePathElement) {
-      const translation = this.toScreen(this.activePathElement.position);
-      if (translation && this.workAreaOffset) {
-        translateX = translation.x - this.workAreaOffset.x;
-        translateY = translation.y - this.workAreaOffset.y;
-        ctx.translate(translateX, translateY);
+    // --- Ponto preditivo no meio do segmento (hover-inserção) ---
+    // Só mostra se não está arrastando, não está fechando e não está sobre vértice.
+    if (
+      this.activePathElement &&
+      !isDragging &&
+      !this.isClosing &&
+      this.hoveredPointIndex === -1
+    ) {
+      const hit = hitTestSegments(
+        mousePos,
+        this.points,
+        !!this.activePathElement.isClosed,
+        POINT_HIT_DISTANCE,
+      );
+      if (hit) {
+        drawPoint(ctx, hit.projection, -1, this.selectedPointIndex, "orange", false);
       }
     }
 
-    // Draw points
+    // Vértices
     this.points.forEach((point, index) => {
       drawPoint(
         ctx,
@@ -249,13 +272,14 @@ export class PenTool extends Tool {
       );
     });
 
-    // Dashed preview of the next segment (suspended while dragging)
+    // Linha elástica (rubber band) — próximo segmento futuro
     if (
       this.points.length > 0 &&
       !this.activePathElement?.isClosed &&
       !isDragging
     ) {
       const last = this.points[this.points.length - 1];
+      ctx.save();
       ctx.setLineDash(this.isClosing ? [] : [2, 2]);
       ctx.strokeStyle = this.isClosing ? "black" : "gray";
       ctx.beginPath();
@@ -263,14 +287,14 @@ export class PenTool extends Tool {
       if (this.isClosing) {
         ctx.lineTo(this.points[0].x, this.points[0].y);
       } else {
-        ctx.lineTo(mousePos.x - translateX, mousePos.y - translateY);
+        ctx.lineTo(mousePos.x, mousePos.y);
       }
       ctx.stroke();
+      ctx.restore();
     }
-    ctx.restore();
-    // Draw pen icon
-    drawPen(ctx, mousePos, penIcon);
 
+    // Ícone da caneta
+    drawPen(ctx, mousePos, penIcon);
     this.drawClosingIndicator();
   }
 
@@ -282,6 +306,7 @@ export class PenTool extends Tool {
       return;
     }
 
+    // 1. Fechamento por clique no primeiro ponto
     if (
       this.isClosing &&
       !this.activePathElement.isClosed &&
@@ -291,23 +316,56 @@ export class PenTool extends Tool {
       return;
     }
 
-    const hit = this.hitTestPoint();
-    if (hit !== -1) {
-      this.selectedPointIndex = hit;
-      this.draggingPointIndex = hit;
+    // 2. Clique em vértice existente → seleciona / inicia arraste
+    const hitVertex = this.hitTestPoint();
+    if (hitVertex !== -1) {
+      this.selectedPointIndex = hitVertex;
+      this.draggingPointIndex = hitVertex;
       this.mouseDownScreen = this.mousePos;
       this.dragStarted = false;
       this.updatePointsOverlay();
       return;
     }
 
+    // 3. Clique no meio de um segmento → insere novo vértice na projeção
+    if (this.mousePos && this.canvasPos) {
+      const segHit = hitTestSegments(
+        this.mousePos,
+        this.points,
+        this.activePathElement.isClosed,
+        POINT_HIT_DISTANCE,
+      );
+      if (segHit) {
+        // Recalcula em espaço de MUNDO para evitar erro de zoom/pan
+        const worldPoints = this.activePathElement.points.map((p) =>
+          this.activePathElement!.toWorld(p),
+        );
+        const segA = worldPoints[segHit.segmentIndex];
+        const segB =
+          worldPoints[(segHit.segmentIndex + 1) % worldPoints.length];
+        const worldHit = closestPointOnSegment(this.canvasPos, segA, segB);
+
+        this.pushUndo(this.activePathElement);
+        this.activePathElement.addPoint(worldHit.q, segHit.segmentIndex + 1);
+        this.selectedPointIndex = segHit.segmentIndex + 1;
+        this.refreshTransformBox();
+        this.updatePointsOverlay();
+        return;
+      }
+    }
+
+    // 4. Fallback: adiciona ponto ao final (com constraint de Shift)
     if (this.canvasPos) {
       let target: Position = this.canvasPos;
       if (this.shiftPressed) {
-        const last = this.activePathElement.points[
-          this.activePathElement.points.length - 1
-        ];
-        target = this.constrainAxis(target, this.activePathElement.toWorld(last));
+        const last =
+          this.activePathElement.points[
+            this.activePathElement.points.length - 1
+          ];
+        target = this.constrainAxis(
+          target,
+          this.activePathElement.toWorld(last),
+        );
       }
       this.pushUndo(this.activePathElement);
       this.activePathElement.addPoint(target);
@@ -329,7 +387,8 @@ export class PenTool extends Tool {
       if (
         !this.dragStarted &&
         this.mouseDownScreen &&
-        new Vector(mousePos).distance(this.mouseDownScreen) > POINT_DRAG_DISTANCE
+        new Vector(mousePos).distance(this.mouseDownScreen) >
+          POINT_DRAG_DISTANCE
       ) {
         this.dragStarted = true;
         this.pushUndo(this.activePathElement);
@@ -453,7 +512,8 @@ export class PenTool extends Tool {
   }
 }
 
-// Drawing
+// Drawing helpers
+
 function drawPen(
   ctx: CanvasRenderingContext2D,
   mousePos: Point,
@@ -464,7 +524,6 @@ function drawPen(
   ctx.lineJoin = "round";
   ctx.strokeStyle = "white";
   ctx.fillStyle = "grey";
-
   ctx.translate(mousePos.x - ICON_SIZE / 3 - 2, mousePos.y + ICON_SIZE / 3);
   ctx.rotate(toRadians(-45));
   ctx.stroke(penIcon);

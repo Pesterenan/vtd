@@ -1,3 +1,5 @@
+import { Vector } from "./vector";
+
 /** Interpolates the `value` between `start` and `end`
  * @param {boolean} clampOutput [false] - if true, clamps the output to the min and max values
  * @returns the value between `start` and `end` */
@@ -92,4 +94,17 @@ export const linearColorInterpolation = (
       .padStart(2, "0"),
   ];
   return `#${finalColorValues.join("")}`;
+};
+
+export const linearVectorInterpolation = (
+  startVector: Vector,
+  endVector: Vector,
+  value: number,
+  clampOutput = false,
+): Vector => {
+  const interpolatedVector = {
+    x: linearInterpolation(startVector.x, endVector.x, value, clampOutput),
+    y: linearInterpolation(startVector.y, endVector.y, value, clampOutput),
+  };
+  return new Vector(interpolatedVector);
 };

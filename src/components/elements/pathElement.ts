@@ -5,6 +5,7 @@ import { FilterRenderer } from "src/filters/filterRenderer";
 import { rotatePoint, toRadians } from "src/utils/transforms";
 
 export class PathElement extends Element<IPathElementData> {
+  // --- Propriedades tipadas (atalhos para `this.properties`) ---
   public get points(): IPathElementData["points"] {
     return this.properties.get("points") as IPathElementData["points"];
   }
@@ -36,17 +37,13 @@ export class PathElement extends Element<IPathElementData> {
     this.properties.set("fillColor", value);
   }
   public get strokeColor(): IPathElementData["strokeColor"] {
-    return this.properties.get(
-      "strokeColor",
-    ) as IPathElementData["strokeColor"];
+    return this.properties.get("strokeColor") as IPathElementData["strokeColor"];
   }
   public set strokeColor(value: string) {
     this.properties.set("strokeColor", value);
   }
   public get strokeWidth(): IPathElementData["strokeWidth"] {
-    return this.properties.get(
-      "strokeWidth",
-    ) as IPathElementData["strokeWidth"];
+    return this.properties.get("strokeWidth") as IPathElementData["strokeWidth"];
   }
   public set strokeWidth(value: number) {
     if (value <= 0) return;
@@ -78,85 +75,96 @@ export class PathElement extends Element<IPathElementData> {
     this.properties.set("miterLimit", value);
   }
 
-  /** Converte um ponto local (relativo a position) para o espaço do canvas (mundo). */
+  // --- Conversão de coordenadas ---
+  // `points` são armazenados em LOCAL (relativo a `position`).
+  // `position` está em WORLD (canvas).
+
+  /** Local → World: soma o offset do elemento. */
   public toWorld(local: Point): Position {
     return { x: this.position.x + local.x, y: this.position.y + local.y };
   }
 
-  /** Converte uma posição do canvas (mundo) para coordenada local (relativa a position). */
+  /** World → Local: subtrai o offset do elemento. */
   public toLocal(world: Position): Point {
     return { x: world.x - this.position.x, y: world.y - this.position.y };
   }
 
-  /** Adiciona um ponto em coordenadas do mundo ao path (no índice fornecido ou ao final). */
+  // --- Mutação de pontos (todas recentralizam) ---
+
+  /** Adiciona um ponto em coordenadas de mundo, no índice ou ao final. */
   public addPoint(world: Position, index?: number): void {
-    const point = this.toLocal(world);
-    if (index === undefined) {
-      this.points.push(point);
-    } else {
-      this.points.splice(index, 0, point);
-    }
+    const local = this.toLocal(world);
+    if (index === undefined) this.points.push(local);
+    else this.points.splice(index, 0, local);
     this.recomputeBounds();
   }
 
-  /** Atualiza a posição (mundo) de um ponto existente. */
+  /** Move um vértice existente para nova posição de mundo. */
   public updatePoint(index: number, world: Position): void {
     if (index < 0 || index >= this.points.length) return;
     this.points[index] = this.toLocal(world);
     this.recomputeBounds();
   }
 
-  /** Remove um ponto do path. */
+  /** Remove um vértice. */
   public removePoint(index: number): void {
     if (index < 0 || index >= this.points.length) return;
     this.points.splice(index, 1);
     this.recomputeBounds();
   }
 
+  // --- Geometria / Bounds ---
+
+  /** Extents locais (min/max) dos pontos. */
+  private getLocalExtents(): { minX: number; minY: number; maxX: number; maxY: number } | null {
+    if (this.points.length === 0) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const p of this.points) {
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x);
+      maxY = Math.max(maxY, p.y);
+    }
+    return { minX, minY, maxX, maxY };
+  }
+
   /**
-   * Recentra os pontos do path no seu centro geométrico: o `position` passa a
-   * ser o centro da bounding box e os pontos locais são deslocados na mesma
-   * proporção. Como a geometria no espaço do mundo é preservada, o path
-   * permanece "no mesmo lugar" visualmente, mas a caixa de seleção/transformação
-   * passa a envolver o path corretamente. Leva em conta escala e rotação.
+   * Recentra `position` no centro geométrico dos pontos.
+   * Preserva a posição em WORLD de cada vértice — só muda o referencial local.
+   * Leva em conta `scale` e `rotation` para que o `position` visual não pule.
    */
   public recomputeBounds(): void {
     if (this.points.length <= 1) return;
 
-    const xs = this.points.map((p) => p.x);
-    const ys = this.points.map((p) => p.y);
-    const minX = Math.min(...xs);
-    const minY = Math.min(...ys);
-    const maxX = Math.max(...xs);
-    const maxY = Math.max(...ys);
+    const ext = this.getLocalExtents();
+    if (!ext) return;
+    const centerLocal = { x: (ext.minX + ext.maxX) / 2, y: (ext.minY + ext.maxY) / 2 };
 
-    const center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
-
-    // O position é deslocado pelo centro local transformado por rot+escala,
-    // mantendo a posição renderizada de cada ponto inalterada.
-    const rotatedCenter = rotatePoint(
-      { x: center.x * this.scale.x, y: center.y * this.scale.y },
-      { x: 0, y: 0 },
-      this.rotation,
-    );
+    // Desloca `position` pelo centro local já transformado por escala+rotação
+    const scaled = { x: centerLocal.x * this.scale.x, y: centerLocal.y * this.scale.y };
+    const rotatedOffset = rotatePoint(scaled, { x: 0, y: 0 }, this.rotation);
     this.position = {
-      x: this.position.x + rotatedCenter.x,
-      y: this.position.y + rotatedCenter.y,
+      x: this.position.x + rotatedOffset.x,
+      y: this.position.y + rotatedOffset.y,
     };
 
+    // Rebaseia pontos para o novo centro
     this.points = this.points.map((p) => ({
-      x: p.x - center.x,
-      y: p.y - center.y,
+      x: p.x - centerLocal.x,
+      y: p.y - centerLocal.y,
     }));
 
     this.size = {
-      width: maxX - minX || 1,
-      height: maxY - minY || 1,
+      width: ext.maxX - ext.minX || 1,
+      height: ext.maxY - ext.minY || 1,
     };
-    this.boundingBox.update(this.position,this.size,this.rotation);
+    this.boundingBox.update(this.position, this.size, this.rotation);
   }
 
+  // --- Ciclo de vida ---
+
   private boundingBox: BoundingBox;
+
   public constructor(position: Position, size: Size, z: number) {
     super(position, size, z);
     this.properties.set("type", "path");
@@ -176,103 +184,62 @@ export class PathElement extends Element<IPathElementData> {
   }
 
   public draw(context: CanvasRenderingContext2D): void {
-    if (!this.isVisible || !this.points.length) return;
+    if (!this.isVisible || this.points.length === 0) return;
     context.globalAlpha = this.opacity;
     if (this.filters.length > 0) {
-      FilterRenderer.applyFilters(context, this.filters, (ctx) => {
-        this.drawPath(ctx);
-      });
+      FilterRenderer.applyFilters(context, this.filters, (ctx) => this.drawPath(ctx));
     } else {
       this.drawPath(context);
     }
   }
 
   private drawPath(ctx: CanvasRenderingContext2D): void {
-    if (!this.points.length) return;
-
     ctx.save();
     ctx.translate(this.position.x, this.position.y);
     ctx.rotate(toRadians(this.rotation));
     ctx.scale(this.scale.x, this.scale.y);
 
-    // Desenha a linha do path principal
     ctx.beginPath();
-    if (this.points.length > 0) {
-      ctx.moveTo(this.points[0].x, this.points[0].y);
-      for (let i = 1; i < this.points.length; i++) {
-        ctx.lineTo(this.points[i].x, this.points[i].y);
+    ctx.moveTo(this.points[0].x, this.points[0].y);
+    for (let i = 1; i < this.points.length; i++) ctx.lineTo(this.points[i].x, this.points[i].y);
+    if (this.isClosed) ctx.closePath();
+
+    if (this.hasFill && this.points.length > 1) {
+      ctx.fillStyle = this.fillColor;
+      ctx.fill();
+    }
+
+    if (this.hasStroke) {
+      ctx.strokeStyle = this.strokeColor;
+      ctx.lineWidth = this.strokeWidth;
+      ctx.lineCap = this.lineCap;
+      ctx.lineJoin = this.lineJoin;
+      ctx.miterLimit = this.miterLimit;
+      if (this.lineDash !== "solid") {
+        ctx.setLineDash(this.lineDash === "dashed" ? [8, 6] : [1, 4]);
       }
-
-      if (this.isClosed) {
-        ctx.closePath();
-      }
-
-      // Preenchimento (se habilitado)
-      if (this.hasFill && this.points.length > 1) {
-        ctx.fillStyle = this.fillColor;
-        ctx.fill();
-      }
-
-      // Stroke da linha principal
-      if (this.hasStroke) {
-        ctx.strokeStyle = this.strokeColor;
-        ctx.lineWidth = this.strokeWidth;
-        ctx.lineCap = this.lineCap;
-        ctx.lineJoin = this.lineJoin;
-        ctx.miterLimit = this.miterLimit;
-
-        if (this.lineDash !== "solid") {
-          ctx.setLineDash(
-            this.lineDash === "dashed" ? [8, 6] : [1, 4],
-          );
-        }
-
-        ctx.stroke();
-
-        if (this.lineDash !== "solid") {
-          ctx.setLineDash([]);
-        }
-      }
+      ctx.stroke();
+      if (this.lineDash !== "solid") ctx.setLineDash([]);
     }
 
     ctx.restore();
   }
 
-  /**
-   * Calcula o bounding box baseado na posição e tamanho do elemento.
-   * Considera também os pontos reais do path quando disponíveis para recálculo.
-   */
   public getBoundingBox(): BoundingBox {
     if (this.points.length <= 1) {
       this.boundingBox.update(this.position, this.size, this.rotation);
       return this.boundingBox;
     }
 
-    // Extents dos pontos (coordenadas locais, relativas a position).
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const p of this.points) {
-      minX = Math.min(minX, p.x);
-      minY = Math.min(minY, p.y);
-      maxX = Math.max(maxX, p.x);
-      maxY = Math.max(maxY, p.y);
-    }
+    const ext = this.getLocalExtents()!;
+    const width = ext.maxX - ext.minX;
+    const height = ext.maxY - ext.minY;
+    const centerWorld = {
+      x: this.position.x + (ext.minX + ext.maxX) / 2,
+      y: this.position.y + (ext.minY + ext.maxY) / 2,
+    };
 
-    const width = maxX - minX;
-    const height = maxY - minY;
-
-    // O centro do box deve estar em coordenadas do mundo: position + centro local.
-    this.boundingBox.update(
-      {
-        x: this.position.x + (minX + maxX) / 2,
-        y: this.position.y + (minY + maxY) / 2,
-      },
-      { width, height },
-      this.rotation,
-    );
-
+    this.boundingBox.update(centerWorld, { width, height }, this.rotation);
     return this.boundingBox;
   }
 }

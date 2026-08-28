@@ -159,13 +159,64 @@ describe("PenTool", () => {
     });
   });
 
+  describe("inserção de ponto no meio de um segmento", () => {
+    function makeTwoPointLine(): PathElement {
+      const p = new PathElement(
+        { x: 100, y: 100 },
+        { width: 10, height: 10 },
+        1,
+      );
+      p.points = [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+      ];
+      return p;
+    }
+
+    it("clique no meio de uma linha de dois pontos insere o terceiro entre eles", () => {
+      const p = makeTwoPointLine();
+      activatePath(p);
+      setMouse({ x: 150, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(p.points).toHaveLength(3);
+      expect(p.toWorld(p.points[0])).toEqual({ x: 100, y: 100 });
+      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 100 });
+      expect(p.toWorld(p.points[2])).toEqual({ x: 200, y: 100 });
+    });
+
+    it("clique no meio do primeiro segmento insere após o primeiro vértice", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 125, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(p.points).toHaveLength(4);
+      expect(p.toWorld(p.points[1])).toEqual({ x: 125, y: 100 });
+      expect(p.toWorld(p.points[2])).toEqual({ x: 150, y: 100 });
+      expect(p.toWorld(p.points[3])).toEqual({ x: 150, y: 150 });
+    });
+
+    it("clique no meio do último segmento insere antes do vértice final", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 150, y: 125 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(p.points).toHaveLength(4);
+      expect(p.toWorld(p.points[2])).toEqual({ x: 150, y: 125 });
+      expect(p.toWorld(p.points[3])).toEqual({ x: 150, y: 150 });
+    });
+  });
+
   describe("seleção do path ativo", () => {
     it("workarea:selectById com um PathElement ativa a edição e o overlay", () => {
       const p = makePath();
       activatePath(p);
 
       expect(penTool["activePathElement"]).toBe(p);
-      expect(penTool["points"]).toEqual(p.points);
+      // points do overlay são em espaço de tela = world (com mock identity adjust)
+      expect(penTool["points"]).toEqual(p.points.map((pt) => p.toWorld(pt)));
       expect(penTool["selectedPointIndex"]).toBe(p.points.length - 1);
     });
 

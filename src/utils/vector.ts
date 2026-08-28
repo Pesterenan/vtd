@@ -1,4 +1,5 @@
 import type { Position, Size } from "src/components/types";
+import { toDegrees } from "./transforms";
 
 type Vectorizable = Position | Size;
 
@@ -62,6 +63,12 @@ export class Vector {
   dot(other: Vectorizable) {
     const that = new Vector(other);
     return this.x * that.x + this.y * that.y;
+  }
+
+  /** Calcula o ângulo do vetor de direção informado
+   * @return - O ângulo da direção desse vetor, entre -180 a 180 graus. */
+  heading() {
+    return toDegrees(Math.atan2(this.y, this.x));
   }
 
   magnitudeSq() {
