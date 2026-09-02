@@ -176,7 +176,7 @@ export interface EventBusMap {
   };
   "mouse:position:get": {
     payload: unknown;
-    result: Position;
+    result: Position | null;
   };
   "pen:hint": {
     payload: { visible: boolean };

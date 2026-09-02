@@ -14,10 +14,28 @@ export abstract class Tool {
   /** Posição do mouse ajustada para o espaço do canvas (workArea). Usar em toda operação semântica e payloads de eventos. */
   protected canvasPos: Position | null = null;
   protected get workAreaOffset(): Position | null {
-    return this.eventBus.request("workarea:offset:get")[0] ?? { x: 0, y: 0 };
+    return this.eventBus.request("workarea:offset:get")[0] ?? null;
   }
   protected get zoomLevel() {
     return this.eventBus.request("zoomLevel:get")[0] ?? 1;
+  }
+
+  protected modifiers = {
+    shift: false,
+    alt: false,
+    ctrl: false,
+  };
+
+  private syncModifiersOnKeyDown(evt: KeyboardEvent): void {
+    this.modifiers.alt = evt.altKey || evt.key === "Alt";
+    this.modifiers.ctrl = evt.ctrlKey || evt.key === "Control";
+    this.modifiers.shift = evt.shiftKey || evt.key === "Shift";
+  }
+
+  private syncModifiersOnKeyUp(evt: KeyboardEvent): void {
+    this.modifiers.alt = evt.key === "Alt" ? false : evt.altKey;
+    this.modifiers.ctrl = evt.key === "Control" ? false : evt.ctrlKey;
+    this.modifiers.shift = evt.key === "Shift" ? false : evt.shiftKey;
   }
 
   constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
@@ -39,10 +57,12 @@ export abstract class Tool {
   public abstract draw(): void;
 
   public onKeyDown(evt: KeyboardEvent): void {
+    this.syncModifiersOnKeyDown(evt);
     this.handleKeyDown(evt);
     this.eventBus.emit("workarea:update");
   }
   public onKeyUp(evt: KeyboardEvent): void {
+    this.syncModifiersOnKeyUp(evt);
     this.handleKeyUp(evt);
     this.eventBus.emit("workarea:update");
   }
@@ -79,16 +99,18 @@ export abstract class Tool {
   /** Converte uma posição do espaço do canvas para o espaço de tela. */
   protected toScreen(world: Position): Position | null {
     return (
-      this.eventBus.request("workarea:adjustForScreen", { position: world })[0] ??
-      null
+      this.eventBus.request("workarea:adjustForScreen", {
+        position: world,
+      })[0] ?? null
     );
   }
 
   /** Converte uma posição do espaço de tela para o espaço do canvas. */
   protected toCanvas(screen: Position): Position | null {
     return (
-      this.eventBus.request("workarea:adjustForCanvas", { position: screen })[0] ??
-      null
+      this.eventBus.request("workarea:adjustForCanvas", {
+        position: screen,
+      })[0] ?? null
     );
   }
 }

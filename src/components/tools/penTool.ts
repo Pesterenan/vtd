@@ -37,7 +37,6 @@ export class PenTool extends Tool {
   private undoStack: PathState[] = [];
   private redoStack: PathState[] = [];
   private editingSnapshot: PathState | null = null;
-  private shiftPressed = false;
   private dragOriginWorld: Position | null = null;
   private hintVisible = false;
 
@@ -77,7 +76,6 @@ export class PenTool extends Tool {
     this.undoStack = [];
     this.redoStack = [];
     this.editingSnapshot = null;
-    this.shiftPressed = false;
     this.dragOriginWorld = null;
     this.setHint(false);
     this.eventBus.emit("workarea:update");
@@ -108,10 +106,11 @@ export class PenTool extends Tool {
    * Regra de ouro: SEMPRE `local -> world -> screen` (nunca local -> screen direto).
    */
   private updatePointsOverlay = (): void => {
-    if (!this.activePathElement) return;
-    this.points = this.activePathElement.points
+    const active = this.activePathElement;
+    if (!active) return;
+    this.points = active.points
       .map((local) => {
-        const world = this.activePathElement!.toWorld(local);
+        const world = active.toWorld(local);
         return this.toScreen(world);
       })
       .filter((p): p is Position => p !== null);
@@ -207,6 +206,14 @@ export class PenTool extends Tool {
     );
   }
 
+  /** Traz a posição do primeiro ponto em tela (reconvertendo a cada uso). */
+  private firstPointScreen(): Position | null {
+    if (!this.activePathElement) return null;
+    return this.toScreen(
+      this.activePathElement.toWorld(this.activePathElement.points[0]),
+    );
+  }
+
   /** Acha o vértice sob o cursor. O primeiro é reservado ao fechamento enquanto o path está aberto. */
   private hitTestPoint(): number {
     const mousePos = this.mousePos;
@@ -226,7 +233,7 @@ export class PenTool extends Tool {
 
   private drawClosingIndicator(): void {
     if (this.isClosing && this.activePathElement && this.points.length > 0) {
-      const firstPoint = this.pointScreenPosition(0) ?? this.points[0];
+      const firstPoint = this.firstPointScreen();
       const ctx = this.context;
       if (!ctx || !firstPoint) return;
       drawPoint(ctx, firstPoint, 0, this.selectedPointIndex, "blue");
@@ -256,7 +263,14 @@ export class PenTool extends Tool {
         POINT_HIT_DISTANCE,
       );
       if (hit) {
-        drawPoint(ctx, hit.projection, -1, this.selectedPointIndex, "orange", false);
+        drawPoint(
+          ctx,
+          hit.projection,
+          -1,
+          this.selectedPointIndex,
+          "orange",
+          false,
+        );
       }
     }
 
@@ -299,7 +313,8 @@ export class PenTool extends Tool {
   }
 
   protected handleMouseDown(_evt: MouseEvent): void {
-    if (!this.activePathElement) {
+    const active = this.activePathElement;
+    if (!active) {
       this.eventBus.emit("edit:path", {
         position: this.canvasPos ?? { x: 0, y: 0 },
       });
@@ -307,11 +322,7 @@ export class PenTool extends Tool {
     }
 
     // 1. Fechamento por clique no primeiro ponto
-    if (
-      this.isClosing &&
-      !this.activePathElement.isClosed &&
-      this.activePathElement.points.length >= 2
-    ) {
+    if (this.isClosing && !active.isClosed && active.points.length >= 2) {
       this.closePath();
       return;
     }
@@ -319,6 +330,15 @@ export class PenTool extends Tool {
     // 2. Clique em vértice existente → seleciona / inicia arraste
     const hitVertex = this.hitTestPoint();
     if (hitVertex !== -1) {
+      if (this.modifiers.alt) {
+        if (active.isClosed) {
+          active.isClosed = false;
+        }
+        active.removePoint(this.selectedPointIndex);
+        this.refreshTransformBox();
+        this.updatePointsOverlay();
+        return;
+      }
       this.selectedPointIndex = hitVertex;
       this.draggingPointIndex = hitVertex;
       this.mouseDownScreen = this.mousePos;
@@ -327,49 +347,42 @@ export class PenTool extends Tool {
       return;
     }
 
-    // 3. Clique no meio de um segmento → insere novo vértice na projeção
-    if (this.mousePos && this.canvasPos) {
-      const segHit = hitTestSegments(
-        this.mousePos,
-        this.points,
-        this.activePathElement.isClosed,
-        POINT_HIT_DISTANCE,
-      );
-      if (segHit) {
-        // Recalcula em espaço de MUNDO para evitar erro de zoom/pan
-        const worldPoints = this.activePathElement.points.map((p) =>
-          this.activePathElement!.toWorld(p),
+    if (this.modifiers.shift)  {
+      // 3. Clique no meio de um segmento → insere novo vértice na projeção
+      if (this.mousePos && this.canvasPos) {
+        const segHit = hitTestSegments(
+          this.mousePos,
+          this.points,
+          active.isClosed,
+          POINT_HIT_DISTANCE,
         );
-        const segA = worldPoints[segHit.segmentIndex];
-        const segB =
-          worldPoints[(segHit.segmentIndex + 1) % worldPoints.length];
-        const worldHit = closestPointOnSegment(this.canvasPos, segA, segB);
+        if (segHit) {
+          const worldPoints = active.points.map((p) => active.toWorld(p));
+          const segA = worldPoints[segHit.segmentIndex];
+          const segB =
+            worldPoints[(segHit.segmentIndex + 1) % worldPoints.length];
+          const worldHit = closestPointOnSegment(this.canvasPos, segA, segB);
 
-        this.pushUndo(this.activePathElement);
-        this.activePathElement.addPoint(worldHit.q, segHit.segmentIndex + 1);
-        this.selectedPointIndex = segHit.segmentIndex + 1;
-        this.refreshTransformBox();
-        this.updatePointsOverlay();
-        return;
+          this.pushUndo(active);
+          active.addPoint(worldHit.q, segHit.segmentIndex + 1);
+          this.selectedPointIndex = segHit.segmentIndex + 1;
+          this.refreshTransformBox();
+          this.updatePointsOverlay();
+          return;
+        }
       }
     }
 
     // 4. Fallback: adiciona ponto ao final (com constraint de Shift)
-    if (this.canvasPos) {
+    if (this.canvasPos && !active.isClosed) {
       let target: Position = this.canvasPos;
-      if (this.shiftPressed) {
-        const last =
-          this.activePathElement.points[
-            this.activePathElement.points.length - 1
-          ];
-        target = this.constrainAxis(
-          target,
-          this.activePathElement.toWorld(last),
-        );
+      if (this.modifiers.shift) {
+        const last = active.points[active.points.length - 1];
+        target = this.constrainAxis(target, active.toWorld(last));
       }
-      this.pushUndo(this.activePathElement);
-      this.activePathElement.addPoint(target);
-      this.selectedPointIndex = this.activePathElement.points.length - 1;
+      this.pushUndo(active);
+      active.addPoint(target);
+      this.selectedPointIndex = active.points.length - 1;
       this.refreshTransformBox();
       this.updatePointsOverlay();
     }
@@ -383,31 +396,33 @@ export class PenTool extends Tool {
       return;
     }
 
-    if (this.draggingPointIndex !== -1) {
-      if (
-        !this.dragStarted &&
-        this.mouseDownScreen &&
-        new Vector(mousePos).distance(this.mouseDownScreen) >
-          POINT_DRAG_DISTANCE
-      ) {
-        this.dragStarted = true;
-        this.pushUndo(this.activePathElement);
-        this.dragOriginWorld = this.activePathElement.toWorld(
-          this.activePathElement.points[this.draggingPointIndex],
-        );
-      }
-      if (this.dragStarted && this.canvasPos) {
-        this.isClosing = false;
-        this.hoveredPointIndex = -1;
-        let target: Position = this.canvasPos;
-        if (this.shiftPressed && this.dragOriginWorld) {
-          target = this.constrainAxis(target, this.dragOriginWorld);
+    if (this.modifiers.ctrl) {
+      if (this.draggingPointIndex !== -1) {
+        if (
+          !this.dragStarted &&
+          this.mouseDownScreen &&
+          new Vector(mousePos).distance(this.mouseDownScreen) >
+            POINT_DRAG_DISTANCE
+        ) {
+          this.dragStarted = true;
+          this.pushUndo(this.activePathElement);
+          this.dragOriginWorld = this.activePathElement.toWorld(
+            this.activePathElement.points[this.draggingPointIndex],
+          );
         }
-        this.activePathElement.updatePoint(this.draggingPointIndex, target);
-        this.refreshTransformBox();
-        this.updatePointsOverlay();
+        if (this.dragStarted && this.canvasPos) {
+          this.isClosing = false;
+          this.hoveredPointIndex = -1;
+          let target: Position = this.canvasPos;
+          if (this.modifiers.shift && this.dragOriginWorld) {
+            target = this.constrainAxis(target, this.dragOriginWorld);
+          }
+          this.activePathElement.updatePoint(this.draggingPointIndex, target);
+          this.refreshTransformBox();
+          this.updatePointsOverlay();
+        }
+        return;
       }
-      return;
     }
 
     const firstPointWorld = this.activePathElement.toWorld(
@@ -433,10 +448,6 @@ export class PenTool extends Tool {
   protected handleKeyDown(evt: KeyboardEvent): void {
     if (!this.activePathElement) return;
 
-    if (evt.key === "Shift") {
-      this.shiftPressed = true;
-    }
-
     if (evt.key === "Escape") {
       evt.preventDefault();
       this.cancelEditing();
@@ -449,9 +460,9 @@ export class PenTool extends Tool {
       return;
     }
 
-    if ((evt.ctrlKey || evt.metaKey) && evt.key.toLowerCase() === "z") {
+    if (this.modifiers.ctrl && evt.key.toLowerCase() === "z") {
       evt.preventDefault();
-      if (evt.shiftKey) {
+      if (this.modifiers.shift) {
         this.redo();
       } else {
         this.undo();
@@ -459,7 +470,7 @@ export class PenTool extends Tool {
       return;
     }
 
-    if ((evt.ctrlKey || evt.metaKey) && evt.key.toLowerCase() === "y") {
+    if (this.modifiers.ctrl && evt.key.toLowerCase() === "y") {
       evt.preventDefault();
       this.redo();
       return;
@@ -482,7 +493,7 @@ export class PenTool extends Tool {
       return;
     }
 
-    const step = evt.shiftKey ? KEY_NUDGE_STEP_SHIFT : KEY_NUDGE_STEP;
+    const step = this.modifiers.shift ? KEY_NUDGE_STEP_SHIFT : KEY_NUDGE_STEP;
     const deltas: Record<string, Position> = {
       ArrowLeft: { x: -step, y: 0 },
       ArrowRight: { x: step, y: 0 },
@@ -502,12 +513,6 @@ export class PenTool extends Tool {
       });
       this.refreshTransformBox();
       this.updatePointsOverlay();
-    }
-  }
-
-  protected handleKeyUp(evt: KeyboardEvent): void {
-    if (evt.key === "Shift") {
-      this.shiftPressed = false;
     }
   }
 }

@@ -10,7 +10,7 @@ export type ToolEventHandler =
   | "onKeyUp";
 
 export class ToolManager {
-  private current: Tool | null = null;
+  private currentTool: Tool | null = null;
   private lastMousePos: Position | null = null;
   private isWorkAreaActive = false;
 
@@ -39,28 +39,28 @@ export class ToolManager {
   }
 
   public use(tool: Tool) {
-    if (this.current) this.current.unequip();
-    this.current = tool;
-    this.current.equip();
+    if (this.currentTool) this.currentTool.unequip();
+    this.currentTool = tool;
+    this.currentTool.equip();
   }
 
   private delegate(method: ToolEventHandler, evt: MouseEvent | KeyboardEvent) {
-    if (!this.current || !this.isWorkAreaActive) return;
+    if (!this.currentTool || !this.isWorkAreaActive) return;
     if (method === "onKeyDown" || method === "onKeyUp") {
       const activeEl = document.activeElement;
       if (activeEl?.tagName === "TEXTAREA" || activeEl?.tagName === "INPUT")
         return;
     }
-    const handler = this.current[method] as (e: typeof evt) => void;
-    handler.call(this.current, evt);
+    const handler = this.currentTool[method] as (e: typeof evt) => void;
+    handler.call(this.currentTool, evt);
     this.eventBus.emit("tool:event", {
-      tool: this.current,
+      tool: this.currentTool,
       type: method,
       event: evt,
     });
   }
 
   public draw() {
-    if (this.current) this.current.draw();
+    if (this.currentTool) this.currentTool.draw();
   }
 }
