@@ -176,6 +176,7 @@ describe("PenTool", () => {
     it("clique no meio de uma linha de dois pontos insere o terceiro entre eles", () => {
       const p = makeTwoPointLine();
       activatePath(p);
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }));
       setMouse({ x: 150, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -188,6 +189,7 @@ describe("PenTool", () => {
     it("clique no meio do primeiro segmento insere após o primeiro vértice", () => {
       const p = makePath();
       activatePath(p);
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }));
       setMouse({ x: 125, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -200,6 +202,7 @@ describe("PenTool", () => {
     it("clique no meio do último segmento insere antes do vértice final", () => {
       const p = makePath();
       activatePath(p);
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }));
       setMouse({ x: 150, y: 125 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -395,6 +398,7 @@ describe("PenTool", () => {
     it("arrastar um ponto o move preservando a geometria dos demais", () => {
       const p = makePath();
       activatePath(p);
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }));
       setMouse({ x: 150, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -443,6 +447,7 @@ describe("PenTool", () => {
       const p = makePath();
       p.isClosed = true;
       activatePath(p);
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }));
       setMouse({ x: 100, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -615,9 +620,10 @@ describe("PenTool", () => {
       activatePath(p);
       penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Enter" }));
       expect(p.isClosed).toBe(true);
+      // path fechado não aceita novos pontos via clique
       setMouse({ x: 300, y: 300 });
       penTool.onMouseDown(createMouseEvent(0, 0));
-      expect(p.points).toHaveLength(4);
+      expect(p.points).toHaveLength(3);
 
       penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Escape" }));
 
@@ -701,6 +707,7 @@ describe("PenTool", () => {
     it("um arraste inteiro gera um único passo de undo", () => {
       const p = makePath();
       activatePath(p);
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }));
       setMouse({ x: 150, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
       setMouse({ x: 200, y: 130 });
@@ -763,9 +770,10 @@ describe("PenTool", () => {
     it("Shift durante o arraste restringe o ponto em relação à posição original", () => {
       const p = makePath();
       activatePath(p);
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }));
       setMouse({ x: 150, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift" }));
+      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift", shiftKey: true, ctrlKey: true }));
       setMouse({ x: 220, y: 180 });
       penTool.onMouseMove(createMouseEvent(0, 0));
       penTool.onMouseUp(createMouseEvent(0, 0));

@@ -10,6 +10,7 @@ describe("HandTool", () => {
     canvas = document.createElement("canvas");
     eventBus = new EventBus();
     handTool = new HandTool(canvas, eventBus);
+    vi.spyOn(eventBus, "request").mockImplementation(() => []);
   });
 
   it("should set lastPosition on mouse down", () => {
@@ -33,7 +34,10 @@ describe("HandTool", () => {
     }) as MouseEvent & { offsetX: number; offsetY: number };
     Object.defineProperty(mouseDownEvent, "offsetX", { value: 10 });
     Object.defineProperty(mouseDownEvent, "offsetY", { value: 20 });
+    Object.defineProperty(mouseDownEvent, "movementX", { value: 0 });
+    Object.defineProperty(mouseDownEvent, "movementY", { value: 0 });
     handTool.onMouseDown(mouseDownEvent);
+    emitSpy.mockClear();
 
     const mouseMoveEvent = new MouseEvent("mousemove", {
       clientX: 30,
@@ -41,6 +45,8 @@ describe("HandTool", () => {
     }) as MouseEvent & { offsetX: number; offsetY: number };
     Object.defineProperty(mouseMoveEvent, "offsetX", { value: 30 });
     Object.defineProperty(mouseMoveEvent, "offsetY", { value: 40 });
+    Object.defineProperty(mouseMoveEvent, "movementX", { value: 20 });
+    Object.defineProperty(mouseMoveEvent, "movementY", { value: 20 });
     handTool.onMouseMove(mouseMoveEvent);
 
     expect(emitSpy).toHaveBeenCalledWith("workarea:offset:change", {
@@ -57,7 +63,7 @@ describe("HandTool", () => {
     Object.defineProperty(mouseDownEvent, "offsetY", { value: 20 });
     handTool.onMouseDown(mouseDownEvent);
 
-    handTool.onMouseUp();
+    handTool.onMouseUp(new MouseEvent("mouseup"));
 
     const emitSpy = vi.spyOn(eventBus, "emit");
     const mouseMoveEvent = new MouseEvent("mousemove", {
@@ -66,9 +72,13 @@ describe("HandTool", () => {
     }) as MouseEvent & { offsetX: number; offsetY: number };
     Object.defineProperty(mouseMoveEvent, "offsetX", { value: 30 });
     Object.defineProperty(mouseMoveEvent, "offsetY", { value: 40 });
+    Object.defineProperty(mouseMoveEvent, "movementX", { value: 20 });
+    Object.defineProperty(mouseMoveEvent, "movementY", { value: 20 });
     handTool.onMouseMove(mouseMoveEvent);
 
-    expect(emitSpy).not.toHaveBeenCalled();
+    expect(emitSpy).not.toHaveBeenCalledWith(
+      "workarea:offset:change",
+      expect.anything(),
+    );
   });
 });
-

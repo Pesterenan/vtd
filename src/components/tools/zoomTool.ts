@@ -79,9 +79,9 @@ export class ZoomTool extends Tool {
     this.startingX = null;
   }
 
-  protected handleMouseMove(evt: MouseEvent): void {
-    if (this.startingX === null) return;
-    const deltaX = evt.offsetX - this.startingX;
+  protected handleMouseMove(): void {
+    if (this.startingX === null || !this.mousePos) return;
+    const deltaX = this.mousePos.x - this.startingX;
     const newZoomLevel = remap(
       0,
       this.canvas.width,
@@ -93,7 +93,7 @@ export class ZoomTool extends Tool {
 
     this.eventBus.emit("zoomLevel:change", {
       level: newZoomLevel,
-      center: { x: evt.offsetX, y: evt.offsetY },
+      center: this.mousePos,
     });
   }
 }

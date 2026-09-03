@@ -128,14 +128,14 @@ export class MultiTool extends Tool {
   protected handleKeyDown(evt: KeyboardEvent): void {
     switch (this.currentMode) {
       case "select": {
-        if (evt.key === "Alt") {
+        if (this.modifiers.alt) {
           evt.preventDefault();
           this.eventBus.emit("selectTool:isCroppingBoxVisible", true);
         }
         break;
       }
       case "scale": {
-        if (evt.key === "Alt") {
+        if (this.modifiers.alt) {
           evt.preventDefault();
         }
         break;
@@ -182,7 +182,7 @@ export class MultiTool extends Tool {
         break;
       }
       case "select": {
-        if (evt.key === "Alt") {
+        if (this.modifiers.alt) {
           evt.preventDefault();
           this.eventBus.emit("selectTool:isCroppingBoxVisible", false);
         }
@@ -193,18 +193,13 @@ export class MultiTool extends Tool {
     }
   }
 
-  protected handleMouseDown({
-    altKey,
-    offsetX,
-    offsetY,
-    shiftKey,
-  }: MouseEvent): void {
+  protected handleMouseDown(): void {
     if (!this.canvasPos) return;
     const [center] = this.eventBus.request("transformBox:position");
 
     switch (this.currentMode) {
       case "select":
-        if (altKey) {
+        if (this.modifiers.alt) {
           const [isHandleSelected] = this.eventBus.request(
             "transformBox:selectHandle",
           );
@@ -212,11 +207,11 @@ export class MultiTool extends Tool {
             this.isCropping = true;
           }
         }
-        this.startPosition = { x: offsetX, y: offsetY };
+        this.startPosition = this.mousePos;
         break;
 
       case "move": {
-        if (altKey) {
+        if (this.modifiers.alt) {
           this.eventBus.emit("transformBox:anchorPoint:set", {
             position: this.canvasPos,
           });
@@ -225,8 +220,8 @@ export class MultiTool extends Tool {
         const [selected] = this.eventBus.request("workarea:selected:get");
         if (!selected || selected.length === 0) {
           this.eventBus.emit("workarea:selectAt", {
-            firstPoint: { x: offsetX, y: offsetY },
-            secondPoint: { x: offsetX, y: offsetY },
+            firstPoint: this.mousePos,
+            secondPoint: this.mousePos,
           });
           this.eventBus.emit("workarea:update");
           break;
@@ -257,7 +252,7 @@ export class MultiTool extends Tool {
       }
 
       case "rotate": {
-        if (altKey) {
+        if (this.modifiers.alt) {
           this.eventBus.emit("transformBox:anchorPoint:set", {
             position: this.canvasPos,
           });
@@ -267,8 +262,8 @@ export class MultiTool extends Tool {
           const [selected] = this.eventBus.request("workarea:selected:get");
           if (!selected || selected.length === 0) {
             this.eventBus.emit("workarea:selectAt", {
-              firstPoint: { x: offsetX, y: offsetY },
-              secondPoint: { x: offsetX, y: offsetY },
+              firstPoint: this.mousePos,
+              secondPoint: this.mousePos,
             });
             this.eventBus.emit("workarea:update");
             break;
@@ -297,7 +292,7 @@ export class MultiTool extends Tool {
       }
 
       case "scale": {
-        if (altKey) {
+        if (this.modifiers.alt) {
           this.eventBus.emit("transformBox:anchorPoint:set", {
             position: this.canvasPos,
           });
@@ -307,8 +302,8 @@ export class MultiTool extends Tool {
           const [selected] = this.eventBus.request("workarea:selected:get");
           if (!selected || selected.length === 0) {
             this.eventBus.emit("workarea:selectAt", {
-              firstPoint: { x: offsetX, y: offsetY },
-              secondPoint: { x: offsetX, y: offsetY },
+              firstPoint: this.mousePos,
+              secondPoint: this.mousePos,
             });
             this.eventBus.emit("workarea:update");
             break;
@@ -331,22 +326,17 @@ export class MultiTool extends Tool {
         this.selectedGizmoPart = part;
         this.isDragging = true;
         this.startPosition = this.canvasPos;
-        this.isProportional = shiftKey;
+        this.isProportional = this.modifiers.shift;
         break;
       }
     }
   }
 
-  protected handleMouseMove({
-    offsetX,
-    offsetY,
-    movementX,
-    movementY,
-    shiftKey,
-    ctrlKey,
-  }: MouseEvent): void {
+  protected handleMouseMove({ movementX, movementY }: MouseEvent): void {
     if (!this.canvasPos) return;
-    this.eventBus.emit("transformBox:mousePosition", { position: this.canvasPos });
+    this.eventBus.emit("transformBox:mousePosition", {
+      position: this.canvasPos,
+    });
 
     switch (this.currentMode) {
       case "select": {
@@ -356,13 +346,15 @@ export class MultiTool extends Tool {
               position: { x: movementX, y: movementY },
             });
           } else {
-            const distance = Math.hypot(
-              offsetX - this.startPosition.x,
-              offsetY - this.startPosition.y,
-            );
-            if (distance > Tool.DRAGGING_DISTANCE) {
-              this.endPosition = { x: offsetX, y: offsetY };
-              this.isDragging = true;
+            if (this.mousePos) {
+              const distance = Math.hypot(
+                this.mousePos.x - this.startPosition.x,
+                this.mousePos.y - this.startPosition.y,
+              );
+              if (distance > Tool.DRAGGING_DISTANCE) {
+                this.endPosition = this.mousePos;
+                this.isDragging = true;
+              }
             }
           }
         }
@@ -428,9 +420,9 @@ export class MultiTool extends Tool {
           this.startPosition.x - this.startCenter.x,
         );
         let angle = Math.round(toDegrees(currentAngle - startingAngle));
-        if (shiftKey) {
+        if (this.modifiers.shift) {
           angle = Math.round(angle / 15) * 15;
-        } else if (ctrlKey) {
+        } else if (this.modifiers.ctrl) {
           angle = Math.round(angle / 5) * 5;
         }
         const normalizedAngle = (this.rotateInitialRotation + angle) % 360;
@@ -451,7 +443,11 @@ export class MultiTool extends Tool {
           props,
         );
 
-        const rotMouse = rotatePoint(this.canvasPos, { x: 0, y: 0 }, -props.rotation);
+        const rotMouse = rotatePoint(
+          this.canvasPos,
+          { x: 0, y: 0 },
+          -props.rotation,
+        );
         const rotStart = rotatePoint(
           this.startPosition,
           { x: 0, y: 0 },
@@ -513,7 +509,7 @@ export class MultiTool extends Tool {
     }
   }
 
-  protected handleMouseUp({ shiftKey }: MouseEvent): void {
+  protected handleMouseUp(): void {
     switch (this.currentMode) {
       case "select":
         if (!this.isCropping) {
@@ -524,7 +520,7 @@ export class MultiTool extends Tool {
             secondPoint: this.endPosition
               ? this.toCanvas(this.endPosition)
               : null,
-            isAddingToSelection: shiftKey,
+            isAddingToSelection: this.modifiers.shift,
           });
         }
         break;

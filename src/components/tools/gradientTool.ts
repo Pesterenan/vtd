@@ -111,7 +111,7 @@ export class GradientTool extends Tool {
     this.firstPoint = null;
   }
 
-  protected handleMouseMove({ shiftKey }: MouseEvent): void {
+  protected handleMouseMove(): void {
     if (!this.canvasPos) return;
     const mousePosition = new Vector(this.canvasPos);
     const hitRadius = this.hitRadius();
@@ -179,9 +179,9 @@ export class GradientTool extends Tool {
         if (this.endPosition) {
           const snap = 40 / (this.zoomLevel || 1);
           const isBoundToX =
-            shiftKey && Math.abs(this.canvasPos.x - this.endPosition.x) < snap;
+            this.modifiers.shift && Math.abs(this.canvasPos.x - this.endPosition.x) < snap;
           const isBoundToY =
-            shiftKey && Math.abs(this.canvasPos.y - this.endPosition.y) < snap;
+            this.modifiers.shift && Math.abs(this.canvasPos.y - this.endPosition.y) < snap;
           this.startPosition = {
             x: isBoundToX ? this.endPosition.x : this.canvasPos.x,
             y: isBoundToY ? this.endPosition.y : this.canvasPos.y,
@@ -192,9 +192,9 @@ export class GradientTool extends Tool {
         if (this.startPosition) {
           const snap = 40 / (this.zoomLevel || 1);
           const isBoundToX =
-            shiftKey && Math.abs(this.canvasPos.x - this.startPosition.x) < snap;
+            this.modifiers.shift && Math.abs(this.canvasPos.x - this.startPosition.x) < snap;
           const isBoundToY =
-            shiftKey && Math.abs(this.canvasPos.y - this.startPosition.y) < snap;
+            this.modifiers.shift && Math.abs(this.canvasPos.y - this.startPosition.y) < snap;
           this.endPosition = {
             x: isBoundToX ? this.startPosition.x : this.canvasPos.x,
             y: isBoundToY ? this.startPosition.y : this.canvasPos.y,
