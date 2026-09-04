@@ -7,7 +7,8 @@ export type ToolEventHandler =
   | "onMouseMove"
   | "onMouseUp"
   | "onKeyDown"
-  | "onKeyUp";
+  | "onKeyUp"
+  | "onContextMenu";
 
 export class ToolManager {
   private currentTool: Tool | null = null;
@@ -28,6 +29,7 @@ export class ToolManager {
     canvas.addEventListener("mouseup", (e) => this.delegate("onMouseUp", e));
     window.addEventListener("keydown", (e) => this.delegate("onKeyDown", e));
     window.addEventListener("keyup", (e) => this.delegate("onKeyUp", e));
+    canvas.addEventListener("contextmenu", (e) => this.delegate("onContextMenu", e));
 
     this.eventBus.on("workarea:initialized", () => {
       this.isWorkAreaActive = true;

@@ -84,6 +84,17 @@ export type SelectElementsAtPayload = {
   isAddingToSelection?: boolean;
 };
 
+export type ContextMenuItem =
+  | {
+      action: () => void;
+      disabled?: boolean;
+      icon?: string;
+      id: string;
+      label: string;
+      type: "item";
+    }
+  | { type: "divider" };
+
 export interface EventBusMap {
   "alert:add": {
     payload: AddAlertPayload;
@@ -361,6 +372,14 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "workarea:contextMenu:open": {
+    payload: { position: Position; items: ContextMenuItem[] };
+    result: unknown;
+  };
+  "workarea:contextMenu:close": {
+    payload: unknown;
+    result: unknown;
+  };
   "workarea:createNewProject": {
     payload: { projectData: IProjectData };
     result: unknown;
@@ -479,7 +498,10 @@ export class EventBus {
         try {
           cb(payload);
         } catch (e) {
-          console.error(`EventBus: error in handler for "${String(event)}":`, e);
+          console.error(
+            `EventBus: error in handler for "${String(event)}":`,
+            e,
+          );
         }
       }
     }
@@ -497,7 +519,10 @@ export class EventBus {
         try {
           out.push(cb(payload));
         } catch (e) {
-          console.error(`EventBus: error in request handler for "${String(event)}":`, e);
+          console.error(
+            `EventBus: error in request handler for "${String(event)}":`,
+            e,
+          );
         }
       }
     }

@@ -83,11 +83,18 @@ export abstract class Tool {
     this.eventBus.emit("workarea:update");
   }
 
+  public onContextMenu(evt: MouseEvent): void {
+    this.updatePos(evt);
+    this.handleContextMenu(evt);
+    this.eventBus.emit("workarea:update");
+  }
+
   protected handleKeyDown(_evt: KeyboardEvent): void {}
   protected handleKeyUp(_evt: KeyboardEvent): void {}
   protected handleMouseDown(_evt: MouseEvent): void {}
-  protected handleMouseUp(_evt: MouseEvent): void {}
   protected handleMouseMove(_evt: MouseEvent): void {}
+  protected handleMouseUp(_evt: MouseEvent): void {}
+  protected handleContextMenu(_evt: MouseEvent): void {}
 
   private updatePos(evt?: MouseEvent): void {
     const position =

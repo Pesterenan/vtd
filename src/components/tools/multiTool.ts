@@ -193,8 +193,8 @@ export class MultiTool extends Tool {
     }
   }
 
-  protected handleMouseDown(): void {
-    if (!this.canvasPos) return;
+  protected handleMouseDown(evt: MouseEvent): void {
+    if (!this.canvasPos || evt.button !== 0) return;
     const [center] = this.eventBus.request("transformBox:position");
 
     switch (this.currentMode) {
@@ -509,7 +509,8 @@ export class MultiTool extends Tool {
     }
   }
 
-  protected handleMouseUp(): void {
+  protected handleMouseUp(evt: MouseEvent): void {
+    if (evt.button !== 0) return;
     switch (this.currentMode) {
       case "select":
         if (!this.isCropping) {
@@ -526,5 +527,10 @@ export class MultiTool extends Tool {
         break;
     }
     this.resetDragState();
+  }
+
+  protected handleContextMenu(evt: MouseEvent): void {
+    evt.preventDefault();
+    console.log(evt);
   }
 }
