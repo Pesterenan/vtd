@@ -1,5 +1,5 @@
 import { Tool } from "./abstractTool";
-import type { EventBus } from "src/utils/eventBus";
+import type { ContextMenuItem, EventBus } from "src/utils/eventBus";
 import type { Position, Scale } from "../types";
 import type { GizmoPart } from "./multiTool.helpers";
 import { toDegrees, toRadians, rotatePoint } from "src/utils/transforms";
@@ -12,8 +12,19 @@ import {
   drawSelectGizmo,
   getGizmoPartAt,
 } from "./multiTool.helpers";
+import SelectIcon from "src/assets/icons/select-tool.svg";
+import GrabIcon from "src/assets/icons/move-tool.svg";
+import RotateIcon from "src/assets/icons/rotate-tool.svg";
+import ScaleIcon from "src/assets/icons/scale-tool.svg";
 
 type MODES = "select" | "move" | "rotate" | "scale";
+
+const MODE_OPTIONS: { mode: MODES; label: string; icon: string }[] = [
+  { mode: "select", label: "Selecionar (V)", icon: SelectIcon },
+  { mode: "move", label: "Mover (G)", icon: GrabIcon },
+  { mode: "rotate", label: "Rotacionar (R)", icon: RotateIcon },
+  { mode: "scale", label: "Escalar (S)", icon: ScaleIcon },
+];
 
 export class MultiTool extends Tool {
   private currentMode: MODES = "select";
@@ -531,6 +542,24 @@ export class MultiTool extends Tool {
 
   protected handleContextMenu(evt: MouseEvent): void {
     evt.preventDefault();
-    console.log(evt);
+
+    const [selected] = this.eventBus.request("workarea:selected:get");
+    if (!selected || selected.length === 0) return;
+
+    const items: ContextMenuItem[] = MODE_OPTIONS.map(({ mode, label, icon }) => ({
+      type: "item",
+      id: mode,
+      label,
+      icon,
+      active: mode === this.currentMode,
+      action: () => {
+        this.setMode(mode);
+      },
+    }));
+
+    this.eventBus.emit("workarea:contextMenu:open", {
+      position: { x: evt.clientX, y: evt.clientY },
+      items,
+    });
   }
 }

@@ -87,6 +87,7 @@ export type SelectElementsAtPayload = {
 export type ContextMenuItem =
   | {
       action: () => void;
+      active?: boolean;
       disabled?: boolean;
       icon?: string;
       id: string;

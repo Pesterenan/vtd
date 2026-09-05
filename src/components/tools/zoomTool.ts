@@ -1,4 +1,5 @@
 import { Tool } from "src/components/tools/abstractTool";
+import type { ContextMenuItem } from "src/utils/eventBus";
 import { remap } from "src/utils/easing";
 import zoomIconSvg from "src/assets/icons/zoom-tool.svg?raw";
 import { svgToCanvasPath, ICON_SIZE } from "src/utils/icons";
@@ -94,6 +95,40 @@ export class ZoomTool extends Tool {
     this.eventBus.emit("zoomLevel:change", {
       level: newZoomLevel,
       center: this.mousePos,
+    });
+  }
+
+  protected handleContextMenu(evt: MouseEvent): void {
+    evt.preventDefault();
+
+    const center = this.mousePos ?? { x: this.canvas.width / 2, y: this.canvas.height / 2 };
+    const isAt100 = Math.abs(this.zoomLevel - 1) < 0.01;
+
+    const items: ContextMenuItem[] = [
+      {
+        type: "item",
+        id: "zoom-100",
+        label: "Voltar a 100%",
+        active: isAt100,
+        disabled: isAt100,
+        action: () => {
+          this.eventBus.emit("zoomLevel:change", { level: 1, center });
+        },
+      },
+      { type: "divider" },
+      {
+        type: "item",
+        id: "zoom-fit",
+        label: "Ajustar à janela",
+        action: () => {
+          this.eventBus.emit("mainWindow:resize");
+        },
+      },
+    ];
+
+    this.eventBus.emit("workarea:contextMenu:open", {
+      position: { x: evt.clientX, y: evt.clientY },
+      items,
     });
   }
 }

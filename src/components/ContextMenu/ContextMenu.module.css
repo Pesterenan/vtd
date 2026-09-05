@@ -4,10 +4,10 @@
   border: 1px solid var(--background-700);
   overflow: hidden;
   box-shadow: var(--menu-shadow);
-  z-index: 100;
+  z-index: 1000;
   min-width: 180px;
   font-size: 0.85em;
-  padding: 0;
+  padding: 4px 0;
   border-radius: var(--border-radius-medium);
 }
 
@@ -17,6 +17,8 @@
   color: var(--text-900);
   cursor: pointer;
   display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--font-small);
   padding: 0.25rem 1rem;
   text-align: left;
@@ -28,13 +30,23 @@
     background: linear-gradient(to bottom right,
         var(--accent-500) 40%,
         var(--accent-700));
-    height: 1.2rem;
+    height: 1rem;
     mask-image: var(--icon-url);
     mask-position: center;
     mask-repeat: no-repeat;
     mask-size: cover;
-    width: 1.2rem;
+    width: 1rem;
+    flex-shrink: 0;
   }
+}
+
+.contextMenuItem:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.contextMenuItemActive {
+  background-color: var(--primary-600);
 }
 
 .contextMenuItem:hover {
