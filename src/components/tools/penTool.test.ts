@@ -69,15 +69,11 @@ describe("PenTool", () => {
   }
 
   function makePath(): PathElement {
-    const p = new PathElement(
-      { x: 100, y: 100 },
-      { width: 10, height: 10 },
-      1,
-    );
+    const p = new PathElement({ x: 100, y: 100 }, { width: 10, height: 10 }, 1);
     p.points = [
-      { x: 0, y: 0 },
-      { x: 50, y: 0 },
-      { x: 50, y: 50 },
+      { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
+      { position: { x: 50, y: 0 }, handleIn: null, handleOut: null },
+      { position: { x: 50, y: 50 }, handleIn: null, handleOut: null },
     ];
     return p;
   }
@@ -142,7 +138,10 @@ describe("PenTool", () => {
       setMouse({ x: 200, y: 150 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
-      expect(eventBus.emit).not.toHaveBeenCalledWith("edit:path", expect.anything());
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "edit:path",
+        expect.anything(),
+      );
       expect(p.points).toHaveLength(4);
     });
 
@@ -167,8 +166,8 @@ describe("PenTool", () => {
         1,
       );
       p.points = [
-        { x: 0, y: 0 },
-        { x: 100, y: 0 },
+        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
+        { position: { x: 100, y: 0 }, handleIn: null, handleOut: null },
       ];
       return p;
     }
@@ -176,7 +175,9 @@ describe("PenTool", () => {
     it("clique no meio de uma linha de dois pontos insere o terceiro entre eles", () => {
       const p = makeTwoPointLine();
       activatePath(p);
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }),
+      );
       setMouse({ x: 150, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -189,7 +190,9 @@ describe("PenTool", () => {
     it("clique no meio do primeiro segmento insere após o primeiro vértice", () => {
       const p = makePath();
       activatePath(p);
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }),
+      );
       setMouse({ x: 125, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -202,7 +205,9 @@ describe("PenTool", () => {
     it("clique no meio do último segmento insere antes do vértice final", () => {
       const p = makePath();
       activatePath(p);
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }),
+      );
       setMouse({ x: 150, y: 125 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -277,8 +282,8 @@ describe("PenTool", () => {
     it("clique no primeiro ponto fecha um path com 2 pontos", () => {
       const p = makePath();
       p.points = [
-        { x: 0, y: 0 },
-        { x: 50, y: 0 },
+        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
+        { position: { x: 50, y: 0 }, handleIn: null, handleOut: null },
       ];
       activatePath(p);
       setMouse({ x: 100, y: 101 });
@@ -319,7 +324,11 @@ describe("PenTool", () => {
 
     it("o fechamento considera a posição do elemento (toWorld)", () => {
       const p = makePath();
-      p.points[0] = { x: 20, y: 10 };
+      p.points[0] = {
+        position: { x: 20, y: 10 },
+        handleIn: null,
+        handleOut: null,
+      };
       activatePath(p);
       setMouse({ x: 120, y: 110 });
       penTool.onMouseMove(createMouseEvent(0, 0));
@@ -398,7 +407,9 @@ describe("PenTool", () => {
     it("arrastar um ponto o move preservando a geometria dos demais", () => {
       const p = makePath();
       activatePath(p);
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }),
+      );
       setMouse({ x: 150, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -447,7 +458,9 @@ describe("PenTool", () => {
       const p = makePath();
       p.isClosed = true;
       activatePath(p);
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }),
+      );
       setMouse({ x: 100, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -526,7 +539,9 @@ describe("PenTool", () => {
         { width: 10, height: 10 },
         1,
       );
-      single.points = [{ x: 0, y: 0 }];
+      single.points = [
+        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
+      ];
       activatePath(single);
       setMouse({ x: 100, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
@@ -538,7 +553,11 @@ describe("PenTool", () => {
 
     it("setas movem o ponto selecionado", () => {
       penTool.onKeyDown(new KeyboardEvent("keydown", { key: "ArrowRight" }));
-      expect(penTool["activePathElement"]!.toWorld(penTool["activePathElement"]!.points[1])).toEqual({
+      expect(
+        penTool["activePathElement"]!.toWorld(
+          penTool["activePathElement"]!.points[1],
+        ),
+      ).toEqual({
         x: 151,
         y: 100,
       });
@@ -548,7 +567,11 @@ describe("PenTool", () => {
       penTool.onKeyDown(
         new KeyboardEvent("keydown", { key: "ArrowDown", shiftKey: true }),
       );
-      expect(penTool["activePathElement"]!.toWorld(penTool["activePathElement"]!.points[1])).toEqual({
+      expect(
+        penTool["activePathElement"]!.toWorld(
+          penTool["activePathElement"]!.points[1],
+        ),
+      ).toEqual({
         x: 150,
         y: 110,
       });
@@ -573,8 +596,8 @@ describe("PenTool", () => {
         1,
       );
       p.points = [
-        { x: 0, y: 0 },
-        { x: 50, y: 0 },
+        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
+        { position: { x: 50, y: 0 }, handleIn: null, handleOut: null },
       ];
       activatePath(p);
 
@@ -596,151 +619,6 @@ describe("PenTool", () => {
 
       expect(p.isClosed).toBe(true);
       expect(p.points).toHaveLength(3);
-    });
-
-    it("Esc restaura o snapshot do início da edição e limpa as pilhas", () => {
-      const p = makePath();
-      activatePath(p);
-      const pointsBefore = p.points.length;
-      setMouse({ x: 200, y: 150 });
-      penTool.onMouseDown(createMouseEvent(0, 0));
-      expect(p.points).toHaveLength(pointsBefore + 1);
-
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Escape" }));
-
-      expect(p.points).toHaveLength(pointsBefore);
-      expect(p.isClosed).toBe(false);
-      expect(penTool["undoStack"]).toHaveLength(0);
-      expect(penTool["redoStack"]).toHaveLength(0);
-      expect(penTool["selectedPointIndex"]).toBe(-1);
-    });
-
-    it("Esc restaura também o estado de fechamento do path", () => {
-      const p = makePath();
-      activatePath(p);
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Enter" }));
-      expect(p.isClosed).toBe(true);
-      // path fechado não aceita novos pontos via clique
-      setMouse({ x: 300, y: 300 });
-      penTool.onMouseDown(createMouseEvent(0, 0));
-      expect(p.points).toHaveLength(3);
-
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Escape" }));
-
-      expect(p.isClosed).toBe(false);
-      expect(p.points).toHaveLength(3);
-    });
-  });
-
-  describe("undo e redo", () => {
-    it("Ctrl+Z desfaz a adição de um ponto e Ctrl+Y refaz", () => {
-      const p = makePath();
-      activatePath(p);
-      const before = p.points.length;
-      setMouse({ x: 200, y: 150 });
-      penTool.onMouseDown(createMouseEvent(0, 0));
-      expect(p.points).toHaveLength(before + 1);
-
-      penTool.onKeyDown(
-        new KeyboardEvent("keydown", { key: "z", ctrlKey: true }),
-      );
-      expect(p.points).toHaveLength(before);
-      expect(p.toWorld(p.points[0])).toEqual({ x: 100, y: 100 });
-
-      penTool.onKeyDown(
-        new KeyboardEvent("keydown", { key: "y", ctrlKey: true }),
-      );
-      expect(p.points).toHaveLength(before + 1);
-    });
-
-    it("Ctrl+Shift+Z também refaz", () => {
-      const p = makePath();
-      activatePath(p);
-      const before = p.points.length;
-      setMouse({ x: 200, y: 150 });
-      penTool.onMouseDown(createMouseEvent(0, 0));
-      penTool.onKeyDown(
-        new KeyboardEvent("keydown", { key: "z", ctrlKey: true }),
-      );
-      expect(p.points).toHaveLength(before);
-
-      penTool.onKeyDown(
-        new KeyboardEvent("keydown", {
-          key: "z",
-          ctrlKey: true,
-          shiftKey: true,
-        }),
-      );
-      expect(p.points).toHaveLength(before + 1);
-    });
-
-    it("Ctrl+Z desfaz a remoção de um ponto via Delete", () => {
-      const p = makePath();
-      activatePath(p);
-      setMouse({ x: 150, y: 100 });
-      penTool.onMouseDown(createMouseEvent(0, 0));
-      const before = p.points.length;
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Delete" }));
-      expect(p.points).toHaveLength(before - 1);
-
-      penTool.onKeyDown(
-        new KeyboardEvent("keydown", { key: "z", ctrlKey: true }),
-      );
-      expect(p.points).toHaveLength(before);
-      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 100 });
-    });
-
-    it("Ctrl+Z desfaz o deslocamento por seta", () => {
-      const p = makePath();
-      activatePath(p);
-      setMouse({ x: 150, y: 100 });
-      penTool.onMouseDown(createMouseEvent(0, 0));
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "ArrowRight" }));
-      expect(p.toWorld(p.points[1])).toEqual({ x: 151, y: 100 });
-
-      penTool.onKeyDown(
-        new KeyboardEvent("keydown", { key: "z", ctrlKey: true }),
-      );
-      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 100 });
-    });
-
-    it("um arraste inteiro gera um único passo de undo", () => {
-      const p = makePath();
-      activatePath(p);
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }));
-      setMouse({ x: 150, y: 100 });
-      penTool.onMouseDown(createMouseEvent(0, 0));
-      setMouse({ x: 200, y: 130 });
-      penTool.onMouseMove(createMouseEvent(0, 0));
-      setMouse({ x: 220, y: 160 });
-      penTool.onMouseMove(createMouseEvent(0, 0));
-      penTool.onMouseUp(createMouseEvent(0, 0));
-      expect(p.toWorld(p.points[1])).toEqual({ x: 220, y: 160 });
-
-      penTool.onKeyDown(
-        new KeyboardEvent("keydown", { key: "z", ctrlKey: true }),
-      );
-      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 100 });
-    });
-
-    it("uma nova edição limpa a pilha de redo", () => {
-      const p = makePath();
-      activatePath(p);
-      setMouse({ x: 200, y: 150 });
-      penTool.onMouseDown(createMouseEvent(0, 0));
-      penTool.onKeyDown(
-        new KeyboardEvent("keydown", { key: "z", ctrlKey: true }),
-      );
-      expect(p.points).toHaveLength(3);
-
-      setMouse({ x: 220, y: 150 });
-      penTool.onMouseDown(createMouseEvent(0, 0));
-      penTool.onKeyDown(
-        new KeyboardEvent("keydown", { key: "y", ctrlKey: true }),
-      );
-
-      expect(p.points).toHaveLength(4);
-      expect(p.toWorld(p.points[3])).toEqual({ x: 220, y: 150 });
     });
   });
 
@@ -770,10 +648,18 @@ describe("PenTool", () => {
     it("Shift durante o arraste restringe o ponto em relação à posição original", () => {
       const p = makePath();
       activatePath(p);
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }),
+      );
       setMouse({ x: 150, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift", shiftKey: true, ctrlKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", {
+          key: "Shift",
+          shiftKey: true,
+          ctrlKey: true,
+        }),
+      );
       setMouse({ x: 220, y: 180 });
       penTool.onMouseMove(createMouseEvent(0, 0));
       penTool.onMouseUp(createMouseEvent(0, 0));

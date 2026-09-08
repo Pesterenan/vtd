@@ -36,7 +36,9 @@ describe("WorkArea - Path Integration", () => {
       expect(element).toBeInstanceOf(PathElement);
       const pathElement = element as PathElement;
       // PathElement inicia com um único ponto local {0,0} e não fechado
-      expect(pathElement.points).toEqual([{ x: 0, y: 0 }]);
+      expect(pathElement.points).toEqual([
+        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
+      ]);
       expect(pathElement.isClosed).toBe(false);
       expect(pathElement.position).toEqual(position);
     });
@@ -86,10 +88,20 @@ describe("WorkArea - Path Integration", () => {
       });
 
       expect(workArea.elements.length).toBe(2);
-      expect((workArea.elements[0] as PathElement).points).toEqual([{ x: 0, y: 0 }]);
-      expect((workArea.elements[1] as PathElement).points).toEqual([{ x: 0, y: 0 }]);
-      expect((workArea.elements[0] as PathElement).position).toEqual({ x: 100, y: 100 });
-      expect((workArea.elements[1] as PathElement).position).toEqual({ x: 200, y: 200 });
+      expect((workArea.elements[0] as PathElement).points).toEqual([
+        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
+      ]);
+      expect((workArea.elements[1] as PathElement).points).toEqual([
+        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
+      ]);
+      expect((workArea.elements[0] as PathElement).position).toEqual({
+        x: 100,
+        y: 100,
+      });
+      expect((workArea.elements[1] as PathElement).position).toEqual({
+        x: 200,
+        y: 200,
+      });
     });
   });
 
@@ -101,8 +113,8 @@ describe("WorkArea - Path Integration", () => {
         size: { width: 100, height: 100 },
         zDepth: 0,
         points: [
-          { x: -50, y: -50 },
-          { x: 50, y: 50 },
+          { position: { x: -50, y: -50 }, handleIn: null, handleOut: null },
+          { position: { x: 50, y: 50 }, handleIn: null, handleOut: null },
         ],
         isClosed: false,
         hasFill: false,
@@ -133,10 +145,10 @@ describe("WorkArea - Path Integration", () => {
         size: { width: 60, height: 80 },
         zDepth: 5,
         points: [
-          { x: -30, y: -40 },
-          { x: 30, y: -40 },
-          { x: 30, y: 40 },
-          { x: -30, y: 40 },
+          { position: { x: -30, y: -40 }, handleIn: null, handleOut: null },
+          { position: { x: 30, y: -40 }, handleIn: null, handleOut: null },
+          { position: { x: 30, y: 40 }, handleIn: null, handleOut: null },
+          { position: { x: -30, y: 40 }, handleIn: null, handleOut: null },
         ],
         isClosed: true,
         hasFill: true,
@@ -161,7 +173,12 @@ describe("WorkArea - Path Integration", () => {
       const pathElement = element as PathElement;
 
       expect(pathElement.position).toEqual({ x: 200, y: 400 });
-      expect(pathElement.points).toEqual(data.points);
+      expect(pathElement.points).toEqual([
+        { position: { x: -30, y: -40 }, handleIn: null, handleOut: null },
+        { position: { x: 30, y: -40 }, handleIn: null, handleOut: null },
+        { position: { x: 30, y: 40 }, handleIn: null, handleOut: null },
+        { position: { x: -30, y: 40 }, handleIn: null, handleOut: null },
+      ]);
       expect(pathElement.isClosed).toBe(true);
       expect(pathElement.hasFill).toBe(true);
       expect(pathElement.hasStroke).toBe(false);
@@ -180,7 +197,10 @@ describe("WorkArea - Path Integration", () => {
         position: { x: 100, y: 100 },
         size: { width: 50, height: 50 },
         zDepth: 0,
-        points: [{ x: -25, y: -25 }, { x: 25, y: 25 }],
+        points: [
+          { position: { x: -25, y: -25 }, handleIn: null, handleOut: null },
+          { position: { x: 25, y: 25 }, handleIn: null, handleOut: null },
+        ],
         isClosed: false,
         hasFill: false,
         hasStroke: true,
@@ -204,7 +224,10 @@ describe("WorkArea - Path Integration", () => {
         position: { x: 300, y: 300 },
         size: { width: 100, height: 100 },
         zDepth: 1,
-        points: [{ x: -50, y: -50 }, { x: 50, y: 50 }],
+        points: [
+          { position: { x: -50, y: -50 }, handleIn: null, handleOut: null },
+          { position: { x: 50, y: 50 }, handleIn: null, handleOut: null },
+        ],
         isClosed: true,
         hasFill: true,
         hasStroke: false,

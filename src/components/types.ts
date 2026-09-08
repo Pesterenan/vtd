@@ -18,23 +18,24 @@ export interface IElementData {
 export type ElementType = "text" | "image" | "gradient" | "group" | "path";
 
 export interface Point {
-  x: number,
-  y: number,
+  position: Position;
+  handleIn: Position | null;
+  handleOut: Position | null;
 }
 
 export interface IPathElementData extends IElementData {
   type: "path";
-  points: Point[],
-  isClosed: boolean,
-  hasFill: boolean,
-  hasStroke: boolean,
-  fillColor: string,
-  strokeColor: string,
-  strokeWidth: number,
-  lineCap: "butt" | "round" | "square",
-  lineJoin: "miter" | "round" | "bevel",
-  lineDash: "solid" | "dashed" | "dotted",
-  miterLimit: number,
+  points: Point[];
+  isClosed: boolean;
+  hasFill: boolean;
+  hasStroke: boolean;
+  fillColor: string;
+  strokeColor: string;
+  strokeWidth: number;
+  lineCap: "butt" | "round" | "square";
+  lineJoin: "miter" | "round" | "bevel";
+  lineDash: "solid" | "dashed" | "dotted";
+  miterLimit: number;
 }
 
 export interface ITextElementData extends IElementData {

@@ -1,5 +1,5 @@
 import { toRadians } from "src/utils/transforms";
-import type { Point, Position } from "../types";
+import type { Position } from "../types";
 import { Tool } from "./abstractTool";
 import type { EventBus } from "src/utils/eventBus";
 import penIconSvg from "src/assets/icons/pen-tool.svg?raw";
@@ -18,12 +18,6 @@ const POINT_DRAG_DISTANCE = 5;
 const KEY_NUDGE_STEP = 1;
 const KEY_NUDGE_STEP_SHIFT = 10;
 
-interface PathState {
-  points: Point[];
-  isClosed: boolean;
-  position: Position;
-}
-
 export class PenTool extends Tool {
   /** Pontos em espaço de TELA — cache de `activePathElement.points` convertido via toWorld+toScreen. */
   private points: Position[] = [];
@@ -34,11 +28,9 @@ export class PenTool extends Tool {
   private mouseDownScreen: Position | null = null;
   private dragStarted = false;
   private isClosing = false;
-  private undoStack: PathState[] = [];
-  private redoStack: PathState[] = [];
-  private editingSnapshot: PathState | null = null;
   private dragOriginWorld: Position | null = null;
   private hintVisible = false;
+  private draggingHandle: "in" | "out" | null = null;
 
   constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
     super(canvas, eventBus);
@@ -73,9 +65,6 @@ export class PenTool extends Tool {
     this.mouseDownScreen = null;
     this.dragStarted = false;
     this.isClosing = false;
-    this.undoStack = [];
-    this.redoStack = [];
-    this.editingSnapshot = null;
     this.dragOriginWorld = null;
     this.setHint(false);
     this.eventBus.emit("workarea:update");
@@ -87,11 +76,6 @@ export class PenTool extends Tool {
       selectedElements?.length === 1 &&
       selectedElements[0] instanceof PathElement
     ) {
-      if (this.activePathElement !== selectedElements[0]) {
-        this.undoStack = [];
-        this.redoStack = [];
-        this.editingSnapshot = this.captureState(selectedElements[0]);
-      }
       this.activePathElement = selectedElements[0];
       this.updatePointsOverlay();
       this.selectedPointIndex = this.points.length - 1;
@@ -128,48 +112,9 @@ export class PenTool extends Tool {
     this.updatePointsOverlay();
   };
 
-  private captureState(path: PathElement): PathState {
-    return {
-      points: path.points.map((p) => ({ ...p })),
-      isClosed: path.isClosed,
-      position: { ...path.position },
-    };
-  }
-
-  private applyState(path: PathElement, state: PathState): void {
-    path.points = state.points.map((p) => ({ ...p }));
-    path.isClosed = state.isClosed;
-    path.position = { ...state.position };
-    path.recomputeBounds();
-    this.refreshTransformBox();
-    this.updatePointsOverlay();
-  }
-
-  private pushUndo(path: PathElement): void {
-    this.undoStack.push(this.captureState(path));
-    this.redoStack.length = 0;
-  }
-
-  private undo(): void {
-    if (!this.activePathElement || this.undoStack.length === 0) return;
-    this.redoStack.push(this.captureState(this.activePathElement));
-    const state = this.undoStack.pop();
-    if (state) this.applyState(this.activePathElement, state);
-  }
-
-  private redo(): void {
-    if (!this.activePathElement || this.redoStack.length === 0) return;
-    this.undoStack.push(this.captureState(this.activePathElement));
-    const state = this.redoStack.pop();
-    if (state) this.applyState(this.activePathElement, state);
-  }
-
   private cancelEditing(): void {
-    if (!this.activePathElement || !this.editingSnapshot) return;
-    this.applyState(this.activePathElement, this.editingSnapshot);
+    if (!this.activePathElement) return;
     this.selectedPointIndex = -1;
-    this.undoStack.length = 0;
-    this.redoStack.length = 0;
   }
 
   private closeWithKeyboard(): void {
@@ -330,24 +275,16 @@ export class PenTool extends Tool {
     // 2. Clique em vértice existente → seleciona / inicia arraste
     const hitVertex = this.hitTestPoint();
     if (hitVertex !== -1) {
-      if (this.modifiers.alt) {
-        if (active.isClosed) {
-          active.isClosed = false;
-        }
-        active.removePoint(this.selectedPointIndex);
-        this.refreshTransformBox();
-        this.updatePointsOverlay();
-        return;
-      }
       this.selectedPointIndex = hitVertex;
       this.draggingPointIndex = hitVertex;
+      this.draggingHandle = null;
       this.mouseDownScreen = this.mousePos;
       this.dragStarted = false;
       this.updatePointsOverlay();
       return;
     }
 
-    if (this.modifiers.shift)  {
+    if (this.modifiers.shift) {
       // 3. Clique no meio de um segmento → insere novo vértice na projeção
       if (this.mousePos && this.canvasPos) {
         const segHit = hitTestSegments(
@@ -363,7 +300,6 @@ export class PenTool extends Tool {
             worldPoints[(segHit.segmentIndex + 1) % worldPoints.length];
           const worldHit = closestPointOnSegment(this.canvasPos, segA, segB);
 
-          this.pushUndo(active);
           active.addPoint(worldHit.q, segHit.segmentIndex + 1);
           this.selectedPointIndex = segHit.segmentIndex + 1;
           this.refreshTransformBox();
@@ -380,7 +316,6 @@ export class PenTool extends Tool {
         const last = active.points[active.points.length - 1];
         target = this.constrainAxis(target, active.toWorld(last));
       }
-      this.pushUndo(active);
       active.addPoint(target);
       this.selectedPointIndex = active.points.length - 1;
       this.refreshTransformBox();
@@ -439,6 +374,7 @@ export class PenTool extends Tool {
 
   protected handleMouseUp(): void {
     this.draggingPointIndex = -1;
+    this.draggingHandle = null;
     this.mouseDownScreen = null;
     this.dragStarted = false;
     this.dragOriginWorld = null;
@@ -460,28 +396,11 @@ export class PenTool extends Tool {
       return;
     }
 
-    if (this.modifiers.ctrl && evt.key.toLowerCase() === "z") {
-      evt.preventDefault();
-      if (this.modifiers.shift) {
-        this.redo();
-      } else {
-        this.undo();
-      }
-      return;
-    }
-
-    if (this.modifiers.ctrl && evt.key.toLowerCase() === "y") {
-      evt.preventDefault();
-      this.redo();
-      return;
-    }
-
     if (this.selectedPointIndex < 0) return;
 
     if (evt.key === "Delete" || evt.key === "Backspace") {
       evt.preventDefault();
       if (this.activePathElement.points.length > 1) {
-        this.pushUndo(this.activePathElement);
         this.activePathElement.removePoint(this.selectedPointIndex);
         this.selectedPointIndex = Math.min(
           this.selectedPointIndex,
@@ -503,7 +422,6 @@ export class PenTool extends Tool {
     const delta = deltas[evt.key];
     if (delta) {
       evt.preventDefault();
-      this.pushUndo(this.activePathElement);
       const world = this.activePathElement.toWorld(
         this.activePathElement.points[this.selectedPointIndex],
       );
@@ -521,7 +439,7 @@ export class PenTool extends Tool {
 
 function drawPen(
   ctx: CanvasRenderingContext2D,
-  mousePos: Point,
+  mousePos: Position,
   penIcon: Path2D,
 ) {
   ctx.save();
@@ -538,14 +456,14 @@ function drawPen(
 
 function drawPoint(
   ctx: CanvasRenderingContext2D,
-  point: Point,
+  position: Position,
   index: number,
   selected: number,
   color?: string,
   hovered = false,
 ) {
   ctx.save();
-  ctx.translate(point.x, point.y);
+  ctx.translate(position.x, position.y);
   ctx.fillStyle = color ?? (index === selected ? "red" : "black");
   ctx.strokeStyle = "white";
   ctx.lineWidth = selected || hovered ? 3 : 2.5;
