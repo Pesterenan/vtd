@@ -143,12 +143,6 @@ export class PenTool extends Tool {
     this.eventBus.emit("pen:hint", { visible });
   }
 
-  /** Traz a posição do primeiro ponto em tela (lê do cache, sem reconverter). */
-  private firstPointScreen(): Position | null {
-    if (this.points.length === 0) return null;
-    return this.points[0]?.center ?? null;
-  }
-
   /**
    * Único ponto de entrada para hit-test em TELA.
    * Lê de `this.points` (cache screen em Point[]), testa handles antes do centro,
@@ -176,19 +170,6 @@ export class PenTool extends Tool {
       }
     }
     return null;
-  }
-
-  private drawClosingIndicator(): void {
-    if (
-      this.isClosingPath &&
-      this.activePathElement &&
-      this.points.length > 0
-    ) {
-      const firstPoint = this.firstPointScreen();
-      const ctx = this.context;
-      if (!ctx || !firstPoint) return;
-      drawPoint(ctx, firstPoint, 0, this.selectedPointIndex, "blue");
-    }
   }
 
   public draw(): void {
@@ -227,19 +208,7 @@ export class PenTool extends Tool {
       }
     }
 
-    // Vértices
-    this.points.forEach((point, index) => {
-      drawPoint(
-        ctx,
-        point.center,
-        index,
-        this.selectedPointIndex,
-        undefined,
-        this.hoveredPointIndex === index,
-      );
-    });
-
-    // Linha elástica (rubber band) — próximo segmento futuro
+    // Linha elástica - próximo segmento futuro
     if (this.points.length > 0 && !active?.isClosed && !isDragging) {
       const first = this.points[0];
       const lastIndex = this.points.length - 1;
@@ -271,9 +240,9 @@ export class PenTool extends Tool {
       ctx.restore();
     }
 
-    // Handles: linhas anchor -> handle (lê do cache em TELA, sem reconverter)
+    // Handles dos pontos bézier
     for (let i = 0; i < this.points.length; i++) {
-      if (!active?.isBezier(i)) continue
+      if (!active?.isBezier(i)) continue;
       const point = this.points[i];
       const pointCenter = point.center;
       for (const which of ["in", "out"] as const) {
@@ -283,9 +252,20 @@ export class PenTool extends Tool {
       }
     }
 
+    // Vértices
+    this.points.forEach((point, index) => {
+      drawPoint(
+        ctx,
+        point.center,
+        index,
+        this.selectedPointIndex,
+        undefined,
+        this.hoveredPointIndex === index,
+      );
+    });
+
     // Ícone da caneta
     drawPen(ctx, mousePos, penIcon);
-    this.drawClosingIndicator();
   }
 
   protected handleMouseDown(evt: MouseEvent): void {
@@ -307,12 +287,14 @@ export class PenTool extends Tool {
       this.eventBus.emit("edit:path", {
         position: this.canvasPos ?? { x: 0, y: 0 },
       });
+      console.log("1");
       return;
     }
 
     // 1. Fechamento por clique no primeiro ponto
     if (this.isClosingPath && !active.isClosed && active.points.length >= 2) {
       this.closePath();
+      console.log("2");
       return;
     }
 
@@ -322,8 +304,10 @@ export class PenTool extends Tool {
     const hit = this.hitHandleOrPoint(mousePos);
     if (hit) {
       if (!active.isClosed && hit.index === 0 && hit.which === "center") {
+        console.log("3");
         // Cai para inserção/adição abaixo (ex.: path de 1 ponto vira 2).
       } else {
+        console.log("4");
         this.selectedPointIndex = hit.index;
         this.draggingPointIndex = hit.index;
         this.draggingPoint = hit.which === "center" ? null : hit.which;
@@ -379,6 +363,7 @@ export class PenTool extends Tool {
 
     // 4. Fallback: adiciona ponto ao final (com constraint de Shift)
     if (this.canvasPos && !active.isClosed) {
+      console.log("5");
       let target: Position = this.canvasPos;
       if (this.modifiers.shift) {
         const last = active.points[active.points.length - 1];
@@ -398,6 +383,7 @@ export class PenTool extends Tool {
       this.hoveredPointIndex = -1;
       return;
     }
+    const firstPoint = this.points[0]?.center ?? null;
 
     if (this.draggingPointIndex !== -1) {
       if (
@@ -504,11 +490,10 @@ export class PenTool extends Tool {
       return;
     }
 
-    const firstPointScreen = this.firstPointScreen() ?? this.points[0]?.center;
     this.isClosingPath =
       !this.activePathElement.isClosed &&
-      !!firstPointScreen &&
-      new Vector(mousePos).distance(firstPointScreen) <= CLOSING_DISTANCE;
+      !!firstPoint &&
+      new Vector(mousePos).distance(firstPoint) <= CLOSING_DISTANCE;
 
     // Hover usa o mesmo hit-test único. O índice 0 é reservado ao fechamento
     // enquanto o path está aberto (mostra indicador azul em vez de hover).
@@ -648,7 +633,7 @@ function drawBezierHandle(
   ctx.save();
   ctx.strokeStyle = "rgba(0,0,0,0.6)";
   ctx.lineWidth = 1;
-  ctx.setLineDash([1,1]);
+  ctx.setLineDash([1, 1]);
   ctx.beginPath();
   ctx.moveTo(pointCenter.x, pointCenter.y);
   ctx.lineTo(handle.x, handle.y);

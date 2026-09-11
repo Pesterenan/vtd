@@ -376,21 +376,6 @@ describe("PenTool", () => {
       expect(arcSpy).toHaveBeenCalledTimes(3);
       expect(lineToSpy).toHaveBeenCalled();
     });
-
-    it("draw() desenha o indicador de fechamento quando isClosing", () => {
-      const p = makePath();
-      activatePath(p);
-      setMouse({ x: 100, y: 100 });
-      penTool.onMouseMove(createMouseEvent(0, 0));
-      expect(penTool["isClosingPath"]).toBe(true);
-
-      const context = canvas.getContext("2d")!;
-      const arcSpy = vi.spyOn(context, "arc").mockClear();
-
-      penTool.draw();
-
-      expect(arcSpy).toHaveBeenCalledTimes(4);
-    });
   });
 
   describe("seleção e arraste de pontos", () => {
