@@ -37,7 +37,7 @@ describe("WorkArea - Path Integration", () => {
       const pathElement = element as PathElement;
       // PathElement inicia com um único ponto local {0,0} e não fechado
       expect(pathElement.points).toEqual([
-        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
+        { center: { x: 0, y: 0 }, in: null, out: null },
       ]);
       expect(pathElement.isClosed).toBe(false);
       expect(pathElement.position).toEqual(position);
@@ -89,10 +89,10 @@ describe("WorkArea - Path Integration", () => {
 
       expect(workArea.elements.length).toBe(2);
       expect((workArea.elements[0] as PathElement).points).toEqual([
-        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
+        { center: { x: 0, y: 0 }, in: null, out: null },
       ]);
       expect((workArea.elements[1] as PathElement).points).toEqual([
-        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
+        { center: { x: 0, y: 0 }, in: null, out: null },
       ]);
       expect((workArea.elements[0] as PathElement).position).toEqual({
         x: 100,
@@ -113,8 +113,8 @@ describe("WorkArea - Path Integration", () => {
         size: { width: 100, height: 100 },
         zDepth: 0,
         points: [
-          { position: { x: -50, y: -50 }, handleIn: null, handleOut: null },
-          { position: { x: 50, y: 50 }, handleIn: null, handleOut: null },
+          { center: { x: -50, y: -50 }, in: null, out: null },
+          { center: { x: 50, y: 50 }, in: null, out: null },
         ],
         isClosed: false,
         hasFill: false,
@@ -145,10 +145,10 @@ describe("WorkArea - Path Integration", () => {
         size: { width: 60, height: 80 },
         zDepth: 5,
         points: [
-          { position: { x: -30, y: -40 }, handleIn: null, handleOut: null },
-          { position: { x: 30, y: -40 }, handleIn: null, handleOut: null },
-          { position: { x: 30, y: 40 }, handleIn: null, handleOut: null },
-          { position: { x: -30, y: 40 }, handleIn: null, handleOut: null },
+          { center: { x: -30, y: -40 }, in: null, out: null },
+          { center: { x: 30, y: -40 }, in: null, out: null },
+          { center: { x: 30, y: 40 }, in: null, out: null },
+          { center: { x: -30, y: 40 }, in: null, out: null },
         ],
         isClosed: true,
         hasFill: true,
@@ -174,10 +174,10 @@ describe("WorkArea - Path Integration", () => {
 
       expect(pathElement.position).toEqual({ x: 200, y: 400 });
       expect(pathElement.points).toEqual([
-        { position: { x: -30, y: -40 }, handleIn: null, handleOut: null },
-        { position: { x: 30, y: -40 }, handleIn: null, handleOut: null },
-        { position: { x: 30, y: 40 }, handleIn: null, handleOut: null },
-        { position: { x: -30, y: 40 }, handleIn: null, handleOut: null },
+        { center: { x: -30, y: -40 }, in: null, out: null },
+        { center: { x: 30, y: -40 }, in: null, out: null },
+        { center: { x: 30, y: 40 }, in: null, out: null },
+        { center: { x: -30, y: 40 }, in: null, out: null },
       ]);
       expect(pathElement.isClosed).toBe(true);
       expect(pathElement.hasFill).toBe(true);
@@ -198,8 +198,8 @@ describe("WorkArea - Path Integration", () => {
         size: { width: 50, height: 50 },
         zDepth: 0,
         points: [
-          { position: { x: -25, y: -25 }, handleIn: null, handleOut: null },
-          { position: { x: 25, y: 25 }, handleIn: null, handleOut: null },
+          { center: { x: -25, y: -25 }, in: null, out: null },
+          { center: { x: 25, y: 25 }, in: null, out: null },
         ],
         isClosed: false,
         hasFill: false,
@@ -225,8 +225,8 @@ describe("WorkArea - Path Integration", () => {
         size: { width: 100, height: 100 },
         zDepth: 1,
         points: [
-          { position: { x: -50, y: -50 }, handleIn: null, handleOut: null },
-          { position: { x: 50, y: 50 }, handleIn: null, handleOut: null },
+          { center: { x: -50, y: -50 }, in: null, out: null },
+          { center: { x: 50, y: 50 }, in: null, out: null },
         ],
         isClosed: true,
         hasFill: true,

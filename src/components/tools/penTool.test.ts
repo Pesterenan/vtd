@@ -71,9 +71,9 @@ describe("PenTool", () => {
   function makePath(): PathElement {
     const p = new PathElement({ x: 100, y: 100 }, { width: 10, height: 10 }, 1);
     p.points = [
-      { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
-      { position: { x: 50, y: 0 }, handleIn: null, handleOut: null },
-      { position: { x: 50, y: 50 }, handleIn: null, handleOut: null },
+      { center: { x: 0, y: 0 }, in: null, out: null },
+      { center: { x: 50, y: 0 }, in: null, out: null },
+      { center: { x: 50, y: 50 }, in: null, out: null },
     ];
     return p;
   }
@@ -119,7 +119,7 @@ describe("PenTool", () => {
       expect(canvas.style.cursor).toBe("");
       expect(penTool["activePathElement"]).toBeNull();
       expect(penTool["points"]).toEqual([]);
-      expect(penTool["isClosing"]).toBe(false);
+      expect(penTool["isClosingPath"]).toBe(false);
     });
   });
 
@@ -153,8 +153,8 @@ describe("PenTool", () => {
 
       expect(p.points).toHaveLength(4);
       expect(p.position).toEqual({ x: 150, y: 125 });
-      expect(p.toWorld(p.points[0])).toEqual({ x: 100, y: 100 });
-      expect(p.toWorld(p.points[3])).toEqual({ x: 200, y: 150 });
+      expect(p.toWorld(p.points[0]).center).toEqual({ x: 100, y: 100 });
+      expect(p.toWorld(p.points[3]).center).toEqual({ x: 200, y: 150 });
     });
   });
 
@@ -166,8 +166,8 @@ describe("PenTool", () => {
         1,
       );
       p.points = [
-        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
-        { position: { x: 100, y: 0 }, handleIn: null, handleOut: null },
+        { center: { x: 0, y: 0 }, in: null, out: null },
+        { center: { x: 100, y: 0 }, in: null, out: null },
       ];
       return p;
     }
@@ -182,9 +182,9 @@ describe("PenTool", () => {
       penTool.onMouseDown(createMouseEvent(0, 0));
 
       expect(p.points).toHaveLength(3);
-      expect(p.toWorld(p.points[0])).toEqual({ x: 100, y: 100 });
-      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 100 });
-      expect(p.toWorld(p.points[2])).toEqual({ x: 200, y: 100 });
+      expect(p.toWorld(p.points[0]).center).toEqual({ x: 100, y: 100 });
+      expect(p.toWorld(p.points[1]).center).toEqual({ x: 150, y: 100 });
+      expect(p.toWorld(p.points[2]).center).toEqual({ x: 200, y: 100 });
     });
 
     it("clique no meio do primeiro segmento insere após o primeiro vértice", () => {
@@ -197,9 +197,9 @@ describe("PenTool", () => {
       penTool.onMouseDown(createMouseEvent(0, 0));
 
       expect(p.points).toHaveLength(4);
-      expect(p.toWorld(p.points[1])).toEqual({ x: 125, y: 100 });
-      expect(p.toWorld(p.points[2])).toEqual({ x: 150, y: 100 });
-      expect(p.toWorld(p.points[3])).toEqual({ x: 150, y: 150 });
+      expect(p.toWorld(p.points[1]).center).toEqual({ x: 125, y: 100 });
+      expect(p.toWorld(p.points[2]).center).toEqual({ x: 150, y: 100 });
+      expect(p.toWorld(p.points[3]).center).toEqual({ x: 150, y: 150 });
     });
 
     it("clique no meio do último segmento insere antes do vértice final", () => {
@@ -212,8 +212,8 @@ describe("PenTool", () => {
       penTool.onMouseDown(createMouseEvent(0, 0));
 
       expect(p.points).toHaveLength(4);
-      expect(p.toWorld(p.points[2])).toEqual({ x: 150, y: 125 });
-      expect(p.toWorld(p.points[3])).toEqual({ x: 150, y: 150 });
+      expect(p.toWorld(p.points[2]).center).toEqual({ x: 150, y: 125 });
+      expect(p.toWorld(p.points[3]).center).toEqual({ x: 150, y: 150 });
     });
   });
 
@@ -256,7 +256,7 @@ describe("PenTool", () => {
       setMouse({ x: 103, y: 100 });
       penTool.onMouseMove(createMouseEvent(0, 0));
 
-      expect(penTool["isClosing"]).toBe(true);
+      expect(penTool["isClosingPath"]).toBe(true);
     });
 
     it("hover longe do primeiro ponto desmarca isClosing", () => {
@@ -265,7 +265,7 @@ describe("PenTool", () => {
       setMouse({ x: 300, y: 300 });
       penTool.onMouseMove(createMouseEvent(0, 0));
 
-      expect(penTool["isClosing"]).toBe(false);
+      expect(penTool["isClosingPath"]).toBe(false);
     });
 
     it("clique no primeiro ponto fecha um path com 3 pontos", () => {
@@ -282,8 +282,8 @@ describe("PenTool", () => {
     it("clique no primeiro ponto fecha um path com 2 pontos", () => {
       const p = makePath();
       p.points = [
-        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
-        { position: { x: 50, y: 0 }, handleIn: null, handleOut: null },
+        { center: { x: 0, y: 0 }, in: null, out: null },
+        { center: { x: 50, y: 0 }, in: null, out: null },
       ];
       activatePath(p);
       setMouse({ x: 100, y: 101 });
@@ -314,7 +314,7 @@ describe("PenTool", () => {
       activatePath(p);
       setMouse({ x: 100, y: 100 });
       penTool.onMouseMove(createMouseEvent(0, 0));
-      expect(penTool["isClosing"]).toBe(true);
+      expect(penTool["isClosingPath"]).toBe(true);
 
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -325,15 +325,15 @@ describe("PenTool", () => {
     it("o fechamento considera a posição do elemento (toWorld)", () => {
       const p = makePath();
       p.points[0] = {
-        position: { x: 20, y: 10 },
-        handleIn: null,
-        handleOut: null,
+        center: { x: 20, y: 10 },
+        in: null,
+        out: null,
       };
       activatePath(p);
       setMouse({ x: 120, y: 110 });
       penTool.onMouseMove(createMouseEvent(0, 0));
 
-      expect(penTool["isClosing"]).toBe(true);
+      expect(penTool["isClosingPath"]).toBe(true);
 
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -382,7 +382,7 @@ describe("PenTool", () => {
       activatePath(p);
       setMouse({ x: 100, y: 100 });
       penTool.onMouseMove(createMouseEvent(0, 0));
-      expect(penTool["isClosing"]).toBe(true);
+      expect(penTool["isClosingPath"]).toBe(true);
 
       const context = canvas.getContext("2d")!;
       const arcSpy = vi.spyOn(context, "arc").mockClear();
@@ -401,7 +401,7 @@ describe("PenTool", () => {
       penTool.onMouseDown(createMouseEvent(0, 0));
 
       expect(penTool["selectedPointIndex"]).toBe(1);
-      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 100 });
+      expect(p.toWorld(p.points[1]).center).toEqual({ x: 150, y: 100 });
     });
 
     it("arrastar um ponto o move preservando a geometria dos demais", () => {
@@ -418,9 +418,9 @@ describe("PenTool", () => {
       penTool.onMouseUp(createMouseEvent(0, 0));
 
       expect(p.points).toHaveLength(3);
-      expect(p.toWorld(p.points[1])).toEqual({ x: 200, y: 130 });
-      expect(p.toWorld(p.points[0])).toEqual({ x: 100, y: 100 });
-      expect(p.toWorld(p.points[2])).toEqual({ x: 150, y: 150 });
+      expect(p.toWorld(p.points[1]).center).toEqual({ x: 200, y: 130 });
+      expect(p.toWorld(p.points[0]).center).toEqual({ x: 100, y: 100 });
+      expect(p.toWorld(p.points[2]).center).toEqual({ x: 150, y: 150 });
     });
 
     it("movimento pequeno dentro do limiar não move o ponto", () => {
@@ -433,7 +433,7 @@ describe("PenTool", () => {
       penTool.onMouseMove(createMouseEvent(0, 0));
       penTool.onMouseUp(createMouseEvent(0, 0));
 
-      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 100 });
+      expect(p.toWorld(p.points[1]).center).toEqual({ x: 150, y: 100 });
       expect(penTool["selectedPointIndex"]).toBe(1);
     });
 
@@ -449,7 +449,7 @@ describe("PenTool", () => {
       penTool.onMouseMove(createMouseEvent(0, 0));
       penTool.onMouseDown(createMouseEvent(0, 0));
 
-      expect(penTool["isClosing"]).toBe(true);
+      expect(penTool["isClosingPath"]).toBe(true);
       expect(p.isClosed).toBe(true);
       expect(p.points).toHaveLength(before);
     });
@@ -469,7 +469,7 @@ describe("PenTool", () => {
       penTool.onMouseUp(createMouseEvent(0, 0));
 
       expect(p.points).toHaveLength(3);
-      expect(p.toWorld(p.points[0])).toEqual({ x: 120, y: 140 });
+      expect(p.toWorld(p.points[0]).center).toEqual({ x: 120, y: 140 });
     });
 
     it("clicar no primeiro ponto de um path fechado não insere vértice", () => {
@@ -479,7 +479,7 @@ describe("PenTool", () => {
       setMouse({ x: 101, y: 100 });
       penTool.onMouseMove(createMouseEvent(0, 0));
 
-      expect(penTool["isClosing"]).toBe(false);
+      expect(penTool["isClosingPath"]).toBe(false);
 
       penTool.onMouseDown(createMouseEvent(0, 0));
       penTool.onMouseUp(createMouseEvent(0, 0));
@@ -495,7 +495,7 @@ describe("PenTool", () => {
       setMouse({ x: 101, y: 100 });
       penTool.onMouseMove(createMouseEvent(0, 0));
 
-      expect(penTool["isClosing"]).toBe(false);
+      expect(penTool["isClosingPath"]).toBe(false);
     });
 
     it("adicionar ponto emite transformBox:refresh", () => {
@@ -540,7 +540,7 @@ describe("PenTool", () => {
         1,
       );
       single.points = [
-        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
+        { center: { x: 0, y: 0 }, in: null, out: null },
       ];
       activatePath(single);
       setMouse({ x: 100, y: 100 });
@@ -556,7 +556,7 @@ describe("PenTool", () => {
       expect(
         penTool["activePathElement"]!.toWorld(
           penTool["activePathElement"]!.points[1],
-        ),
+        ).center,
       ).toEqual({
         x: 151,
         y: 100,
@@ -570,7 +570,7 @@ describe("PenTool", () => {
       expect(
         penTool["activePathElement"]!.toWorld(
           penTool["activePathElement"]!.points[1],
-        ),
+        ).center,
       ).toEqual({
         x: 150,
         y: 110,
@@ -596,8 +596,8 @@ describe("PenTool", () => {
         1,
       );
       p.points = [
-        { position: { x: 0, y: 0 }, handleIn: null, handleOut: null },
-        { position: { x: 50, y: 0 }, handleIn: null, handleOut: null },
+        { center: { x: 0, y: 0 }, in: null, out: null },
+        { center: { x: 50, y: 0 }, in: null, out: null },
       ];
       activatePath(p);
 
@@ -631,7 +631,7 @@ describe("PenTool", () => {
       penTool.onMouseDown(createMouseEvent(0, 0));
 
       expect(p.points).toHaveLength(4);
-      expect(p.toWorld(p.points[3])).toEqual({ x: 300, y: 150 });
+      expect(p.toWorld(p.points[3]).center).toEqual({ x: 300, y: 150 });
     });
 
     it("Shift+clique alinha ao eixo vertical quando ele domina", () => {
@@ -642,7 +642,7 @@ describe("PenTool", () => {
       penTool.onMouseDown(createMouseEvent(0, 0));
 
       expect(p.points).toHaveLength(4);
-      expect(p.toWorld(p.points[3])).toEqual({ x: 150, y: 300 });
+      expect(p.toWorld(p.points[3]).center).toEqual({ x: 150, y: 300 });
     });
 
     it("Shift durante o arraste restringe o ponto em relação à posição original", () => {
@@ -664,7 +664,7 @@ describe("PenTool", () => {
       penTool.onMouseMove(createMouseEvent(0, 0));
       penTool.onMouseUp(createMouseEvent(0, 0));
 
-      expect(p.toWorld(p.points[1])).toEqual({ x: 150, y: 180 });
+      expect(p.toWorld(p.points[1]).center).toEqual({ x: 150, y: 180 });
     });
 
     it("soltar Shift desliga o constraint", () => {
@@ -676,7 +676,7 @@ describe("PenTool", () => {
       penTool.onMouseDown(createMouseEvent(0, 0));
 
       expect(p.points).toHaveLength(4);
-      expect(p.toWorld(p.points[3])).toEqual({ x: 300, y: 250 });
+      expect(p.toWorld(p.points[3]).center).toEqual({ x: 300, y: 250 });
     });
   });
 
@@ -686,7 +686,7 @@ describe("PenTool", () => {
       activatePath(p);
       setMouse({ x: 100, y: 101 });
       penTool.onMouseMove(createMouseEvent(0, 0));
-      expect(penTool["isClosing"]).toBe(true);
+      expect(penTool["isClosingPath"]).toBe(true);
 
       const context = canvas.getContext("2d")!;
       const dashSpy = vi.spyOn(context, "setLineDash").mockClear();
@@ -701,7 +701,7 @@ describe("PenTool", () => {
       activatePath(p);
       setMouse({ x: 200, y: 200 });
       penTool.onMouseMove(createMouseEvent(0, 0));
-      expect(penTool["isClosing"]).toBe(false);
+      expect(penTool["isClosingPath"]).toBe(false);
 
       const context = canvas.getContext("2d")!;
       const dashSpy = vi.spyOn(context, "setLineDash").mockClear();

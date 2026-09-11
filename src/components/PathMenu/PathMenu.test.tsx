@@ -34,9 +34,9 @@ describe("PathMenu", () => {
       1,
     );
     pathElement.points = [
-      { x: -50, y: -25 },
-      { x: 50, y: -25 },
-      { x: 0, y: 25 },
+      { center: { x: -50, y: -25 }, in: null, out: null },
+      { center: { x: 50, y: -25 }, in: null, out: null },
+      { center: { x: 0, y: 25 }, in: null, out: null },
     ];
     act(() => {
       eventBus.emit("selection:changed", {
@@ -64,9 +64,9 @@ describe("PathMenu", () => {
       1,
     );
     pathElement.points = [
-      { x: -50, y: -25 },
-      { x: 50, y: -25 },
-      { x: 0, y: 25 },
+      { center: { x: -50, y: -25 }, in: null, out: null },
+      { center: { x: 50, y: -25 }, in: null, out: null },
+      { center: { x: 0, y: 25 }, in: null, out: null },
     ];
     pathElement.isClosed = true;
     act(() => {
@@ -94,9 +94,9 @@ describe("PathMenu", () => {
       1,
     );
     pathElement.points = [
-      { x: -50, y: -25 },
-      { x: 50, y: -25 },
-      { x: 0, y: 25 },
+      { center: { x: -50, y: -25 }, in: null, out: null },
+      { center: { x: 50, y: -25 }, in: null, out: null },
+      { center: { x: 0, y: 25 }, in: null, out: null },
     ];
     act(() => {
       eventBus.emit("selection:changed", {
@@ -128,9 +128,9 @@ describe("PathMenu", () => {
       1,
     );
     pathElement.points = [
-      { x: -50, y: -25 },
-      { x: 50, y: -25 },
-      { x: 0, y: 25 },
+      { center: { x: -50, y: -25 }, in: null, out: null },
+      { center: { x: 50, y: -25 }, in: null, out: null },
+      { center: { x: 0, y: 25 }, in: null, out: null },
     ];
     act(() => {
       eventBus.emit("selection:changed", {
@@ -192,9 +192,9 @@ describe("PathMenu", () => {
       1,
     );
     pathElement.points = [
-      { x: -50, y: -25 },
-      { x: 50, y: -25 },
-      { x: 0, y: 25 },
+      { center: { x: -50, y: -25 }, in: null, out: null },
+      { center: { x: 50, y: -25 }, in: null, out: null },
+      { center: { x: 0, y: 25 }, in: null, out: null },
     ];
     act(() => {
       eventBus.emit("selection:changed", {

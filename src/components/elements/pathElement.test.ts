@@ -1,7 +1,12 @@
 /**
  * @vitest-environment jsdom
  */
-import type { IPathElementData, Position, Size } from "src/components/types";
+import type {
+  IPathElementData,
+  Point,
+  Position,
+  Size,
+} from "src/components/types";
 import { BoundingBox } from "src/utils/boundingBox";
 import { rotatePoint } from "src/utils/transforms";
 import { PathElement } from "./pathElement";
@@ -23,22 +28,26 @@ describe("PathElement", () => {
     });
 
     it("should add the first point at the element position in local coordinates", () => {
-      expect(element.points).toEqual([{ x: 0, y: 0 }]);
-      expect(element.points[0]).toEqual(element.toLocal(position));
+      expect(element.points).toEqual([
+        { center: { x: 0, y: 0 }, in: null, out: null },
+      ]);
+      expect(element.points[0].center).toEqual(
+        element.toLocal(position).center,
+      );
     });
 
     it("should allow setting points", () => {
       element.points = [
-        { x: 0, y: -50 },
-        { x: 100, y: 50 },
+        { center: { x: 0, y: -50 }, in: null, out: null },
+        { center: { x: 100, y: 50 }, in: null, out: null },
       ];
       expect(element.points).toEqual([
-        { x: 0, y: -50 },
-        { x: 100, y: 50 },
+        { center: { x: 0, y: -50 }, in: null, out: null },
+        { center: { x: 100, y: 50 }, in: null, out: null },
       ]);
       expect(element.serialize().points).toEqual([
-        { x: 0, y: -50 },
-        { x: 100, y: 50 },
+        { center: { x: 0, y: -50 }, in: null, out: null },
+        { center: { x: 100, y: 50 }, in: null, out: null },
       ]);
     });
 
@@ -136,16 +145,25 @@ describe("PathElement", () => {
 
   describe("coordinate conversions", () => {
     it("toWorld adds the element position to a local point", () => {
-      expect(element.toWorld({ x: 30, y: -40 })).toEqual({ x: 130, y: 160 });
+      expect(
+        element.toWorld({
+          center: { x: 30, y: -40 },
+          in: null,
+          out: null,
+        } as unknown as Point).center,
+      ).toEqual({ x: 130, y: 160 });
     });
 
     it("toLocal subtracts the element position from a world position", () => {
-      expect(element.toLocal({ x: 130, y: 160 })).toEqual({ x: 30, y: -40 });
+      expect(element.toLocal({ x: 130, y: 160 }).center).toEqual({
+        x: 30,
+        y: -40,
+      });
     });
 
     it("toWorld and toLocal round-trip", () => {
       const world = { x: 250, y: 80 };
-      expect(element.toWorld(element.toLocal(world))).toEqual(world);
+      expect(element.toWorld(element.toLocal(world)).center).toEqual(world);
     });
   });
 
@@ -155,8 +173,8 @@ describe("PathElement", () => {
 
       expect(element.points).toHaveLength(2);
       // Geometria preservada no mundo
-      expect(element.toWorld(element.points[0])).toEqual({ x: 100, y: 200 });
-      expect(element.toWorld(element.points[1])).toEqual({ x: 200, y: 250 });
+      expect(element.toWorld(element.points[0]).center).toEqual({ x: 100, y: 200 });
+      expect(element.toWorld(element.points[1]).center).toEqual({ x: 200, y: 250 });
       // position virou o centro dos extents x 0..100 e y 0..50
       expect(element.position).toEqual({ x: 150, y: 225 });
     });
@@ -166,8 +184,8 @@ describe("PathElement", () => {
 
       expect(element.points).toHaveLength(2);
       expect(element.position).toEqual({ x: 200, y: 200 });
-      expect(element.toWorld(element.points[0])).toEqual({ x: 300, y: 200 });
-      expect(element.toWorld(element.points[1])).toEqual({ x: 100, y: 200 });
+      expect(element.toWorld(element.points[0]).center).toEqual({ x: 300, y: 200 });
+      expect(element.toWorld(element.points[1]).center).toEqual({ x: 100, y: 200 });
     });
 
     it("updatePoint converts world coordinates to local and preserves geometry", () => {
@@ -175,46 +193,65 @@ describe("PathElement", () => {
       element.updatePoint(1, { x: 150, y: 100 });
 
       expect(element.position).toEqual({ x: 125, y: 150 });
-      expect(element.toWorld(element.points[0])).toEqual({ x: 100, y: 200 });
-      expect(element.toWorld(element.points[1])).toEqual({ x: 150, y: 100 });
+      expect(element.toWorld(element.points[0]).center).toEqual({ x: 100, y: 200 });
+      expect(element.toWorld(element.points[1]).center).toEqual({ x: 150, y: 100 });
     });
 
     it("updatePoint with an out-of-range index does nothing", () => {
-      element.points = [{ x: 0, y: 0 }, { x: 10, y: 10 }];
+      element.points = [
+        { center: { x: 0, y: 0 }, in: null, out: null },
+        { center: { x: 10, y: 10 }, in: null, out: null },
+      ];
       element.updatePoint(5, { x: 999, y: 999 });
 
-      expect(element.points).toEqual([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
+      expect(element.points).toEqual([
+        { center: { x: 0, y: 0 }, in: null, out: null },
+        { center: { x: 10, y: 10 }, in: null, out: null },
+      ]);
     });
 
     it("removePoint removes the point and recenters", () => {
-      element.points = [{ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 5, y: 20 }];
+      element.points = [
+        { center: { x: 0, y: 0 }, in: null, out: null },
+        { center: { x: 10, y: 10 }, in: null, out: null },
+        { center: { x: 5, y: 20 }, in: null, out: null },
+      ];
       element.removePoint(1);
 
       expect(element.points).toEqual([
-        { x: -2.5, y: -10 },
-        { x: 2.5, y: 10 },
+        { center: { x: -2.5, y: -10 }, in: null, out: null },
+        { center: { x: 2.5, y: 10 }, in: null, out: null },
       ]);
       expect(element.position).toEqual({ x: 102.5, y: 210 });
-      expect(element.toWorld(element.points[0])).toEqual({ x: 100, y: 200 });
+      expect(element.toWorld(element.points[0]).center).toEqual({ x: 100, y: 200 });
     });
 
     it("removePoint with an out-of-range index does nothing", () => {
-      element.points = [{ x: 0, y: 0 }, { x: 10, y: 10 }];
+      element.points = [
+        { center: { x: 0, y: 0 }, in: null, out: null },
+        { center: { x: 10, y: 10 }, in: null, out: null },
+      ];
       element.removePoint(9);
 
-      expect(element.points).toEqual([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
+      expect(element.points).toEqual([
+        { center: { x: 0, y: 0 }, in: null, out: null },
+        { center: { x: 10, y: 10 }, in: null, out: null },
+      ]);
     });
   });
 
   describe("recomputeBounds", () => {
     function renderPath(
-      points: Position[],
+      points: Point[],
       position: Position,
       scale: { x: number; y: number },
       rotation: number,
     ): Position[] {
       return points.map((pt) => {
-        const scaled = { x: pt.x * scale.x, y: pt.y * scale.y };
+        const scaled = {
+          x: pt.center.x * scale.x,
+          y: pt.center.y * scale.y,
+        };
         const rotated = rotatePoint(scaled, { x: 0, y: 0 }, rotation);
         return { x: rotated.x + position.x, y: rotated.y + position.y };
       });
@@ -222,8 +259,8 @@ describe("PathElement", () => {
 
     it("recenters position at the point extents and preserves world geometry", () => {
       element.points = [
-        { x: 30, y: -40 },
-        { x: -20, y: 50 },
+        { center: { x: 30, y: -40 }, in: null, out: null },
+        { center: { x: -20, y: 50 }, in: null, out: null },
       ];
 
       const worldBefore = element.points.map((p) => element.toWorld(p));
@@ -232,7 +269,9 @@ describe("PathElement", () => {
 
       expect(element.position).toEqual({ x: 105, y: 205 });
       expect(element.size).toEqual({ width: 50, height: 90 });
-      expect(element.points.map((p) => element.toWorld(p))).toEqual(worldBefore);
+      expect(element.points.map((p) => element.toWorld(p))).toEqual(
+        worldBefore,
+      );
     });
 
     it("preserves the rendered geometry with scale and rotation", () => {
@@ -244,9 +283,9 @@ describe("PathElement", () => {
       rotated.scale = { x: 2, y: 1 };
       rotated.rotation = 90;
       rotated.points = [
-        { x: 10, y: 0 },
-        { x: -10, y: 0 },
-        { x: 0, y: 20 },
+        { center: { x: 10, y: 0 }, in: null, out: null },
+        { center: { x: -10, y: 0 }, in: null, out: null },
+        { center: { x: 0, y: 20 }, in: null, out: null },
       ];
 
       const before = renderPath(
@@ -275,7 +314,9 @@ describe("PathElement", () => {
       element.recomputeBounds();
 
       expect(element.position).toEqual(before);
-      expect(element.points).toEqual([{ x: 0, y: 0 }]);
+      expect(element.points).toEqual([
+        { center: { x: 0, y: 0 }, in: null, out: null },
+      ]);
     });
   });
 
@@ -306,8 +347,8 @@ describe("PathElement", () => {
 
     it("strokes the path when hasStroke is true", () => {
       element.points = [
-        { x: 0, y: 0 },
-        { x: 50, y: 0 },
+        { center: { x: 0, y: 0 }, in: null, out: null },
+        { center: { x: 50, y: 0 }, in: null, out: null },
       ];
       const ctx = mockContext();
 
@@ -318,9 +359,9 @@ describe("PathElement", () => {
 
     it("closes the path when isClosed is true", () => {
       element.points = [
-        { x: 0, y: 0 },
-        { x: 50, y: 0 },
-        { x: 50, y: 50 },
+        { center: { x: 0, y: 0 }, in: null, out: null },
+        { center: { x: 50, y: 0 }, in: null, out: null },
+        { center: { x: 50, y: 50 }, in: null, out: null },
       ];
       element.isClosed = true;
       const ctx = mockContext();
@@ -364,8 +405,8 @@ describe("PathElement", () => {
 
     it("uses the point extents to center the box at position + local center", () => {
       element.points = [
-        { x: 30, y: -40 },
-        { x: -20, y: 50 },
+        { center: { x: 30, y: -40 }, in: null, out: null },
+        { center: { x: -20, y: 50 }, in: null, out: null },
       ];
 
       const box = element.getBoundingBox();
@@ -397,7 +438,9 @@ describe("PathElement", () => {
       expect(data.size).toEqual(initialSize);
       expect(data.zDepth).toBe(zIndex);
 
-      expect(data.points).toEqual([{ x: 0, y: 0 }]);
+      expect(data.points).toEqual([
+        { center: { x: 0, y: 0 }, in: null, out: null },
+      ]);
       expect(data.isClosed).toBe(false);
       expect(data.fillColor).toBe("#E0E0E0");
       expect(data.hasFill).toBe(false);
@@ -424,8 +467,8 @@ describe("PathElement", () => {
         layerName: "",
         filters: [],
         points: [
-          { x: 50, y: -75 },
-          { x: 100, y: 25 },
+          { center: { x: 50, y: -75 }, in: null, out: null },
+          { center: { x: 100, y: 25 }, in: null, out: null },
         ],
         isClosed: true,
         fillColor: "#ffaa00",
@@ -446,8 +489,8 @@ describe("PathElement", () => {
       expect(element.zDepth).toBe(10);
 
       expect(element.points).toEqual([
-        { x: 50, y: -75 },
-        { x: 100, y: 25 },
+        { center: { x: 50, y: -75 }, in: null, out: null },
+        { center: { x: 100, y: 25 }, in: null, out: null },
       ]);
       expect(element.isClosed).toBe(true);
       expect(element.fillColor).toBe("#ffaa00");
