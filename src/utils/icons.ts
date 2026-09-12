@@ -1,3 +1,6 @@
+import type { Position } from "src/components/types";
+import { toRadians } from "./transforms";
+
 export const ICON_SIZE = 24;
 
 export type Matrix2D = {
@@ -33,7 +36,10 @@ export function parseSvgTransform(transform: string | null): Matrix2D {
   let match: RegExpExecArray | null;
   while ((match = fnRe.exec(transform)) !== null) {
     const name = match[1];
-    const values = match[2].trim().split(/[\s,]+/).map(Number);
+    const values = match[2]
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
 
     switch (name) {
       case "matrix":
@@ -141,7 +147,10 @@ function buildShape(el: Element): Path2D {
       return p;
     case "polygon":
     case "polyline": {
-      const pts = (el.getAttribute("points") ?? "").trim().split(/[\s,]+/).map(Number);
+      const pts = (el.getAttribute("points") ?? "")
+        .trim()
+        .split(/[\s,]+/)
+        .map(Number);
       p.moveTo(pts[0], pts[1]);
       for (let i = 2; i < pts.length; i += 2) p.lineTo(pts[i], pts[i + 1]);
       if (el.tagName.toLowerCase() === "polygon") p.closePath();
