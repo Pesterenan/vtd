@@ -2,7 +2,7 @@ import { Tool } from "src/components/tools/abstractTool";
 import type { ContextMenuItem } from "src/utils/eventBus";
 import { remap } from "src/utils/easing";
 import zoomIconSvg from "src/assets/icons/zoom-tool.svg?raw";
-import { svgToCanvasPath, ICON_SIZE } from "src/utils/icons";
+import { svgToCanvasPath, drawCursorIcon } from "src/utils/icons";
 
 const MIN_ZOOM_LEVEL = 0.1;
 const MAX_ZOOM_LEVEL = 2.0;
@@ -27,16 +27,10 @@ export class ZoomTool extends Tool {
     if (!this.context || !mousePos || !zoomIcon) return;
     const ctx = this.context;
 
-    ctx.save();
-    ctx.lineWidth = 2.5;
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = "white";
-    ctx.fillStyle = this.startingX !== null ? "lightblue" : "grey";
-
-    ctx.translate(mousePos.x - ICON_SIZE / 2, mousePos.y - ICON_SIZE / 2);
-    ctx.stroke(zoomIcon);
-    ctx.fill(zoomIcon, "evenodd");
-    ctx.restore();
+    drawCursorIcon(ctx, zoomIcon, mousePos, {
+      fill: this.startingX !== null ? "lightblue" : "grey",
+      fillRule: "evenodd",
+    });
 
     if (this.startingX === null) return;
 

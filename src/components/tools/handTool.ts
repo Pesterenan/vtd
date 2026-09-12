@@ -1,6 +1,6 @@
 import { Tool } from "src/components/tools/abstractTool";
 import handIconSvg from "src/assets/icons/hand-tool.svg?raw";
-import { svgToCanvasPath, ICON_SIZE } from "src/utils/icons";
+import { svgToCanvasPath, drawCursorIcon } from "src/utils/icons";
 
 export class HandTool extends Tool {
   private static handIcon: Path2D | null = null;
@@ -26,22 +26,13 @@ export class HandTool extends Tool {
   }
 
   public draw(): void {
+    const ctx = this.context;
     const mousePos = this.mousePos;
     const handIcon = HandTool.getHandIcon();
-    if (!this.context || !mousePos || !handIcon) return;
+    if (!ctx || !mousePos || !handIcon) return;
 
-    const ctx = this.context;
-
-    ctx.save();
-    ctx.lineWidth = 2.5;
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = "white";
-    ctx.fillStyle = this.isPanning ? "lightblue" : "grey";
-
-    ctx.translate(mousePos.x - ICON_SIZE / 2, mousePos.y - ICON_SIZE / 2);
-    ctx.stroke(handIcon);
-    ctx.fill(handIcon);
-    ctx.restore();
+    const fill = this.isPanning ? "lightblue" : "grey";
+    drawCursorIcon(ctx, handIcon, mousePos, { fill });
   }
 
   protected handleMouseDown(_evt: MouseEvent): void {
@@ -58,4 +49,3 @@ export class HandTool extends Tool {
     }
   }
 }
-

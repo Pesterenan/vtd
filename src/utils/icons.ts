@@ -198,3 +198,36 @@ export function svgToCanvasPath(svg: string): Path2D {
 
   return outline;
 }
+
+export type DrawCursorIconOptions = {
+  offset?: Position;
+  rotationDeg?: number;
+  fill?: string;
+  fillRule?: CanvasFillRule;
+};
+
+export function drawCursorIcon(
+  ctx: CanvasRenderingContext2D,
+  icon: Path2D,
+  mousePos: Position,
+  options: DrawCursorIconOptions = {},
+): void {
+  const {
+    offset = { x: -ICON_SIZE / 2, y: -ICON_SIZE / 2 },
+    rotationDeg = 0,
+    fill = "grey",
+    fillRule = "nonzero",
+  } = options;
+  ctx.save();
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "white";
+  ctx.fillStyle = fill;
+  ctx.translate(mousePos.x + offset.x, mousePos.y + offset.y);
+  if (rotationDeg !== 0) ctx.rotate(toRadians(rotationDeg));
+
+  ctx.stroke(icon);
+  ctx.fill(icon, fillRule);
+  ctx.restore();
+}
+

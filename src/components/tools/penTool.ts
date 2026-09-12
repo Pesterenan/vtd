@@ -1,9 +1,8 @@
-import { toRadians } from "src/utils/transforms";
 import type { Point, Position } from "../types";
 import { Tool } from "./abstractTool";
 import type { EventBus } from "src/utils/eventBus";
 import penIconSvg from "src/assets/icons/pen-tool.svg?raw";
-import { svgToCanvasPath, ICON_SIZE } from "src/utils/icons";
+import { svgToCanvasPath, ICON_SIZE, drawCursorIcon } from "src/utils/icons";
 import { PathElement } from "../elements/pathElement";
 import { Vector } from "src/utils/vector";
 import {
@@ -294,7 +293,10 @@ export class PenTool extends Tool {
     });
 
     // Ícone da caneta
-    drawPen(ctx, mousePos, penIcon);
+    drawCursorIcon(ctx, penIcon, mousePos, {
+      offset: { x: -ICON_SIZE / 3 - 2, y: ICON_SIZE / 3 },
+      rotationDeg: -45,
+    });
   }
 
   protected handleMouseDown(_evt: MouseEvent): void {
@@ -620,23 +622,6 @@ export class PenTool extends Tool {
 }
 
 // Drawing helpers
-
-function drawPen(
-  ctx: CanvasRenderingContext2D,
-  mousePos: Position,
-  penIcon: Path2D,
-) {
-  ctx.save();
-  ctx.lineWidth = 2.5;
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = "white";
-  ctx.fillStyle = "grey";
-  ctx.translate(mousePos.x - ICON_SIZE / 3 - 2, mousePos.y + ICON_SIZE / 3);
-  ctx.rotate(toRadians(-45));
-  ctx.stroke(penIcon);
-  ctx.fill(penIcon);
-  ctx.restore();
-}
 
 function drawPoint(
   ctx: CanvasRenderingContext2D,
