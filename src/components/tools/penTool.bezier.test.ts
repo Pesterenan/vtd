@@ -9,8 +9,16 @@ import type { Position } from "../types";
 
 type MouseEventWithOffset = MouseEvent & { offsetX: number; offsetY: number };
 
-function createMouseEvent(offsetX: number, offsetY: number, init: MouseEventInit = {}): MouseEventWithOffset {
-  const evt = new MouseEvent("mousedown", { bubbles: true, cancelable: false, ...init }) as MouseEventWithOffset;
+function createMouseEvent(
+  offsetX: number,
+  offsetY: number,
+  init: MouseEventInit = {},
+): MouseEventWithOffset {
+  const evt = new MouseEvent("mousedown", {
+    bubbles: true,
+    cancelable: false,
+    ...init,
+  }) as MouseEventWithOffset;
   Object.defineProperty(evt, "offsetX", { value: offsetX });
   Object.defineProperty(evt, "offsetY", { value: offsetY });
   return evt;
@@ -29,19 +37,25 @@ describe("PenTool - Bezier", () => {
     offset?: Position;
     adjust?: (pos: Position) => Position;
   }): void {
-    const selected = overrides?.selected !== undefined ? overrides.selected : null;
+    const selected =
+      overrides?.selected !== undefined ? overrides.selected : null;
     const elements = overrides?.elements ?? [];
     const zoom = overrides?.zoom ?? 1;
     const offset = overrides?.offset ?? { x: 0, y: 0 };
     const adjust = overrides?.adjust ?? ((pos: Position) => pos);
     vi.mocked(eventBus.request).mockImplementation((event, payload) => {
       const pos = (payload as { position?: Position })?.position;
-      if (event === "workarea:selected:get") return selected === null ? [[]] : [selected];
+      if (event === "workarea:selected:get")
+        return selected === null ? [[]] : [selected];
       if (event === "workarea:elements:get") return [elements];
       if (event === "workarea:offset:get") return [offset];
       if (event === "zoomLevel:get") return [zoom];
-      if (event === "mouse:position:get") return currentMouse ? [currentMouse] : [];
-      if (event === "workarea:adjustForCanvas" || event === "workarea:adjustForScreen") {
+      if (event === "mouse:position:get")
+        return currentMouse ? [currentMouse] : [];
+      if (
+        event === "workarea:adjustForCanvas" ||
+        event === "workarea:adjustForScreen"
+      ) {
         if (pos === undefined) return [];
         return [adjust(pos)];
       }
@@ -49,7 +63,9 @@ describe("PenTool - Bezier", () => {
     });
   }
 
-  function setMouse(pos: Position): void { currentMouse = pos; }
+  function setMouse(pos: Position): void {
+    currentMouse = pos;
+  }
 
   function makePath(): PathElement {
     const p = new PathElement({ x: 100, y: 100 }, { width: 10, height: 10 }, 1);
@@ -63,20 +79,56 @@ describe("PenTool - Bezier", () => {
 
   function activatePath(p: PathElement): void {
     configureRequest({ selected: [p] });
-    eventBus.emit("workarea:selectById", { elementsId: new Set([p.elementId]) });
+    eventBus.emit("workarea:selectById", {
+      elementsId: new Set([p.elementId]),
+    });
   }
 
   beforeEach(() => {
     vi.clearAllMocks();
     currentMouse = null;
     canvas = document.createElement("canvas");
-    canvas.width = 800; canvas.height = 600;
+    canvas.width = 800;
+    canvas.height = 600;
     eventBus = new EventBus();
     penTool = new PenTool(canvas, eventBus);
     vi.spyOn(eventBus, "emit");
     vi.spyOn(eventBus, "request");
     configureRequest();
     penTool.equip();
+  });
+
+  describe("criação de ponto com arrasto vira bezier", () => {
+    it("cria ponto sem handle, mas arrastar antes de soltar o clique o transforma em bezier", () => {
+      const p = makePath();
+      activatePath(p);
+
+      // Mouse down
+      setMouse({ x: 300, y: 300 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      expect(p.points).toHaveLength(4);
+
+      const index = p.points.length - 1;
+      const centerOnDown = p.toWorld(p.points[index]).center;
+      expect(centerOnDown).toEqual({ x: 300, y: 300 });
+
+      // Mouse drag e up
+      setMouse({ x: 320, y: 320 });
+      penTool.onMouseMove(createMouseEvent(0, 0));
+      penTool.onMouseUp(createMouseEvent(0, 0));
+
+      const pointAfter = p.points[index];
+      expect(pointAfter.in).not.toBeNull();
+      expect(pointAfter.out).not.toBeNull();
+
+      const centerAfterDrag = p.toWorld(pointAfter).center;
+      expect(centerAfterDrag).toEqual({ x: 300, y: 300 });
+
+      const inW = p.toWorldPos(pointAfter.in!);
+      const outW = p.toWorldPos(pointAfter.out!);
+      expect(outW.x + inW.x).toBeCloseTo(centerAfterDrag.x * 2, 0);
+      expect(outW.y + inW.y).toBeCloseTo(centerAfterDrag.y * 2, 0);
+    });
   });
 
   describe("drag sem modificador cria handles smooth (simétrico)", () => {
@@ -142,7 +194,9 @@ describe("PenTool - Bezier", () => {
       activatePath(p);
       const inWorldBefore = p.toWorldPos(p.points[1].in!);
       const outLocalBefore = { ...p.points[1].out! };
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Alt", altKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Alt", altKey: true }),
+      );
       // out do ponto 1 em world: 100+60,100+0 = 160,100
       setMouse({ x: 160, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
@@ -166,7 +220,9 @@ describe("PenTool - Bezier", () => {
         { center: { x: 50, y: 0 }, in: { x: 40, y: 0 }, out: { x: 60, y: 0 } },
       ];
       activatePath(p);
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }),
+      );
       setMouse({ x: 150, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
       setMouse({ x: 170, y: 120 });
@@ -179,7 +235,10 @@ describe("PenTool - Bezier", () => {
       const anchorWorld = p.toWorld(pt).center;
       expect(handleOutWorld.x).toBeCloseTo(anchorWorld.x + 10, 0);
       const handleInWorld = p.toWorldPos(pt.in!);
-      expect(handleInWorld.x + handleOutWorld.x).toBeCloseTo(anchorWorld.x * 2, 0);
+      expect(handleInWorld.x + handleOutWorld.x).toBeCloseTo(
+        anchorWorld.x * 2,
+        0,
+      );
     });
 
     it("Ctrl+drag em handle deve mover handle", () => {
@@ -188,7 +247,9 @@ describe("PenTool - Bezier", () => {
         { center: { x: 0, y: 0 }, in: { x: -10, y: 0 }, out: { x: 10, y: 0 } },
       ];
       activatePath(p);
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }),
+      );
       setMouse({ x: 110, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
       setMouse({ x: 130, y: 100 });
@@ -208,7 +269,13 @@ describe("PenTool - Bezier", () => {
       ];
       activatePath(p);
       setMouse({ x: 120, y: 100 });
-      const hit = (penTool as unknown as { hitHandleOrPoint: (m: Position) => { index: number; which: string } | null }).hitHandleOrPoint({ x: 120, y: 100 });
+      const hit = (
+        penTool as unknown as {
+          hitHandleOrPoint: (
+            m: Position,
+          ) => { index: number; which: string } | null;
+        }
+      ).hitHandleOrPoint({ x: 120, y: 100 });
       expect(hit).not.toBeNull();
       expect(hit!.which).toBe("out");
       expect(hit!.index).toBe(0);
@@ -217,7 +284,13 @@ describe("PenTool - Bezier", () => {
     it("detecta center quando longe dos handles", () => {
       const p = makePath();
       activatePath(p);
-      const hit = (penTool as unknown as { hitHandleOrPoint: (m: Position) => { index: number; which: string } | null }).hitHandleOrPoint({ x: 150, y: 100 });
+      const hit = (
+        penTool as unknown as {
+          hitHandleOrPoint: (
+            m: Position,
+          ) => { index: number; which: string } | null;
+        }
+      ).hitHandleOrPoint({ x: 150, y: 100 });
       expect(hit).not.toBeNull();
       expect(hit!.which).toBe("center");
       expect(hit!.index).toBe(1);
@@ -227,7 +300,9 @@ describe("PenTool - Bezier", () => {
       const p = makePath();
       activatePath(p);
       const before = p.points.length;
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Alt", altKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Alt", altKey: true }),
+      );
       setMouse({ x: 150, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
       penTool.onMouseUp(createMouseEvent(0, 0));
@@ -285,9 +360,13 @@ describe("PenTool - Bezier", () => {
       expect(p.points).toHaveLength(3);
       const insertedWorld = p.toWorld(p.points[1]).center;
       // Cai sobre a curva (perto do mouse)...
-      expect(Math.hypot(insertedWorld.x - 150, insertedWorld.y - 175)).toBeLessThan(5);
+      expect(
+        Math.hypot(insertedWorld.x - 150, insertedWorld.y - 175),
+      ).toBeLessThan(5);
       // ...e longe da corda reta entre os centros.
-      expect(Math.hypot(insertedWorld.x - 150, insertedWorld.y - 100)).toBeGreaterThan(30);
+      expect(
+        Math.hypot(insertedWorld.x - 150, insertedWorld.y - 100),
+      ).toBeGreaterThan(30);
     });
   });
 
@@ -339,7 +418,9 @@ describe("PenTool - Bezier", () => {
     it("Alt+click (sem arrastar) no anchor smooth remove os handles", () => {
       const p = makeSmoothPath();
       activatePath(p);
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Alt", altKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Alt", altKey: true }),
+      );
       const centerBefore = p.toWorld(p.points[1]).center;
       setMouse({ x: 150, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
@@ -366,7 +447,9 @@ describe("PenTool - Bezier", () => {
     it("Alt+drag no anchor smooth vira corner e move o ponto", () => {
       const p = makeSmoothPath();
       activatePath(p);
-      penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Alt", altKey: true }));
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Alt", altKey: true }),
+      );
       setMouse({ x: 150, y: 100 });
       penTool.onMouseDown(createMouseEvent(0, 0));
       setMouse({ x: 170, y: 120 });

@@ -287,14 +287,24 @@ export class PenTool extends Tool {
       this.eventBus.emit("edit:path", {
         position: this.canvasPos ?? { x: 0, y: 0 },
       });
-      console.log("1");
+      if (this.canvasPos && this.activePathElement)    {
+        const active = this.activePathElement;
+        this.selectedPointIndex = 0;
+        this.draggingPointIndex = this.selectedPointIndex;
+        this.draggingPoint = null;
+        this.mouseDownScreen = mousePos;
+        this.mouseDownWithAlt = this.modifiers.alt;
+        this.dragStarted = false;
+        this.dragOriginWorld = active.toWorld(active.points[0]).center;
+        this.refreshTransformBox();
+        this.updatePointsOverlay();
+      }
       return;
     }
 
     // 1. Fechamento por clique no primeiro ponto
     if (this.isClosingPath && !active.isClosed && active.points.length >= 2) {
       this.closePath();
-      console.log("2");
       return;
     }
 
@@ -304,10 +314,8 @@ export class PenTool extends Tool {
     const hit = this.hitHandleOrPoint(mousePos);
     if (hit) {
       if (!active.isClosed && hit.index === 0 && hit.which === "center") {
-        console.log("3");
         // Cai para inserção/adição abaixo (ex.: path de 1 ponto vira 2).
       } else {
-        console.log("4");
         this.selectedPointIndex = hit.index;
         this.draggingPointIndex = hit.index;
         this.draggingPoint = hit.which === "center" ? null : hit.which;
@@ -363,7 +371,6 @@ export class PenTool extends Tool {
 
     // 4. Fallback: adiciona ponto ao final (com constraint de Shift)
     if (this.canvasPos && !active.isClosed) {
-      console.log("5");
       let target: Position = this.canvasPos;
       if (this.modifiers.shift) {
         const last = active.points[active.points.length - 1];
@@ -371,6 +378,12 @@ export class PenTool extends Tool {
       }
       active.addPoint(target);
       this.selectedPointIndex = active.points.length - 1;
+      this.draggingPointIndex = this.selectedPointIndex;
+      this.draggingPoint = null;
+      this.mouseDownScreen = mousePos;
+      this.mouseDownWithAlt = this.modifiers.alt;
+      this.dragStarted = false;
+      this.dragOriginWorld = target;
       this.refreshTransformBox();
       this.updatePointsOverlay();
     }
