@@ -125,7 +125,9 @@ describe("PenTool", () => {
 
   describe("criação de um novo path", () => {
     it("clique sem path ativo emite edit:path com a posição do canvas", () => {
-      penTool.onMouseDown(createMouseEvent(100, 200));
+      // mousePos é a fonte de verdade (ToolManager); o offset do evento é ignorado.
+      setMouse({ x: 100, y: 200 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
 
       expect(eventBus.emit).toHaveBeenCalledWith("edit:path", {
         position: { x: 100, y: 200 },

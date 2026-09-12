@@ -22,16 +22,22 @@ export class PenTool extends Tool {
   /** Pontos em espaço de TELA — cache de `activePathElement.points` convertido via toWorld+toScreen. */
   private points: Point[] = [];
   private activePathElement: PathElement | null = null;
+  // Seleção/hover (persistem entre gestos, usados pelo overlay).
   private selectedPointIndex = -1;
   private hoveredPointIndex = -1;
+  // Sessão de drag (transiente: vai de mouseDown até mouseUp).
+  // selected persiste após o mouseUp, dragging reseta para -1 — por isso são campos separados.
   private draggingPointIndex = -1;
+  private draggingPoint: "in" | "out" | null = null;
+  // mouseDownScreen (TELA, para o threshold) x dragOriginWorld (MUNDO, para geometria):
+  // espaços diferentes, ambos necessários.
   private mouseDownScreen: Position | null = null;
+  private dragOriginWorld: Position | null = null;
+  // Snapshot do Alt no mouseDown (o usuário pode soltar o Alt antes do mouseUp).
   private mouseDownWithAlt = false;
   private dragStarted = false;
   private isClosingPath = false;
-  private dragOriginWorld: Position | null = null;
   private hintVisible = false;
-  private draggingPoint: "in" | "out" | null = null;
 
   constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
     super(canvas, eventBus);
@@ -112,6 +118,29 @@ export class PenTool extends Tool {
   private refreshTransformBox = (): void => {
     this.eventBus.emit("transformBox:refresh");
   };
+
+  /**
+   * Único lugar que inicia uma sessão de drag (creation-drag ou grab).
+   * Centraliza os 6 campos da sessão para evitar divergência entre os 3 call sites
+   * do `handleMouseDown`. Também atualiza o overlay; o caller decide se precisa
+   * de `refreshTransformBox` (só criação precisa já no mouseDown).
+   */
+  private beginDrag(
+    index: number,
+    which: "in" | "out" | null,
+    mouseScreen: Position,
+    originWorld: Position | null,
+    started: boolean,
+  ): void {
+    this.selectedPointIndex = index;
+    this.draggingPointIndex = index;
+    this.draggingPoint = which;
+    this.mouseDownScreen = mouseScreen;
+    this.mouseDownWithAlt = this.modifiers.alt;
+    this.dragStarted = started;
+    this.dragOriginWorld = originWorld;
+    this.updatePointsOverlay();
+  }
 
   private closePath = (): void => {
     if (!this.activePathElement) return;
@@ -268,36 +297,27 @@ export class PenTool extends Tool {
     drawPen(ctx, mousePos, penIcon);
   }
 
-  protected handleMouseDown(evt: MouseEvent): void {
+  protected handleMouseDown(_evt: MouseEvent): void {
     const active = this.activePathElement;
-    // Tela: prefere mousePos do eventBus, cai para offset do evento (testes sem mouse).
-    const evtOffset = evt as MouseEvent & {
-      offsetX?: number;
-      offsetY?: number;
-    };
-    const mousePos =
-      this.mousePos ??
-      (typeof evtOffset.offsetX === "number" &&
-      typeof evtOffset.offsetY === "number"
-        ? { x: evtOffset.offsetX, y: evtOffset.offsetY }
-        : null);
+    // Tela: vem do ToolManager via `mouse:position:get`, que atualiza
+    // lastMousePos no mousedown/mousemove/mouseup antes do delegate.
+    const mousePos = this.mousePos;
     if (mousePos === null) return;
     // Se não existir path, tenta selecionar ou criar um novo ao clicar.
     if (!active) {
       this.eventBus.emit("edit:path", {
         position: this.canvasPos ?? { x: 0, y: 0 },
       });
-      if (this.canvasPos && this.activePathElement)    {
+      if (this.canvasPos && this.activePathElement) {
         const active = this.activePathElement;
-        this.selectedPointIndex = 0;
-        this.draggingPointIndex = this.selectedPointIndex;
-        this.draggingPoint = null;
-        this.mouseDownScreen = mousePos;
-        this.mouseDownWithAlt = this.modifiers.alt;
-        this.dragStarted = false;
-        this.dragOriginWorld = active.toWorld(active.points[0]).center;
+        this.beginDrag(
+          0,
+          null,
+          mousePos,
+          active.toWorld(active.points[0]).center,
+          false,
+        );
         this.refreshTransformBox();
-        this.updatePointsOverlay();
       }
       return;
     }
@@ -316,22 +336,16 @@ export class PenTool extends Tool {
       if (!active.isClosed && hit.index === 0 && hit.which === "center") {
         // Cai para inserção/adição abaixo (ex.: path de 1 ponto vira 2).
       } else {
-        this.selectedPointIndex = hit.index;
-        this.draggingPointIndex = hit.index;
-        this.draggingPoint = hit.which === "center" ? null : hit.which;
-        this.mouseDownScreen = mousePos;
-        this.mouseDownWithAlt = this.modifiers.alt;
-        if (hit.which !== "center") {
-          // Agarrar um handle é intenção inequívoca de remodelar a curva:
-          // o drag começa já no primeiro clique, sem limiar.
-          this.dragStarted = true;
-          this.dragOriginWorld = active.toWorld(
-            active.points[hit.index],
-          ).center;
-        } else {
-          this.dragStarted = false;
-        }
-        this.updatePointsOverlay();
+        // Agarrar um handle é intenção inequívoca de remodelar a curva:
+        // o drag começa já no primeiro clique, sem limiar.
+        const isHandle = hit.which !== "center";
+        this.beginDrag(
+          hit.index,
+          hit.which === "center" ? null : hit.which,
+          mousePos,
+          isHandle ? active.toWorld(active.points[hit.index]).center : null,
+          isHandle,
+        );
         return;
       }
     }
@@ -377,15 +391,8 @@ export class PenTool extends Tool {
         target = constrainAxis(target, active.toWorld(last).center);
       }
       active.addPoint(target);
-      this.selectedPointIndex = active.points.length - 1;
-      this.draggingPointIndex = this.selectedPointIndex;
-      this.draggingPoint = null;
-      this.mouseDownScreen = mousePos;
-      this.mouseDownWithAlt = this.modifiers.alt;
-      this.dragStarted = false;
-      this.dragOriginWorld = target;
+      this.beginDrag(active.points.length - 1, null, mousePos, target, false);
       this.refreshTransformBox();
-      this.updatePointsOverlay();
     }
   }
 
@@ -476,7 +483,9 @@ export class PenTool extends Tool {
             }
             this.activePathElement.updatePoint(this.draggingPointIndex, target);
           } else {
-            // sem modificador: smooth - transforma corner em curva simétrica
+            // sem modificador: smooth - transforma corner em curva simétrica.
+            // Exceção: primeiro ponto de um path novo (só tem 1 ponto) não tem
+            // segmento de entrada, então só o `out` segue o mouse e o `in` fica null.
             const anchorWorld = this.dragOriginWorld!;
             const v = {
               x: target.x - anchorWorld.x,
@@ -486,15 +495,26 @@ export class PenTool extends Tool {
               x: anchorWorld.x + v.x,
               y: anchorWorld.y + v.y,
             };
-            const handleIn: Position = {
-              x: anchorWorld.x - v.x,
-              y: anchorWorld.y - v.y,
-            };
-            this.activePathElement.setHandles(
-              this.draggingPointIndex,
-              handleIn,
-              handleOut,
-            );
+            if (
+              this.draggingPointIndex === 0 &&
+              this.activePathElement.points.length === 1
+            ) {
+              this.activePathElement.setHandles(
+                this.draggingPointIndex,
+                null,
+                handleOut,
+              );
+            } else {
+              const handleIn: Position = {
+                x: anchorWorld.x - v.x,
+                y: anchorWorld.y - v.y,
+              };
+              this.activePathElement.setHandles(
+                this.draggingPointIndex,
+                handleIn,
+                handleOut,
+              );
+            }
           }
         }
         this.refreshTransformBox();
