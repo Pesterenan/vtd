@@ -19,14 +19,18 @@ export class ToolManager {
     canvas: HTMLCanvasElement,
     private eventBus: EventBus,
   ) {
-    canvas.addEventListener("mousedown", (e) =>
-      this.delegate("onMouseDown", e),
-    );
+    canvas.addEventListener("mousedown", (e) => {
+      this.lastMousePos = { x: e.offsetX, y: e.offsetY };
+      this.delegate("onMouseDown", e);
+    });
     canvas.addEventListener("mousemove", (e) => {
       this.lastMousePos = { x: e.offsetX, y: e.offsetY };
       this.delegate("onMouseMove", e);
     });
-    canvas.addEventListener("mouseup", (e) => this.delegate("onMouseUp", e));
+    canvas.addEventListener("mouseup", (e) => {
+      this.lastMousePos = { x: e.offsetX, y: e.offsetY };
+      this.delegate("onMouseUp", e);
+    });
     window.addEventListener("keydown", (e) => this.delegate("onKeyDown", e));
     window.addEventListener("keyup", (e) => this.delegate("onKeyUp", e));
     canvas.addEventListener("contextmenu", (e) => this.delegate("onContextMenu", e));
