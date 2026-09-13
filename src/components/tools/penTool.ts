@@ -17,7 +17,26 @@ const POINT_DRAG_DISTANCE = 5;
 const KEY_NUDGE_STEP = 1;
 const KEY_NUDGE_STEP_SHIFT = 10;
 
+const PEN_COLORS = {
+  predictive: "orange",
+  elasticOpen: "gray",
+  elasticClosing: "black",
+  selected: "red",
+  vertex: "black",
+  handle: "gray",
+  outline: "white",
+  handleLine: "lightgray",
+} as const;
+
 export class PenTool extends Tool {
+  private static cachedPenIcon: Path2D | null = null;
+
+  private static getPenIcon(): Path2D | null {
+    if (!this.cachedPenIcon) {
+      this.cachedPenIcon = svgToCanvasPath(penIconSvg);
+    }
+    return this.cachedPenIcon;
+  }
   /** Pontos em espaço de TELA — cache de `activePathElement.points` convertido via toWorld+toScreen. */
   private points: Point[] = [];
   private activePathElement: PathElement | null = null;
@@ -59,7 +78,6 @@ export class PenTool extends Tool {
     this.eventBus.off("workarea:selectAt", this.selectActivePath);
     this.eventBus.off("workarea:deleteElement", this.resetTool);
     this.canvas.style.cursor = "";
-    this.resetTool();
   }
 
   private resetTool(): void {
@@ -68,6 +86,7 @@ export class PenTool extends Tool {
     this.selectedPointIndex = -1;
     this.hoveredPointIndex = -1;
     this.draggingPointIndex = -1;
+    this.draggingPoint = null;
     this.mouseDownScreen = null;
     this.mouseDownWithAlt = false;
     this.dragStarted = false;
@@ -114,6 +133,27 @@ export class PenTool extends Tool {
   private refreshTransformBox = (): void => {
     this.eventBus.emit("transformBox:refresh");
   };
+
+  /** Emite os dois refreshes juntos (transformBox + overlay). */
+  private syncOverlays(): void {
+    this.refreshTransformBox();
+    this.updatePointsOverlay();
+  }
+
+  /** Hit-test único do segmento sob o mouse (espaço de TELA). */
+  private findSegmentUnderMouse(): ReturnType<
+    typeof hitTestPathSegments
+  > {
+    const mousePos = this.mousePos;
+    const active = this.activePathElement;
+    if (!mousePos || !active) return null;
+    return hitTestPathSegments(
+      mousePos,
+      this.points,
+      !!active.isClosed,
+      POINT_HIT_DISTANCE,
+    );
+  }
 
   /**
    * Único lugar que inicia uma sessão de drag (creation-drag ou grab).
@@ -179,7 +219,7 @@ export class PenTool extends Tool {
   public draw(): void {
     const mousePos = this.mousePos;
     const ctx = this.context;
-    const penIcon = svgToCanvasPath(penIconSvg);
+    const penIcon = PenTool.getPenIcon();
     const active = this.activePathElement;
     if (!ctx || !mousePos || !penIcon) return;
 
@@ -194,19 +234,14 @@ export class PenTool extends Tool {
       !this.isClosingPath &&
       this.hoveredPointIndex === -1
     ) {
-      const hit = hitTestPathSegments(
-        mousePos,
-        this.points,
-        !!active.isClosed,
-        POINT_HIT_DISTANCE,
-      );
+      const hit = this.findSegmentUnderMouse();
       if (hit) {
         drawPoint(
           ctx,
           hit.projection,
           -1,
           this.selectedPointIndex,
-          "orange",
+          PEN_COLORS.predictive,
           false,
         );
       }
@@ -217,28 +252,23 @@ export class PenTool extends Tool {
       const first = this.points[0];
       const lastIndex = this.points.length - 1;
       const last = this.points[lastIndex];
+      const end = this.isClosingPath ? first.center : mousePos;
 
       ctx.save();
       ctx.setLineDash(this.isClosingPath ? [] : [2, 2]);
-      ctx.strokeStyle = this.isClosingPath ? "black" : "gray";
+      ctx.strokeStyle = this.isClosingPath
+        ? PEN_COLORS.elasticClosing
+        : PEN_COLORS.elasticOpen;
       ctx.beginPath();
       ctx.moveTo(last.center.x, last.center.y);
       if (active?.isBezier(lastIndex) && last.out) {
         const cp1 = last.out;
         const cp2 = first.in ?? first.center;
-        ctx.bezierCurveTo(
-          cp1.x,
-          cp1.y,
-          this.isClosingPath ? cp2.x : mousePos.x,
-          this.isClosingPath ? cp2.y : mousePos.y,
-          this.isClosingPath ? first.center.x : mousePos.x,
-          this.isClosingPath ? first.center.y : mousePos.y,
-        );
+        const cp2x = this.isClosingPath ? cp2.x : end.x;
+        const cp2y = this.isClosingPath ? cp2.y : end.y;
+        ctx.bezierCurveTo(cp1.x, cp1.y, cp2x, cp2y, end.x, end.y);
       } else {
-        ctx.lineTo(
-          this.isClosingPath ? first.center.x : mousePos.x,
-          this.isClosingPath ? first.center.y : mousePos.y,
-        );
+        ctx.lineTo(end.x, end.y);
       }
       ctx.stroke();
       ctx.restore();
@@ -283,95 +313,106 @@ export class PenTool extends Tool {
     if (mousePos === null) return;
     // Se não existir path, tenta selecionar ou criar um novo ao clicar.
     if (!active) {
-      this.eventBus.emit("edit:path", {
-        position: this.canvasPos ?? { x: 0, y: 0 },
-      });
-      if (this.canvasPos && this.activePathElement) {
-        const active = this.activePathElement;
-        this.beginDrag(
-          0,
-          null,
-          mousePos,
-          active.toWorld(active.points[0]).center,
-          false,
-        );
-        this.refreshTransformBox();
-      }
+      this.createPathOnEmptyClick(mousePos);
       return;
     }
 
-    // 1. Fechamento por clique no primeiro ponto
-    if (this.isClosingPath && !active.isClosed && active.points.length >= 2) {
-      this.closePath();
-      return;
-    }
+    if (this.tryClosePath(active)) return;
+    if (this.tryGrabHandle(active, mousePos)) return;
+    if (this.tryInsertAtSegment(active)) return;
+    this.appendPoint(active, mousePos);
+  }
 
-    // 2. Clique num ponto ou handle (único hit-test, em TELA).
-    // O centro do índice 0 é reservado ao fechamento quando aberto:
-    // handles do 0 continuam arrastáveis, mas o centro não seleciona/arrasta.
-    const hit = this.hitHandleOrPoint(mousePos);
-    if (hit) {
-      if (!active.isClosed && hit.index === 0 && hit.which === "center") {
-        // Cai para inserção/adição abaixo (ex.: path de 1 ponto vira 2).
-      } else {
-        // Agarrar um handle é intenção inequívoca de remodelar a curva:
-        // o drag começa já no primeiro clique, sem limiar.
-        const isHandle = hit.which !== "center";
-        this.beginDrag(
-          hit.index,
-          hit.which === "center" ? null : hit.which,
-          mousePos,
-          isHandle ? active.toWorld(active.points[hit.index]).center : null,
-          isHandle,
-        );
-        return;
-      }
-    }
-
-    if (this.modifiers.shift) {
-      // 3. Clique no meio de um segmento → insere novo vértice na projeção.
-      // Usa o mesmo hit da curva (tela) e avalia o mesmo `t` em mundo —
-      // `t` é invariante a zoom/pan, então o ponto cai sobre a Bézier.
-      if (this.mousePos && this.canvasPos) {
-        const segHit = hitTestPathSegments(
-          this.mousePos,
-          this.points,
-          active.isClosed,
-          POINT_HIT_DISTANCE,
-        );
-        if (segHit) {
-          const worldPoints = active.points.map((p) => active.toWorld(p));
-          const n = worldPoints.length;
-          const a = worldPoints[segHit.segmentIndex];
-          const b = worldPoints[(segHit.segmentIndex + 1) % n];
-          const worldHit = cubicBezierPoint(
-            a.center,
-            a.out ?? a.center,
-            b.in ?? b.center,
-            b.center,
-            segHit.t,
-          );
-
-          active.addPoint(worldHit, segHit.segmentIndex + 1);
-          this.selectedPointIndex = segHit.segmentIndex + 1;
-          this.refreshTransformBox();
-          this.updatePointsOverlay();
-          return;
-        }
-      }
-    }
-
-    // 4. Fallback: adiciona ponto ao final (com constraint de Shift)
-    if (this.canvasPos && !active.isClosed) {
-      let target: Position = this.canvasPos;
-      if (this.modifiers.shift) {
-        const last = active.points[active.points.length - 1];
-        target = constrainAxis(target, active.toWorld(last).center);
-      }
-      active.addPoint(target);
-      this.beginDrag(active.points.length - 1, null, mousePos, target, false);
+  private createPathOnEmptyClick(mouseScreen: Position): void {
+    this.eventBus.emit("edit:path", {
+      position: this.canvasPos ?? { x: 0, y: 0 },
+    });
+    if (this.canvasPos && this.activePathElement) {
+      const active = this.activePathElement;
+      this.beginDrag(
+        0,
+        null,
+        mouseScreen,
+        active.toWorld(active.points[0]).center,
+        false,
+      );
       this.refreshTransformBox();
     }
+  }
+
+  /** 1. Fechamento por clique no primeiro ponto. */
+  private tryClosePath(active: PathElement): boolean {
+    if (this.isClosingPath && !active.isClosed && active.points.length >= 2) {
+      this.closePath();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 2. Clique num ponto ou handle (único hit-test, em TELA).
+   * O centro do índice 0 é reservado ao fechamento quando aberto:
+   * handles do 0 continuam arrastáveis, mas o centro não seleciona/arrasta.
+   */
+  private tryGrabHandle(active: PathElement, mousePos: Position): boolean {
+    const hit = this.hitHandleOrPoint(mousePos);
+    if (!hit) return false;
+    if (!active.isClosed && hit.index === 0 && hit.which === "center") {
+      // Cai para inserção/adição abaixo (ex.: path de 1 ponto vira 2).
+      return false;
+    }
+    // Agarrar um handle é intenção inequívoca de remodelar a curva:
+    // o drag começa já no primeiro clique, sem limiar.
+    const isHandle = hit.which !== "center";
+    this.beginDrag(
+      hit.index,
+      hit.which === "center" ? null : hit.which,
+      mousePos,
+      isHandle ? active.toWorld(active.points[hit.index]).center : null,
+      isHandle,
+    );
+    return true;
+  }
+
+  /**
+   * 3. Clique no meio de um segmento → insere novo vértice na projeção.
+   * Usa o mesmo hit da curva (tela) e avalia o mesmo `t` em mundo —
+   * `t` é invariante a zoom/pan, então o ponto cai sobre a Bézier.
+   */
+  private tryInsertAtSegment(active: PathElement): boolean {
+    if (!this.modifiers.shift) return false;
+    if (!this.mousePos || !this.canvasPos) return false;
+    const segHit = this.findSegmentUnderMouse();
+    if (!segHit) return false;
+    const worldPoints = active.points.map((p) => active.toWorld(p));
+    const n = worldPoints.length;
+    const a = worldPoints[segHit.segmentIndex];
+    const b = worldPoints[(segHit.segmentIndex + 1) % n];
+    const worldHit = cubicBezierPoint(
+      a.center,
+      a.out ?? a.center,
+      b.in ?? b.center,
+      b.center,
+      segHit.t,
+    );
+
+    active.addPoint(worldHit, segHit.segmentIndex + 1);
+    this.selectedPointIndex = segHit.segmentIndex + 1;
+    this.syncOverlays();
+    return true;
+  }
+
+  /** 4. Fallback: adiciona ponto ao final (com constraint de Shift). */
+  private appendPoint(active: PathElement, mouseScreen: Position): void {
+    if (!this.canvasPos || active.isClosed) return;
+    let target: Position = this.canvasPos;
+    if (this.modifiers.shift) {
+      const last = active.points[active.points.length - 1];
+      target = constrainAxis(target, active.toWorld(last).center);
+    }
+    active.addPoint(target);
+    this.beginDrag(active.points.length - 1, null, mouseScreen, target, false);
+    this.refreshTransformBox();
   }
 
   protected handleMouseMove(): void {
@@ -381,100 +422,111 @@ export class PenTool extends Tool {
       this.hoveredPointIndex = -1;
       return;
     }
-    const firstPoint = this.points[0]?.center ?? null;
 
     if (this.draggingPointIndex !== -1) {
-      if (
-        !this.dragStarted &&
-        this.mouseDownScreen &&
-        new Vector(mousePos).distance(this.mouseDownScreen) >
-          POINT_DRAG_DISTANCE
-      ) {
-        this.dragStarted = true;
-        this.dragOriginWorld = this.activePathElement.toWorld(
-          this.activePathElement.points[this.draggingPointIndex],
-        ).center;
-      }
-      if (this.dragStarted && this.canvasPos) {
-        this.isClosingPath = false;
-        this.hoveredPointIndex = -1;
-        let target: Position = this.canvasPos;
-        if (this.modifiers.shift && this.dragOriginWorld) {
-          target = constrainAxis(target, this.dragOriginWorld);
-        }
-        // CTRL = move o centro (mesmo agarrando um handle);
-        // ALT = move só o handle agarrado (centro fixo).
-        // Sem modificador = smooth. Com ALT+CTRL, CTRL vence.
-        if (this.draggingPoint) {
-          // arrasta handle já existente
-          if (this.modifiers.ctrl) {
-            // CTRL: move o ponto central, handles acompanham.
-            this.activePathElement.updatePoint(
-              this.draggingPointIndex,
-              target,
-            );
-          } else if (this.modifiers.alt) {
-            // ALT: independente, move só o handle arrastado (centro fixo).
-            this.activePathElement.updateHandle(
-              this.draggingPointIndex,
-              this.draggingPoint,
-              target,
-            );
-          } else {
-            // smooth: move handle arrastado e espelha oposto
-            const pt = this.activePathElement.points[this.draggingPointIndex];
-            const anchorWorld = this.activePathElement.toWorld(pt).center;
-            const opp = mirrorPoint(anchorWorld, target);
-            if (this.draggingPoint === "out") {
-              this.activePathElement.setHandles(
-                this.draggingPointIndex,
-                opp,
-                target,
-              );
-            } else {
-              this.activePathElement.setHandles(
-                this.draggingPointIndex,
-                target,
-                opp,
-              );
-            }
-          }
-        } else if (this.modifiers.ctrl) {
-          // CTRL no anchor: move o ponto preservando os handles relativos.
-          this.activePathElement.updatePoint(this.draggingPointIndex, target);
-        } else {
-          // sem modificador ou ALT: smooth - centro fixo, esculpe handles
-          // simétricos (`out` segue o mouse). ALT cai aqui de propósito:
-          // com ALT só os handles mexem, nunca o centro.
-          // Exceção: primeiro ponto de um path novo (só tem 1 ponto) não tem
-          // segmento de entrada, então só o `out` segue o mouse e o `in` fica null.
-          const anchorWorld = this.dragOriginWorld!;
-          const handleIn = mirrorPoint(anchorWorld, target);
-          if (
-            this.draggingPointIndex === 0 &&
-            this.activePathElement.points.length === 1
-          ) {
-            this.activePathElement.setHandles(
-              this.draggingPointIndex,
-              null,
-              target,
-            );
-          } else {
-            this.activePathElement.setHandles(
-              this.draggingPointIndex,
-              handleIn,
-              target,
-            );
-          }
-        }
-        this.refreshTransformBox();
-        this.updatePointsOverlay();
-      }
+      this.updateDragging(mousePos);
       return;
     }
 
+    this.updateHoverAndClosing(mousePos);
+  }
+
+  private maybeStartDrag(mousePos: Position): void {
+    if (
+      this.dragStarted ||
+      !this.mouseDownScreen ||
+      this.draggingPointIndex === -1 ||
+      !this.activePathElement
+    ) {
+      return;
+    }
+    if (
+      new Vector(mousePos).distance(this.mouseDownScreen) > POINT_DRAG_DISTANCE
+    ) {
+      this.dragStarted = true;
+      this.dragOriginWorld = this.activePathElement.toWorld(
+        this.activePathElement.points[this.draggingPointIndex],
+      ).center;
+    }
+  }
+
+  private updateDragging(mousePos: Position): void {
+    this.maybeStartDrag(mousePos);
+    if (!this.dragStarted || !this.canvasPos || !this.activePathElement) return;
+    this.isClosingPath = false;
+    this.hoveredPointIndex = -1;
+    let target: Position = this.canvasPos;
+    if (this.modifiers.shift && this.dragOriginWorld) {
+      target = constrainAxis(target, this.dragOriginWorld);
+    }
+    // CTRL = move o centro (mesmo agarrando um handle);
+    // ALT = move só o handle agarrado (centro fixo).
+    // Sem modificador = smooth. Com ALT+CTRL, CTRL vence.
+    if (this.draggingPoint) {
+      this.dragExistingHandle(this.draggingPointIndex, this.draggingPoint, target);
+    } else {
+      this.dragAnchorPoint(this.draggingPointIndex, target);
+    }
+    this.syncOverlays();
+  }
+
+  /** Arrasta handle já existente. */
+  private dragExistingHandle(
+    index: number,
+    which: "in" | "out",
+    target: Position,
+  ): void {
+    const active = this.activePathElement;
+    if (!active) return;
+    if (this.modifiers.ctrl) {
+      // CTRL: move o ponto central, handles acompanham.
+      active.updatePoint(index, target);
+    } else if (this.modifiers.alt) {
+      // ALT: independente, move só o handle arrastado (centro fixo).
+      active.updateHandle(index, which, target);
+    } else {
+      // smooth: move handle arrastado e espelha oposto
+      const pt = active.points[index];
+      const anchorWorld = active.toWorld(pt).center;
+      const opp = mirrorPoint(anchorWorld, target);
+      if (which === "out") {
+        active.setHandles(index, opp, target);
+      } else {
+        active.setHandles(index, target, opp);
+      }
+    }
+  }
+
+  /** Arrasta o anchor (centro). CTRL move preservando handles; senão esculpe smooth. */
+  private dragAnchorPoint(index: number, target: Position): void {
+    const active = this.activePathElement;
+    if (!active) return;
+    if (this.modifiers.ctrl) {
+      // CTRL no anchor: move o ponto preservando os handles relativos.
+      active.updatePoint(index, target);
+      return;
+    }
+    // sem modificador ou ALT: smooth - centro fixo, esculpe handles
+    // simétricos (`out` segue o mouse). ALT cai aqui de propósito:
+    // com ALT só os handles mexem, nunca o centro.
+    // Exceção: primeiro ponto de um path novo (só tem 1 ponto) não tem
+    // segmento de entrada, então só o `out` segue o mouse e o `in` fica null.
+    const anchorWorld = this.dragOriginWorld;
+    if (!anchorWorld) return;
+    const handleIn = mirrorPoint(anchorWorld, target);
+    if (index === 0 && active.points.length === 1) {
+      active.setHandles(index, null, target);
+    } else {
+      active.setHandles(index, handleIn, target);
+    }
+  }
+
+  private updateHoverAndClosing(mousePos: Position): void {
+    const active = this.activePathElement;
+    if (!active) return;
+    const firstPoint = this.points[0]?.center ?? null;
     this.isClosingPath =
-      !this.activePathElement.isClosed &&
+      !active.isClosed &&
       !!firstPoint &&
       new Vector(mousePos).distance(firstPoint) <= CLOSING_DISTANCE;
 
@@ -484,7 +536,7 @@ export class PenTool extends Tool {
     if (!hoverHit) {
       this.hoveredPointIndex = -1;
     } else if (
-      !this.activePathElement.isClosed &&
+      !active.isClosed &&
       hoverHit.index === 0 &&
       hoverHit.which === "center"
     ) {
@@ -548,8 +600,7 @@ export class PenTool extends Tool {
           this.selectedPointIndex,
           this.activePathElement.points.length - 1,
         );
-        this.refreshTransformBox();
-        this.updatePointsOverlay();
+        this.syncOverlays();
       }
       return;
     }
@@ -571,8 +622,7 @@ export class PenTool extends Tool {
         x: world.x + delta.x,
         y: world.y + delta.y,
       });
-      this.refreshTransformBox();
-      this.updatePointsOverlay();
+      this.syncOverlays();
     }
   }
 }
@@ -599,8 +649,9 @@ function drawPoint(
 ) {
   ctx.save();
   ctx.translate(position.x, position.y);
-  ctx.fillStyle = color ?? (index === selected ? "red" : "black");
-  ctx.strokeStyle = "white";
+  ctx.fillStyle =
+    color ?? (index === selected ? PEN_COLORS.selected : PEN_COLORS.vertex);
+  ctx.strokeStyle = PEN_COLORS.outline;
   ctx.lineWidth = selected || hovered ? 3 : 2.5;
   ctx.beginPath();
   ctx.arc(0, 0, hovered ? 3 : 2, 0, Math.PI * 2);
@@ -615,7 +666,7 @@ function drawBezierHandle(
   handle: Position,
 ) {
   ctx.save();
-  ctx.strokeStyle = "rgba(0,0,0,0.6)";
+  ctx.strokeStyle = PEN_COLORS.handleLine;
   ctx.lineWidth = 1;
   ctx.setLineDash([1, 1]);
   ctx.beginPath();
@@ -623,5 +674,5 @@ function drawBezierHandle(
   ctx.lineTo(handle.x, handle.y);
   ctx.stroke();
   ctx.restore();
-  drawPoint(ctx, handle, -1, -1, "gray", false);
+  drawPoint(ctx, handle, -1, -1, PEN_COLORS.handle, false);
 }
