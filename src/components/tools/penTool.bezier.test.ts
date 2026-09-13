@@ -241,7 +241,7 @@ describe("PenTool - Bezier", () => {
       );
     });
 
-    it("Ctrl+drag em handle deve mover handle", () => {
+    it("Ctrl+drag em handle deve mover o centro (handles acompanham)", () => {
       const p = makePath();
       p.points = [
         { center: { x: 0, y: 0 }, in: { x: -10, y: 0 }, out: { x: 10, y: 0 } },
@@ -256,7 +256,15 @@ describe("PenTool - Bezier", () => {
       penTool.onMouseMove(createMouseEvent(0, 0));
       penTool.onMouseUp(createMouseEvent(0, 0));
       const pt = p.points[0];
-      expect(pt.out).not.toEqual({ x: 10, y: 0 });
+      // O centro acompanha o mouse; os handles preservam o offset relativo.
+      const anchorWorld = p.toWorld(pt).center;
+      expect(Math.hypot(anchorWorld.x - 130, anchorWorld.y - 100)).toBeLessThan(
+        1,
+      );
+      const handleOutWorld = p.toWorldPos(pt.out!);
+      expect(
+        Math.hypot(handleOutWorld.x - 140, handleOutWorld.y - 100),
+      ).toBeLessThan(1);
     });
   });
 
@@ -444,7 +452,7 @@ describe("PenTool - Bezier", () => {
       expect(p.points[1].out).not.toBeNull();
     });
 
-    it("Alt+drag no anchor smooth vira corner e move o ponto", () => {
+    it("Alt+drag no anchor NÃO move o centro (só esculpe handles)", () => {
       const p = makeSmoothPath();
       activatePath(p);
       penTool.onKeyDown(
@@ -457,10 +465,15 @@ describe("PenTool - Bezier", () => {
       penTool.onMouseUp(createMouseEvent(0, 0));
       penTool.onKeyUp(new KeyboardEvent("keyup", { key: "Alt" }));
 
-      expect(p.points[1].in).toBeNull();
-      expect(p.points[1].out).toBeNull();
+      // O centro permanece onde estava; só os handles foram esculpidos.
       const c = p.toWorld(p.points[1]).center;
-      expect(Math.hypot(c.x - 170, c.y - 120)).toBeLessThan(5);
+      expect(Math.hypot(c.x - 150, c.y - 100)).toBeLessThan(1);
+      expect(p.points[1].in).not.toBeNull();
+      expect(p.points[1].out).not.toBeNull();
+      const inW = p.toWorldPos(p.points[1].in!);
+      const outW = p.toWorldPos(p.points[1].out!);
+      expect(inW.x + outW.x).toBeCloseTo(c.x * 2, 0);
+      expect(inW.y + outW.y).toBeCloseTo(c.y * 2, 0);
     });
   });
 });

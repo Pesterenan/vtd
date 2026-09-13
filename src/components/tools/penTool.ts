@@ -78,12 +78,9 @@ export class PenTool extends Tool {
   }
 
   private selectActivePath = (): void => {
-    const [selectedElements] = this.eventBus.request("workarea:selected:get");
-    if (
-      selectedElements?.length === 1 &&
-      selectedElements[0] instanceof PathElement
-    ) {
-      this.activePathElement = selectedElements[0];
+    const [elements] = this.eventBus.request("workarea:selected:get");
+    if (elements?.length === 1 && elements[0] instanceof PathElement) {
+      this.activePathElement = elements[0];
       this.updatePointsOverlay();
       this.selectedPointIndex = this.points.length - 1;
       this.setHint(true);
@@ -153,48 +150,27 @@ export class PenTool extends Tool {
     this.selectedPointIndex = -1;
   }
 
-  private closeWithKeyboard(): void {
-    if (!this.activePathElement || this.activePathElement.isClosed) return;
-    if (this.activePathElement.points.length < 3) {
-      this.eventBus.emit("alert:add", {
-        message: "É preciso pelo menos 3 pontos para fechar a forma.",
-        type: "error",
-      });
-      return;
-    }
-    this.closePath();
-  }
-
   private setHint(visible: boolean): void {
     if (this.hintVisible === visible) return;
     this.hintVisible = visible;
     this.eventBus.emit("pen:hint", { visible });
   }
 
-  /**
-   * Único ponto de entrada para hit-test em TELA.
-   * Lê de `this.points` (cache screen em Point[]), testa handles antes do centro,
-   * sem `else-if` (um ponto smooth tem in+out+center) e sem `return` dentro do loop.
-   */
+  /** Testa em qual handle do ponto foi o clique */
   private hitHandleOrPoint(
     mousePos: Position,
   ): { index: number; which: "in" | "center" | "out" } | null {
     if (!mousePos || this.points.length === 0) return null;
     const mouseVec = new Vector(mousePos);
-    for (let i = 0; i < this.points.length; i++) {
-      const pt = this.points[i];
-      if (pt.in !== null && pt.in !== undefined) {
-        if (mouseVec.distance(pt.in) <= POINT_HIT_DISTANCE) {
-          return { index: i, which: "in" };
-        }
+    for (const [index, pt] of this.points.entries()) {
+      if (pt.out !== null && mouseVec.distance(pt.out) <= POINT_HIT_DISTANCE) {
+        return { index, which: "out" };
       }
-      if (pt.out !== null && pt.out !== undefined) {
-        if (mouseVec.distance(pt.out) <= POINT_HIT_DISTANCE) {
-          return { index: i, which: "out" };
-        }
+      if (pt.in !== null && mouseVec.distance(pt.in) <= POINT_HIT_DISTANCE) {
+        return { index, which: "in" };
       }
       if (mouseVec.distance(pt.center) <= POINT_HIT_DISTANCE) {
-        return { index: i, which: "center" };
+        return { index, which: "center" };
       }
     }
     return null;
@@ -426,19 +402,19 @@ export class PenTool extends Tool {
         if (this.modifiers.shift && this.dragOriginWorld) {
           target = constrainAxis(target, this.dragOriginWorld);
         }
-        // Ctrl = mover anchor preservando handles; sem modificador = smooth;
-        // Alt no anchor = reverter smooth -> corner; Alt no handle = independente.
+        // CTRL = move o centro (mesmo agarrando um handle);
+        // ALT = move só o handle agarrado (centro fixo).
+        // Sem modificador = smooth. Com ALT+CTRL, CTRL vence.
         if (this.draggingPoint) {
           // arrasta handle já existente
-          if (this.modifiers.alt) {
-            // independente: move só o handle arrastado
-            this.activePathElement.updateHandle(
+          if (this.modifiers.ctrl) {
+            // CTRL: move o ponto central, handles acompanham.
+            this.activePathElement.updatePoint(
               this.draggingPointIndex,
-              this.draggingPoint,
               target,
             );
-          } else if (this.modifiers.ctrl) {
-            // Ctrl + handle: também independente (consistência)
+          } else if (this.modifiers.alt) {
+            // ALT: independente, move só o handle arrastado (centro fixo).
             this.activePathElement.updateHandle(
               this.draggingPointIndex,
               this.draggingPoint,
@@ -448,14 +424,7 @@ export class PenTool extends Tool {
             // smooth: move handle arrastado e espelha oposto
             const pt = this.activePathElement.points[this.draggingPointIndex];
             const anchorWorld = this.activePathElement.toWorld(pt).center;
-            const v = {
-              x: target.x - anchorWorld.x,
-              y: target.y - anchorWorld.y,
-            };
-            const opp: Position = {
-              x: anchorWorld.x - v.x,
-              y: anchorWorld.y - v.y,
-            };
+            const opp = mirrorPoint(anchorWorld, target);
             if (this.draggingPoint === "out") {
               this.activePathElement.setHandles(
                 this.draggingPointIndex,
@@ -470,53 +439,32 @@ export class PenTool extends Tool {
               );
             }
           }
+        } else if (this.modifiers.ctrl) {
+          // CTRL no anchor: move o ponto preservando os handles relativos.
+          this.activePathElement.updatePoint(this.draggingPointIndex, target);
         } else {
-          // arrasta anchor
-          if (this.modifiers.ctrl) {
-            this.activePathElement.updatePoint(this.draggingPointIndex, target);
-          } else if (this.modifiers.alt) {
-            // Alt no anchor: reverte smooth -> corner e move o ponto.
-            if (this.activePathElement.isBezier(this.draggingPointIndex)) {
-              this.activePathElement.setHandles(
-                this.draggingPointIndex,
-                null,
-                null,
-              );
-            }
-            this.activePathElement.updatePoint(this.draggingPointIndex, target);
+          // sem modificador ou ALT: smooth - centro fixo, esculpe handles
+          // simétricos (`out` segue o mouse). ALT cai aqui de propósito:
+          // com ALT só os handles mexem, nunca o centro.
+          // Exceção: primeiro ponto de um path novo (só tem 1 ponto) não tem
+          // segmento de entrada, então só o `out` segue o mouse e o `in` fica null.
+          const anchorWorld = this.dragOriginWorld!;
+          const handleIn = mirrorPoint(anchorWorld, target);
+          if (
+            this.draggingPointIndex === 0 &&
+            this.activePathElement.points.length === 1
+          ) {
+            this.activePathElement.setHandles(
+              this.draggingPointIndex,
+              null,
+              target,
+            );
           } else {
-            // sem modificador: smooth - transforma corner em curva simétrica.
-            // Exceção: primeiro ponto de um path novo (só tem 1 ponto) não tem
-            // segmento de entrada, então só o `out` segue o mouse e o `in` fica null.
-            const anchorWorld = this.dragOriginWorld!;
-            const v = {
-              x: target.x - anchorWorld.x,
-              y: target.y - anchorWorld.y,
-            };
-            const handleOut: Position = {
-              x: anchorWorld.x + v.x,
-              y: anchorWorld.y + v.y,
-            };
-            if (
-              this.draggingPointIndex === 0 &&
-              this.activePathElement.points.length === 1
-            ) {
-              this.activePathElement.setHandles(
-                this.draggingPointIndex,
-                null,
-                handleOut,
-              );
-            } else {
-              const handleIn: Position = {
-                x: anchorWorld.x - v.x,
-                y: anchorWorld.y - v.y,
-              };
-              this.activePathElement.setHandles(
-                this.draggingPointIndex,
-                handleIn,
-                handleOut,
-              );
-            }
+            this.activePathElement.setHandles(
+              this.draggingPointIndex,
+              handleIn,
+              target,
+            );
           }
         }
         this.refreshTransformBox();
@@ -578,7 +526,15 @@ export class PenTool extends Tool {
 
     if (evt.key === "Enter") {
       evt.preventDefault();
-      this.closeWithKeyboard();
+      if (!this.activePathElement || this.activePathElement.isClosed) return;
+      if (this.activePathElement.points.length < 3) {
+        this.eventBus.emit("alert:add", {
+          message: "É preciso pelo menos 3 pontos para fechar a forma.",
+          type: "error",
+        });
+        return;
+      }
+      this.closePath();
       return;
     }
 
@@ -619,6 +575,16 @@ export class PenTool extends Tool {
       this.updatePointsOverlay();
     }
   }
+}
+
+// Drag helpers
+
+/** Reflete `target` em torno de `anchor` (ponto simétrico, em mundo). */
+function mirrorPoint(anchor: Position, target: Position): Position {
+  return {
+    x: anchor.x * 2 - target.x,
+    y: anchor.y * 2 - target.y,
+  };
 }
 
 // Drawing helpers
