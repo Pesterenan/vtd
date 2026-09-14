@@ -1,41 +1,51 @@
 import { Tool } from "src/components/tools/abstractTool";
-import type { Position } from "src/components/types";
+import handIconSvg from "src/assets/icons/hand-tool.svg?raw";
+import { svgToCanvasPath, drawCursorIcon } from "src/utils/icons";
 
 export class HandTool extends Tool {
-  private lastPosition: Position | null = null;
+  private static handIcon: Path2D | null = null;
+
+  private static getHandIcon(): Path2D | null {
+    if (!this.handIcon) {
+      this.handIcon = svgToCanvasPath(handIconSvg);
+    }
+    return this.handIcon;
+  }
+
+  private isPanning = false;
 
   public equip(): void {
     super.equip();
+    this.canvas.style.cursor = "none";
   }
 
   public unequip(): void {
-    this.lastPosition = null;
+    this.isPanning = false;
+    this.canvas.style.cursor = "";
     super.unequip();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public draw(): void {}
+  public draw(): void {
+    const ctx = this.context;
+    const mousePos = this.mousePos;
+    const handIcon = HandTool.getHandIcon();
+    if (!ctx || !mousePos || !handIcon) return;
 
-  public onMouseDown({ offsetX, offsetY }: MouseEvent): void {
-    this.lastPosition = { x: offsetX, y: offsetY };
+    const fill = this.isPanning ? "lightblue" : "grey";
+    drawCursorIcon(ctx, handIcon, mousePos, { fill });
   }
 
-  public onMouseUp(): void {
-    this.lastPosition = null;
+  protected handleMouseDown(_evt: MouseEvent): void {
+    this.isPanning = true;
   }
-
-  public onMouseMove({ offsetX, offsetY }: MouseEvent): void {
-    if (this.lastPosition) {
-      const x = offsetX - this.lastPosition.x;
-      const y = offsetY - this.lastPosition.y;
-      this.eventBus.emit("workarea:offset:change", { position: { x, y } });
-      this.lastPosition = { x: offsetX, y: offsetY };
+  protected handleMouseUp(_evt: MouseEvent): void {
+    this.isPanning = false;
+  }
+  protected handleMouseMove(evt: MouseEvent): void {
+    if (this.isPanning) {
+      this.eventBus.emit("workarea:offset:change", {
+        position: { x: evt.movementX, y: evt.movementY },
+      });
     }
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public onKeyDown(): void {}
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public onKeyUp(): void {}
 }

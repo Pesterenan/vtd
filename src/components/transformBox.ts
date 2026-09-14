@@ -70,6 +70,7 @@ export class TransformBox {
     this.eventBus.on("transformBox:updatePosition", this.updatePosition);
     this.eventBus.on("transformBox:updateRotation", this.updateRotation);
     this.eventBus.on("transformBox:updateScale", this.updateScale);
+    this.eventBus.on("transformBox:refresh", this.refresh);
     this.eventBus.on("transformBox:setSize", this.setSize);
     this.eventBus.on("transformBox:updateCropping", this.updateCropping);
     this.eventBus.on(
@@ -99,6 +100,7 @@ export class TransformBox {
     this.eventBus.off("transformBox:updatePosition", this.updatePosition);
     this.eventBus.off("transformBox:updateRotation", this.updateRotation);
     this.eventBus.off("transformBox:updateScale", this.updateScale);
+    this.eventBus.off("transformBox:refresh", this.refresh);
     this.eventBus.off("transformBox:setSize", this.setSize);
     this.eventBus.off("transformBox:updateCropping", this.updateCropping);
     this.eventBus.off(
@@ -220,6 +222,12 @@ export class TransformBox {
       });
       this.hoveredHandle = hitHandle || null;
     }
+  };
+
+  /** Recalcula a caixa, handles e propriedades a partir dos elementos selecionados. */
+  public refresh = (): void => {
+    if (this.selectedElements.length === 0) return;
+    this.calculateBoundingBox();
   };
 
   private calculateBoundingBox = (): void => {

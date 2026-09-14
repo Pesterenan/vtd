@@ -15,7 +15,28 @@ export interface IElementData {
   layerName: string;
   filters: FilterProperties[];
 }
-export type ElementType = "text" | "image" | "gradient" | "group";
+export type ElementType = "text" | "image" | "gradient" | "group" | "path";
+
+export interface Point {
+  center: Position;
+  in: Position | null;
+  out: Position | null;
+}
+
+export interface IPathElementData extends IElementData {
+  type: "path";
+  points: Point[];
+  isClosed: boolean;
+  hasFill: boolean;
+  hasStroke: boolean;
+  fillColor: string;
+  strokeColor: string;
+  strokeWidth: number;
+  lineCap: "butt" | "round" | "square";
+  lineJoin: "miter" | "round" | "bevel";
+  lineDash: "solid" | "dashed" | "dotted";
+  miterLimit: number;
+}
 
 export interface ITextElementData extends IElementData {
   type: "text";
@@ -70,10 +91,11 @@ export interface Layer {
 }
 
 export type TElementData =
-  | IImageElementData
-  | ITextElementData
+  | IElementGroupData
   | IGradientElementData
-  | IElementGroupData;
+  | IImageElementData
+  | IPathElementData
+  | ITextElementData;
 
 export interface IProjectData {
   createDate: string;
@@ -115,6 +137,8 @@ export enum TOOL {
   GRADIENT = "gradient-tool",
   /** @prop HAND - Mover área de trabalho */
   HAND = "hand-tool",
+  /** @prop PEN - Desenhar caminhos */
+  PEN = "pen-tool",
   /** @prop ZOOM - Modificar zoom */
   ZOOM = "zoom-tool",
 }

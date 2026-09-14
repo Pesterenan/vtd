@@ -4,9 +4,10 @@ import { useEventBus } from "../../hooks/useEventBus";
 import { TOOL } from "../types";
 import styles from "./ToolMenu.module.css";
 
+import GrabIcon from "src/assets/icons/move-tool.svg";
 import GradientIcon from "src/assets/icons/gradient-tool.svg";
 import HandIcon from "src/assets/icons/hand-tool.svg";
-import GrabIcon from "src/assets/icons/move-tool.svg";
+import PenIcon from "src/assets/icons/pen-tool.svg";
 import RotateIcon from "src/assets/icons/rotate-tool.svg";
 import ScaleIcon from "src/assets/icons/scale-tool.svg";
 import SelectIcon from "src/assets/icons/select-tool.svg";
@@ -26,12 +27,14 @@ const MENU_ITEMS: MenuItem[] = [
   { type: "divider" },
   { type: "tool", tool: TOOL.TEXT, label: "(T) Criar textos" },
   { type: "tool", tool: TOOL.GRADIENT, label: "(H) Criar gradientes" },
+  { type: "tool", tool: TOOL.PEN, label: "(P) Criar caminhos vetoriais" },
 ];
 
 const toolIcons: Record<string, string> = {
-  [TOOL.TEXT]: TextIcon,
   [TOOL.GRADIENT]: GradientIcon,
   [TOOL.HAND]: HandIcon,
+  [TOOL.PEN]: PenIcon,
+  [TOOL.TEXT]: TextIcon,
   [TOOL.ZOOM]: ZoomIcon,
 };
 

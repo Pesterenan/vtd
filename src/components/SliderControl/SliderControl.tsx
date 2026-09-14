@@ -33,6 +33,7 @@ const SliderControl = ({
     <div className={styles.container}>
       <label
         id={`${id}-label`}
+        htmlFor={`${id}-input`}
         className={styles.label}
         onMouseDown={disabled ? undefined : dragHandlers}
         style={{ cursor: disabled ? "default" : undefined }}

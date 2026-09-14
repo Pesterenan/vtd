@@ -12,10 +12,10 @@ interface IProjectProperties {
   title: string;
   size: { height: number; width: number };
   appVersion: string;
-  filePath?: string;
+  filePath?: string | null;
 }
 
-function getFileName(filePath?: string): string {
+function getFileName(filePath?: string | null): string {
   if (!filePath) return "Ainda não salvo";
   return filePath.split(/[/\\]/).pop() ?? "Ainda não salvo";
 }

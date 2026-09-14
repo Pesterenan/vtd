@@ -11,3 +11,13 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+if (import.meta.hot) {
+  import.meta.hot.on("vite:afterUpdate", (payload: { updates?: Array<{ type?: string }> }) => {
+    const hasJsUpdate =
+      payload?.updates?.some((update) => update.type === "js-update") ?? false;
+    if (hasJsUpdate) {
+      window.location.reload();
+    }
+  });
+}

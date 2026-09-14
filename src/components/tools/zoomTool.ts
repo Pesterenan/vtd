@@ -1,72 +1,82 @@
 import { Tool } from "src/components/tools/abstractTool";
-import type { Position } from "src/components/types";
+import type { ContextMenuItem } from "src/utils/eventBus";
 import { remap } from "src/utils/easing";
+import zoomIconSvg from "src/assets/icons/zoom-tool.svg?raw";
+import { svgToCanvasPath, drawCursorIcon } from "src/utils/icons";
 
 const MIN_ZOOM_LEVEL = 0.1;
-const MAX_ZOOM_LEVEL = 1.5;
+const MAX_ZOOM_LEVEL = 2.0;
 
 export class ZoomTool extends Tool {
-  private startingPosition: Position | null = null;
+  private startingX: number | null = null;
 
   public equip(): void {
     super.equip();
+    this.canvas.style.cursor = "none";
   }
 
   public unequip(): void {
-    this.startingPosition = null;
+    this.startingX = null;
+    this.canvas.style.cursor = "";
     super.unequip();
   }
 
   public draw(): void {
-    if (!this.context || !this.startingPosition) return;
-    const [zoomLevel] = this.eventBus.request("zoomLevel:get");
-    this.context.save();
-    this.context.font = "bold 16px serif";
-    this.context.strokeStyle = "black";
-    this.context.fillStyle = "white";
-    this.context.beginPath();
-    this.context.roundRect(
+    const mousePos = this.mousePos;
+    const zoomIcon = svgToCanvasPath(zoomIconSvg);
+    if (!this.context || !mousePos || !zoomIcon) return;
+    const ctx = this.context;
+
+    drawCursorIcon(ctx, zoomIcon, mousePos, {
+      fill: this.startingX !== null ? "lightblue" : "grey",
+      fillRule: "evenodd",
+    });
+
+    if (this.startingX === null) return;
+
+    ctx.save();
+    ctx.font = "bold 16px serif";
+    ctx.strokeStyle = "black";
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    ctx.roundRect(
       this.canvas.clientLeft + 10,
       this.canvas.clientTop + 10,
       90,
       24,
       5,
     );
-    this.context.fill();
-    this.context.stroke();
+    ctx.fill();
+    ctx.stroke();
 
-    this.context.fillStyle = "black";
-    this.context.fillText(
-      `Zoom: ${Number(zoomLevel).toFixed(2)}`,
+    ctx.fillStyle = "black";
+    ctx.fillText(
+      `Zoom: ${Number(this.zoomLevel).toFixed(2)}`,
       this.canvas.clientLeft + 16,
       this.canvas.clientTop + 28,
     );
-    this.context.restore();
+    ctx.restore();
   }
 
-  public onMouseDown(evt: MouseEvent): void {
-    const [zoomLevel] = this.eventBus.request("zoomLevel:get");
+  protected handleMouseDown(evt: MouseEvent): void {
     const currentZoomPosition = remap(
       MIN_ZOOM_LEVEL,
       MAX_ZOOM_LEVEL,
       0,
       this.canvas.width,
-      zoomLevel,
+      this.zoomLevel,
       true,
     );
-    this.startingPosition = {
-      x: evt.offsetX - currentZoomPosition,
-      y: evt.offsetY,
-    };
+    this.startingX = evt.offsetX - currentZoomPosition;
   }
 
-  public onMouseUp(_evt: MouseEvent): void {
-    this.startingPosition = null;
+  protected handleMouseUp(_evt: MouseEvent): void {
+    this.startingX = null;
   }
 
-  public onMouseMove({ offsetX, offsetY }: MouseEvent): void {
-    if (!this.startingPosition) return;
-    const deltaX = offsetX - this.startingPosition.x;
+  protected handleMouseMove(): void {
+    if (this.startingX === null || !this.mousePos) return;
+    const deltaX = this.mousePos.x - this.startingX;
     const newZoomLevel = remap(
       0,
       this.canvas.width,
@@ -78,13 +88,41 @@ export class ZoomTool extends Tool {
 
     this.eventBus.emit("zoomLevel:change", {
       level: newZoomLevel,
-      center: { x: offsetX, y: offsetY },
+      center: this.mousePos,
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public onKeyDown(): void {}
+  protected handleContextMenu(evt: MouseEvent): void {
+    evt.preventDefault();
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public onKeyUp(): void {}
+    const center = this.mousePos ?? { x: this.canvas.width / 2, y: this.canvas.height / 2 };
+    const isAt100 = Math.abs(this.zoomLevel - 1) < 0.01;
+
+    const items: ContextMenuItem[] = [
+      {
+        type: "item",
+        id: "zoom-100",
+        label: "Voltar a 100%",
+        active: isAt100,
+        disabled: isAt100,
+        action: () => {
+          this.eventBus.emit("zoomLevel:change", { level: 1, center });
+        },
+      },
+      { type: "divider" },
+      {
+        type: "item",
+        id: "zoom-fit",
+        label: "Ajustar à janela",
+        action: () => {
+          this.eventBus.emit("mainWindow:resize");
+        },
+      },
+    ];
+
+    this.eventBus.emit("workarea:contextMenu:open", {
+      position: { x: evt.clientX, y: evt.clientY },
+      items,
+    });
+  }
 }

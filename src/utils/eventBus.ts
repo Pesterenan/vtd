@@ -73,6 +73,7 @@ export type UpdateScalePayload = {
   anchor?: Position;
 };
 
+/** Convenção: `position` está no espaço do canvas (workArea). */
 export type PositionPayload = {
   position: Position;
 };
@@ -82,6 +83,18 @@ export type SelectElementsAtPayload = {
   secondPoint?: Position | null;
   isAddingToSelection?: boolean;
 };
+
+export type ContextMenuItem =
+  | {
+      action: () => void;
+      active?: boolean;
+      disabled?: boolean;
+      icon?: string;
+      id: string;
+      label: string;
+      type: "item";
+    }
+  | { type: "divider" };
 
 export interface EventBusMap {
   "alert:add": {
@@ -133,6 +146,10 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "edit:path": {
+    payload: PositionPayload;
+    result: unknown;
+  };
   "edit:text": {
     payload: PositionPayload;
     result: unknown;
@@ -167,6 +184,14 @@ export interface EventBusMap {
   };
   "mainWindow:resize": {
     payload: unknown;
+    result: unknown;
+  };
+  "mouse:position:get": {
+    payload: unknown;
+    result: Position | null;
+  };
+  "pen:hint": {
+    payload: { visible: boolean };
     result: unknown;
   };
   "multiTool:modeChange": {
@@ -260,6 +285,10 @@ export interface EventBusMap {
     payload: unknown;
     result: Position;
   };
+  "transformBox:refresh": {
+    payload: unknown;
+    result: unknown;
+  };
   "transformBox:rotation": {
     payload: unknown;
     result: number;
@@ -297,7 +326,12 @@ export interface EventBusMap {
     result: unknown;
   };
   "vfe:metadata-loaded": {
-    payload: { info: string; totalFrames: number; frameRate: number; filePath: string };
+    payload: {
+      info: string;
+      totalFrames: number;
+      frameRate: number;
+      filePath: string;
+    };
     result: unknown;
   };
   "workarea:addImage": {
@@ -333,9 +367,17 @@ export interface EventBusMap {
   };
   "workarea:canvas:getBlob": {
     payload: ExportCanvasToStringPayload;
-    result: Promise<{ blob: Blob, dataURL: string } | undefined>;
+    result: Promise<{ blob: Blob; dataURL: string } | undefined>;
   };
   "workarea:clear": {
+    payload: unknown;
+    result: unknown;
+  };
+  "workarea:contextMenu:open": {
+    payload: { position: Position; items: ContextMenuItem[] };
+    result: unknown;
+  };
+  "workarea:contextMenu:close": {
     payload: unknown;
     result: unknown;
   };
@@ -454,7 +496,14 @@ export class EventBus {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       for (const cb of eventListeners) {
-        cb(payload);
+        try {
+          cb(payload);
+        } catch (e) {
+          console.error(
+            `EventBus: error in handler for "${String(event)}":`,
+            e,
+          );
+        }
       }
     }
   }
@@ -468,7 +517,14 @@ export class EventBus {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       for (const cb of eventListeners) {
-        out.push(cb(payload));
+        try {
+          out.push(cb(payload));
+        } catch (e) {
+          console.error(
+            `EventBus: error in request handler for "${String(event)}":`,
+            e,
+          );
+        }
       }
     }
     return out;

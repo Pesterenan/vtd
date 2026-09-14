@@ -90,6 +90,40 @@ const mockCanvasContext = createMockContext();
 
 HTMLCanvasElement.prototype.getContext = ((_contextId: string, _options?: unknown) => mockCanvasContext) as unknown as typeof HTMLCanvasElement.prototype.getContext;
 
+if (typeof globalThis.Path2D === "undefined") {
+  class MockPath2D {
+    addPath = vi.fn();
+    arc = vi.fn();
+    bezierCurveTo = vi.fn();
+    closePath = vi.fn();
+    ellipse = vi.fn();
+    lineTo = vi.fn();
+    moveTo = vi.fn();
+    quadraticCurveTo = vi.fn();
+    rect = vi.fn();
+  }
+  globalThis.Path2D = MockPath2D as unknown as typeof Path2D;
+}
+
+if (typeof globalThis.DOMMatrix === "undefined") {
+  class MockDOMMatrix {
+    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+    m11 = 1; m12 = 0; m13 = 0; m14 = 0;
+    m21 = 0; m22 = 1; m23 = 0; m24 = 0;
+    m31 = 0; m32 = 0; m33 = 1; m34 = 0;
+    m41 = 0; m42 = 0; m43 = 0; m44 = 1;
+    constructor(values?: number[]) {
+      if (values) {
+        [this.m11, this.m12, this.m21, this.m22, this.m41, this.m42] = values;
+        this.a = values[0]; this.b = values[1];
+        this.c = values[2]; this.d = values[3];
+        this.e = values[4]; this.f = values[5];
+      }
+    }
+  }
+  globalThis.DOMMatrix = MockDOMMatrix as unknown as typeof DOMMatrix;
+}
+
 global.OffscreenCanvas = class {
   width: number;
   height: number;

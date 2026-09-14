@@ -60,6 +60,13 @@ describe("TransformBox", () => {
     expect(transformBox.size.width).toBeGreaterThan(100);
   });
 
+  it("refresh() recalculates position/size from the selected element", () => {
+    text.position = { x: 300, y: 280 };
+    transformBox.refresh();
+
+    expect(transformBox.position).toEqual({ x: 300, y: 280 });
+  });
+
   it("should not create the transformBox if no selected elements are present", () => {
     const emptyTransformBox = new TransformBox([], bus);
     expect(emptyTransformBox.boundingBox).toEqual(null);
@@ -112,6 +119,10 @@ describe("TransformBox", () => {
       expect.any(Function),
     );
     expect(bus.on).toHaveBeenCalledWith(
+      "transformBox:refresh",
+      expect.any(Function),
+    );
+    expect(bus.on).toHaveBeenCalledWith(
       "transformBox:getSignAndAnchor",
       expect.any(Function),
     );
@@ -161,6 +172,10 @@ describe("TransformBox", () => {
     );
     expect(bus.off).toHaveBeenCalledWith(
       "transformBox:selectHandle",
+      expect.any(Function),
+    );
+    expect(bus.off).toHaveBeenCalledWith(
+      "transformBox:refresh",
       expect.any(Function),
     );
     expect(bus.off).toHaveBeenCalledWith(

@@ -8,8 +8,9 @@ import type { Tool } from "./tools/abstractTool";
 import { ToolManager } from "./tools/toolManager";
 import { GradientTool } from "./tools/gradientTool";
 import { HandTool } from "./tools/handTool";
-import { ZoomTool } from "./tools/zoomTool";
+import { PenTool } from "./tools/penTool";
 import { TextTool } from "./tools/textTool";
+import { ZoomTool } from "./tools/zoomTool";
 import { remap } from "src/utils/easing";
 import { version as APP_VERSION } from "../../package.json";
 import { listen } from "@tauri-apps/api/event";
@@ -47,11 +48,12 @@ export class MainWindow {
     if (this.canvas) {
       this.toolManager = new ToolManager(this.canvas, this.eventBus);
       this.tools = {
-        [TOOL.MULTI]: new MultiTool(this.canvas, this.eventBus),
         [TOOL.GRADIENT]: new GradientTool(this.canvas, this.eventBus),
         [TOOL.HAND]: new HandTool(this.canvas, this.eventBus),
-        [TOOL.ZOOM]: new ZoomTool(this.canvas, this.eventBus),
+        [TOOL.MULTI]: new MultiTool(this.canvas, this.eventBus),
+        [TOOL.PEN]: new PenTool(this.canvas, this.eventBus),
         [TOOL.TEXT]: new TextTool(this.canvas, this.eventBus),
+        [TOOL.ZOOM]: new ZoomTool(this.canvas, this.eventBus),
       };
     }
     this.handleResizeWindow();
@@ -243,6 +245,7 @@ export class MainWindow {
 
     // EventBus Listeners
     this.eventBus.on("tool:change", (tool: TOOL) => {
+      this.currentTool = tool;
       if (this.toolManager && this.tools) {
         this.toolManager.use(this.tools[tool]);
       }
@@ -656,11 +659,14 @@ export class MainWindow {
     }
     let tool: TOOL | null = null;
     switch (evt.code) {
-      case "KeyT":
-        tool = TOOL.TEXT;
-        break;
       case "KeyH":
         tool = TOOL.GRADIENT;
+        break;
+      case "KeyP":
+        tool = TOOL.PEN;
+        break;
+      case "KeyT":
+        tool = TOOL.TEXT;
         break;
     }
     if (tool) {
@@ -703,7 +709,12 @@ export class MainWindow {
     if (isTyping) return;
 
     if (!evt.repeat) {
+      if (evt.ctrlKey || evt.metaKey) {
+        return;
+      }
+
       if (evt.code === "Delete") {
+        if (this.currentTool === TOOL.PEN) return;
         this.handleDeleteCommand();
       }
 
@@ -726,7 +737,10 @@ export class MainWindow {
           if (this.currentTool !== TOOL.MULTI) {
             tool = TOOL.MULTI;
           }
-        break;
+          break;
+        case "KeyP":
+          tool = TOOL.PEN;
+          break;
       }
       if (tool) {
         this.currentTool = tool;
