@@ -1,7 +1,7 @@
 {
     "name": "vtd",
     "type": "module",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Editor de miniaturas de videos.",
     "productName": "vtd",
     "scripts": {
@@ -15,22 +15,22 @@
         "tauri:build": "tauri build"
     },
     "devDependencies": {
-        "@tauri-apps/cli": "^2.11.2",
+        "@tauri-apps/cli": "2.11.2",
         "@testing-library/jest-dom": "6.6.4",
-        "@testing-library/react": "^14.0.0",
-        "@types/node": "^26.4.1",
+        "@testing-library/react": "14.0.0",
+        "@types/node": "26.4.1",
         "@typescript-eslint/eslint-plugin": "5.0.0",
         "@typescript-eslint/parser": "5.0.0",
-        "@vitejs/plugin-react": "^6.1.1",
-        "esbuild": "^0.28.0",
+        "@vitejs/plugin-react": "6.1.1",
+        "esbuild": "0.28.2",
         "eslint": "8.0.1",
         "eslint-import-resolver-typescript": "3.6.3",
         "eslint-plugin-import": "2.31.0",
-        "eslint-plugin-vitest": "^0.3.22",
-        "jsdom": "^29.1.1",
+        "eslint-plugin-vitest": "0.3.22",
+        "jsdom": "29.1.1",
         "typescript": "5.6.2",
-        "vite": "^8.2.2",
-        "vitest": "^4.1.8"
+        "vite": "8.2.2",
+        "vitest": "4.1.11"
     },
     "keywords": [],
     "author": "Renan Torres",
@@ -40,13 +40,13 @@
     },
     "homepage": "https://github.com/Pesterenan/vtd#readme",
     "dependencies": {
-        "@tauri-apps/api": "^2.11.0",
-        "@tauri-apps/plugin-dialog": "^2.7.1",
-        "@tauri-apps/plugin-fs": "^2.5.1",
-        "@tauri-apps/plugin-opener": "^2.5.4",
-        "@types/react": "^19.2.18",
-        "@types/react-dom": "^19.2.5",
-        "react": "^18.3.1",
-        "react-dom": "^18.3.1"
+        "@tauri-apps/api": "2.11.0",
+        "@tauri-apps/plugin-dialog": "2.7.1",
+        "@tauri-apps/plugin-fs": "2.5.1",
+        "@tauri-apps/plugin-opener": "2.5.4",
+        "@types/react": "19.2.18",
+        "@types/react-dom": "19.2.5",
+        "react": "18.3.1",
+        "react-dom": "18.3.1"
     }
 }
