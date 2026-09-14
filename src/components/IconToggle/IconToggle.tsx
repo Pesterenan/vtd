@@ -3,7 +3,7 @@ import styles from "./IconToggle.module.css";
 interface IconToggleProps {
   id: string;
   checked?: boolean;
-  onChange: (checked: boolean) => void;
+  onChange?: (checked: boolean) => void;
   disabled?: boolean;
   uncheckedIcon: string;
   checkedIcon?: string;
@@ -19,7 +19,7 @@ const IconToggle = ({ id, checked = false, onChange, disabled = false, unchecked
         disabled={disabled}
         type="checkbox"
         checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
+        onChange={(e) => onChange?.(e.target.checked)}
       />
       <label
         id={`${id}_label`}

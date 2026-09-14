@@ -45,7 +45,7 @@ export const LayerBase = ({
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave?: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent<HTMLLIElement>) => void;
-  onClick: (e: React.MouseEvent) => void;
+  onClick?: (e: React.MouseEvent) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
   isDragOverBefore?: boolean;
   isDragOverAfter?: boolean;
@@ -54,9 +54,9 @@ export const LayerBase = ({
 }) => {
   const { emit } = useEventBus();
   const [isEditing, setIsEditing] = useState(false);
-  const nameInputRef = useRef(null);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
 
-  const layerName = layer.name.length ? layer.name : `Camada ${layer.id}`;
+  const layerName = layer.name?.length ? layer.name : `Camada ${layer.id}`;
 
   function handleLayerNameDoubleClick(
     event: React.MouseEvent<HTMLSpanElement>,

@@ -86,14 +86,16 @@ function insertLayerNearTarget(
   position: "before" | "after" = "before",
 ): Layer[] | null {
   for (let i = 0; i < layers.length; i++) {
-    if (layers[i].id === targetId) {
+    const current = layers[i];
+    if (current?.id === targetId) {
       const result = [...layers];
       result.splice(position === "after" ? i + 2 : i, 0, dragged);
       return result;
     }
-    if (layers[i]?.children && layers[i].children.length > 0) {
+    const childLayers = current?.children;
+    if (childLayers && childLayers.length > 0) {
       const result = insertLayerNearTarget(
-        layers[i].children,
+        childLayers,
         targetId,
         dragged,
         position,
@@ -175,13 +177,14 @@ const LayersMenu = () => {
         dragged = l;
       });
       if (!dragged) return prev;
+      const draggedLayer: Layer = dragged;
 
       const targetLayer = getLayerById(without, targetId);
       if (targetLayer?.children !== undefined) {
         const addToGroup = (layers: Layer[]): Layer[] =>
           layers.map((l) => {
             if (l.id === targetId)
-              return { ...l, children: [...(l.children ?? []), dragged] };
+              return { ...l, children: [...(l.children ?? []), draggedLayer] };
             if (l.children) return { ...l, children: addToGroup(l.children) };
             return l;
           });
@@ -194,7 +197,7 @@ const LayersMenu = () => {
       const result = insertLayerNearTarget(
         without,
         targetId,
-        dragged,
+        draggedLayer,
         position,
       );
       if (result) {
