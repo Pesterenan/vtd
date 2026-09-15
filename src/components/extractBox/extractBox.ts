@@ -1,20 +1,11 @@
 import { clamp } from "src/utils/easing";
 import type { EventBus } from "src/utils/eventBus";
 import type { Position, Size, TBoundingBox } from "../types";
+import type { BoxHandleKeys} from "src/utils/boxHandles";
+import { resolveHandleSign } from "src/utils/boxHandles";
 
 const LINE_WIDTH = 4;
 const CENTER_RADIUS = 6;
-
-export type ExtractBoxHandleKeys =
-  | "BOTTOM"
-  | "BOTTOM_LEFT"
-  | "BOTTOM_RIGHT"
-  | "CENTER"
-  | "LEFT"
-  | "RIGHT"
-  | "TOP"
-  | "TOP_LEFT"
-  | "TOP_RIGHT";
 
 export class ExtractBox {
   private position: Position = { x: 0, y: 0 };
@@ -24,9 +15,9 @@ export class ExtractBox {
   private lastMousePosition: Position | null = { x: 0, y: 0 };
   private eventBus: EventBus;
 
-  public handles: Record<ExtractBoxHandleKeys, Position> | null = null;
-  public hoveredHandle: ExtractBoxHandleKeys | null = null;
-  public selectedHandle: ExtractBoxHandleKeys | null = null;
+  public handles: Record<BoxHandleKeys, Position> | null = null;
+  public hoveredHandle: BoxHandleKeys | null = null;
+  public selectedHandle: BoxHandleKeys | null = null;
   private aspectRatio: number | null = null;
 
   constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
@@ -85,8 +76,16 @@ export class ExtractBox {
     this.size = { width: this.size.height, height: this.size.width };
     this.size.width = clamp(this.size.width, minSize, this.canvas.width);
     this.size.height = clamp(this.size.height, minSize, this.canvas.height);
-    this.position.x = clamp(center.x - this.size.width / 2, 0, this.canvas.width - this.size.width);
-    this.position.y = clamp(center.y - this.size.height / 2, 0, this.canvas.height - this.size.height);
+    this.position.x = clamp(
+      center.x - this.size.width / 2,
+      0,
+      this.canvas.width - this.size.width,
+    );
+    this.position.y = clamp(
+      center.y - this.size.height / 2,
+      0,
+      this.canvas.height - this.size.height,
+    );
     if (prevRatio) {
       this.aspectRatio = 1 / prevRatio;
     }
@@ -208,7 +207,10 @@ export class ExtractBox {
   }
 
   private resizeExtractBox(deltaX: number, deltaY: number): void {
-    const { xSign, ySign } = this.calculateSignAndAnchor();
+    const { xSign, ySign } = resolveHandleSign(
+      this.selectedHandle,
+      this.handles,
+    );
 
     let newWidth = this.size.width + deltaX * xSign;
     let newHeight = this.size.height + deltaY * ySign;
@@ -251,10 +253,26 @@ export class ExtractBox {
     this.size.height = newHeight;
 
     // Clamp to canvas boundaries
-    this.position.x = clamp(this.position.x, 0, this.canvas.width - this.size.width);
-    this.position.y = clamp(this.position.y, 0, this.canvas.height - this.size.height);
-    this.size.width = clamp(this.size.width, minSize, this.canvas.width - this.position.x);
-    this.size.height = clamp(this.size.height, minSize, this.canvas.height - this.position.y);
+    this.position.x = clamp(
+      this.position.x,
+      0,
+      this.canvas.width - this.size.width,
+    );
+    this.position.y = clamp(
+      this.position.y,
+      0,
+      this.canvas.height - this.size.height,
+    );
+    this.size.width = clamp(
+      this.size.width,
+      minSize,
+      this.canvas.width - this.position.x,
+    );
+    this.size.height = clamp(
+      this.size.height,
+      minSize,
+      this.canvas.height - this.position.y,
+    );
 
     this.generateHandles();
   }
@@ -325,7 +343,7 @@ export class ExtractBox {
 
     // Draw handles
     if (this.handles) {
-      for (const key of Object.keys(this.handles) as ExtractBoxHandleKeys[]) {
+      for (const key of Object.keys(this.handles) as BoxHandleKeys[]) {
         const point = this.handles[key];
         context.fillStyle = key === this.hoveredHandle ? "yellow" : "green";
         context.beginPath();
@@ -341,7 +359,7 @@ export class ExtractBox {
     if (this.handles) {
       const { offsetX, offsetY } = evt;
       const hitHandle = (
-        Object.keys(this.handles) as ExtractBoxHandleKeys[]
+        Object.keys(this.handles) as BoxHandleKeys[]
       ).find((key) => {
         if (this.handles) {
           const point = this.handles[key];
@@ -357,66 +375,5 @@ export class ExtractBox {
   private selectHandle(): boolean {
     this.selectedHandle = this.hoveredHandle;
     return !!this.hoveredHandle;
-  }
-
-  private calculateSignAndAnchor(): {
-    anchor: Position;
-    xSign: 1 | 0 | -1;
-    ySign: 1 | 0 | -1;
-  } {
-    let anchor: Position = { x: 0, y: 0 };
-    let xSign: 1 | 0 | -1 = 1;
-    let ySign: 1 | 0 | -1 = 1;
-
-    if (!this.handles || !this.selectedHandle) return { anchor, xSign, ySign };
-
-    switch (this.selectedHandle) {
-      case "TOP_LEFT":
-        xSign = -1;
-        ySign = -1;
-        anchor = this.handles.BOTTOM_RIGHT;
-        break;
-      case "TOP_RIGHT":
-        xSign = 1;
-        ySign = -1;
-        anchor = this.handles.BOTTOM_LEFT;
-        break;
-      case "BOTTOM_RIGHT":
-        xSign = 1;
-        ySign = 1;
-        anchor = this.handles.TOP_LEFT;
-        break;
-      case "BOTTOM_LEFT":
-        xSign = -1;
-        ySign = 1;
-        anchor = this.handles.TOP_RIGHT;
-        break;
-      case "TOP":
-        xSign = 0;
-        ySign = -1;
-        anchor = this.handles.BOTTOM;
-        break;
-      case "RIGHT":
-        xSign = 1;
-        ySign = 0;
-        anchor = this.handles.LEFT;
-        break;
-      case "BOTTOM":
-        xSign = 0;
-        ySign = 1;
-        anchor = this.handles.TOP;
-        break;
-      case "LEFT":
-        xSign = -1;
-        ySign = 0;
-        anchor = this.handles.RIGHT;
-        break;
-      case "CENTER":
-        xSign = 0;
-        ySign = 0;
-        anchor = this.handles.CENTER;
-        break;
-    }
-    return { anchor, xSign, ySign };
   }
 }

@@ -26,6 +26,14 @@ const MODE_OPTIONS: { mode: MODES; label: string; icon: string }[] = [
   { mode: "scale", label: "Escalar (S)", icon: ScaleIcon },
 ];
 
+const GIZMO_SCALE_SIGNS: Record<
+  string,
+  { xSign: 1 | 0 | -1; ySign: 1 | 0 | -1 }
+> = {
+  xAxis: { xSign: 1, ySign: 0 },
+  yAxis: { xSign: 0, ySign: -1 },
+  center: { xSign: 1, ySign: 1 },
+};
 export class MultiTool extends Tool {
   private currentMode: MODES = "select";
   private selectedGizmoPart: GizmoPart = null;
@@ -449,10 +457,7 @@ export class MultiTool extends Tool {
         const [props] = this.eventBus.request("transformBox:properties:get");
         if (!props) break;
 
-        const { xSign, ySign } = this.getScaleParams(
-          this.selectedGizmoPart,
-          props,
-        );
+        const { xSign, ySign } = this.getScaleSigns(this.selectedGizmoPart);
 
         const rotMouse = rotatePoint(
           this.canvasPos,
@@ -500,24 +505,13 @@ export class MultiTool extends Tool {
     }
   }
 
-  private getScaleParams(
-    gizmoPart: GizmoPart,
-    props: {
-      position: Position;
-      size: { width: number; height: number };
-      rotation: number;
-    },
-  ): { xSign: 1 | 0 | -1; ySign: 1 | 0 | -1; anchor: Position } {
-    switch (gizmoPart) {
-      case "xAxis":
-        return { xSign: 1, ySign: 0, anchor: { ...props.position } };
-      case "yAxis":
-        return { xSign: 0, ySign: -1, anchor: { ...props.position } };
-      case "center":
-        return { xSign: 1, ySign: 1, anchor: { ...props.position } };
-      default:
-        return { xSign: 0, ySign: 0, anchor: { ...props.position } };
-    }
+  private getScaleSigns(gizmoPart: GizmoPart) {
+    return (
+      GIZMO_SCALE_SIGNS[gizmoPart as string] ?? {
+        xSign: 0 as const,
+        ySign: 0 as const,
+      }
+    );
   }
 
   protected handleMouseUp(evt: MouseEvent): void {
@@ -546,16 +540,18 @@ export class MultiTool extends Tool {
     const [selected] = this.eventBus.request("workarea:selected:get");
     if (!selected || selected.length === 0) return;
 
-    const items: ContextMenuItem[] = MODE_OPTIONS.map(({ mode, label, icon }) => ({
-      type: "item",
-      id: mode,
-      label,
-      icon,
-      active: mode === this.currentMode,
-      action: () => {
-        this.setMode(mode);
-      },
-    }));
+    const items: ContextMenuItem[] = MODE_OPTIONS.map(
+      ({ mode, label, icon }) => ({
+        type: "item",
+        id: mode,
+        label,
+        icon,
+        active: mode === this.currentMode,
+        action: () => {
+          this.setMode(mode);
+        },
+      }),
+    );
 
     this.eventBus.emit("workarea:contextMenu:open", {
       position: { x: evt.clientX, y: evt.clientY },
