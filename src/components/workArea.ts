@@ -11,13 +11,13 @@ import type {
   PositionPayload,
   ReorganizeLayersPayload,
   SelectElementsAtPayload,
-  SelectElementsByIdPayload,
   UpdateElementPayload,
 } from "src/utils/eventBus";
 import { ElementGroup } from "./elements/elementGroup";
 import { FilterRenderer } from "src/filters/filterRenderer";
 import { BoundingBox } from "src/utils/boundingBox";
 import { TransformBox } from "./transformBox";
+import { SelectionManager } from "./workArea.selection";
 
 export class WorkArea {
   public canvas: HTMLCanvasElement | null = null;
@@ -30,7 +30,15 @@ export class WorkArea {
   private set elements(elements: Element<TElementData>[]) {
     this._elements = elements;
   }
+  private selection: SelectionManager;
+
   public constructor(private eventBus: EventBus) {
+    this.selection = new SelectionManager({
+      eventBus,
+      getElements: this.getElements,
+      getFlatElements: (els) => this.getFlatElements(els),
+      onSelectionApplied: () => this.createTransformBox(),
+    });
     this.createDOMElements();
     this.addEvents();
   }
@@ -48,24 +56,19 @@ export class WorkArea {
   }
 
   private addEvents(): void {
+    this.selection.attach();
     this.eventBus.on("edit:gradient", this.handleEditGradient);
     this.eventBus.on("edit:path", this.handleEditPath);
     this.eventBus.on("edit:text", this.handleEditText);
     this.eventBus.on("workarea:addGroupElement", this.handleAddGroupElement);
     this.eventBus.on("workarea:canvas:getBlob", this.handleRequestCanvasBlob);
-    this.eventBus.on("workarea:selectAt", this.selectElementsAt);
-    this.eventBus.on("workarea:selectById", this.selectElementsById);
-    this.eventBus.on("workarea:selected:get", this.getSelectedElements);
     this.eventBus.on("layer:generateHierarchy", this.handleReorganizeLayers);
     this.eventBus.on("workarea:updateElement", this.handleUpdateElement);
     this.eventBus.on("layer:export", this.exportLayerToClipboard);
     this.eventBus.on("workarea:deleteElement", this.handleDeleteElement);
     this.eventBus.on("workarea:getElement:get", this.getElement);
     this.eventBus.on("layer:applyCrop", this.handleApplyCrop);
-    this.eventBus.on("workarea:updateProperties", ({ size }) => {
-      this.setWorkAreaSize(size);
-      this.eventBus.emit("mainWindow:resize");
-    });
+    this.eventBus.on("workarea:updateProperties", this.handleUpdateProperties);
     this.eventBus.on("workarea:elements:get", this.getElements);
     this.eventBus.on("workarea:rotate-clockwise", () =>
       this.handleRotateCanvas("clockwise"),
@@ -82,20 +85,20 @@ export class WorkArea {
   }
 
   public removeEvents(): void {
+    this.selection.detach();
     this.eventBus.off("edit:gradient", this.handleEditGradient);
     this.eventBus.off("edit:path", this.handleEditPath);
     this.eventBus.off("edit:text", this.handleEditText);
     this.eventBus.off("workarea:addGroupElement", this.handleAddGroupElement);
     this.eventBus.off("workarea:canvas:getBlob", this.handleRequestCanvasBlob);
-    this.eventBus.off("workarea:selectAt", this.selectElementsAt);
-    this.eventBus.off("workarea:selectById", this.selectElementsById);
-    this.eventBus.off("workarea:selected:get", this.getSelectedElements);
     this.eventBus.off("layer:generateHierarchy", this.handleReorganizeLayers);
     this.eventBus.off("workarea:updateElement", this.handleUpdateElement);
     this.eventBus.off("layer:export", this.exportLayerToClipboard);
     this.eventBus.off("workarea:deleteElement", this.handleDeleteElement);
     this.eventBus.off("workarea:getElement:get", this.getElement);
     this.eventBus.off("layer:applyCrop", this.handleApplyCrop);
+    this.eventBus.off("workarea:updateProperties", this.handleUpdateProperties);
+    this.eventBus.off("workarea:elements:get", this.getElements);
     this.eventBus.off("workarea:rotate-clockwise", () =>
       this.handleRotateCanvas("clockwise"),
     );
@@ -176,7 +179,11 @@ export class WorkArea {
     if (!this.canvas) return;
     const width = 10;
     const height = 10;
-    const newElement = new PathElement(position, { width, height }, this.elements.length);
+    const newElement = new PathElement(
+      position,
+      { width, height },
+      this.elements.length,
+    );
 
     this.elements.push(newElement as Element<TElementData>);
     this.eventBus.emit("workarea:addElement", {
@@ -184,10 +191,10 @@ export class WorkArea {
       isLocked: newElement.isLocked,
       isVisible: newElement.isVisible,
       layerName: newElement.layerName,
-      type: 'path',
+      type: "path",
     });
     this.eventBus.emit("workarea:update");
-  }
+  };
 
   private handleEditPath = ({ position }: PositionPayload): void => {
     this.selectElementsAt({ firstPoint: position });
@@ -211,10 +218,12 @@ export class WorkArea {
     this.transformBox = null;
   };
 
-  private handleDeleteElement = ({ elementId }: { elementId: number }): void => {
-    const removeFromList = (
-      list: Element<TElementData>[],
-    ): boolean => {
+  private handleDeleteElement = ({
+    elementId,
+  }: {
+    elementId: number;
+  }): void => {
+    const removeFromList = (list: Element<TElementData>[]): boolean => {
       const index = list.findIndex((el) => el.elementId === elementId);
       if (index !== -1) {
         list.splice(index, 1);
@@ -228,7 +237,10 @@ export class WorkArea {
       return false;
     };
     removeFromList(this._elements);
-    this.removeTransformBox();
+    this.createTransformBox();
+    this.eventBus.emit("selection:changed", {
+      selectedElements: this.getSelectedElements(),
+    });
     this.eventBus.emit("workarea:update");
   };
 
@@ -251,12 +263,15 @@ export class WorkArea {
       if (isLocked !== undefined) {
         elementToUpdate.isLocked = isLocked;
         if (isLocked) {
-          if (elementToUpdate instanceof ElementGroup && elementToUpdate.children) {
+          if (
+            elementToUpdate instanceof ElementGroup &&
+            elementToUpdate.children
+          ) {
             for (const child of elementToUpdate.children) {
               child.selected = false;
             }
           }
-          this.selectElementsAt({});
+          this.selection.clearSelection();
         }
       }
     }
@@ -266,17 +281,9 @@ export class WorkArea {
     this.eventBus.emit("workarea:update");
   };
 
-  private selectElementsById = ({
-    elementsId,
-  }: SelectElementsByIdPayload): void => {
-    for (const el of this.getFlatElements(this.elements)) {
-      el.selected = elementsId.has(el.elementId) && !el.isLocked;
-    }
-    this.createTransformBox();
-    this.eventBus.emit("selection:changed", {
-      selectedElements: this.getSelectedElements(),
-    });
-    this.eventBus.emit("workarea:update");
+  private handleUpdateProperties = ({ size }: { size: Size }) => {
+    this.setWorkAreaSize(size);
+    this.eventBus.emit("mainWindow:resize");
   };
 
   private getFlatElements(
@@ -329,9 +336,7 @@ export class WorkArea {
     );
     this.elements = newOrderedElements;
     this.elements.sort((a, b) => a.zDepth - b.zDepth);
-    this.removeTransformBox();
-    this.eventBus.emit("selection:changed", { selectedElements: [] });
-    this.eventBus.emit("workarea:update");
+    this.selection.clearSelection();
   };
 
   public async createElementFromData(
@@ -441,100 +446,14 @@ export class WorkArea {
     });
   };
 
-  private getSelectedElements = (): Element<TElementData>[] => {
-    const selectedElements: Element<TElementData>[] = [];
-    for (const el of this.getFlatElements(this.elements)) {
-      if (el.selected && !el.isLocked && !(el instanceof ElementGroup)) {
-        selectedElements.push(el);
-      }
-    }
-    return selectedElements;
+  private getSelectedElements = (): ReturnType<
+    typeof this.selection.getSelectedElements
+  > => {
+    return this.selection.getSelectedElements();
   };
 
-  public selectElementsAt = ({
-    firstPoint,
-    secondPoint,
-    isAddingToSelection,
-  }: SelectElementsAtPayload): void => {
-    let selectedElements: Element<TElementData>[] = isAddingToSelection ? this.getSelectedElements() : [];
-    if (firstPoint) {
-      const firstElement = this.elements.findLast((el) => {
-        if (el instanceof ElementGroup) {
-          return (
-            el.isVisible &&
-            !el.isLocked &&
-            el.getBoundingBox().isPointInside(firstPoint)
-          );
-        }
-        return (
-          el.isVisible &&
-          !el.isLocked &&
-          el.getBoundingBox().isPointInside(firstPoint)
-        );
-      });
-      if (
-        firstElement &&
-        firstElement instanceof ElementGroup &&
-        firstElement.children
-      ) {
-        const groupChildren = firstElement.children.filter(
-          (child) => !child.isLocked,
-        );
-        if (isAddingToSelection) {
-          for (const child of groupChildren) {
-            const idx = selectedElements.findIndex((el) => el.elementId === child.elementId);
-            if (idx === -1) {
-              selectedElements.push(child);
-            }
-          }
-        } else {
-          selectedElements = groupChildren;
-        }
-      } else if (firstElement && !(firstElement instanceof ElementGroup)) {
-        if (isAddingToSelection) {
-          const idx = selectedElements.findIndex(
-            (el) => el.elementId === firstElement.elementId,
-          );
-          if (idx === -1) {
-            selectedElements.push(firstElement);
-          } else {
-            selectedElements.splice(idx, 1);
-          }
-        } else {
-          selectedElements = [firstElement as Element<TElementData>];
-        }
-      }
-      if (secondPoint) {
-        for (const el of this.elements) {
-          if (el instanceof ElementGroup) {
-            const unlockedChildren =
-              el.children?.filter((child) => !child.isLocked) ?? [];
-            if (
-              unlockedChildren.some((child) =>
-                child
-                  .getBoundingBox()
-                  .isWithinBounds(firstPoint, secondPoint),
-              )
-            ) {
-              selectedElements = [...selectedElements, ...unlockedChildren];
-            }
-          } else {
-            if (
-              el.isVisible &&
-              !el.isLocked &&
-              el
-                .getBoundingBox()
-                .isWithinBounds(firstPoint, secondPoint)
-            ) {
-              selectedElements.push(el);
-            }
-          }
-        }
-      }
-    }
-    this.eventBus.emit("workarea:selectById", {
-      elementsId: new Set(selectedElements.map((el) => el.elementId)),
-    });
+  public selectElementsAt = (p: SelectElementsAtPayload): void => {
+    return this.selection.selectElementsAt(p);
   };
 
   public draw(): void {
@@ -785,7 +704,10 @@ export class WorkArea {
           newStart = { x: oldHeight - sy, y: sx };
           newEnd = { x: oldHeight - ey, y: ex };
         }
-        element.size = { width: element.size.height, height: element.size.width };
+        element.size = {
+          width: element.size.height,
+          height: element.size.width,
+        };
       }
 
       element.position = { x: newX, y: newY };
