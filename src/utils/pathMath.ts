@@ -52,50 +52,6 @@ export function distanceToSegment(
   return closestPointOnSegment(p, a, b).dist;
 }
 
-/**
- * Encontra o segmento mais próximo do mouse dentro da tolerância.
- * `points` e `mouse` devem estar no MESMO espaço (screen ou world).
- */
-export function hitTestSegments(
-  mouse: Position,
-  points: Position[],
-  isClosed: boolean,
-  tolerancePx = 8,
-): {
-  segmentIndex: number;
-  projection: Position;
-  t: number;
-  distance: number;
-} | null {
-  if (points.length < 2) return null;
-
-  const nSegs = isClosed ? points.length : points.length - 1;
-  let best: {
-    segmentIndex: number;
-    projection: Position;
-    t: number;
-    distance: number;
-  } | null = null;
-  let bestDist = Infinity;
-
-  for (let i = 0; i < nSegs; i++) {
-    const a = points[i];
-    const b = points[(i + 1) % points.length];
-    const hit = closestPointOnSegment(mouse, a, b);
-
-    if (hit.dist <= tolerancePx && hit.dist < bestDist) {
-      bestDist = hit.dist;
-      best = {
-        segmentIndex: i,
-        projection: hit.q,
-        t: hit.t,
-        distance: hit.dist,
-      };
-    }
-  }
-  return best;
-}
-
 /** Interpolação linear entre dois pontos (alias para lerp). */
 export function lerpPoint(a: Position, b: Position, t: number): Position {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
