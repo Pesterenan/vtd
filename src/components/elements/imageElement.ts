@@ -4,7 +4,7 @@ import { FilterRenderer } from "src/filters/filterRenderer";
 import { BoundingBox } from "src/utils/boundingBox";
 import { CroppingBox } from "src/utils/croppingBox";
 import { clamp } from "src/utils/easing";
-import { toRadians } from "src/utils/transforms";
+import { toRadians } from "src/utils/angles";
 
 export class ImageElement extends Element<IImageElementData> {
   public get backgroundColor(): string {

@@ -1,5 +1,6 @@
-import { rotatePoint, toRadians } from "src/utils/transforms";
+import { rotatePoint } from "src/utils/transforms";
 import type { Position } from "../types";
+import { toRadians } from "src/utils/angles";
 
 // Constants
 export const GIZMO_LENGTH = 50;

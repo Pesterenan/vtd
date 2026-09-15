@@ -2,7 +2,7 @@ import { Element } from "src/components/elements/element";
 import type { ITextElementData, Position, Size } from "src/components/types";
 import { FilterRenderer } from "src/filters/filterRenderer";
 import { BoundingBox } from "src/utils/boundingBox";
-import { toRadians } from "src/utils/transforms";
+import { toRadians } from "src/utils/angles";
 
 export class TextElement extends Element<ITextElementData> {
   public get font(): string {

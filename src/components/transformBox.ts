@@ -8,12 +8,13 @@ import type {
   PositionPayload,
   UpdateScalePayload,
 } from "src/utils/eventBus";
-import { rotatePoint, toRadians } from "src/utils/transforms";
+import { rotatePoint } from "src/utils/transforms";
 import { Vector } from "src/utils/vector";
 import { ElementGroup } from "./elements/elementGroup";
 import type { CroppingBox } from "src/utils/croppingBox";
 import type { BoxHandleKeys } from "src/utils/boxHandles";
 import { resolveHandleSign } from "src/utils/boxHandles";
+import { toRadians } from "src/utils/angles";
 
 export class TransformBox {
   public position: Position = { x: 0, y: 0 };

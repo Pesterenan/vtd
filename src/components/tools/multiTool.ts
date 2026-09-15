@@ -2,7 +2,8 @@ import { Tool } from "./abstractTool";
 import type { ContextMenuItem, EventBus } from "src/utils/eventBus";
 import type { Position, Scale } from "../types";
 import type { GizmoPart } from "./multiTool.helpers";
-import { toDegrees, toRadians, rotatePoint } from "src/utils/transforms";
+import { rotatePoint } from "src/utils/transforms";
+import { toDegrees, toRadians } from "src/utils/angles";
 import {
   ROTATE_RADIUS,
   HIT_THRESHOLD,

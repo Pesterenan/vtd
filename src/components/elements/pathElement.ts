@@ -2,7 +2,8 @@ import { BoundingBox } from "src/utils/boundingBox";
 import type { IPathElementData, Point, Position, Size } from "../types";
 import { Element } from "./element";
 import { FilterRenderer } from "src/filters/filterRenderer";
-import { rotatePoint, toRadians } from "src/utils/transforms";
+import { rotatePoint } from "src/utils/transforms";
+import { toRadians } from "src/utils/angles";
 
 export class PathElement extends Element<IPathElementData> {
   // --- Propriedades tipadas (atalhos para `this.properties`) ---
