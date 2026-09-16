@@ -6,18 +6,15 @@ import { TextElement } from "src/components/elements/textElement";
 import type { Layer, Position, Size, TElementData } from "src/components/types";
 import type {
   EventBus,
-  ExportCanvasToStringPayload,
-  ExportLayerToClipBoardPayload,
   PositionPayload,
   ReorganizeLayersPayload,
-  SelectElementsAtPayload,
   UpdateElementPayload,
 } from "src/utils/eventBus";
 import { ElementGroup } from "./elements/elementGroup";
 import { FilterRenderer } from "src/filters/filterRenderer";
-import { BoundingBox } from "src/utils/boundingBox";
 import { TransformBox } from "./transformBox";
 import { SelectionManager } from "./workArea.selection";
+import { ClipboardManager } from "./workArea.clipboard";
 
 export class WorkArea {
   public canvas: HTMLCanvasElement | null = null;
@@ -31,15 +28,23 @@ export class WorkArea {
     this._elements = elements;
   }
   private selection: SelectionManager;
+  private clipboard: ClipboardManager;
 
   public constructor(private eventBus: EventBus) {
+    this.createDOMElements();
     this.selection = new SelectionManager({
       eventBus,
       getElements: this.getElements,
       getFlatElements: (els) => this.getFlatElements(els),
       onSelectionApplied: () => this.createTransformBox(),
     });
-    this.createDOMElements();
+    this.clipboard = new ClipboardManager({
+      eventBus,
+      getElements: this.getElements,
+      getFlatElements: (els) => this.getFlatElements(els),
+      getCanvas: () => this.canvas,
+      redraw: (transparent) => this.draw(transparent),
+    });
     this.addEvents();
   }
 
@@ -57,14 +62,13 @@ export class WorkArea {
 
   private addEvents(): void {
     this.selection.attach();
+    this.clipboard.attach();
     this.eventBus.on("edit:gradient", this.handleEditGradient);
     this.eventBus.on("edit:path", this.handleEditPath);
     this.eventBus.on("edit:text", this.handleEditText);
     this.eventBus.on("workarea:addGroupElement", this.handleAddGroupElement);
-    this.eventBus.on("workarea:canvas:getBlob", this.handleRequestCanvasBlob);
     this.eventBus.on("layer:generateHierarchy", this.handleReorganizeLayers);
     this.eventBus.on("workarea:updateElement", this.handleUpdateElement);
-    this.eventBus.on("layer:export", this.exportLayerToClipboard);
     this.eventBus.on("workarea:deleteElement", this.handleDeleteElement);
     this.eventBus.on("workarea:getElement:get", this.getElement);
     this.eventBus.on("layer:applyCrop", this.handleApplyCrop);
@@ -86,14 +90,13 @@ export class WorkArea {
 
   public removeEvents(): void {
     this.selection.detach();
+    this.clipboard.detach();
     this.eventBus.off("edit:gradient", this.handleEditGradient);
     this.eventBus.off("edit:path", this.handleEditPath);
     this.eventBus.off("edit:text", this.handleEditText);
     this.eventBus.off("workarea:addGroupElement", this.handleAddGroupElement);
-    this.eventBus.off("workarea:canvas:getBlob", this.handleRequestCanvasBlob);
     this.eventBus.off("layer:generateHierarchy", this.handleReorganizeLayers);
     this.eventBus.off("workarea:updateElement", this.handleUpdateElement);
-    this.eventBus.off("layer:export", this.exportLayerToClipboard);
     this.eventBus.off("workarea:deleteElement", this.handleDeleteElement);
     this.eventBus.off("workarea:getElement:get", this.getElement);
     this.eventBus.off("layer:applyCrop", this.handleApplyCrop);
@@ -159,19 +162,19 @@ export class WorkArea {
   }
 
   private handleEditGradient = ({ position }: PositionPayload): void => {
-    const elements = this.getSelectedElements();
+    const elements = this.selection.getSelectedElements();
     if (!elements || !(elements[0] instanceof GradientElement)) {
       this.addGradientElement(position);
-      this.selectElementsAt({ firstPoint: position });
+      this.selection.selectElementsAt({ firstPoint: position });
     }
   };
 
   private handleEditText = ({ position }: PositionPayload): void => {
-    this.selectElementsAt({ firstPoint: position });
-    const elements = this.getSelectedElements();
+    this.selection.selectElementsAt({ firstPoint: position });
+    const elements = this.selection.getSelectedElements();
     if (!elements || !(elements[0] instanceof TextElement)) {
       this.addTextElement(position);
-      this.selectElementsAt({ firstPoint: position });
+      this.selection.selectElementsAt({ firstPoint: position });
     }
   };
 
@@ -197,17 +200,17 @@ export class WorkArea {
   };
 
   private handleEditPath = ({ position }: PositionPayload): void => {
-    this.selectElementsAt({ firstPoint: position });
-    const elements = this.getSelectedElements();
+    this.selection.selectElementsAt({ firstPoint: position });
+    const elements = this.selection.getSelectedElements();
     if (!elements || !(elements[0] instanceof PathElement)) {
       this.addPathElement(position);
-      this.selectElementsAt({ firstPoint: position });
+      this.selection.selectElementsAt({ firstPoint: position });
     }
   };
 
   private createTransformBox = (): void => {
     this.removeTransformBox();
-    const selectedElements = this.getSelectedElements();
+    const selectedElements = this.selection.getSelectedElements();
     if (selectedElements.length) {
       this.transformBox = new TransformBox(selectedElements, this.eventBus);
     }
@@ -239,7 +242,7 @@ export class WorkArea {
     removeFromList(this._elements);
     this.createTransformBox();
     this.eventBus.emit("selection:changed", {
-      selectedElements: this.getSelectedElements(),
+      selectedElements: this.selection.getSelectedElements(),
     });
     this.eventBus.emit("workarea:update");
   };
@@ -394,76 +397,16 @@ export class WorkArea {
     return newElement;
   }
 
-  /**
-   * Returns the current canvas as a blob to be exported
-   * @param {ExportCanvasToStringPayload} payload -
-   * format - format to be exported
-   * quality - quality of the image exported
-   * transparent - export with a transparent background
-   */
-  private handleRequestCanvasBlob = ({
-    format,
-    quality,
-    transparent = false,
-  }: ExportCanvasToStringPayload): Promise<
-    { blob: Blob; dataURL: string } | undefined
-  > => {
-    return new Promise((resolve) => {
-      if (!this.canvas || !this.context) {
-        console.error("Canvas not found");
-        return resolve(undefined);
-      }
-
-      if (transparent) {
-        this.clearCanvas();
-        for (const element of this.elements) {
-          element.draw(this.context);
-        }
-      }
-      const parsedQuality = (Number.parseInt(quality, 10) || 100) / 100;
-      this.canvas.toBlob(
-        (blob) => {
-          if (transparent) {
-            this.draw();
-          }
-
-          if (blob) {
-            const reader = new FileReader();
-            reader.onload = () => {
-              resolve({
-                blob,
-                dataURL: reader.result as string,
-              });
-            };
-            reader.readAsDataURL(blob);
-          } else {
-            resolve(undefined);
-          }
-        },
-        `image/${format}`,
-        parsedQuality,
-      );
-    });
-  };
-
-  private getSelectedElements = (): ReturnType<
-    typeof this.selection.getSelectedElements
-  > => {
-    return this.selection.getSelectedElements();
-  };
-
-  public selectElementsAt = (p: SelectElementsAtPayload): void => {
-    return this.selection.selectElementsAt(p);
-  };
-
-  public draw(): void {
+  public draw(transparent = false): void {
     if (!this.context || !this.canvas) {
       throw new Error("Canvas context is not available");
     }
     this.clearCanvas();
 
-    this.context.fillStyle = "white";
-    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    if (!transparent) {
+      this.context.fillStyle = "white";
+      this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
 
     for (const element of this.elements) {
       element.draw(this.context);
@@ -604,72 +547,6 @@ export class WorkArea {
     }
   };
 
-  private exportLayerToClipboard = ({
-    layerId,
-    transparent,
-  }: ExportLayerToClipBoardPayload): void => {
-    const element = this.getFlatElements(this.elements).find(
-      (el) => el.elementId === layerId,
-    );
-    if (!element) {
-      this.eventBus.emit("alert:add", {
-        message: "Elemento não encontrado",
-        type: "error",
-      });
-      return;
-    }
-
-    const tempCanvas = document.createElement("canvas");
-    const tempContext = tempCanvas.getContext("2d");
-    if (!tempContext) {
-      this.eventBus.emit("alert:add", {
-        message: "Erro ao criar o contexto do canvas",
-        type: "error",
-      });
-      return;
-    }
-
-    const { position, size } = BoundingBox.calculateBoundingBox([element]);
-    tempCanvas.width = size.width;
-    tempCanvas.height = size.height;
-
-    if (!transparent && this.canvas) {
-      tempContext.drawImage(
-        this.canvas,
-        position.x - size.width / 2,
-        position.y - size.height / 2,
-        size.width,
-        size.height,
-        0,
-        0,
-        size.width,
-        size.height,
-      );
-    } else {
-      tempContext.translate(
-        -position.x + size.width * 0.5,
-        -position.y + size.height * 0.5,
-      );
-      element.draw(tempContext);
-    }
-
-    tempCanvas.toBlob((blob) => {
-      if (blob) {
-        const item = new ClipboardItem({ "image/png": blob });
-        navigator.clipboard.write([item]);
-        this.eventBus.emit("alert:add", {
-          message: "Camada copiada para a área de transferência",
-          type: "success",
-        });
-      } else {
-        this.eventBus.emit("alert:add", {
-          message: "Erro ao copiar a camada",
-          type: "error",
-        });
-      }
-    }, "image/png");
-  };
-
   private handleRotateCanvas = (
     direction: "clockwise" | "anti-clockwise" = "clockwise",
   ): void => {
@@ -719,7 +596,7 @@ export class WorkArea {
       }
     }
     // Update transform box if selection exists
-    const selectedElements = this.getSelectedElements();
+    const selectedElements = this.selection.getSelectedElements();
     if (selectedElements.length > 0) {
       this.createTransformBox();
     }
@@ -776,7 +653,7 @@ export class WorkArea {
       }
     }
     // Update transform box if selection exists
-    const selectedElements = this.getSelectedElements();
+    const selectedElements = this.selection.getSelectedElements();
     if (selectedElements.length > 0) {
       this.createTransformBox();
     }
