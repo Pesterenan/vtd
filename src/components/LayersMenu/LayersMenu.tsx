@@ -2,7 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useEventBus } from "src/hooks/useEventBus";
 import { useLayerDrag } from "src/hooks/useLayerDrag";
 import type { Layer } from "../types";
-import type { AddElementPayload } from "src/utils/eventBus";
+import type {
+  AddElementPayload,
+  ElementIdPayload,
+  ReorganizeLayersPayload,
+  SelectElementsByIdPayload,
+} from "src/utils/eventBus";
 import { ImageElement } from "../elements/imageElement";
 import styles from "./LayersMenu.module.css";
 
@@ -245,19 +250,19 @@ const LayersMenu = () => {
     });
     const unsub4 = on(
       "workarea:deleteElement",
-      ({ elementId }: { elementId: number }) => {
+      ({ elementId }: ElementIdPayload) => {
         setLayers((prev) => removeLayerById(prev, elementId));
       },
     );
     const unsub5 = on(
       "workarea:selectById",
-      ({ elementsId }: { elementsId: Set<number> }) => {
+      ({ elementsId }: SelectElementsByIdPayload) => {
         setSelectedIds(new Set(elementsId));
       },
     );
     const unsub6 = on(
       "layer:setHierarchy",
-      ({ hierarchy }: { hierarchy: Layer[] }) => {
+      ({ hierarchy }: ReorganizeLayersPayload) => {
         setLayers(hierarchy);
       },
     );
@@ -392,22 +397,22 @@ const LayersMenu = () => {
         onDragOver={handleDragOver}
         onDrop={handleDropOnList}
       >
-          {layers.map((layer) => {
-            return renderLayer(
-              layer,
-              handleDragStart,
-              handleOnDrop,
-              handleDragOver,
-              handleLayerClick,
-              collapsedIds,
-              handleToggleCollapse,
-              handleItemDragOver,
-              handleItemDragLeave,
-              hoverTarget,
-              selectedIds,
-              handleContextMenu,
-            );
-          })}
+        {layers.map((layer) => {
+          return renderLayer(
+            layer,
+            handleDragStart,
+            handleOnDrop,
+            handleDragOver,
+            handleLayerClick,
+            collapsedIds,
+            handleToggleCollapse,
+            handleItemDragOver,
+            handleItemDragLeave,
+            hoverTarget,
+            selectedIds,
+            handleContextMenu,
+          );
+        })}
       </ul>
       <div className={styles.buttons}>
         <button

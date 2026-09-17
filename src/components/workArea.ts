@@ -5,6 +5,7 @@ import { PathElement } from "./elements/pathElement";
 import { TextElement } from "src/components/elements/textElement";
 import type { Layer, Position, Size, TElementData } from "src/components/types";
 import type {
+  ElementIdPayload,
   EventBus,
   PositionPayload,
   ReorganizeLayersPayload,
@@ -212,11 +213,7 @@ export class WorkArea {
     this.transformBox = null;
   };
 
-  private handleDeleteElement = ({
-    elementId,
-  }: {
-    elementId: number;
-  }): void => {
+  private handleDeleteElement = ({ elementId }: ElementIdPayload): void => {
     const removeFromList = (list: Element<TElementData>[]): boolean => {
       const index = list.findIndex((el) => el.elementId === elementId);
       if (index !== -1) {
@@ -494,9 +491,7 @@ export class WorkArea {
 
   private getElement = ({
     elementId,
-  }: {
-    elementId: number;
-  }): Element<TElementData> | undefined => {
+  }: ElementIdPayload): Element<TElementData> | undefined => {
     return this.getFlatElements(this.elements).find(
       (el) => el.elementId === elementId,
     );

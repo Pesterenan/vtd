@@ -41,7 +41,7 @@ export type SelectElementsByIdPayload = {
   elementsId: Set<number>;
 };
 
-export type DeleteElementPayload = {
+export type ElementIdPayload = {
   elementId: number;
 };
 
@@ -386,11 +386,11 @@ export interface EventBusMap {
     result: unknown;
   };
   "workarea:deleteElement": {
-    payload: { elementId: number };
+    payload: ElementIdPayload;
     result: unknown;
   };
   "workarea:getElement:get": {
-    payload: { elementId: number };
+    payload: ElementIdPayload;
     result: Element<TElementData> | undefined;
   };
   "workarea:elements:get": {
