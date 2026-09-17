@@ -5,14 +5,15 @@
     "description": "Editor de miniaturas de videos.",
     "productName": "vtd",
     "scripts": {
-        "dev": "vite",
         "build": "tsc && vite build",
+        "dev": "vite",
         "lint": "eslint --fix --ext .ts,.tsx .",
+        "tauri": "tauri",
+        "tauri:build": "tauri build",
+        "tauri:dev": "tauri dev",
         "test": "vitest run",
         "test:watch": "vitest",
-        "tauri": "tauri",
-        "tauri:dev": "tauri dev",
-        "tauri:build": "tauri build"
+        "typecheck": "tsc --noEmit"
     },
     "devDependencies": {
         "@tauri-apps/cli": "2.11.2",

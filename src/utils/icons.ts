@@ -107,11 +107,6 @@ export function parseSvgTransform(transform: string | null): Matrix2D {
   return m;
 }
 
-export function extractPathData(svg: string): string | null {
-  const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
-  return doc.querySelector("path")?.getAttribute("d") ?? null;
-}
-
 function buildShape(el: Element): Path2D {
   const p = new Path2D();
   switch (el.tagName.toLowerCase()) {

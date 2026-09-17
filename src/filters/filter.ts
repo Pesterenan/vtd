@@ -1,5 +1,3 @@
-export type FilterProperty = string | number | undefined;
-
 export type FilterProperties = {
   id: string;
   composite: string;
