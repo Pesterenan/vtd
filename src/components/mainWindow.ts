@@ -201,7 +201,9 @@ export class MainWindow {
       this.update();
     });
     this.eventBus.on("workarea:offset:get", () => this.offset);
-    this.eventBus.on("workarea:project:save", () => this.fileIO.getProjectData());
+    this.eventBus.on("workarea:project:save", () =>
+      this.fileIO.getProjectData(),
+    );
     this.eventBus.on("workarea:clear", async () => {
       if (this.workArea) {
         this.workArea.destroy();
@@ -248,11 +250,7 @@ export class MainWindow {
     }
   }
 
-  private handleDragOverEvent = (evt: DragEvent) => {
-    evt.preventDefault();
-  };
-
-  private handleDropItems = (evt: DragEvent): void => {
+  private handleDropItems = async (evt: DragEvent): Promise<void> => {
     evt.preventDefault();
     const droppedItems = evt.dataTransfer?.items;
     if (!droppedItems) return;
@@ -261,14 +259,15 @@ export class MainWindow {
       if (item.type.startsWith("image/")) {
         const file = item.getAsFile();
         if (file) {
-          const reader = new FileReader();
-          reader.onload = async (evt) => {
-            await this.fileIO.loadImageFile(evt.target?.result as string);
-          };
-          reader.readAsDataURL(file);
+          const dataUrl = await this.fileIO.readBlobAsDataURL(file);
+          await this.fileIO.loadImageFile(dataUrl);
         }
       }
     }
+  };
+
+  private handleDragOverEvent = (evt: DragEvent) => {
+    evt.preventDefault();
   };
 
   private handleCopyCommand = (): void => {
@@ -323,15 +322,12 @@ export class MainWindow {
     if (event?.clipboardData?.files?.length) {
       for (const file of event.clipboardData.files) {
         if (file.type.startsWith("image/")) {
-          const reader = new FileReader();
-          reader.onload = async (evt) => {
-            await this.fileIO.loadImageFile(evt.target?.result as string);
-            this.eventBus.emit("alert:add", {
-              message: `Imagem "${file.name}" colada.`,
-              type: "success",
-            });
-          };
-          reader.readAsDataURL(file);
+          const dataUrl = await this.fileIO.readBlobAsDataURL(file);
+          await this.fileIO.loadImageFile(dataUrl);
+          this.eventBus.emit("alert:add", {
+            message: `Imagem "${file.name}" colada.`,
+            type: "success",
+          });
         }
       }
       this.update();
@@ -354,16 +350,36 @@ export class MainWindow {
     e.preventDefault();
     for (const file of e.dataTransfer.files) {
       if (file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onload = async (evt) => {
-          await this.fileIO.loadImageFile(evt.target?.result as string);
+        const dataUrl = await this.fileIO.readBlobAsDataURL(file);
+        await this.fileIO.loadImageFile(dataUrl);
+        this.eventBus.emit("alert:add", {
+          message: `Imagem "${file.name}" adicionada.`,
+          type: "success",
+        });
+      }
+    }
+  };
+
+  private pasteFromNavigatorClipboard = async (): Promise<void> => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const item of clipboardItems) {
+        const imageType = item.types.find((type) => type.startsWith("image/"));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          const dataUrl = await this.fileIO.readBlobAsDataURL(blob);
+          await this.fileIO.loadImageFile(dataUrl);
           this.eventBus.emit("alert:add", {
-            message: `Imagem "${file.name}" adicionada.`,
+            message: "Imagem copiada da área de transferência.",
             type: "success",
           });
-        };
-        reader.readAsDataURL(file);
+        }
       }
+    } catch (err) {
+      this.eventBus.emit("alert:add", {
+        message: "Não foi possível colar da área de transferência.",
+        type: "error",
+      });
     }
   };
 
@@ -398,32 +414,6 @@ export class MainWindow {
       }
     } catch {
       this.pasteFromNavigatorClipboard();
-    }
-  };
-
-  private pasteFromNavigatorClipboard = async (): Promise<void> => {
-    try {
-      const clipboardItems = await navigator.clipboard.read();
-      for (const item of clipboardItems) {
-        const imageType = item.types.find((type) => type.startsWith("image/"));
-        if (imageType) {
-          const blob = await item.getType(imageType);
-          const reader = new FileReader();
-          reader.onload = async (evt) => {
-            await this.fileIO.loadImageFile(evt.target?.result as string);
-            this.eventBus.emit("alert:add", {
-              message: "Imagem copiada da área de transferência.",
-              type: "success",
-            });
-          };
-          reader.readAsDataURL(blob);
-        }
-      }
-    } catch (err) {
-      this.eventBus.emit("alert:add", {
-        message: "Não foi possível colar da área de transferência.",
-        type: "error",
-      });
     }
   };
 

@@ -31,7 +31,11 @@ export class FileIOManager {
 
   constructor(private deps: Deps) {}
   private handleAddImage = (dataUrl?: string) => this.loadImageFile(dataUrl);
-  private handleCreateNewProject = ({ projectData }: { projectData: IProjectData }) => {
+  private handleCreateNewProject = ({
+    projectData,
+  }: {
+    projectData: IProjectData;
+  }) => {
     void this.loadOrCreateNewProject(projectData);
   };
   private importImageFromDialog = async (): Promise<void> => {
@@ -64,8 +68,9 @@ export class FileIOManager {
       const filePath = this.deps.getCurrentProjectPath();
       void this.saveProjectToBackend(filePath);
     }).then((unlisten) => this.unlistenFns.push(unlisten));
-    listen("request-save-project-as", () =>
-      void this.saveProjectToBackend(null),
+    listen(
+      "request-save-project-as",
+      () => void this.saveProjectToBackend(null),
     ).then((unlisten) => this.unlistenFns.push(unlisten));
     listen<LoadProjectResponse>(
       "load-project-response",
@@ -79,6 +84,15 @@ export class FileIOManager {
     eb.off("workarea:createNewProject", this.handleCreateNewProject);
     this.unlistenFns.forEach((unlisten) => unlisten());
     this.unlistenFns = [];
+  }
+
+  public readBlobAsDataURL(blob: Blob): Promise<string> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(blob);
+    });
   }
 
   public async loadImageFile(imgString?: string): Promise<void> {
