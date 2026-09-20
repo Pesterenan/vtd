@@ -139,9 +139,7 @@ export class WorkArea {
     const elementPromises =
       elementsData?.map((el) => this.createElementFromData(el)) ?? [];
     const loadedElements = await Promise.all(elementPromises);
-    this.elements = loadedElements.filter(
-      (el): el is Element => el !== null,
-    );
+    this.elements = loadedElements.filter((el): el is Element => el !== null);
 
     const hierarchy = this.buildLayerHierarchy(this.elements);
     this.eventBus.emit("layer:setHierarchy", { hierarchy });
@@ -164,21 +162,41 @@ export class WorkArea {
     return hierarchy;
   }
 
-  private handleEditGradient = ({ position }: PositionPayload): void => {
+  private ensureElement = (
+    position: Position,
+    isExpectedType: (element: Element | undefined) => boolean,
+    add: (position: Position) => void,
+  ): void => {
+    this.selection.selectElementsAt({ firstPoint: position });
     const elements = this.selection.getSelectedElements();
-    if (!elements || !(elements[0] instanceof GradientElement)) {
-      this.addGradientElement(position);
+    if (!elements || !isExpectedType(elements[0])) {
+      add(position);
       this.selection.selectElementsAt({ firstPoint: position });
     }
   };
 
+  private handleEditGradient = ({ position }: PositionPayload): void => {
+    this.ensureElement(
+      position,
+      (element) => element instanceof GradientElement,
+      () => this.addGradientElement(position),
+    );
+  };
+
   private handleEditText = ({ position }: PositionPayload): void => {
-    this.selection.selectElementsAt({ firstPoint: position });
-    const elements = this.selection.getSelectedElements();
-    if (!elements || !(elements[0] instanceof TextElement)) {
-      this.addTextElement(position);
-      this.selection.selectElementsAt({ firstPoint: position });
-    }
+    this.ensureElement(
+      position,
+      (element) => element instanceof TextElement,
+      () => this.addTextElement(position),
+    );
+  };
+
+  private handleEditPath = ({ position }: PositionPayload): void => {
+    this.ensureElement(
+      position,
+      (element) => element instanceof PathElement,
+      () => this.addPathElement(position),
+    );
   };
 
   public addPathElement = (position: Position): void => {
@@ -190,16 +208,7 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
-    this.registerElement(newElement, 'path');
-  };
-
-  private handleEditPath = ({ position }: PositionPayload): void => {
-    this.selection.selectElementsAt({ firstPoint: position });
-    const elements = this.selection.getSelectedElements();
-    if (!elements || !(elements[0] instanceof PathElement)) {
-      this.addPathElement(position);
-      this.selection.selectElementsAt({ firstPoint: position });
-    }
+    this.registerElement(newElement, "path");
   };
 
   private createTransformBox = (): void => {
@@ -279,9 +288,7 @@ export class WorkArea {
     this.eventBus.emit("mainWindow:resize");
   };
 
-  private getFlatElements(
-    elements: Element[],
-  ): Element[] {
+  private getFlatElements(elements: Element[]): Element[] {
     const flatElements: Element[] = [];
     for (const el of elements) {
       flatElements.push(el);
@@ -418,7 +425,7 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
-    this.registerElement(newElement, 'gradient');
+    this.registerElement(newElement, "gradient");
   }
 
   public addTextElement(position: Position): TextElement {
@@ -429,7 +436,7 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
-    this.registerElement(newElement, 'text');
+    this.registerElement(newElement, "text");
     return newElement;
   }
 
@@ -442,7 +449,7 @@ export class WorkArea {
       this.elements.length,
     );
     await newElement.loadImage(encodedImage);
-    this.registerElement(newElement, 'image');
+    this.registerElement(newElement, "image");
     return newElement;
   }
 
@@ -453,7 +460,7 @@ export class WorkArea {
       this.elements.length,
       [],
     );
-    this.registerElement(newElement, 'group', { children: [] });
+    this.registerElement(newElement, "group", { children: [] });
   };
 
   private getElement = ({

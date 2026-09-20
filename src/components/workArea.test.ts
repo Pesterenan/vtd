@@ -25,6 +25,18 @@ describe("WorkArea - Path Integration", () => {
     });
   });
 
+  describe("handleEditGradient", () => {
+    it("selects the existing gradient instead of duplicating it", () => {
+      const position = { x: 400, y: 300 };
+
+      eventBus.emit("edit:gradient", { position });
+      expect(workArea.elements.length).toBe(1);
+
+      eventBus.emit("edit:gradient", { position });
+      expect(workArea.elements.length).toBe(1);
+    });
+  });
+
   describe("handleEditPath", () => {
     it("should create a PathElement and add to elements on edit:path event", () => {
       const position = { x: 400, y: 300 };
