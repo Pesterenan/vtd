@@ -8,7 +8,6 @@ import type {
   Position,
   Scale,
   Size,
-  TElementData,
   TOOL,
 } from "src/components/types";
 import type { CroppingBox } from "./croppingBox";
@@ -55,7 +54,7 @@ export type ExportLayerToClipBoardPayload = {
 };
 
 export type SelectionChangedPayload = {
-  selectedElements: Element<TElementData>[];
+  selectedElements: Element[];
 };
 
 export type ExportCanvasToStringPayload = {
@@ -391,11 +390,11 @@ export interface EventBusMap {
   };
   "workarea:getElement:get": {
     payload: ElementIdPayload;
-    result: Element<TElementData> | undefined;
+    result: Element | undefined;
   };
   "workarea:elements:get": {
     payload: unknown;
-    result: Element<TElementData>[];
+    result: Element[];
   };
   "workarea:offset:change": {
     payload: PositionPayload;
@@ -435,7 +434,7 @@ export interface EventBusMap {
   };
   "workarea:selected:get": {
     payload: unknown;
-    result: Element<TElementData>[];
+    result: Element[];
   };
   "selection:changed": {
     payload: SelectionChangedPayload;

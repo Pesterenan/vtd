@@ -6,13 +6,12 @@ import FilterControls from "../Filters/FilterControls";
 import { FilterManager } from "src/filters/filterManager";
 import type { Filter, FilterProperties } from "src/filters/filter";
 import type { Element } from "src/components/elements/element";
-import type { TElementData } from "src/components/types";
 import { GradientElement } from "src/components/elements/gradientElement";
 import styles from "./ElementFiltersDialog.module.css";
 
 const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const { on, emit, request } = useEventBus();
-  const [activeElement, setActiveElement] = useState<Element<TElementData> | null>(null);
+  const [activeElement, setActiveElement] = useState<Element | null>(null);
   const [availableFilters, setAvailableFilters] = useState<Filter[]>([]);
   const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
   const [activeFilterIds, setActiveFilterIds] = useState<Set<string>>(new Set());

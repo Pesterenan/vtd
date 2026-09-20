@@ -4,7 +4,7 @@ import { FilterRenderer } from "src/filters/filterRenderer";
 import { BoundingBox } from "src/utils/boundingBox";
 import { toRadians } from "src/utils/angles";
 
-export class TextElement extends Element<ITextElementData> {
+export class TextElement extends Element {
   public get font(): string {
     return this.properties.get("font") as string;
   }
@@ -175,7 +175,7 @@ export class TextElement extends Element<ITextElementData> {
   }
 
   public serialize(): ITextElementData {
-    return super.serialize();
+    return super.serialize() as ITextElementData;
   }
 
   private updateBoundingBox(): void {

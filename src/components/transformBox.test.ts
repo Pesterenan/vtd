@@ -2,11 +2,10 @@ import { EventBus } from "../utils/eventBus";
 import type { Element } from "./elements/element";
 import { TextElement } from "./elements/textElement";
 import { TransformBox } from "./transformBox";
-import type { TElementData } from "./types";
 
 describe("TransformBox", () => {
   let canvas: HTMLCanvasElement;
-  let elements: Element<TElementData>[];
+  let elements: Element[];
   let bus: EventBus;
   let text: TextElement;
   let transformBox: TransformBox;
@@ -23,7 +22,7 @@ describe("TransformBox", () => {
     );
     text.content = ["VTD"];
     text.font = "monospace";
-    elements = [text as unknown as Element<TElementData>];
+    elements = [text as unknown as Element];
 
     vi.spyOn(bus, "on");
     vi.spyOn(bus, "off");
@@ -263,7 +262,7 @@ describe("TransformBox", () => {
       { width: 50, height: 50 },
       1,
     );
-    expect(transformBox.contains(newElement as Element<TElementData>)).toBe(
+    expect(transformBox.contains(newElement as Element)).toBe(
       false,
     );
   });

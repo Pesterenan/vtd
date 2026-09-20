@@ -289,7 +289,6 @@ export class MainWindow {
       const newElementsIds: number[] = [];
       let latestZDepth = this.workArea.elements.length;
       for (const elementData of this.copiedElements) {
-        delete elementData.elementId;
         const newElement =
           await this.workArea.createElementFromData(elementData);
         if (newElement) {

@@ -3,7 +3,13 @@ import { GradientElement } from "src/components/elements/gradientElement";
 import { ImageElement } from "src/components/elements/imageElement";
 import { PathElement } from "./elements/pathElement";
 import { TextElement } from "src/components/elements/textElement";
-import type { Layer, Position, Size, TElementData } from "src/components/types";
+import type {
+  ElementType,
+  Layer,
+  Position,
+  Size,
+  TElementData,
+} from "src/components/types";
 import type {
   ElementIdPayload,
   EventBus,
@@ -18,15 +24,20 @@ import { SelectionManager } from "./workArea.selection";
 import { ClipboardManager } from "./workArea.clipboard";
 import { TransformsManager } from "./workArea.transforms";
 
+type RegistrableElement = Pick<
+  Element,
+  "elementId" | "isLocked" | "isVisible" | "layerName"
+>;
+
 export class WorkArea {
   public canvas: HTMLCanvasElement | null = null;
   private context: CanvasRenderingContext2D | null = null;
   public transformBox: TransformBox | null = null;
-  private _elements: Element<TElementData>[] = [];
-  public get elements(): Element<TElementData>[] {
+  private _elements: Element[] = [];
+  public get elements(): Element[] {
     return this._elements;
   }
-  private set elements(elements: Element<TElementData>[]) {
+  private set elements(elements: Element[]) {
     this._elements = elements;
   }
   private selection: SelectionManager;
@@ -129,14 +140,14 @@ export class WorkArea {
       elementsData?.map((el) => this.createElementFromData(el)) ?? [];
     const loadedElements = await Promise.all(elementPromises);
     this.elements = loadedElements.filter(
-      (el): el is Element<TElementData> => el !== null,
+      (el): el is Element => el !== null,
     );
 
     const hierarchy = this.buildLayerHierarchy(this.elements);
     this.eventBus.emit("layer:setHierarchy", { hierarchy });
   }
 
-  private buildLayerHierarchy(elements: Element<TElementData>[]): Layer[] {
+  private buildLayerHierarchy(elements: Element[]): Layer[] {
     const hierarchy: Layer[] = [];
     for (const element of elements) {
       const layer: Layer = {
@@ -170,7 +181,7 @@ export class WorkArea {
     }
   };
 
-  private addPathElement = (position: Position): void => {
+  public addPathElement = (position: Position): void => {
     if (!this.canvas) return;
     const width = 10;
     const height = 10;
@@ -179,16 +190,7 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
-
-    this.elements.push(newElement as Element<TElementData>);
-    this.eventBus.emit("workarea:addElement", {
-      elementId: newElement.elementId,
-      isLocked: newElement.isLocked,
-      isVisible: newElement.isVisible,
-      layerName: newElement.layerName,
-      type: "path",
-    });
-    this.eventBus.emit("workarea:update");
+    this.registerElement(newElement, 'path');
   };
 
   private handleEditPath = ({ position }: PositionPayload): void => {
@@ -214,7 +216,7 @@ export class WorkArea {
   };
 
   private handleDeleteElement = ({ elementId }: ElementIdPayload): void => {
-    const removeFromList = (list: Element<TElementData>[]): boolean => {
+    const removeFromList = (list: Element[]): boolean => {
       const index = list.findIndex((el) => el.elementId === elementId);
       if (index !== -1) {
         list.splice(index, 1);
@@ -278,9 +280,9 @@ export class WorkArea {
   };
 
   private getFlatElements(
-    elements: Element<TElementData>[],
-  ): Element<TElementData>[] {
-    const flatElements: Element<TElementData>[] = [];
+    elements: Element[],
+  ): Element[] {
+    const flatElements: Element[] = [];
     for (const el of elements) {
       flatElements.push(el);
       if (el instanceof ElementGroup && el.children) {
@@ -292,10 +294,10 @@ export class WorkArea {
 
   private processLayerHierarchy(
     hierarchy: Layer[],
-    flatElements: Element<TElementData>[],
+    flatElements: Element[],
     counter: { value: number },
-  ): Element<TElementData>[] {
-    const orderedElements: Element<TElementData>[] = [];
+  ): Element[] {
+    const orderedElements: Element[] = [];
     for (const layer of hierarchy) {
       const element = flatElements.find((el) => el.elementId === layer.id);
       if (element) {
@@ -308,7 +310,7 @@ export class WorkArea {
             flatElements,
             counter,
           );
-          (element as ElementGroup).children = childElements;
+          element.children = childElements;
         }
       }
     }
@@ -332,8 +334,8 @@ export class WorkArea {
 
   public async createElementFromData(
     elData: TElementData,
-  ): Promise<Element<TElementData> | null> {
-    let newElement: Element<TElementData> | null = null;
+  ): Promise<Element | null> {
+    let newElement: Element | null = null;
 
     switch (elData.type) {
       case "image":
@@ -341,28 +343,28 @@ export class WorkArea {
           elData.position,
           elData.size,
           elData.zDepth,
-        ) as Element<TElementData>;
+        );
         break;
       case "path":
         newElement = new PathElement(
           elData.position,
           elData.size,
           elData.zDepth,
-        ) as Element<TElementData>;
+        );
         break;
       case "text":
         newElement = new TextElement(
           elData.position,
           elData.size,
           elData.zDepth,
-        ) as Element<TElementData>;
+        );
         break;
       case "gradient":
         newElement = new GradientElement(
           elData.position,
           elData.size,
           elData.zDepth,
-        ) as Element<TElementData>;
+        );
         break;
       case "group": {
         const children = await Promise.all(
@@ -372,8 +374,8 @@ export class WorkArea {
           elData.position,
           elData.size,
           elData.zDepth,
-          children.filter((el): el is Element<TElementData> => el !== null),
-        ) as Element<TElementData>;
+          children.filter((el): el is Element => el !== null),
+        );
         break;
       }
     }
@@ -416,15 +418,7 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
-    this.elements.push(newElement as Element<TElementData>);
-    this.eventBus.emit("workarea:addElement", {
-      elementId: newElement.elementId,
-      isLocked: newElement.isLocked,
-      isVisible: newElement.isVisible,
-      layerName: newElement.layerName,
-      type: "gradient",
-    });
-    this.eventBus.emit("workarea:update");
+    this.registerElement(newElement, 'gradient');
   }
 
   public addTextElement(position: Position): TextElement {
@@ -435,16 +429,7 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
-    this.elements.push(newElement as Element<TElementData>);
-    this.eventBus.emit("workarea:addElement", {
-      elementId: newElement.elementId,
-      isLocked: newElement.isLocked,
-      isVisible: newElement.isVisible,
-      layerName: newElement.layerName,
-      type: "text",
-    });
-    this.eventBus.emit("workarea:update");
-
+    this.registerElement(newElement, 'text');
     return newElement;
   }
 
@@ -457,16 +442,7 @@ export class WorkArea {
       this.elements.length,
     );
     await newElement.loadImage(encodedImage);
-    this.elements.push(newElement as Element<TElementData>);
-    this.eventBus.emit("workarea:addElement", {
-      elementId: newElement.elementId,
-      isLocked: newElement.isLocked,
-      isVisible: newElement.isVisible,
-      layerName: newElement.layerName,
-      type: "image",
-    });
-    this.eventBus.emit("workarea:update");
-
+    this.registerElement(newElement, 'image');
     return newElement;
   }
 
@@ -477,27 +453,18 @@ export class WorkArea {
       this.elements.length,
       [],
     );
-    this.elements.push(newElement as Element<TElementData>);
-    this.eventBus.emit("workarea:addElement", {
-      children: [],
-      elementId: newElement.elementId,
-      isLocked: newElement.isLocked,
-      isVisible: newElement.isVisible,
-      layerName: newElement.layerName,
-      type: "group",
-    });
-    this.eventBus.emit("workarea:update");
+    this.registerElement(newElement, 'group', { children: [] });
   };
 
   private getElement = ({
     elementId,
-  }: ElementIdPayload): Element<TElementData> | undefined => {
+  }: ElementIdPayload): Element | undefined => {
     return this.getFlatElements(this.elements).find(
       (el) => el.elementId === elementId,
     );
   };
 
-  private getElements = (): Element<TElementData>[] => {
+  private getElements = (): Element[] => {
     return this.elements;
   };
 
@@ -531,5 +498,22 @@ export class WorkArea {
         }
       }
     }
+  };
+
+  private registerElement = (
+    el: RegistrableElement,
+    type: ElementType,
+    extra?: { children: Layer[] },
+  ) => {
+    this.elements.push(el as Element);
+    this.eventBus.emit("workarea:addElement", {
+      children: extra?.children,
+      elementId: el.elementId,
+      isLocked: el.isLocked,
+      isVisible: el.isVisible,
+      layerName: el.layerName,
+      type,
+    });
+    this.eventBus.emit("workarea:update");
   };
 }

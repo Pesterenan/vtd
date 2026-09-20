@@ -4,13 +4,12 @@ import type {
   SelectElementsByIdPayload,
 } from "src/utils/eventBus";
 import type { Element } from "./elements/element";
-import type { TElementData } from "./types";
 import { ElementGroup } from "./elements/elementGroup";
 
 type Deps = {
   eventBus: EventBus;
-  getElements: () => Element<TElementData>[];
-  getFlatElements: (els: Element<TElementData>[]) => Element<TElementData>[];
+  getElements: () => Element[];
+  getFlatElements: (els: Element[]) => Element[];
   onSelectionApplied: () => void;
 };
 
@@ -40,8 +39,8 @@ export class SelectionManager {
     this.deps.eventBus.emit("workarea:update");
   };
 
-  public getSelectedElements = (): Element<TElementData>[] => {
-    const selectedElements: Element<TElementData>[] = [];
+  public getSelectedElements = (): Element[] => {
+    const selectedElements: Element[] = [];
     for (const el of this.deps.getFlatElements(this.deps.getElements())) {
       if (el.selected && !el.isLocked && !(el instanceof ElementGroup)) {
         selectedElements.push(el);
@@ -66,7 +65,7 @@ export class SelectionManager {
     secondPoint,
     isAddingToSelection,
   }: SelectElementsAtPayload): void => {
-    let selectedElements: Element<TElementData>[] = isAddingToSelection
+    let selectedElements: Element[] = isAddingToSelection
       ? this.getSelectedElements()
       : [];
     if (firstPoint) {
@@ -108,7 +107,7 @@ export class SelectionManager {
             selectedElements.splice(idx, 1);
           }
         } else {
-          selectedElements = [firstElement as Element<TElementData>];
+          selectedElements = [firstElement];
         }
       }
       if (secondPoint) {

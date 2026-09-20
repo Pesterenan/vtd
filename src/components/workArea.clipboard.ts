@@ -5,12 +5,11 @@ import type {
   ExportLayerToClipBoardPayload,
 } from "src/utils/eventBus";
 import type { Element } from "./elements/element";
-import type { TElementData } from "./types";
 
 type Deps = {
   eventBus: EventBus;
-  getElements: () => Element<TElementData>[];
-  getFlatElements: (els: Element<TElementData>[]) => Element<TElementData>[];
+  getElements: () => Element[];
+  getFlatElements: (els: Element[]) => Element[];
   getCanvas: () => HTMLCanvasElement | null;
   redraw: (transparent?: boolean) => void;
 };

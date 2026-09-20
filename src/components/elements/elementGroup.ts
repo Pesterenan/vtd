@@ -2,14 +2,14 @@ import { BoundingBox } from "src/utils/boundingBox";
 import type { IElementGroupData, Position, Size, TElementData } from "../types";
 import { Element } from "./element";
 
-export class ElementGroup extends Element<IElementGroupData> {
-  public children: Element<TElementData>[] = [];
+export class ElementGroup extends Element {
+  public children: Element[] = [];
 
   constructor(
     position: Position,
     size: Size,
     zDepth: number,
-    children: Element<TElementData>[],
+    children: Element[],
   ) {
     super(position, size, zDepth);
     this.properties.set("type", "group");
@@ -17,11 +17,13 @@ export class ElementGroup extends Element<IElementGroupData> {
   }
 
   public serialize(): IElementGroupData {
-    const serialized = super.serialize();
+    const serialized = super.serialize() as IElementGroupData;
     if (this.children) {
-      serialized.children = this.children.map((child) => child.serialize());
+      serialized.children = this.children.map((child) =>
+        child.serialize(),
+      ) as TElementData[];
     }
-    return serialized as IElementGroupData;
+    return serialized;
   }
 
   public deserialize(data: IElementGroupData): void {

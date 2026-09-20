@@ -1,17 +1,39 @@
-import type { Position, Scale, Size, IElementData } from "components/types";
+/* eslint-disable @typescript-eslint/no-empty-function */
+import type {
+  IColorStop,
+  IElementData,
+  Point,
+  Position,
+  Scale,
+  Size,
+  TElementData,
+} from "components/types";
 import type { FilterProperties } from "src/filters/filter";
 import type { BoundingBox } from "src/utils/boundingBox";
-import type { CroppingBox } from "src/utils/croppingBox";
+import type { CroppingBox, ICroppingBoxData } from "src/utils/croppingBox";
 
-export abstract class Element<T extends IElementData> {
+/** Value types storable in an element's property bag. */
+export type ElementPropertyValue =
+  | IElementData[keyof IElementData]
+  | ICroppingBoxData
+  | IColorStop[]
+  | Point[]
+  | TElementData[]
+  | undefined;
+
+export abstract class Element {
   public static elementIds = 0;
+  /**
+   * Unique instance id, assigned in the constructor.
+   *
+   * Deliberately OUTSIDE `properties` and `serialize()`: ids are always
+   * regenerated on load/copy (see `createElementFromData`). Never persist
+   * nor restore `elementId` — duplicating it corrupts selection and layers.
+   */
   protected _elementId = 0;
   public selected = false;
 
-  protected properties: Map<
-    keyof T,
-    IElementData[keyof IElementData] | T[keyof T]
-  > = new Map();
+  protected properties: Map<string, ElementPropertyValue> = new Map();
 
   public get elementId(): number {
     return this._elementId;
@@ -20,8 +42,17 @@ export abstract class Element<T extends IElementData> {
     return this.properties.get("position") as Position;
   }
   public set position(value: Position) {
+    const current = this.properties.get("position") as Position | undefined;
     this.properties.set("position", value);
+    if (current) {
+      this.onPositionChanged({
+        x: value.x - current.x,
+        y: value.y - current.y,
+      });
+    }
   }
+  /** Rigid-body compensation hook (e.g. gradient handles). No-op by default. */
+  protected onPositionChanged(_delta: Position): void {}
   public get size(): Size {
     return this.properties.get("size") as Size;
   }
@@ -38,8 +69,14 @@ export abstract class Element<T extends IElementData> {
     return this.properties.get("rotation") as number;
   }
   public set rotation(value: number) {
+    const current = this.properties.get("rotation") as number | undefined;
     this.properties.set("rotation", value);
+    if (current !== undefined) {
+      this.onRotationChanged(value - current);
+    }
   }
+  /** Rigid-body compensation hook (e.g. gradient handles). No-op by default. */
+  protected onRotationChanged(_deltaAngle: number): void {}
   public get opacity(): number {
     return this.properties.get("opacity") as number;
   }
@@ -91,19 +128,21 @@ export abstract class Element<T extends IElementData> {
     this.filters = [];
   }
 
-  public deserialize(data: T): void {
-    for (const key of Object.keys(data) as Array<keyof T>) {
+  public deserialize(data: IElementData): void {
+    const raw = data as unknown as Record<string, ElementPropertyValue>;
+    for (const key of Object.keys(raw)) {
       if (!this.properties.has(key)) continue;
-      if (key === "filters" && Array.isArray(data.filters)) {
-        this.properties.set(key, data.filters);
+      const value = raw[key];
+      if (key === "filters" && Array.isArray(value)) {
+        this.properties.set(key, value);
         continue;
       }
-      this.properties.set(key, data[key]);
+      this.properties.set(key, value);
     }
   }
 
-  public serialize(): T {
-    return Object.fromEntries(this.properties) as unknown as T;
+  public serialize(): IElementData {
+    return Object.fromEntries(this.properties) as unknown as IElementData;
   }
 
   public abstract draw(context: CanvasRenderingContext2D): void;
@@ -113,5 +152,3 @@ export abstract class Element<T extends IElementData> {
     return null;
   }
 }
-
-

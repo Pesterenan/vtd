@@ -10,7 +10,6 @@ import ApplyCropDialog from "./ApplyCropDialog";
 import ElementFiltersDialog from "./ElementFiltersDialog";
 import type { FilterProperties } from "src/filters/filter";
 import type { Element } from "src/components/elements/element";
-import type { TElementData } from "src/components/types";
 
 function renderDialog(component: React.ComponentType<{ isOpen: boolean; onClose: () => void }>, isOpen = true) {
   const onClose = vi.fn();
@@ -183,7 +182,7 @@ describe("ElementFiltersDialog", () => {
 
   it("renders filter list from event payload", () => {
     const eventBus = new EventBus();
-    const mockElement = { filters: [] as FilterProperties[] } as Element<TElementData>;
+    const mockElement = { filters: [] as FilterProperties[] } as Element;
 
     eventBus.on("workarea:selected:get", () => [mockElement]);
 

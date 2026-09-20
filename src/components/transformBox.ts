@@ -1,5 +1,5 @@
 import type { Element } from "src/components/elements/element";
-import type { Position, Scale, Size, TElementData } from "src/components/types";
+import type { Position, Scale, Size } from "src/components/types";
 import { BoundingBox } from "src/utils/boundingBox";
 import { clamp } from "src/utils/easing";
 import type {
@@ -24,7 +24,7 @@ export class TransformBox {
   public rotation = 0;
   public opacity = 1;
 
-  private selectedElements: Element<TElementData>[] = [];
+  private selectedElements: Element[] = [];
   public boundingBox: BoundingBox | null = null;
   public handles: Record<BoxHandleKeys, Position> | null = null;
   private eventBus: EventBus;
@@ -34,7 +34,7 @@ export class TransformBox {
   private isCroppingBoxVisible = false;
 
   public constructor(
-    selectedElements: Element<TElementData>[],
+    selectedElements: Element[],
     eventBus: EventBus,
   ) {
     this.eventBus = eventBus;
@@ -293,7 +293,7 @@ export class TransformBox {
 
   public updatePosition = ({ position: { x, y } }: PositionPayload): void => {
     const delta = { x: x - this.position.x, y: y - this.position.y };
-    const moveElement = (element: Element<TElementData>) => {
+    const moveElement = (element: Element) => {
       element.position = {
         x: element.position.x + delta.x,
         y: element.position.y + delta.y,
@@ -317,7 +317,7 @@ export class TransformBox {
     const deltaAngle = angle - this.rotation;
     const deltaPos = rotatePoint(this.position, this.anchorPoint, deltaAngle);
     const angleInRadians = toRadians(deltaAngle);
-    const rotateElement = (element: Element<TElementData>) => {
+    const rotateElement = (element: Element) => {
       if (this.anchorPoint) {
         const deltaX = element.position.x - this.anchorPoint.x;
         const deltaY = element.position.y - this.anchorPoint.y;
@@ -350,7 +350,7 @@ export class TransformBox {
     delta,
     anchor = this.anchorPoint,
   }: UpdateScalePayload): void => {
-    const scaleElement = (element: Element<TElementData>) => {
+    const scaleElement = (element: Element) => {
       const offset = {
         x: element.position.x - anchor.x,
         y: element.position.y - anchor.y,
@@ -470,7 +470,7 @@ export class TransformBox {
     this.eventBus.emit("workarea:update");
   };
 
-  public contains(element: Element<TElementData>): boolean {
+  public contains(element: Element): boolean {
     return !!this.selectedElements.find((el) => el.zDepth === element.zDepth);
   }
 

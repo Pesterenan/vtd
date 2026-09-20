@@ -1,12 +1,12 @@
 import type { EventBus } from "src/utils/eventBus";
 import type { Element } from "./elements/element";
-import type { Size, TElementData } from "./types";
+import type { Size } from "./types";
 import { GradientElement } from "./elements/gradientElement";
 
 type Deps = {
   eventBus: EventBus;
-  getElements: () => Element<TElementData>[];
-  getFlatElements: (els: Element<TElementData>[]) => Element<TElementData>[];
+  getElements: () => Element[];
+  getFlatElements: (els: Element[]) => Element[];
   getCanvas: () => HTMLCanvasElement | null;
   setWorkAreaSize: (size: Size) => void;
   refreshTransformBox: () => void;

@@ -257,3 +257,30 @@ describe("WorkArea - Path Integration", () => {
     });
   });
 });
+
+describe("element id contract", () => {
+  let localWorkArea: WorkArea;
+
+  beforeEach(() => {
+    const localBus = new EventBus();
+    localWorkArea = new WorkArea(localBus);
+    localWorkArea.setWorkAreaSize({ width: 800, height: 600 });
+  });
+
+  it("never persists elementId and regenerates fresh unique ids on load", async () => {
+    const original = localWorkArea.addTextElement({ x: 10, y: 10 });
+    const data = original.serialize();
+
+    expect("elementId" in data).toBe(false);
+
+    const copyA = await localWorkArea.createElementFromData({ ...data });
+    const copyB = await localWorkArea.createElementFromData({ ...data });
+
+    expect(copyA).not.toBeNull();
+    expect(copyB).not.toBeNull();
+    expect(copyA?.elementId).not.toBe(original.elementId);
+    expect(copyB?.elementId).not.toBe(original.elementId);
+    expect(copyA?.elementId).not.toBe(copyB?.elementId);
+    expect(copyA?.layerName).toBe(original.layerName);
+  });
+});
