@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import { useEventBus } from "src/hooks/useEventBus";
+import useElementMenu from "src/hooks/useElementMenu";
 import { PathElement } from "../elements/pathElement";
 import styles from "./PathMenu.module.css";
 import CheckboxInput from "../CheckboxInput/CheckboxInput";
@@ -56,134 +55,73 @@ const LINE_DASH_OPTIONS: ISelectOption[] = [
 ];
 
 const PathMenu = () => {
-  const { on, emit } = useEventBus();
-  const [disabled, setDisabled] = useState(true);
-  const [selected, setSelected] = useState(false);
-  const [pathProps, setPathProps] = useState<PathMenuState>(DEFAULT_PROPS);
-  const activeElementRef = useRef<PathElement | null>(null);
+  const {
+    disabled,
+    selected,
+    state: pathProps,
+    bindProp,
+  } = useElementMenu<PathElement, PathMenuState>({
+    defaultState: DEFAULT_PROPS,
+    findSelected: (els) => els.find((el) => el instanceof PathElement),
+    syncFromElement: (el) => ({
+      fillColor: el.fillColor,
+      hasFill: el.hasFill,
+      hasStroke: el.hasStroke,
+      isClosed: el.isClosed,
+      lineCap: el.lineCap,
+      lineDash: el.lineDash,
+      lineJoin: el.lineJoin,
+      miterLimit: el.miterLimit,
+      points: el.points,
+      strokeColor: el.strokeColor,
+      strokeWidth: el.strokeWidth,
+    }),
+  });
 
-  useEffect(() => {
-    const unsub1 = on("workarea:initialized", () => setDisabled(false));
-    const unsub2 = on("workarea:clear", () => {
-      setSelected(false);
-      setDisabled(true);
-      setPathProps(DEFAULT_PROPS);
-      activeElementRef.current = null;
-    });
-    const unsub3 = on("selection:changed", ({ selectedElements }) => {
-      const pathElement = selectedElements.find(
-        (el) => el instanceof PathElement,
-      ) as PathElement | undefined;
-      if (pathElement) {
-        activeElementRef.current = pathElement;
-        setSelected(true);
-        setPathProps({
-          fillColor: pathElement.fillColor,
-          hasFill: pathElement.hasFill,
-          hasStroke: pathElement.hasStroke,
-          isClosed: pathElement.isClosed,
-          lineCap: pathElement.lineCap,
-          lineDash: pathElement.lineDash,
-          lineJoin: pathElement.lineJoin,
-          miterLimit: pathElement.miterLimit,
-          points: pathElement.points,
-          strokeColor: pathElement.strokeColor,
-          strokeWidth: pathElement.strokeWidth,
-        });
-      } else {
-        setSelected(false);
-        setPathProps(DEFAULT_PROPS);
-        activeElementRef.current = null;
-      }
-    });
-    return () => {
-      unsub1();
-      unsub2();
-      unsub3();
-    };
-  }, [on]);
+  const handleToggleFill = bindProp("hasFill", (el, checked) => {
+    el.hasFill = checked;
+  });
 
-  const updateProp = <K extends keyof PathMenuState>(
-    key: K,
-    value: PathMenuState[K],
-  ) => {
-    setPathProps((prev) => ({ ...prev, [key]: value }));
-  };
+  const handleToggleStroke = bindProp("hasStroke", (el, checked) => {
+    el.hasStroke = checked;
+  });
 
-  const handleToggleFill = (checked: boolean) => {
-    updateProp("hasFill", checked);
-    if (activeElementRef.current) {
-      activeElementRef.current.hasFill = checked;
-      emit("workarea:update");
-    }
-  };
+  const handleChangeStrokeColor = bindProp("strokeColor", (el, color) => {
+    el.strokeColor = color;
+  });
 
-  const handleToggleStroke = (checked: boolean) => {
-    updateProp("hasStroke", checked);
-    if (activeElementRef.current) {
-      activeElementRef.current.hasStroke = checked;
-      emit("workarea:update");
-    }
-  };
+  const handleChangeFillColor = bindProp("fillColor", (el, color) => {
+    el.fillColor = color;
+  });
 
-  const handleChangeStrokeColor = (color: string): void => {
-    updateProp("strokeColor", color);
-    if (activeElementRef.current) {
-      activeElementRef.current.strokeColor = color;
-      emit("workarea:update");
-    }
-  };
-
-  const handleChangeFillColor = (color: string) => {
-    updateProp("fillColor", color);
-    if (activeElementRef.current) {
-      activeElementRef.current.fillColor = color;
-      emit("workarea:update");
-    }
-  };
-
-  const handleChangeStrokeWidth = (value: number) => {
-    updateProp("strokeWidth", value);
-    if (activeElementRef.current) {
-      activeElementRef.current.strokeWidth = value;
-      emit("workarea:update");
-    }
-  };
+  const handleChangeStrokeWidth = bindProp("strokeWidth", (el, value) => {
+    el.strokeWidth = value;
+  });
 
   const handleChangeLineCap = (value: string) => {
     const lineCap = value as PathMenuState["lineCap"];
-    updateProp("lineCap", lineCap);
-    if (activeElementRef.current) {
-      activeElementRef.current.lineCap = lineCap;
-      emit("workarea:update");
-    }
+    bindProp("lineCap", (el, cap) => {
+      el.lineCap = cap;
+    })(lineCap);
   };
 
   const handleChangeLineJoin = (value: string) => {
     const lineJoin = value as PathMenuState["lineJoin"];
-    updateProp("lineJoin", lineJoin);
-    if (activeElementRef.current) {
-      activeElementRef.current.lineJoin = lineJoin;
-      emit("workarea:update");
-    }
+    bindProp("lineJoin", (el, join) => {
+      el.lineJoin = join;
+    })(lineJoin);
   };
 
   const handleChangeLineDash = (value: string) => {
     const lineDash = value as PathMenuState["lineDash"];
-    updateProp("lineDash", lineDash);
-    if (activeElementRef.current) {
-      activeElementRef.current.lineDash = lineDash;
-      emit("workarea:update");
-    }
+    bindProp("lineDash", (el, dash) => {
+      el.lineDash = dash;
+    })(lineDash);
   };
 
-  const handleChangeMiterLimit = (value: number) => {
-    updateProp("miterLimit", value);
-    if (activeElementRef.current) {
-      activeElementRef.current.miterLimit = value;
-      emit("workarea:update");
-    }
-  };
+  const handleChangeMiterLimit = bindProp("miterLimit", (el, value) => {
+    el.miterLimit = value;
+  });
 
   const isDisabled = disabled || !selected;
 
