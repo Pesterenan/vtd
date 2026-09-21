@@ -39,7 +39,7 @@ function loadInKeyOrder(
 }
 
 describe("GradientElement", () => {
-  describe("deserialize key order (F17)", () => {
+  describe("deserialize key order", () => {
     it("loads the same visual state regardless of key order", () => {
       const forward = loadInKeyOrder(
         Object.keys(BASE_DATA) as Array<keyof IGradientElementData>,
