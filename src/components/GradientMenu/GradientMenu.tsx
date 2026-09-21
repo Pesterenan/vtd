@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { useEventBus } from "src/hooks/useEventBus";
 import type { IColorStop } from "../types";
 import styles from "./GradientMenu.module.css";
@@ -7,6 +7,7 @@ import GradientBar from "./components/GradientBar";
 import ColorPicker from "../ColorPicker/ColorPicker";
 import SliderControl from "../SliderControl/SliderControl";
 import SelectInput from "../SelectInput/SelectInput";
+import useElementMenu from "src/hooks/useElementMenu";
 
 interface GradientMenuState {
   colorStops: IColorStop[];
@@ -21,58 +22,23 @@ const DEFAULT_PROPS: GradientMenuState = {
 };
 
 const GradientMenu = () => {
-  const { on, emit } = useEventBus();
-  const [disabled, setDisabled] = useState(true);
-  const [selected, setSelected] = useState(false);
-  const [state, setState] = useState<GradientMenuState>(DEFAULT_PROPS);
-  const activeElementRef = useRef<GradientElement | null>(null);
-
-  useEffect(() => {
-    const unsub1 = on("workarea:initialized", () => setDisabled(false));
-    const unsub2 = on("workarea:clear", () => {
-      setSelected(false);
-      setDisabled(true);
-      setState(DEFAULT_PROPS);
-      activeElementRef.current = null;
-    });
-    const unsub3 = on("edit:gradient", () => {
-      setSelected(true);
-    });
-    const unsub4 = on("edit:gradientUpdateColorStops", () => {
-      const el = activeElementRef.current;
-      if (el) {
-        setState((prev) => ({
-          ...prev,
-          colorStops: [...el.colorStops],
-        }));
-      }
-    });
-    const unsub5 = on("selection:changed", ({ selectedElements }) => {
-      const gradientElement = selectedElements.find(
-        (el) => el instanceof GradientElement,
-      ) as GradientElement | undefined;
-      if (gradientElement) {
-        activeElementRef.current = gradientElement;
-        setSelected(true);
-        setState({
-          colorStops: [...gradientElement.colorStops],
-          activeStopIndex: 0,
-          gradientFormat: gradientElement.gradientFormat,
-        });
-      } else {
-        setSelected(false);
-        setState(DEFAULT_PROPS);
-        activeElementRef.current = null;
-      }
-    });
-    return () => {
-      unsub1();
-      unsub2();
-      unsub3();
-      unsub4();
-      unsub5();
-    };
-  }, [on]);
+  const { emit } = useEventBus();
+  const {
+    activeRef,
+    disabled,
+    selected,
+    state,
+    setState,
+  } = useElementMenu<GradientElement, GradientMenuState>({
+    defaultState: DEFAULT_PROPS,
+    findSelected: (els) => els.find((el) => el instanceof GradientElement),
+    syncFromElement: (el) => ({
+      colorStops: [ ...el.colorStops ],
+      activeStopIndex: 0,
+      gradientFormat: el.gradientFormat,
+    }),
+    extraSubscriptions: ["edit:gradientUpdateColorStops"],
+  });
 
   const activeStop =
     state.activeStopIndex !== null
@@ -88,7 +54,7 @@ const GradientMenu = () => {
 
   const handleAddStop = useCallback(
     (portion: number) => {
-      const el = activeElementRef.current;
+      const el = activeRef.current;
       if (!el) return;
 
       const stops = el.colorStops;
@@ -144,7 +110,7 @@ const GradientMenu = () => {
 
   const handleDeleteStop = useCallback(
     (index: number) => {
-      const el = activeElementRef.current;
+      const el = activeRef.current;
       if (!el || el.colorStops.length <= 2) return;
       if (index === 0 || index === el.colorStops.length - 1) return;
 
@@ -164,7 +130,7 @@ const GradientMenu = () => {
 
   const handleDragStop = useCallback(
     (index: number, portion: number) => {
-      const el = activeElementRef.current;
+      const el = activeRef.current;
       if (!el) return;
 
       const clamped = (() => {
@@ -191,7 +157,7 @@ const GradientMenu = () => {
 
   const handleColorChange = useCallback(
     (color: string) => {
-      const el = activeElementRef.current;
+      const el = activeRef.current;
       if (!el || state.activeStopIndex === null) return;
       const newStops = el.colorStops.map((s, i) =>
         i === state.activeStopIndex ? { ...s, color } : s,
@@ -208,7 +174,7 @@ const GradientMenu = () => {
 
   const handleAlphaChange = useCallback(
     (value: number) => {
-      const el = activeElementRef.current;
+      const el = activeRef.current;
       if (!el || state.activeStopIndex === null) return;
       const newStops = el.colorStops.map((s, i) =>
         i === state.activeStopIndex ? { ...s, alpha: value } : s,
@@ -225,7 +191,7 @@ const GradientMenu = () => {
 
   const handlePortionChange = useCallback(
     (value: number) => {
-      const el = activeElementRef.current;
+      const el = activeRef.current;
       if (!el || state.activeStopIndex === null) return;
 
       const clamped = (() => {
@@ -251,7 +217,7 @@ const GradientMenu = () => {
 
   const handleFormatChange = useCallback(
     (newFormat: string) => {
-      const el = activeElementRef.current;
+      const el = activeRef.current;
       if (!el) return;
       el.gradientFormat = newFormat as GradientElement["gradientFormat"];
       setState((prev) => ({ ...prev, gradientFormat: newFormat }));
