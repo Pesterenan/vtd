@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import styles from "./TextMenu.module.css";
 import ColorPicker from "../ColorPicker/ColorPicker";
 import { useEventBus } from "src/hooks/useEventBus";
@@ -17,6 +17,7 @@ import IconFontStyleUnderline from "src/assets/icons/fontStyleUnderline.svg";
 import IconFontWeightBold from "src/assets/icons/fontWeightBold.svg";
 import IconFontWeightBoldItalic from "src/assets/icons/fontWeightBoldItalic.svg";
 import IconFontWeightItalic from "src/assets/icons/fontWeightItalic.svg";
+import useElementMenu from "src/hooks/useElementMenu";
 
 interface TextMenuState {
   content: string;
@@ -106,74 +107,52 @@ const IconRadio = ({ option, name, checked, onChange }: IconRadioProps) => (
 
 const TextMenu = () => {
   const { on, emit } = useEventBus();
-  const [disabled, setDisabled] = useState(true);
-  const [selected, setSelected] = useState(false);
-  const [textProps, setTextProps] = useState<TextMenuState>(DEFAULT_PROPS);
-  const activeElementRef = useRef<TextElement | null>(null);
+  const { activeRef, deselect, disabled, selected, state: textProps, setState: setTextProps } = useElementMenu<TextElement, TextMenuState>(
+    {
+      defaultState: DEFAULT_PROPS,
+      findSelected: (els) => els.find((el) => el instanceof TextElement),
+      syncFromElement: (el) => ({
+        content: el.content.join('\n'),
+        fontSize: el.fontSize,
+        lineHeight: el.lineHeight,
+        fillColor: el.fillColor,
+        strokeColor: el.strokeColor,
+        strokeWidth: el.strokeWidth,
+        hasFill: el.hasFill,
+        hasStroke: el.hasStroke,
+        textAlign: el.textAlign,
+        fontStyle: el.fontStyle,
+        fontWeight: el.fontWeight,
+      }),
+    })
   const originalContentRef = useRef<string>("");
 
   useEffect(() => {
-    const unsub1 = on("workarea:initialized", () => setDisabled(false));
-    const unsub2 = on("workarea:clear", () => {
-      setSelected(false);
-      setDisabled(true);
+    const unsub1 = on("edit:acceptTextChange", () => {
+      deselect();
       setTextProps(DEFAULT_PROPS);
-      activeElementRef.current = null;
+      emit("workarea:selectAt", { firstPoint: null });
+      emit("workarea:update");
     });
-    const unsub3 = on("edit:text", () => {
-      setSelected(true);
+    const unsub2 = on("edit:declineTextChange", () => {
+      if (activeRef.current) {
+        activeRef.current.content = [originalContentRef.current];
+      }
+      deselect();
+      setTextProps(DEFAULT_PROPS);
+      emit("workarea:selectAt", { firstPoint: null });
+      emit("workarea:update");
     });
-    const unsub4 = on("selection:changed", ({ selectedElements }) => {
-      const textElement = selectedElements.find(
-        (el) => el instanceof TextElement,
-      ) as TextElement | undefined;
+    const unsub3 = on("selection:changed", ({ selectedElements }) => {
+      const textElement = selectedElements.find((el) => el instanceof TextElement);
       if (textElement) {
-        activeElementRef.current = textElement;
         originalContentRef.current = textElement.content.join("\n");
-        setSelected(true);
-        setTextProps({
-          content: textElement.content.join("\n"),
-          fontSize: textElement.fontSize,
-          lineHeight: textElement.lineHeight,
-          fillColor: textElement.fillColor,
-          strokeColor: textElement.strokeColor,
-          strokeWidth: textElement.strokeWidth,
-          hasFill: textElement.hasFill,
-          hasStroke: textElement.hasStroke,
-          textAlign: textElement.textAlign,
-          fontStyle: textElement.fontStyle,
-          fontWeight: textElement.fontWeight,
-        });
-      } else {
-        setSelected(false);
-        activeElementRef.current = null;
-        setTextProps(DEFAULT_PROPS);
       }
-    });
-    const unsub5 = on("edit:acceptTextChange", () => {
-      activeElementRef.current = null;
-      setTextProps(DEFAULT_PROPS);
-      setSelected(false);
-      emit("workarea:selectAt", { firstPoint: null });
-      emit("workarea:update");
-    });
-    const unsub6 = on("edit:declineTextChange", () => {
-      if (activeElementRef.current) {
-        activeElementRef.current.content = [originalContentRef.current];
-      }
-      activeElementRef.current = null;
-      setTextProps(DEFAULT_PROPS);
-      setSelected(false);
-      emit("workarea:selectAt", { firstPoint: null });
-      emit("workarea:update");
     });
     return () => {
       unsub1();
       unsub2();
       unsub3();
-      unsub4();
-      unsub5();
-      unsub6();
     };
   }, [on, emit]);
 
@@ -187,8 +166,8 @@ const TextMenu = () => {
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = event.target.value;
     updateProp("content", newContent);
-    if (activeElementRef.current) {
-      activeElementRef.current.content = [newContent];
+    if (activeRef.current) {
+      activeRef.current.content = [newContent];
       emit("workarea:update");
     }
   };
@@ -205,40 +184,40 @@ const TextMenu = () => {
 
   const handleFontSizeChange = (value: number) => {
     updateProp("fontSize", value);
-    if (activeElementRef.current) {
-      activeElementRef.current.fontSize = value;
+    if (activeRef.current) {
+      activeRef.current.fontSize = value;
       emit("workarea:update");
     }
   };
 
   const handleLineHeightChange = (value: number) => {
     updateProp("lineHeight", value);
-    if (activeElementRef.current) {
-      activeElementRef.current.lineHeight = value;
+    if (activeRef.current) {
+      activeRef.current.lineHeight = value;
       emit("workarea:update");
     }
   };
 
   const handleFillColorChange = (color: string) => {
     updateProp("fillColor", color);
-    if (activeElementRef.current) {
-      activeElementRef.current.fillColor = color;
+    if (activeRef.current) {
+      activeRef.current.fillColor = color;
       emit("workarea:update");
     }
   };
 
   const handleStrokeColorChange = (color: string) => {
     updateProp("strokeColor", color);
-    if (activeElementRef.current) {
-      activeElementRef.current.strokeColor = color;
+    if (activeRef.current) {
+      activeRef.current.strokeColor = color;
       emit("workarea:update");
     }
   };
 
   const handleStrokeWidthChange = (value: number) => {
     updateProp("strokeWidth", value);
-    if (activeElementRef.current) {
-      activeElementRef.current.strokeWidth = value;
+    if (activeRef.current) {
+      activeRef.current.strokeWidth = value;
       emit("workarea:update");
     }
   };
@@ -246,8 +225,8 @@ const TextMenu = () => {
   const handleHasFillChange = () => {
     const newValue = !textProps.hasFill;
     updateProp("hasFill", newValue);
-    if (activeElementRef.current) {
-      activeElementRef.current.hasFill = newValue;
+    if (activeRef.current) {
+      activeRef.current.hasFill = newValue;
       emit("workarea:update");
     }
   };
@@ -255,8 +234,8 @@ const TextMenu = () => {
   const handleHasStrokeChange = () => {
     const newValue = !textProps.hasStroke;
     updateProp("hasStroke", newValue);
-    if (activeElementRef.current) {
-      activeElementRef.current.hasStroke = newValue;
+    if (activeRef.current) {
+      activeRef.current.hasStroke = newValue;
       emit("workarea:update");
     }
   };
@@ -264,8 +243,8 @@ const TextMenu = () => {
   const handleTextAlignChange =
     (_value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
       updateProp("textAlign", e.target.value);
-      if (activeElementRef.current) {
-        activeElementRef.current.textAlign = e.target
+      if (activeRef.current) {
+        activeRef.current.textAlign = e.target
           .value as TextElement["textAlign"];
         emit("workarea:update");
       }
@@ -274,8 +253,8 @@ const TextMenu = () => {
   const handleFontStyleChange =
     (_value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
       updateProp("fontStyle", e.target.value);
-      if (activeElementRef.current) {
-        activeElementRef.current.fontStyle = e.target
+      if (activeRef.current) {
+        activeRef.current.fontStyle = e.target
           .value as TextElement["fontStyle"];
         emit("workarea:update");
       }
@@ -284,8 +263,8 @@ const TextMenu = () => {
   const handleFontWeightChange =
     (_value: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
       updateProp("fontWeight", e.target.value);
-      if (activeElementRef.current) {
-        activeElementRef.current.fontWeight = e.target
+      if (activeRef.current) {
+        activeRef.current.fontWeight = e.target
           .value as TextElement["fontWeight"];
         emit("workarea:update");
       }

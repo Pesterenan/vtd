@@ -117,6 +117,39 @@ describe("useElementMenu", () => {
     expect(result.current.activeRef.current).toBeNull();
   });
 
+  it("deseleciona e expõe deselect()", () => {
+    const { eventBus, result } = setup();
+    act(() => {
+      eventBus.emit("workarea:initialized");
+    });
+    const el = createPathElement();
+    act(() => {
+      eventBus.emit("selection:changed", { selectedElements: [el] });
+    });
+    act(() => {
+      eventBus.emit("workarea:clear");
+    });
+    expect(result.current.disabled).toBe(true);
+    expect(result.current.selected).toBe(false);
+    expect(result.current.state).toEqual(DEFAULT_STATE);
+    expect(result.current.activeRef.current).toBeNull();
+
+    // reset() manual restaura seleção/estado/ref sem depender do evento
+    act(() => {
+      eventBus.emit("workarea:initialized");
+    });
+    act(() => {
+      eventBus.emit("selection:changed", { selectedElements: [el] });
+    });
+    expect(result.current.selected).toBe(true);
+    act(() => {
+      result.current.deselect();
+    });
+    expect(result.current.selected).toBe(false);
+    expect(result.current.state).not.toEqual(DEFAULT_STATE);
+    expect(result.current.activeRef.current).toBeNull();
+  });
+
   it("reseta tudo ao receber workarea:clear e expõe reset()", () => {
     const { eventBus, result } = setup();
     act(() => {

@@ -22,6 +22,11 @@ const useElementMenu = <TElement, TState>({
   const [state, setState] = useState<TState>(defaultState);
   const activeRef = useRef<TElement | null>(null);
 
+  const deselect = () => {
+    setSelected(false);
+    activeRef.current = null;
+  };
+
   const reset = () => {
     setSelected(false);
     setDisabled(true);
@@ -74,6 +79,7 @@ const useElementMenu = <TElement, TState>({
 
   return {
     activeRef,
+    deselect,
     disabled,
     reset,
     selected,
