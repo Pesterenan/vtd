@@ -1,4 +1,5 @@
-import { act, render, screen } from "@testing-library/react";
+import { act } from "react";
+import { render, screen } from "@testing-library/react";
 import { EventBusProvider } from "src/contexts/EventBusContext";
 import { EventBus } from "src/utils/eventBus";
 import PenHintOverlay from "./PenHintOverlay";

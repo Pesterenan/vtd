@@ -1,4 +1,5 @@
-import { render, screen, act } from "@testing-library/react";
+import { act } from "react";
+import { render, screen } from "@testing-library/react";
 import { EventBusProvider } from "src/contexts/EventBusContext";
 import GradientMenu from "./GradientMenu";
 import { EventBus } from "src/utils/eventBus";

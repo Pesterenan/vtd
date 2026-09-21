@@ -1,4 +1,5 @@
-import { render, screen, act, fireEvent } from "@testing-library/react";
+import { act } from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { EventBusProvider } from "src/contexts/EventBusContext";
 import TransformMenu from "./TransformMenu";
 import { EventBus } from "src/utils/eventBus";
