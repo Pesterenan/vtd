@@ -33,10 +33,7 @@ export class TransformBox {
   private lockedHandleKey: BoxHandleKeys | null = null;
   private isCroppingBoxVisible = false;
 
-  public constructor(
-    selectedElements: Element[],
-    eventBus: EventBus,
-  ) {
+  public constructor(selectedElements: Element[], eventBus: EventBus) {
     this.eventBus = eventBus;
     this.selectedElements = selectedElements;
 
@@ -203,15 +200,15 @@ export class TransformBox {
 
   public mousePosition = ({ position }: PositionPayload): void => {
     if (this.handles) {
-      const hitHandle = (
-        Object.keys(this.handles) as BoxHandleKeys[]
-      ).find((key) => {
-        if (this.handles) {
-          const point = this.handles[key];
-          return Math.hypot(position.x - point.x, position.y - point.y) < 30;
-        }
-        return false;
-      });
+      const hitHandle = (Object.keys(this.handles) as BoxHandleKeys[]).find(
+        (key) => {
+          if (this.handles) {
+            const point = this.handles[key];
+            return Math.hypot(position.x - point.x, position.y - point.y) < 30;
+          }
+          return false;
+        },
+      );
       this.hoveredHandle = hitHandle || null;
     }
   };
@@ -291,6 +288,17 @@ export class TransformBox {
     this.updateHandles();
   };
 
+  private forEachTarget = (fn: (element: Element) => void): void => {
+    if (!this.selectedElements) return;
+    for (const element of this.selectedElements) {
+      if (element instanceof ElementGroup) {
+        element.children?.forEach(fn);
+      } else {
+        fn(element);
+      }
+    }
+  };
+
   public updatePosition = ({ position: { x, y } }: PositionPayload): void => {
     const delta = { x: x - this.position.x, y: y - this.position.y };
     const moveElement = (element: Element) => {
@@ -299,15 +307,7 @@ export class TransformBox {
         y: element.position.y + delta.y,
       };
     };
-    if (this.selectedElements) {
-      for (const element of this.selectedElements) {
-        if (element instanceof ElementGroup) {
-          element.children?.forEach(moveElement);
-        } else {
-          moveElement(element);
-        }
-      }
-    }
+    this.forEachTarget(moveElement);
     this.position = { x, y };
     this.anchorPoint = { x, y };
     this.updateHandles();
@@ -332,15 +332,7 @@ export class TransformBox {
         element.rotation += deltaAngle;
       }
     };
-    if (this.selectedElements) {
-      for (const element of this.selectedElements) {
-        if (element instanceof ElementGroup) {
-          element.children?.forEach(rotateElement);
-        } else {
-          rotateElement(element);
-        }
-      }
-    }
+    this.forEachTarget(rotateElement);
     this.position = deltaPos;
     this.rotation = angle;
     this.updateHandles();
@@ -376,15 +368,7 @@ export class TransformBox {
       element.position.y = anchor.y + offsetRotated.y;
     };
 
-    if (this.selectedElements) {
-      for (const element of this.selectedElements) {
-        if (element instanceof ElementGroup) {
-          element.children?.forEach(scaleElement);
-        } else {
-          scaleElement(element);
-        }
-      }
-    }
+    this.forEachTarget(scaleElement);
 
     const offset = {
       x: this.position.x - anchor.x,
