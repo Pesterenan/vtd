@@ -454,10 +454,6 @@ export class TransformBox {
     this.eventBus.emit("workarea:update");
   };
 
-  public contains(element: Element): boolean {
-    return !!this.selectedElements.find((el) => el.zDepth === element.zDepth);
-  }
-
   public calculateSignAndAnchor = (): ReturnType<typeof resolveHandleSign> =>
     resolveHandleSign(this.selectedHandle, this.handles);
 

@@ -128,7 +128,7 @@ function getAllGroupIds(layers: Layer[]): number[] {
 
 const LayersMenu = () => {
   const { on, emit, request } = useEventBus();
-  const { draggedId, handleDragStart, handleDragOver } = useLayerDrag();
+  const { draggedId, handleDragStart, handleDragOver, resetDrag } = useLayerDrag();
   const [layers, setLayers] = useState<Layer[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [disabled, setDisabled] = useState(true);
@@ -172,7 +172,7 @@ const LayersMenu = () => {
       targetId === currentDraggedId
     )
       return;
-    draggedId.current = null;
+    resetDrag();
 
     setLayers((prev) => {
       if (isDescendantOf(prev, currentDraggedId, targetId)) return prev;
@@ -380,7 +380,7 @@ const LayersMenu = () => {
     if (currentDraggedId !== null) {
       setLayers((prev) => {
         const result = moveLayerToEnd(prev, currentDraggedId);
-        draggedId.current = null;
+        resetDrag();
         emitGenerateLayerHierarchy(result);
         return result;
       });

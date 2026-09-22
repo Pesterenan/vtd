@@ -8,7 +8,15 @@ const MIN_ZOOM_LEVEL = 0.1;
 const MAX_ZOOM_LEVEL = 2.0;
 
 export class ZoomTool extends Tool {
+  private static zoomIcon: Path2D | null = null;
   private startingX: number | null = null;
+
+  private static getZoomIcon(): Path2D | null {
+    if (!this.zoomIcon) {
+      this.zoomIcon = svgToCanvasPath(zoomIconSvg);
+    }
+    return this.zoomIcon;
+  }
 
   public equip(): void {
     super.equip();
@@ -23,7 +31,7 @@ export class ZoomTool extends Tool {
 
   public draw(): void {
     const mousePos = this.mousePos;
-    const zoomIcon = svgToCanvasPath(zoomIconSvg);
+    const zoomIcon = ZoomTool.getZoomIcon();
     if (!this.context || !mousePos || !zoomIcon) return;
     const ctx = this.context;
 
