@@ -8,6 +8,7 @@ import ColorPicker from "../ColorPicker/ColorPicker";
 import SliderControl from "../SliderControl/SliderControl";
 import SelectInput from "../SelectInput/SelectInput";
 import useElementMenu from "src/hooks/useElementMenu";
+import { parseHex, toHex } from "src/utils/color";
 
 interface GradientMenuState {
   colorStops: IColorStop[];
@@ -74,16 +75,15 @@ const GradientMenu = () => {
         const next = stops[idx];
         const t = (portion - prev.portion) / (next.portion - prev.portion);
         const lerp = (a: number, b: number) => a + (b - a) * t;
-        const hex = (c: number) => Math.round(c).toString(16).padStart(2, "0");
-        const pr = parseInt(prev.color.slice(1, 3), 16);
-        const pg = parseInt(prev.color.slice(3, 5), 16);
-        const pb = parseInt(prev.color.slice(5, 7), 16);
-        const nr = parseInt(next.color.slice(1, 3), 16);
-        const ng = parseInt(next.color.slice(3, 5), 16);
-        const nb = parseInt(next.color.slice(5, 7), 16);
+        const prevRgb = parseHex(prev.color);
+        const nextRgb = parseHex(next.color);
         return {
           portion,
-          color: `#${hex(lerp(pr, nr))}${hex(lerp(pg, ng))}${hex(lerp(pb, nb))}`,
+          color: toHex(
+            lerp(prevRgb.r, nextRgb.r),
+            lerp(prevRgb.g, nextRgb.g),
+            lerp(prevRgb.b, nextRgb.b),
+          ),
           alpha: lerp(prev.alpha, next.alpha),
         };
       };

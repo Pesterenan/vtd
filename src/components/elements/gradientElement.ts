@@ -6,6 +6,7 @@ import type {
   Size,
 } from "src/components/types";
 import { FilterRenderer } from "src/filters/filterRenderer";
+import { hexToRgba } from "src/utils/color";
 import { BoundingBox } from "src/utils/boundingBox";
 import { rotatePoint } from "src/utils/transforms";
 import { Vector } from "src/utils/vector";
@@ -146,7 +147,7 @@ export class GradientElement extends Element {
 
     if (gradient) {
       for (const cs of this.colorStops) {
-        gradient.addColorStop(cs.portion, this.hexToRgba(cs.color, cs.alpha));
+        gradient.addColorStop(cs.portion, hexToRgba(cs.color, cs.alpha));
       }
 
       context.fillStyle = gradient;
@@ -158,12 +159,5 @@ export class GradientElement extends Element {
   public getBoundingBox(): BoundingBox {
     this.boundingBox.update(this.position, this.size, this.rotation);
     return this.boundingBox;
-  }
-
-  private hexToRgba(hex: string, alpha: number): string {
-    const r = Number.parseInt(hex[1] + hex[2], 16);
-    const g = Number.parseInt(hex[3] + hex[4], 16);
-    const b = Number.parseInt(hex[5] + hex[6], 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 }
