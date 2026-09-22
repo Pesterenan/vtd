@@ -5,8 +5,7 @@ import CheckboxInput from "../CheckboxInput/CheckboxInput";
 import ColorPicker from "../ColorPicker/ColorPicker";
 import SliderControl from "../SliderControl/SliderControl";
 import SelectInput from "../SelectInput/SelectInput";
-import type { ISelectOption } from "../SelectInput/SelectInput";
-import type { Point } from "../types";
+import type { ISelectOption, Point } from "../types";
 
 interface PathMenuState {
   fillColor: string;

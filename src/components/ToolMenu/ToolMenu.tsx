@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useEventBus } from "../../hooks/useEventBus";
 import { TOOL } from "../types";
 import styles from "./ToolMenu.module.css";
+import btnStyles from "../common/buttons.module.css";
 
 import GrabIcon from "src/assets/icons/move-tool.svg";
 import GradientIcon from "src/assets/icons/gradient-tool.svg";
@@ -167,7 +168,7 @@ const ToolMenu = () => {
                     : { onClick: () => handleToolClick(tool) })}
               >
                 <div
-                  className={styles.icon}
+                  className={btnStyles.icon}
                   style={
                     {
                       "--icon-url": `url("${resolvedIcon}")`,
@@ -189,7 +190,7 @@ const ToolMenu = () => {
                         onClick={() => handleModeSelect(mode)}
                       >
                         <div
-                          className={styles.icon}
+                          className={btnStyles.icon}
                           style={
                             {
                               "--icon-url": `url("${icon}")`,
@@ -211,7 +212,7 @@ const ToolMenu = () => {
           onClick={handleThemeToggle}
         >
           <div
-            className={styles.icon}
+            className={btnStyles.icon}
             style={
               {
                 "--icon-url": `url("data:image/svg+xml,${encodeURIComponent(

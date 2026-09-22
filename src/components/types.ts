@@ -111,6 +111,11 @@ export type Position = { x: number; y: number };
 export type Scale = { x: number; y: number };
 export type Size = { width: number; height: number };
 
+export interface ISelectOption {
+  label: string;
+  value: string;
+}
+
 /** Ferramentas para manipular elementos @readonly @enum */
 export enum TOOL {
   /** @prop MULTI - Selecionar, mover, rotacionar, escalonar elemento */
