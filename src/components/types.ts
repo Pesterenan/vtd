@@ -128,6 +128,8 @@ export enum TOOL {
   HAND = "hand-tool",
   /** @prop PEN - Desenhar caminhos */
   PEN = "pen-tool",
+  /** @prop SHAPE - Desenhar formas */
+  SHAPE = "shape-tool",
   /** @prop ZOOM - Modificar zoom */
   ZOOM = "zoom-tool",
 }

@@ -11,6 +11,7 @@ import type {
   TOOL,
 } from "src/components/types";
 import type { CroppingBox } from "./croppingBox";
+import type { ShapeBox, ShapeMode } from "src/components/tools/shapeGeometry";
 
 export type Callback<P = unknown, R = unknown> = (payload: P) => R;
 
@@ -27,6 +28,12 @@ export type AddElementPayload = {
   isLocked: boolean;
   type: ElementType;
   children?: Array<Layer>;
+};
+
+export type EditShapePayload = {
+  mode: ShapeMode;
+  box: ShapeBox;
+  sides: number;
 };
 
 export type UpdateElementPayload = {
@@ -151,6 +158,10 @@ export interface EventBusMap {
   };
   "edit:path": {
     payload: PositionPayload;
+    result: unknown;
+  };
+  "edit:shape": {
+    payload: EditShapePayload;
     result: unknown;
   };
   "edit:text": {

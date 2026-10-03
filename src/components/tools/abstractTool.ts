@@ -89,12 +89,18 @@ export abstract class Tool {
     this.eventBus.emit("workarea:update");
   }
 
+  public onWheel(evt: WheelEvent): void {
+    this.handleWheel(evt);
+    this.eventBus.emit("workarea:update");
+  }
+
   protected handleKeyDown(_evt: KeyboardEvent): void {}
   protected handleKeyUp(_evt: KeyboardEvent): void {}
   protected handleMouseDown(_evt: MouseEvent): void {}
   protected handleMouseMove(_evt: MouseEvent): void {}
   protected handleMouseUp(_evt: MouseEvent): void {}
   protected handleContextMenu(_evt: MouseEvent): void {}
+  protected handleWheel(_evt: WheelEvent): void {}
 
   private updatePos(evt?: MouseEvent): void {
     const position =
@@ -104,7 +110,8 @@ export abstract class Tool {
   }
 
   /** Converte uma posição do espaço do canvas para o espaço de tela. */
-  protected toScreen(world: Position): Position | null {
+  protected toScreen(world: Position | null): Position | null {
+    if (!world) return null;
     return (
       this.eventBus.request("workarea:adjustForScreen", {
         position: world,
@@ -113,7 +120,8 @@ export abstract class Tool {
   }
 
   /** Converte uma posição do espaço de tela para o espaço do canvas. */
-  protected toCanvas(screen: Position): Position | null {
+  protected toCanvas(screen: Position | null): Position | null {
+    if (!screen) return null;
     return (
       this.eventBus.request("workarea:adjustForCanvas", {
         position: screen,

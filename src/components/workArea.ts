@@ -11,6 +11,7 @@ import type {
   TElementData,
 } from "src/components/types";
 import type {
+  EditShapePayload,
   ElementIdPayload,
   EventBus,
   PositionPayload,
@@ -23,6 +24,7 @@ import { TransformBox } from "./transformBox";
 import { SelectionManager } from "./workArea.selection";
 import { ClipboardManager } from "./workArea.clipboard";
 import { TransformsManager } from "./workArea.transforms";
+import { buildShapePoints } from "./tools/shapeGeometry";
 
 type RegistrableElement = Pick<
   Element,
@@ -91,6 +93,7 @@ export class WorkArea {
     this.transforms.attach();
     this.eventBus.on("edit:gradient", this.handleEditGradient);
     this.eventBus.on("edit:path", this.handleEditPath);
+    this.eventBus.on("edit:shape", this.handleEditShape);
     this.eventBus.on("edit:text", this.handleEditText);
     this.eventBus.on("workarea:addGroupElement", this.handleAddGroupElement);
     this.eventBus.on("layer:generateHierarchy", this.handleReorganizeLayers);
@@ -108,6 +111,7 @@ export class WorkArea {
     this.transforms.detach();
     this.eventBus.off("edit:gradient", this.handleEditGradient);
     this.eventBus.off("edit:path", this.handleEditPath);
+    this.eventBus.off("edit:shape", this.handleEditShape);
     this.eventBus.off("edit:text", this.handleEditText);
     this.eventBus.off("workarea:addGroupElement", this.handleAddGroupElement);
     this.eventBus.off("layer:generateHierarchy", this.handleReorganizeLayers);
@@ -197,6 +201,21 @@ export class WorkArea {
       (element) => element instanceof PathElement,
       () => this.addPathElement(position),
     );
+  };
+
+  private handleEditShape = ({ mode, box, sides }: EditShapePayload): void => {
+    const position: Position = { x: box.x + box.w / 2, y: box.y + box.h / 2 };
+    const size: Size = { height: box.h, width: box.w };
+    const points = buildShapePoints(
+      mode,
+      { x: -box.w / 2, y: -box.h / 2, w: box.w, h: box.h },
+      sides,
+    );
+    const newElement = new PathElement(position, size, this.elements.length);
+    newElement.points = points;
+    newElement.isClosed = true;
+    newElement.getBoundingBox();
+    this.registerElement(newElement, "path");
   };
 
   public addPathElement = (position: Position): void => {

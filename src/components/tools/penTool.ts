@@ -144,9 +144,7 @@ export class PenTool extends Tool {
   }
 
   /** Hit-test único do segmento sob o mouse (espaço de TELA). */
-  private findSegmentUnderMouse(): ReturnType<
-    typeof hitTestPathSegments
-  > {
+  private findSegmentUnderMouse(): ReturnType<typeof hitTestPathSegments> {
     const mousePos = this.mousePos;
     const active = this.activePathElement;
     if (!mousePos || !active) return null;
@@ -468,7 +466,11 @@ export class PenTool extends Tool {
     // ALT = move só o handle agarrado (centro fixo).
     // Sem modificador = smooth. Com ALT+CTRL, CTRL vence.
     if (this.draggingPoint) {
-      this.dragExistingHandle(this.draggingPointIndex, this.draggingPoint, target);
+      this.dragExistingHandle(
+        this.draggingPointIndex,
+        this.draggingPoint,
+        target,
+      );
     } else {
       this.dragAnchorPoint(this.draggingPointIndex, target);
     }

@@ -18,6 +18,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 import { MultiTool } from "./tools/multiTool";
 import { FileIOManager } from "./mainWindow.fileio";
+import { ShapeTool } from "./tools/shapeTool";
 
 export class MainWindow {
   private static instance: MainWindow | null = null;
@@ -71,6 +72,7 @@ export class MainWindow {
         [TOOL.HAND]: new HandTool(this.canvas, this.eventBus),
         [TOOL.MULTI]: new MultiTool(this.canvas, this.eventBus),
         [TOOL.PEN]: new PenTool(this.canvas, this.eventBus),
+        [TOOL.SHAPE]: new ShapeTool(this.canvas, this.eventBus),
         [TOOL.TEXT]: new TextTool(this.canvas, this.eventBus),
         [TOOL.ZOOM]: new ZoomTool(this.canvas, this.eventBus),
       };
@@ -527,6 +529,9 @@ export class MainWindow {
       case "KeyT":
         tool = TOOL.TEXT;
         break;
+      case "KeyU":
+        tool = TOOL.SHAPE;
+        break;
     }
     if (tool) {
       this.currentTool = tool;
@@ -599,6 +604,9 @@ export class MainWindow {
           break;
         case "KeyP":
           tool = TOOL.PEN;
+          break;
+        case "KeyU":
+          tool = TOOL.SHAPE;
           break;
       }
       if (tool) {

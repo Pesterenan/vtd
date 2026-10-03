@@ -19,22 +19,25 @@ type Mode = "select" | "move" | "rotate" | "scale";
 
 type MenuItem =
   | { type: "tool"; tool: TOOL; label: string }
-  | { type: "divider" };
+  | { type: "divider"; key: string; };
 
 const MENU_ITEMS: MenuItem[] = [
   { type: "tool", tool: TOOL.MULTI, label: "(V) Selecionar, (G) Mover, (R) Rotacionar, (S) Escalonar" },
   { type: "tool", tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },
   { type: "tool", tool: TOOL.ZOOM, label: "(Z) Modificar nível de zoom" },
-  { type: "divider" },
+  { type: "divider", key: "create"},
   { type: "tool", tool: TOOL.TEXT, label: "(T) Criar textos" },
   { type: "tool", tool: TOOL.GRADIENT, label: "(H) Criar gradientes" },
+  { type: "divider", key: "shapes"},
   { type: "tool", tool: TOOL.PEN, label: "(P) Criar caminhos vetoriais" },
+  { type: "tool", tool: TOOL.SHAPE, label: "(U) Criar formas vetoriais" },
 ];
 
 const toolIcons: Record<string, string> = {
   [TOOL.GRADIENT]: GradientIcon,
   [TOOL.HAND]: HandIcon,
   [TOOL.PEN]: PenIcon,
+  [TOOL.SHAPE]: PenIcon, // TODO: TROCAR ICONE
   [TOOL.TEXT]: TextIcon,
   [TOOL.ZOOM]: ZoomIcon,
 };
@@ -143,7 +146,7 @@ const ToolMenu = () => {
         <label>Ferr.</label>
         {MENU_ITEMS.map((item) => {
           if (item.type === "divider") {
-            return <div key="divider" className={styles.divider} />;
+            return <div key={item.key} className={styles.divider} />;
           }
           const { tool, label } = item;
           const isMulti = tool === TOOL.MULTI;
