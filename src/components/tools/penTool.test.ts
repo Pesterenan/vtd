@@ -1,4 +1,4 @@
-import { PenTool } from "./penTool";
+import { PenTool, TOOL_HINT } from "./penTool";
 import { EventBus } from "../../utils/eventBus";
 import { PathElement } from "../elements/pathElement";
 import type { Position } from "../types";
@@ -700,22 +700,22 @@ describe("PenTool", () => {
   });
 
   describe("hint overlay", () => {
-    it("equip com path ativo emite pen:hint visível", () => {
+    it("equip com path ativo emite tool:hint", () => {
       const p = makePath();
       configureRequest({ selected: [p] });
       penTool.equip();
 
-      expect(eventBus.emit).toHaveBeenCalledWith("pen:hint", { visible: true });
+      expect(eventBus.emit).toHaveBeenCalledWith("tool:hint", { hintText: TOOL_HINT });
     });
 
-    it("unequip emite pen:hint escondido", () => {
+    it("unequip emite tool:hint escondido", () => {
       const p = makePath();
       configureRequest({ selected: [p] });
       penTool.equip();
       penTool.unequip();
 
-      expect(eventBus.emit).toHaveBeenCalledWith("pen:hint", {
-        visible: false,
+      expect(eventBus.emit).toHaveBeenCalledWith("tool:hint", {
+        hintText: '',
       });
     });
 
@@ -723,12 +723,12 @@ describe("PenTool", () => {
       const p = makePath();
       configureRequest({ selected: [p] });
       penTool.equip();
-      expect(penTool["hintVisible"]).toBe(true);
+      expect(penTool["isToolHintVisible"]).toBe(true);
 
       configureRequest({ selected: [{ type: "image" }] });
       eventBus.emit("workarea:selectById", { elementsId: new Set([99]) });
 
-      expect(penTool["hintVisible"]).toBe(false);
+      expect(penTool["isToolHintVisible"]).toBe(false);
     });
   });
 });

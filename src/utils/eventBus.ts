@@ -83,6 +83,10 @@ export type SelectElementsAtPayload = {
   isAddingToSelection?: boolean;
 };
 
+export type ToolHintPayload = {
+  hintText?: string;
+}
+
 export type ContextMenuItem =
   | {
       action: () => void;
@@ -189,8 +193,8 @@ export interface EventBusMap {
     payload: unknown;
     result: Position | null;
   };
-  "pen:hint": {
-    payload: { visible: boolean };
+  "tool:hint": {
+    payload: ToolHintPayload;
     result: unknown;
   };
   "multiTool:modeChange": {

@@ -28,6 +28,9 @@ const PEN_COLORS = {
   handleLine: "lightgray",
 } as const;
 
+export const TOOL_HINT =
+  "Enter: aceitar path, Esc: cancelar, Backspace: voltar";
+
 export class PenTool extends Tool {
   private static cachedPenIcon: Path2D | null = null;
 
@@ -55,7 +58,7 @@ export class PenTool extends Tool {
   private mouseDownWithAlt = false;
   private dragStarted = false;
   private isClosingPath = false;
-  private hintVisible = false;
+  private isToolHintVisible = false;
 
   constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
     super(canvas, eventBus);
@@ -92,7 +95,7 @@ export class PenTool extends Tool {
     this.dragStarted = false;
     this.isClosingPath = false;
     this.dragOriginWorld = null;
-    this.setHint(false);
+    this.updateToolHint(false);
     this.eventBus.emit("workarea:update");
   }
 
@@ -102,7 +105,7 @@ export class PenTool extends Tool {
       this.activePathElement = elements[0];
       this.updatePointsOverlay();
       this.selectedPointIndex = this.points.length - 1;
-      this.setHint(true);
+      this.updateToolHint(true);
     } else {
       this.resetTool();
     }
@@ -190,10 +193,12 @@ export class PenTool extends Tool {
     this.selectedPointIndex = -1;
   }
 
-  private setHint(visible: boolean): void {
-    if (this.hintVisible === visible) return;
-    this.hintVisible = visible;
-    this.eventBus.emit("pen:hint", { visible });
+  private updateToolHint(visible: boolean): void {
+    if (this.isToolHintVisible === visible) return;
+    this.isToolHintVisible = visible;
+    this.eventBus.emit("tool:hint", {
+      hintText: this.isToolHintVisible ? TOOL_HINT : "",
+    });
   }
 
   /** Testa em qual handle do ponto foi o clique */
