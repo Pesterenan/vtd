@@ -404,7 +404,8 @@ export class PathElement extends Element {
       return this.boundingBox;
     }
 
-    const ext = this.getLocalExtents()!;
+    const ext = this.getLocalExtents();
+    if (!ext) return this.boundingBox;
     const width = ext.maxX - ext.minX || 1;
     const height = ext.maxY - ext.minY || 1;
     const centerWorld = this.toWorldPos({
