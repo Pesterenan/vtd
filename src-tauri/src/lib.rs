@@ -57,6 +57,25 @@ fn update_window_title(app_handle: &tauri::AppHandle) {
     }
 }
 
+/// Verifica se o diretório de log do app aceita escrita (cria e remove um
+/// arquivo de teste). Em ambientes restritos o `app_log_dir` pode não ser
+/// gravável; nesse caso o plugin de log cai para stdout em vez de falhar o
+/// setup e impedir o app de abrir.
+fn log_dir_writable(app: &tauri::AppHandle) -> bool {
+    let Ok(dir) = app.path().app_log_dir() else {
+        return false;
+    };
+    if std::fs::create_dir_all(&dir).is_err() {
+        return false;
+    }
+    let probe = dir.join(".write-test");
+    if std::fs::write(&probe, b"test").is_err() {
+        return false;
+    }
+    let _ = std::fs::remove_file(&probe);
+    true
+}
+
 #[tauri::command]
 fn initialize_project_state(app: tauri::AppHandle, title: String) {
     if let Ok(mut status) = app.state::<Mutex<AppStatus>>().lock() {
@@ -364,6 +383,10 @@ pub fn run() {
                         let _ = app_handle.emit("menu:loading-show", "Importando imagem...");
                         let _ = app_handle.emit("menu:import-image", ());
                     }
+                    "import-svg" => {
+                        let _ = app_handle.emit("menu:loading-show", "Importando SVG...");
+                        let _ = app_handle.emit("menu:import-svg", ());
+                    }
                     "extract-video" => {
                         let _ = app_handle.emit("menu:loading-show", "Abrindo Extrator de Frames...");
                         let _ = app_handle.emit("menu:extract-video", ());
@@ -379,8 +402,15 @@ pub fn run() {
             });
 
             if cfg!(debug_assertions) {
-                app.handle()
-                    .plugin(tauri_plugin_log::Builder::default().level(log::LevelFilter::Info).build())?;
+                use tauri_plugin_log::{Target, TargetKind};
+                let builder = tauri_plugin_log::Builder::default().level(log::LevelFilter::Info);
+                let builder = if log_dir_writable(app.handle()) {
+                    builder
+                } else {
+                    eprintln!("[vtd] diretório de log sem escrita; usando stdout");
+                    builder.clear_targets().target(Target::new(TargetKind::Stdout))
+                };
+                app.handle().plugin(builder.build())?;
             }
             Ok(())
         })

@@ -1,0 +1,15 @@
+# Workaround for ffmpeg-sys-next build.rs passing the GCC-style `-o` flag to
+# MSVC `cl.exe` when compiling its `check.c` probe (fails with D9035/D8018).
+# Forces the `cc` crate to use the GNU-compatible Clang driver instead.
+# Requires LLVM `clang.exe` in PATH. Only affects C/C++ compiled by build
+# scripts via the `cc` crate; rustc still targets x86_64-pc-windows-msvc.
+#
+# WEBVIEW2_USER_DATA_FOLDER points the WebView2 user-data dir (EBWebView
+# profile) at a repo-local folder during `cargo run` / `tauri dev`, so the
+# app window can initialize even when the default %LOCALAPPDATA% location
+# is not writable (e.g. restricted/sandboxed environments). `target/` is
+# gitignored. Installed release builds are unaffected (this only applies
+# to processes spawned by cargo).
+[env]
+CC = "clang"
+WEBVIEW2_USER_DATA_FOLDER = { value = "target/webview-data", relative = true }
