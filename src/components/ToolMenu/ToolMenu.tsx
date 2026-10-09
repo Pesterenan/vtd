@@ -12,6 +12,7 @@ import PenIcon from "src/assets/icons/pen-tool.svg";
 import RotateIcon from "src/assets/icons/rotate-tool.svg";
 import ScaleIcon from "src/assets/icons/scale-tool.svg";
 import SelectIcon from "src/assets/icons/select-tool.svg";
+import ShapeIcon from "src/assets/icons/shape-tool.svg";
 import TextIcon from "src/assets/icons/text-tool.svg";
 import ZoomIcon from "src/assets/icons/zoom-tool.svg";
 
@@ -37,7 +38,7 @@ const toolIcons: Record<string, string> = {
   [TOOL.GRADIENT]: GradientIcon,
   [TOOL.HAND]: HandIcon,
   [TOOL.PEN]: PenIcon,
-  [TOOL.SHAPE]: PenIcon, // TODO: TROCAR ICONE
+  [TOOL.SHAPE]: ShapeIcon,
   [TOOL.TEXT]: TextIcon,
   [TOOL.ZOOM]: ZoomIcon,
 };
