@@ -3,7 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { useEventBus } from "../../hooks/useEventBus";
 import { TOOL } from "../types";
 import styles from "./ToolMenu.module.css";
-import btnStyles from "../common/buttons.module.css";
 
 import GrabIcon from "src/assets/icons/move-tool.svg";
 import GradientIcon from "src/assets/icons/gradient-tool.svg";
@@ -20,18 +19,22 @@ type Mode = "select" | "move" | "rotate" | "scale";
 
 type MenuItem =
   | { type: "tool"; tool: TOOL; label: string }
-  | { type: "divider"; key: string; };
+  | { type: "divider"; key: string };
 
 const MENU_ITEMS: MenuItem[] = [
-  { type: "tool", tool: TOOL.MULTI, label: "(V) Selecionar, (G) Mover, (R) Rotacionar, (S) Escalonar" },
-  { type: "tool", tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },
-  { type: "tool", tool: TOOL.ZOOM, label: "(Z) Modificar nível de zoom" },
-  { type: "divider", key: "create"},
+  {
+    type: "tool",
+    tool: TOOL.MULTI,
+    label: "(V) Selecionar, (G) Mover, (R) Rotacionar, (S) Escalonar",
+  },
+  { type: "divider", key: "create" },
   { type: "tool", tool: TOOL.TEXT, label: "(T) Criar textos" },
   { type: "tool", tool: TOOL.GRADIENT, label: "(H) Criar gradientes" },
-  { type: "divider", key: "shapes"},
   { type: "tool", tool: TOOL.PEN, label: "(P) Criar caminhos vetoriais" },
   { type: "tool", tool: TOOL.SHAPE, label: "(U) Criar formas vetoriais" },
+  { type: "divider", key: "helpers" },
+  { type: "tool", tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },
+  { type: "tool", tool: TOOL.ZOOM, label: "(Z) Modificar nível de zoom" },
 ];
 
 const toolIcons: Record<string, string> = {
@@ -144,7 +147,6 @@ const ToolMenu = () => {
   return (
     <menu className={styles.toolMenu}>
       <div className={styles.container}>
-        <label>Ferr.</label>
         {MENU_ITEMS.map((item) => {
           if (item.type === "divider") {
             return <div key={item.key} className={styles.divider} />;
@@ -162,17 +164,17 @@ const ToolMenu = () => {
                 data-tool={tool}
                 className={`${styles.btn} ${isMulti ? styles.hasSubmenu : ""} ${activeTool === tool ? styles.active : ""}`}
                 aria-label={resolvedLabel}
-                  {...(isMulti
-                    ? {
-                        onPointerDown: handleMultiPointerDown,
-                        onPointerUp: handleMultiPointerUp,
-                        onPointerLeave: handleMultiPointerLeave,
-                        onContextMenu: handleMultiContextMenu,
-                      }
-                    : { onClick: () => handleToolClick(tool) })}
+                {...(isMulti
+                  ? {
+                      onPointerDown: handleMultiPointerDown,
+                      onPointerUp: handleMultiPointerUp,
+                      onPointerLeave: handleMultiPointerLeave,
+                      onContextMenu: handleMultiContextMenu,
+                    }
+                  : { onClick: () => handleToolClick(tool) })}
               >
                 <div
-                  className={btnStyles.icon}
+                  className={styles.icon}
                   style={
                     {
                       "--icon-url": `url("${resolvedIcon}")`,
@@ -194,7 +196,7 @@ const ToolMenu = () => {
                         onClick={() => handleModeSelect(mode)}
                       >
                         <div
-                          className={btnStyles.icon}
+                          className={styles.icon}
                           style={
                             {
                               "--icon-url": `url("${icon}")`,
@@ -216,7 +218,7 @@ const ToolMenu = () => {
           onClick={handleThemeToggle}
         >
           <div
-            className={btnStyles.icon}
+            className={styles.icon}
             style={
               {
                 "--icon-url": `url("data:image/svg+xml,${encodeURIComponent(
