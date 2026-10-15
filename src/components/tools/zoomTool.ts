@@ -5,7 +5,7 @@ import zoomIconSvg from "src/assets/icons/zoom-tool.svg?raw";
 import { svgToCanvasPath, drawCursorIcon } from "src/utils/icons";
 
 const MIN_ZOOM_LEVEL = 0.1;
-const MAX_ZOOM_LEVEL = 2.0;
+const MAX_ZOOM_LEVEL = 4.0;
 
 export class ZoomTool extends Tool {
   private static zoomIcon: Path2D | null = null;
