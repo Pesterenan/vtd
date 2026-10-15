@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import styles from "./DialogBase.module.css";
 
 interface DialogBaseProps {
+  hasTransparentBackground?: boolean;
   isDraggable?: boolean;
   isOpen: boolean;
   onClose?: () => void;
@@ -10,7 +11,14 @@ interface DialogBaseProps {
   children: React.ReactNode;
 }
 
-const DialogBase = ({ isOpen, isDraggable = false, onClose, title, children }: DialogBaseProps) => {
+const DialogBase = ({
+  children,
+  hasTransparentBackground = false,
+  isDraggable = false,
+  isOpen,
+  onClose,
+  title,
+}: DialogBaseProps) => {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,8 +67,18 @@ const DialogBase = ({ isOpen, isDraggable = false, onClose, title, children }: D
   if (!isOpen) return null;
 
   return createPortal(
-    <div className={styles.backdrop} onClick={onClose}>
-      <div ref={dialogRef} className={styles.dialog} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={styles.backdrop}
+      onClick={onClose}
+      style={{
+        backgroundColor: hasTransparentBackground ? "none" : "rgba(0, 0, 0, 0.5)",
+      }}
+    >
+      <div
+        ref={dialogRef}
+        className={styles.dialog}
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 onMouseDown={isDraggable ? handleDragging : undefined}>{title}</h3>
         {children}
       </div>

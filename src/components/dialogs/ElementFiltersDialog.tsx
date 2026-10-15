@@ -9,13 +9,23 @@ import type { Element } from "src/components/elements/element";
 import { GradientElement } from "src/components/elements/gradientElement";
 import styles from "./ElementFiltersDialog.module.css";
 
-const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+const ElementFiltersDialog = ({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) => {
   const { on, emit, request } = useEventBus();
   const [activeElement, setActiveElement] = useState<Element | null>(null);
   const [availableFilters, setAvailableFilters] = useState<Filter[]>([]);
   const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
-  const [activeFilterIds, setActiveFilterIds] = useState<Set<string>>(new Set());
-  const [editingProps, setEditingProps] = useState<FilterProperties | null>(null);
+  const [activeFilterIds, setActiveFilterIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [editingProps, setEditingProps] = useState<FilterProperties | null>(
+    null,
+  );
   const initialFiltersRef = useRef<FilterProperties[]>([]);
   const propertyCacheRef = useRef<Map<string, FilterProperties>>(new Map());
 
@@ -35,10 +45,14 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
       const isGradient = element instanceof GradientElement;
       setAvailableFilters(
         isGradient
-          ? filters.filter((f) => f.id !== "drop-shadow" && f.id !== "outer-glow")
+          ? filters.filter(
+              (f) => f.id !== "drop-shadow" && f.id !== "outer-glow",
+            )
           : filters,
       );
-      setActiveFilterId(element.filters.length > 0 ? element.filters[0].id : null);
+      setActiveFilterId(
+        element.filters.length > 0 ? element.filters[0].id : null,
+      );
     });
     return unsub;
   }, [on, emit, request]);
@@ -70,10 +84,14 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
       setActiveFilterIds((prev) => new Set([...prev, filter.id]));
       setActiveFilterId(filter.id);
     } else {
-      const propsToCache = activeElement.filters.find((f) => f.id === filter.id);
+      const propsToCache = activeElement.filters.find(
+        (f) => f.id === filter.id,
+      );
       if (propsToCache) {
         propertyCacheRef.current.set(filter.id, propsToCache);
-        activeElement.filters = activeElement.filters.filter((f) => f.id !== filter.id);
+        activeElement.filters = activeElement.filters.filter(
+          (f) => f.id !== filter.id,
+        );
       }
       setActiveFilterIds((prev) => {
         const next = new Set(prev);
@@ -81,7 +99,8 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
         return next;
       });
       if (activeFilterId === filter.id) {
-        const nextActive = activeElement.filters.length > 0 ? activeElement.filters[0].id : null;
+        const nextActive =
+          activeElement.filters.length > 0 ? activeElement.filters[0].id : null;
         setActiveFilterId(nextActive);
       }
     }
@@ -113,7 +132,13 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
   };
 
   return (
-    <DialogBase isOpen={isOpen} onClose={onClose} isDraggable title="Filtros de Elemento">
+    <DialogBase
+      hasTransparentBackground
+      isOpen={isOpen}
+      onClose={onClose}
+      isDraggable
+      title="Filtros de Elemento"
+    >
       <div className="container column" style={{ gap: "0.5rem" }}>
         <div id="filter-list" className="container column">
           {availableFilters.map((filter) => (
@@ -131,8 +156,12 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
             filterId={activeFilterId}
             properties={editingProps}
             onChange={(updates) => {
-              setEditingProps((prev) => prev ? { ...prev, ...updates } : null);
-              const existing = activeElement.filters.find((f) => f.id === activeFilterId);
+              setEditingProps((prev) =>
+                prev ? { ...prev, ...updates } : null,
+              );
+              const existing = activeElement.filters.find(
+                (f) => f.id === activeFilterId,
+              );
               if (existing) {
                 Object.assign(existing, updates);
                 emit("workarea:update");
@@ -142,9 +171,27 @@ const ElementFiltersDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
         )}
       </div>
       <menu className={styles.actions}>
-        <button id="btn_accept-filters" className="btn-common-wide" onClick={handleApply}>Aplicar</button>
-        <button id="btn_cancel-filters" className="btn-common-wide" onClick={handleCancel}>Cancelar</button>
-        <button id="btn_reset-filters" className="btn-common-wide" onClick={handleReset}>Redefinir</button>
+        <button
+          id="btn_accept-filters"
+          className="btn-common-wide"
+          onClick={handleApply}
+        >
+          Aplicar
+        </button>
+        <button
+          id="btn_cancel-filters"
+          className="btn-common-wide"
+          onClick={handleCancel}
+        >
+          Cancelar
+        </button>
+        <button
+          id="btn_reset-filters"
+          className="btn-common-wide"
+          onClick={handleReset}
+        >
+          Redefinir
+        </button>
       </menu>
     </DialogBase>
   );
