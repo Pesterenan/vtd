@@ -84,6 +84,14 @@ describe("PenTool - Bezier", () => {
     });
   }
 
+  /** Coloca a pen tool no modo "continuar": seleciona o último ponto do path. */
+  function selectLastPoint(p: PathElement): void {
+    const last = p.toWorld(p.points[p.points.length - 1]).center;
+    setMouse(last);
+    penTool.onMouseDown(createMouseEvent(0, 0));
+    penTool.onMouseUp(createMouseEvent(0, 0));
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     currentMouse = null;
@@ -102,6 +110,7 @@ describe("PenTool - Bezier", () => {
     it("cria ponto sem handle, mas arrastar antes de soltar o clique o transforma em bezier", () => {
       const p = makePath();
       activatePath(p);
+      selectLastPoint(p);
 
       // Mouse down
       setMouse({ x: 300, y: 300 });

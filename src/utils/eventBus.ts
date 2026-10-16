@@ -367,6 +367,10 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "workarea:addPath": {
+    payload: PositionPayload;
+    result: unknown;
+  };
   "workarea:adjustForCanvas": {
     payload: PositionPayload;
     result: Position;

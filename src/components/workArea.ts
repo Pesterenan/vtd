@@ -96,6 +96,7 @@ export class WorkArea {
     this.eventBus.on("edit:shape", this.handleEditShape);
     this.eventBus.on("edit:text", this.handleEditText);
     this.eventBus.on("workarea:addGroupElement", this.handleAddGroupElement);
+    this.eventBus.on("workarea:addPath", this.handleAddPath);
     this.eventBus.on("layer:generateHierarchy", this.handleReorganizeLayers);
     this.eventBus.on("workarea:updateElement", this.handleUpdateElement);
     this.eventBus.on("workarea:deleteElement", this.handleDeleteElement);
@@ -114,6 +115,7 @@ export class WorkArea {
     this.eventBus.off("edit:shape", this.handleEditShape);
     this.eventBus.off("edit:text", this.handleEditText);
     this.eventBus.off("workarea:addGroupElement", this.handleAddGroupElement);
+    this.eventBus.off("workarea:addPath", this.handleAddPath);
     this.eventBus.off("layer:generateHierarchy", this.handleReorganizeLayers);
     this.eventBus.off("workarea:updateElement", this.handleUpdateElement);
     this.eventBus.off("workarea:deleteElement", this.handleDeleteElement);
@@ -201,6 +203,12 @@ export class WorkArea {
       (element) => element instanceof PathElement,
       () => this.addPathElement(position),
     );
+  };
+
+  /** Cria um path novo incondicionalmente (mesmo dentro da bbox de outro path). */
+  private handleAddPath = ({ position }: PositionPayload): void => {
+    this.addPathElement(position);
+    this.selection.selectElementsAt({ firstPoint: position });
   };
 
   private handleEditShape = ({ mode, box, sides }: EditShapePayload): void => {

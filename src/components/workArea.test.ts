@@ -117,6 +117,34 @@ describe("WorkArea - Path Integration", () => {
     });
   });
 
+  describe("handleAddPath", () => {
+    it("should create a new path unconditionally", () => {
+      const position = { x: 400, y: 300 };
+
+      eventBus.emit("workarea:addPath", { position });
+
+      expect(workArea.elements.length).toBe(1);
+      expect(workArea.elements[0]).toBeInstanceOf(PathElement);
+    });
+
+    it("should create a new path even inside another path bounding box", () => {
+      const position = { x: 400, y: 300 };
+
+      eventBus.emit("edit:path", { position });
+      expect(workArea.elements.length).toBe(1);
+
+      eventBus.emit("workarea:addPath", { position });
+
+      expect(workArea.elements.length).toBe(2);
+    });
+
+    it("should select the newly created path", () => {
+      eventBus.emit("workarea:addPath", { position: { x: 100, y: 100 } });
+
+      expect(workArea.elements[0].selected).toBe(true);
+    });
+  });
+
   describe("createElementFromData - path type", () => {
     it("should create PathElement from IPathElementData", async () => {
       const data: IPathElementData = {
