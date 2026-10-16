@@ -7,12 +7,14 @@ import type {
   ElementIdPayload,
   ReorganizeLayersPayload,
   SelectElementsByIdPayload,
+  SelectionChangedPayload,
 } from "src/utils/eventBus";
 import { ImageElement } from "../elements/imageElement";
 import styles from "./LayersMenu.module.css";
 
 import GroupIcon from "src/assets/icons/group.svg";
 import TrashIcon from "src/assets/icons/trash.svg";
+import type { HoverTarget } from "./components/LayerItem";
 import { renderLayer } from "./components/LayerItem";
 
 interface ContextMenuState {
@@ -90,11 +92,15 @@ function insertLayerNearTarget(
   dragged: Layer,
   position: "before" | "after" = "before",
 ): Layer[] | null {
+  // The layers list is rendered with `flex-direction: column-reverse`, so the
+  // array is ordered back-to-front while `position` is computed from screen
+  // coordinates (upper half = "before"). Inserting therefore needs the array
+  // index inverted: visually above the target means the next array index.
   for (let i = 0; i < layers.length; i++) {
     const current = layers[i];
     if (current?.id === targetId) {
       const result = [...layers];
-      result.splice(position === "after" ? i + 2 : i, 0, dragged);
+      result.splice(position === "before" ? i + 1 : i, 0, dragged);
       return result;
     }
     const childLayers = current?.children;
@@ -131,28 +137,53 @@ const LayersMenu = () => {
   const { draggedId, handleDragStart, handleDragOver, resetDrag } = useLayerDrag();
   const [layers, setLayers] = useState<Layer[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [draggingId, setDraggingId] = useState<number | null>(null);
   const [disabled, setDisabled] = useState(true);
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
-  const [hoverTarget, setHoverTarget] = useState<{
-    targetId: number;
-    position: "before" | "after";
-  } | null>(null);
+  const [hoverTarget, setHoverTarget] = useState<HoverTarget | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
   const dropPositionRef = useRef<"before" | "after">("before");
   const seenGroupIds = useRef<Set<number>>(new Set());
 
+  const getDragStart =
+    (id: number) => (e: React.DragEvent<HTMLLIElement>) => {
+      handleDragStart(id)(e);
+      setDraggingId(id);
+    };
+
+  const endDrag = useCallback(() => {
+    resetDrag();
+    setDraggingId(null);
+    setHoverTarget(null);
+  }, [resetDrag]);
+
   const handleItemDragOver = (targetId: number) => (e: React.DragEvent) => {
+    // Nested group children bubble up to their group; keep the innermost item
+    // as the drop target.
+    e.stopPropagation();
     handleDragOver(e);
+
+    const isGroupTarget =
+      getLayerById(layers, targetId)?.children !== undefined;
+    if (isGroupTarget) {
+      setHoverTarget((prev) =>
+        prev?.targetId === targetId && prev.position === "inside"
+          ? prev
+          : { targetId, position: "inside" },
+      );
+      return;
+    }
+
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const y = e.clientY - rect.top;
-    const position = y < rect.height / 2 ? "before" : "after";
+    const position: "before" | "after" = y < rect.height / 2 ? "before" : "after";
     dropPositionRef.current = position;
-    setHoverTarget((prev) => {
-      if (prev?.targetId === targetId && prev?.position === position)
-        return prev;
-      return { targetId, position };
-    });
+    setHoverTarget((prev) =>
+      prev?.targetId === targetId && prev.position === position
+        ? prev
+        : { targetId, position },
+    );
   };
 
   const handleItemDragLeave = (targetId: number) => () => {
@@ -172,7 +203,7 @@ const LayersMenu = () => {
       targetId === currentDraggedId
     )
       return;
-    resetDrag();
+    endDrag();
 
     setLayers((prev) => {
       if (isDescendantOf(prev, currentDraggedId, targetId)) return prev;
@@ -266,6 +297,14 @@ const LayersMenu = () => {
         setLayers(hierarchy);
       },
     );
+    // Mirror the canvas selection so actions that clear it (reordering, locking)
+    // don't leave stale highlights behind.
+    const unsub7 = on(
+      "selection:changed",
+      ({ selectedElements }: SelectionChangedPayload) => {
+        setSelectedIds(new Set(selectedElements.map((el) => el.elementId)));
+      },
+    );
     return () => {
       unsub1();
       unsub2();
@@ -273,6 +312,7 @@ const LayersMenu = () => {
       unsub4();
       unsub5();
       unsub6();
+      unsub7();
     };
   }, [on]);
 
@@ -380,7 +420,7 @@ const LayersMenu = () => {
     if (currentDraggedId !== null) {
       setLayers((prev) => {
         const result = moveLayerToEnd(prev, currentDraggedId);
-        resetDrag();
+        endDrag();
         emitGenerateLayerHierarchy(result);
         return result;
       });
@@ -398,20 +438,21 @@ const LayersMenu = () => {
         onDrop={handleDropOnList}
       >
         {layers.map((layer) => {
-          return renderLayer(
-            layer,
-            handleDragStart,
-            handleOnDrop,
-            handleDragOver,
-            handleLayerClick,
+          return renderLayer(layer, {
+            getDragStart,
+            onDragOver: handleDragOver,
+            onDrop: handleOnDrop,
+            onDragEnd: endDrag,
+            getLayerClick: handleLayerClick,
             collapsedIds,
-            handleToggleCollapse,
-            handleItemDragOver,
-            handleItemDragLeave,
+            getToggleCollapse: handleToggleCollapse,
+            getItemDragOver: handleItemDragOver,
+            getItemDragLeave: handleItemDragLeave,
+            getContextMenu: handleContextMenu,
             hoverTarget,
             selectedIds,
-            handleContextMenu,
-          );
+            draggingId,
+          });
         })}
       </ul>
       <div className={styles.buttons}>

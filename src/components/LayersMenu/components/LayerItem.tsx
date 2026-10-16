@@ -12,12 +12,42 @@ import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { useEventBus } from "src/hooks/useEventBus";
 
+/**
+ * Where the dragged layer will land relative to the hovered target:
+ * - "before"/"after": as a sibling, on the visual top/bottom edge of the target.
+ * - "inside": nested into the hovered group.
+ */
+export type DropPosition = "before" | "after" | "inside";
+
+export type HoverTarget = { targetId: number; position: DropPosition };
+
+export interface LayerRenderOptions {
+  getDragStart: (id: number) => (e: React.DragEvent<HTMLLIElement>) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent<HTMLLIElement>) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLLIElement>) => void;
+  getLayerClick?: (
+    layer: Layer,
+    isGroup: boolean,
+  ) => (e: React.MouseEvent) => void;
+  collapsedIds?: Set<number>;
+  getToggleCollapse?: (id: number) => (collapsed: boolean) => void;
+  getItemDragOver?: (targetId: number) => (e: React.DragEvent) => void;
+  getItemDragLeave?: (targetId: number) => (e: React.DragEvent) => void;
+  getContextMenu?: (layer: Layer) => (e: React.MouseEvent) => void;
+  hoverTarget?: HoverTarget | null;
+  selectedIds?: Set<number>;
+  draggingId?: number | null;
+}
+
 function isLayerOrDescendantSelected(
   layer: Layer,
   selectedIds: Set<number>,
 ): boolean {
   if (selectedIds.has(layer.id)) return true;
-  if (layer.children) {
+  // A group with no children must not count as selected: `[].every(...)` is
+  // vacuously true, which made empty groups look permanently selected.
+  if (layer.children && layer.children.length > 0) {
     return layer.children.every((child) =>
       isLayerOrDescendantSelected(child, selectedIds),
     );
@@ -32,10 +62,13 @@ export const LayerBase = ({
   onDragOver,
   onDragLeave,
   onDrop,
+  onDragEnd,
   onClick,
   onContextMenu,
   isDragOverBefore,
   isDragOverAfter,
+  isDragOverInside,
+  isDragging,
   isSelected,
   children,
 }: {
@@ -45,10 +78,13 @@ export const LayerBase = ({
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave?: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent<HTMLLIElement>) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLLIElement>) => void;
   onClick?: (e: React.MouseEvent) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
   isDragOverBefore?: boolean;
   isDragOverAfter?: boolean;
+  isDragOverInside?: boolean;
+  isDragging?: boolean;
   isSelected?: boolean;
   children?: ReactNode;
 }) => {
@@ -111,17 +147,29 @@ export const LayerBase = ({
     });
   }
 
+  const itemClassName = [
+    styles.layerItem,
+    isDragOverBefore ? styles.dragOverBefore : "",
+    isDragOverAfter ? styles.dragOverAfter : "",
+    isDragOverInside ? styles.dragOverInside : "",
+    isDragging ? styles.dragging : "",
+    isSelected ? styles.selected : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <li
       key={`layer-${layer.id}`}
       id={`layer-${layer.id}`}
-      className={`${styles.layerItem}${isDragOverBefore ? ` ${styles.dragOverBefore}` : ""}${isDragOverAfter ? ` ${styles.dragOverAfter}` : ""} ${isSelected ? ` ${styles.selected}` : ""}`}
+      className={itemClassName}
       data-id={layer.id}
       draggable
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      onDragEnd={onDragEnd}
       onClick={onClick}
       onContextMenu={onContextMenu}
     >
@@ -172,75 +220,40 @@ export const LayerBase = ({
   );
 };
 
-export const renderLayer = (
-  layer: Layer,
-  getDragStart: (id: number) => (e: React.DragEvent<HTMLLIElement>) => void,
-  handleOnDrop: (e: React.DragEvent<HTMLLIElement>) => void,
-  handleOnDragOver: (e: React.DragEvent) => void,
-  getLayerClick?: (
-    layer: Layer,
-    isGroup: boolean,
-  ) => (e: React.MouseEvent) => void,
-  collapsedIds?: Set<number>,
-  getToggleCollapse?: (id: number) => (collapsed: boolean) => void,
-  getItemDragOver?: (targetId: number) => (e: React.DragEvent) => void,
-  getItemDragLeave?: (targetId: number) => (e: React.DragEvent) => void,
-  hoverTarget?: { targetId: number; position: "before" | "after" } | null,
-  selectedIds?: Set<number>,
-  getContextMenu?: (layer: Layer) => (e: React.MouseEvent) => void,
-) => {
+export const renderLayer = (layer: Layer, options: LayerRenderOptions) => {
   const isGroup = "children" in layer && layer.children !== undefined;
-  const onDragStart = getDragStart(layer.id);
-  const onClick = getLayerClick?.(layer, isGroup);
-  const onContextMenu = getContextMenu?.(layer);
-  const isHover = hoverTarget?.targetId === layer.id;
-  const isDragOverBefore = isHover && hoverTarget.position === "before";
-  const isDragOverAfter = isHover && hoverTarget.position === "after";
-  const onItemDragOver = getItemDragOver?.(layer.id) ?? handleOnDragOver;
-  const onItemDragLeave = getItemDragLeave?.(layer.id);
-  const isSelected = selectedIds
-    ? isLayerOrDescendantSelected(layer, selectedIds)
+  const onDragStart = options.getDragStart(layer.id);
+  const onClick = options.getLayerClick?.(layer, isGroup);
+  const onContextMenu = options.getContextMenu?.(layer);
+  const isHover = options.hoverTarget?.targetId === layer.id;
+  const position = isHover ? options.hoverTarget?.position : undefined;
+  const isDragOverBefore = position === "before";
+  const isDragOverAfter = position === "after";
+  const isDragOverInside = position === "inside";
+  const onItemDragOver = options.getItemDragOver?.(layer.id) ?? options.onDragOver;
+  const onItemDragLeave = options.getItemDragLeave?.(layer.id);
+  const isSelected = options.selectedIds
+    ? isLayerOrDescendantSelected(layer, options.selectedIds)
     : false;
-  const isCollapsed = collapsedIds?.has(layer.id) ?? true;
-  const onToggleCollapse = getToggleCollapse?.(layer.id);
+  const isDragging = options.draggingId === layer.id;
+  const dragProps = {
+    onDragStart,
+    onDragOver: onItemDragOver,
+    onDragLeave: onItemDragLeave,
+    onDrop: options.onDrop,
+    onDragEnd: options.onDragEnd,
+    onClick,
+    onContextMenu,
+    isDragOverBefore,
+    isDragOverAfter,
+    isDragOverInside,
+    isDragging,
+    isSelected,
+  };
   return isGroup ? (
-    <LayerGroup
-      key={layer.id}
-      layer={layer}
-      getDragStart={getDragStart}
-      onDragStart={onDragStart}
-      onDragOver={onItemDragOver}
-      onDragLeave={onItemDragLeave}
-      onDrop={handleOnDrop}
-      onClick={onClick}
-      onContextMenu={onContextMenu}
-      getLayerClick={getLayerClick}
-      isCollapsed={isCollapsed}
-      onToggleCollapse={onToggleCollapse}
-      isDragOverBefore={isDragOverBefore}
-      isDragOverAfter={isDragOverAfter}
-      handleOnDragOver={handleOnDragOver}
-      getItemDragOver={getItemDragOver}
-      getItemDragLeave={getItemDragLeave}
-      isSelected={isSelected}
-      selectedIds={selectedIds}
-      collapsedIds={collapsedIds}
-      getToggleCollapse={getToggleCollapse}
-    />
+    <LayerGroup key={layer.id} layer={layer} options={options} {...dragProps} />
   ) : (
-    <LayerItem
-      key={layer.id}
-      layer={layer}
-      onDragStart={onDragStart}
-      onDragOver={onItemDragOver}
-      onDragLeave={onItemDragLeave}
-      onDrop={handleOnDrop}
-      onClick={onClick}
-      onContextMenu={onContextMenu}
-      isDragOverBefore={isDragOverBefore}
-      isDragOverAfter={isDragOverAfter}
-      isSelected={isSelected}
-    />
+    <LayerItem key={layer.id} layer={layer} {...dragProps} />
   );
 };
 
@@ -250,10 +263,13 @@ export const LayerItem = ({
   onDragOver,
   onDragLeave,
   onDrop,
+  onDragEnd,
   onClick,
   onContextMenu,
   isDragOverBefore,
   isDragOverAfter,
+  isDragOverInside,
+  isDragging,
   isSelected,
 }: {
   layer: Layer;
@@ -261,10 +277,13 @@ export const LayerItem = ({
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave?: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent<HTMLLIElement>) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLLIElement>) => void;
   onClick?: (e: React.MouseEvent) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
   isDragOverBefore?: boolean;
   isDragOverAfter?: boolean;
+  isDragOverInside?: boolean;
+  isDragging?: boolean;
   isSelected?: boolean;
 }) => {
   const { emit } = useEventBus();
@@ -284,69 +303,59 @@ export const LayerItem = ({
   };
 
   return (
-      <LayerBase
-        layer={layer}
-        extraToggle={<FilterButton />}
-        onDragStart={onDragStart}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
-        onClick={onClick}
-        onContextMenu={onContextMenu}
-        isDragOverBefore={isDragOverBefore}
-        isDragOverAfter={isDragOverAfter}
-        isSelected={isSelected}
-      />
+    <LayerBase
+      layer={layer}
+      extraToggle={<FilterButton />}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+      isDragOverBefore={isDragOverBefore}
+      isDragOverAfter={isDragOverAfter}
+      isDragOverInside={isDragOverInside}
+      isDragging={isDragging}
+      isSelected={isSelected}
+    />
   );
 };
 
 export const LayerGroup = ({
   layer,
-  getDragStart,
+  options,
   onDragStart,
   onDragOver,
   onDragLeave,
   onDrop,
+  onDragEnd,
   onClick,
   onContextMenu,
-  getLayerClick,
-  isCollapsed,
-  onToggleCollapse,
   isDragOverBefore,
   isDragOverAfter,
-  handleOnDragOver,
-  getItemDragOver,
-  getItemDragLeave,
+  isDragOverInside,
+  isDragging,
   isSelected,
-  selectedIds,
-  collapsedIds,
-  getToggleCollapse,
 }: {
   layer: Layer;
-  getDragStart: (id: number) => (e: React.DragEvent<HTMLLIElement>) => void;
+  options: LayerRenderOptions;
   onDragStart: (e: React.DragEvent<HTMLLIElement>) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave?: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent<HTMLLIElement>) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLLIElement>) => void;
   onClick?: (e: React.MouseEvent) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
-  getLayerClick?: (
-    layer: Layer,
-    isGroup: boolean,
-  ) => (e: React.MouseEvent) => void;
-  isCollapsed?: boolean;
-  onToggleCollapse?: (collapsed: boolean) => void;
   isDragOverBefore?: boolean;
   isDragOverAfter?: boolean;
+  isDragOverInside?: boolean;
+  isDragging?: boolean;
   isSelected?: boolean;
-  handleOnDragOver?: (e: React.DragEvent) => void;
-  getItemDragOver?: (targetId: number) => (e: React.DragEvent) => void;
-  getItemDragLeave?: (targetId: number) => (e: React.DragEvent) => void;
-  selectedIds?: Set<number>;
-  collapsedIds?: Set<number>;
-  getToggleCollapse?: (id: number) => (collapsed: boolean) => void;
 }) => {
+  const isCollapsed = options.collapsedIds?.has(layer.id) ?? true;
   const collapsed = isCollapsed ?? true;
+  const onToggleCollapse = options.getToggleCollapse?.(layer.id);
   const CollapseToggle = () => {
     return (
       <IconToggle
@@ -366,33 +375,22 @@ export const LayerGroup = ({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      onDragEnd={onDragEnd}
       onClick={onClick}
       onContextMenu={onContextMenu}
       isDragOverBefore={isDragOverBefore}
       isDragOverAfter={isDragOverAfter}
+      isDragOverInside={isDragOverInside}
+      isDragging={isDragging}
       isSelected={isSelected}
     >
       {layer.children && layer.children.length > 0 && !collapsed && (
         <ul
           id={`ul_group-children-${layer.id}`}
           className={styles.groupChildren}
-          onDragOver={handleOnDragOver ?? onDragOver}
+          onDragOver={options.onDragOver}
         >
-          {layer.children.map((child) =>
-            renderLayer(
-              child,
-              getDragStart,
-              onDrop,
-              handleOnDragOver ?? onDragOver,
-              getLayerClick,
-              collapsedIds,
-              getToggleCollapse,
-              getItemDragOver,
-              getItemDragLeave,
-              undefined,
-              selectedIds,
-            ),
-          )}
+          {layer.children.map((child) => renderLayer(child, options))}
         </ul>
       )}
     </LayerBase>
