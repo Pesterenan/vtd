@@ -3,35 +3,75 @@ import { GradientElement } from "src/components/elements/gradientElement";
 import { ImageElement } from "src/components/elements/imageElement";
 import { PathElement } from "./elements/pathElement";
 import { TextElement } from "src/components/elements/textElement";
-import type { Layer, Position, Size, TElementData } from "src/components/types";
 import type {
+  ElementType,
+  Layer,
+  Position,
+  Size,
+  TElementData,
+} from "src/components/types";
+import type {
+  EditShapePayload,
+  ElementIdPayload,
   EventBus,
-  ExportCanvasToStringPayload,
-  ExportLayerToClipBoardPayload,
   PositionPayload,
   ReorganizeLayersPayload,
-  SelectElementsAtPayload,
-  SelectElementsByIdPayload,
   UpdateElementPayload,
 } from "src/utils/eventBus";
 import { ElementGroup } from "./elements/elementGroup";
 import { FilterRenderer } from "src/filters/filterRenderer";
-import { BoundingBox } from "src/utils/boundingBox";
 import { TransformBox } from "./transformBox";
+import { SelectionManager } from "./workArea.selection";
+import { ClipboardManager } from "./workArea.clipboard";
+import { TransformsManager } from "./workArea.transforms";
+import { buildShapePoints } from "./tools/shapeGeometry";
+
+type RegistrableElement = Pick<
+  Element,
+  "elementId" | "isLocked" | "isVisible" | "layerName"
+>;
 
 export class WorkArea {
   public canvas: HTMLCanvasElement | null = null;
   private context: CanvasRenderingContext2D | null = null;
   public transformBox: TransformBox | null = null;
-  private _elements: Element<TElementData>[] = [];
-  public get elements(): Element<TElementData>[] {
+  private _elements: Element[] = [];
+  public get elements(): Element[] {
     return this._elements;
   }
-  private set elements(elements: Element<TElementData>[]) {
+  private set elements(elements: Element[]) {
     this._elements = elements;
   }
+  private selection: SelectionManager;
+  private clipboard: ClipboardManager;
+  private transforms: TransformsManager;
+
   public constructor(private eventBus: EventBus) {
     this.createDOMElements();
+    this.selection = new SelectionManager({
+      eventBus,
+      getElements: this.getElements,
+      getFlatElements: (els) => this.getFlatElements(els),
+      onSelectionApplied: () => this.createTransformBox(),
+    });
+    this.clipboard = new ClipboardManager({
+      eventBus,
+      getElements: this.getElements,
+      getFlatElements: (els) => this.getFlatElements(els),
+      getCanvas: () => this.canvas,
+      redraw: (transparent) => this.draw(transparent),
+    });
+    this.transforms = new TransformsManager({
+      eventBus,
+      getElements: this.getElements,
+      getFlatElements: (els) => this.getFlatElements(els),
+      getCanvas: () => this.canvas,
+      setWorkAreaSize: (size) => this.setWorkAreaSize(size),
+      refreshTransformBox: () => {
+        const selections = this.selection.getSelectedElements();
+        if (selections.length) this.createTransformBox();
+      },
+    });
     this.addEvents();
   }
 
@@ -48,66 +88,41 @@ export class WorkArea {
   }
 
   private addEvents(): void {
+    this.selection.attach();
+    this.clipboard.attach();
+    this.transforms.attach();
     this.eventBus.on("edit:gradient", this.handleEditGradient);
     this.eventBus.on("edit:path", this.handleEditPath);
+    this.eventBus.on("edit:shape", this.handleEditShape);
     this.eventBus.on("edit:text", this.handleEditText);
     this.eventBus.on("workarea:addGroupElement", this.handleAddGroupElement);
-    this.eventBus.on("workarea:canvas:getBlob", this.handleRequestCanvasBlob);
-    this.eventBus.on("workarea:selectAt", this.selectElementsAt);
-    this.eventBus.on("workarea:selectById", this.selectElementsById);
-    this.eventBus.on("workarea:selected:get", this.getSelectedElements);
+    this.eventBus.on("workarea:addPath", this.handleAddPath);
     this.eventBus.on("layer:generateHierarchy", this.handleReorganizeLayers);
     this.eventBus.on("workarea:updateElement", this.handleUpdateElement);
-    this.eventBus.on("layer:export", this.exportLayerToClipboard);
     this.eventBus.on("workarea:deleteElement", this.handleDeleteElement);
     this.eventBus.on("workarea:getElement:get", this.getElement);
     this.eventBus.on("layer:applyCrop", this.handleApplyCrop);
-    this.eventBus.on("workarea:updateProperties", ({ size }) => {
-      this.setWorkAreaSize(size);
-      this.eventBus.emit("mainWindow:resize");
-    });
+    this.eventBus.on("workarea:updateProperties", this.handleUpdateProperties);
     this.eventBus.on("workarea:elements:get", this.getElements);
-    this.eventBus.on("workarea:rotate-clockwise", () =>
-      this.handleRotateCanvas("clockwise"),
-    );
-    this.eventBus.on("workarea:rotate-anti-clockwise", () =>
-      this.handleRotateCanvas("anti-clockwise"),
-    );
-    this.eventBus.on("workarea:flip-horizontal", () =>
-      this.handleFlipCanvas("horizontal"),
-    );
-    this.eventBus.on("workarea:flip-vertical", () =>
-      this.handleFlipCanvas("vertical"),
-    );
   }
 
   public removeEvents(): void {
+    this.selection.detach();
+    this.clipboard.detach();
+    this.transforms.detach();
     this.eventBus.off("edit:gradient", this.handleEditGradient);
     this.eventBus.off("edit:path", this.handleEditPath);
+    this.eventBus.off("edit:shape", this.handleEditShape);
     this.eventBus.off("edit:text", this.handleEditText);
     this.eventBus.off("workarea:addGroupElement", this.handleAddGroupElement);
-    this.eventBus.off("workarea:canvas:getBlob", this.handleRequestCanvasBlob);
-    this.eventBus.off("workarea:selectAt", this.selectElementsAt);
-    this.eventBus.off("workarea:selectById", this.selectElementsById);
-    this.eventBus.off("workarea:selected:get", this.getSelectedElements);
+    this.eventBus.off("workarea:addPath", this.handleAddPath);
     this.eventBus.off("layer:generateHierarchy", this.handleReorganizeLayers);
     this.eventBus.off("workarea:updateElement", this.handleUpdateElement);
-    this.eventBus.off("layer:export", this.exportLayerToClipboard);
     this.eventBus.off("workarea:deleteElement", this.handleDeleteElement);
     this.eventBus.off("workarea:getElement:get", this.getElement);
     this.eventBus.off("layer:applyCrop", this.handleApplyCrop);
-    this.eventBus.off("workarea:rotate-clockwise", () =>
-      this.handleRotateCanvas("clockwise"),
-    );
-    this.eventBus.off("workarea:rotate-anti-clockwise", () =>
-      this.handleRotateCanvas("anti-clockwise"),
-    );
-    this.eventBus.off("workarea:flip-horizontal", () =>
-      this.handleFlipCanvas("horizontal"),
-    );
-    this.eventBus.off("workarea:flip-vertical", () =>
-      this.handleFlipCanvas("vertical"),
-    );
+    this.eventBus.off("workarea:updateProperties", this.handleUpdateProperties);
+    this.eventBus.off("workarea:elements:get", this.getElements);
   }
 
   public destroy(): void {
@@ -130,15 +145,13 @@ export class WorkArea {
     const elementPromises =
       elementsData?.map((el) => this.createElementFromData(el)) ?? [];
     const loadedElements = await Promise.all(elementPromises);
-    this.elements = loadedElements.filter(
-      (el): el is Element<TElementData> => el !== null,
-    );
+    this.elements = loadedElements.filter((el): el is Element => el !== null);
 
     const hierarchy = this.buildLayerHierarchy(this.elements);
     this.eventBus.emit("layer:setHierarchy", { hierarchy });
   }
 
-  private buildLayerHierarchy(elements: Element<TElementData>[]): Layer[] {
+  private buildLayerHierarchy(elements: Element[]): Layer[] {
     const hierarchy: Layer[] = [];
     for (const element of elements) {
       const layer: Layer = {
@@ -155,52 +168,79 @@ export class WorkArea {
     return hierarchy;
   }
 
-  private handleEditGradient = ({ position }: PositionPayload): void => {
-    const elements = this.getSelectedElements();
-    if (!elements || !(elements[0] instanceof GradientElement)) {
-      this.addGradientElement(position);
-      this.selectElementsAt({ firstPoint: position });
+  private ensureElement = (
+    position: Position,
+    isExpectedType: (element: Element | undefined) => boolean,
+    add: (position: Position) => void,
+  ): void => {
+    this.selection.selectElementsAt({ firstPoint: position });
+    const elements = this.selection.getSelectedElements();
+    if (!elements || !isExpectedType(elements[0])) {
+      add(position);
+      this.selection.selectElementsAt({ firstPoint: position });
     }
+  };
+
+  private handleEditGradient = ({ position }: PositionPayload): void => {
+    this.ensureElement(
+      position,
+      (element) => element instanceof GradientElement,
+      () => this.addGradientElement(position),
+    );
   };
 
   private handleEditText = ({ position }: PositionPayload): void => {
-    this.selectElementsAt({ firstPoint: position });
-    const elements = this.getSelectedElements();
-    if (!elements || !(elements[0] instanceof TextElement)) {
-      this.addTextElement(position);
-      this.selectElementsAt({ firstPoint: position });
-    }
+    this.ensureElement(
+      position,
+      (element) => element instanceof TextElement,
+      () => this.addTextElement(position),
+    );
   };
 
-  private addPathElement = (position: Position): void => {
+  private handleEditPath = ({ position }: PositionPayload): void => {
+    this.ensureElement(
+      position,
+      (element) => element instanceof PathElement,
+      () => this.addPathElement(position),
+    );
+  };
+
+  /** Cria um path novo incondicionalmente (mesmo dentro da bbox de outro path). */
+  private handleAddPath = ({ position }: PositionPayload): void => {
+    this.addPathElement(position);
+    this.selection.selectElementsAt({ firstPoint: position });
+  };
+
+  private handleEditShape = ({ mode, box, sides }: EditShapePayload): void => {
+    const position: Position = { x: box.x + box.w / 2, y: box.y + box.h / 2 };
+    const size: Size = { height: box.h, width: box.w };
+    const points = buildShapePoints(
+      mode,
+      { x: -box.w / 2, y: -box.h / 2, w: box.w, h: box.h },
+      sides,
+    );
+    const newElement = new PathElement(position, size, this.elements.length);
+    newElement.points = points;
+    newElement.isClosed = true;
+    newElement.getBoundingBox();
+    this.registerElement(newElement, "path");
+  };
+
+  public addPathElement = (position: Position): void => {
     if (!this.canvas) return;
     const width = 10;
     const height = 10;
-    const newElement = new PathElement(position, { width, height }, this.elements.length);
-
-    this.elements.push(newElement as Element<TElementData>);
-    this.eventBus.emit("workarea:addElement", {
-      elementId: newElement.elementId,
-      isLocked: newElement.isLocked,
-      isVisible: newElement.isVisible,
-      layerName: newElement.layerName,
-      type: 'path',
-    });
-    this.eventBus.emit("workarea:update");
-  }
-
-  private handleEditPath = ({ position }: PositionPayload): void => {
-    this.selectElementsAt({ firstPoint: position });
-    const elements = this.getSelectedElements();
-    if (!elements || !(elements[0] instanceof PathElement)) {
-      this.addPathElement(position);
-      this.selectElementsAt({ firstPoint: position });
-    }
+    const newElement = new PathElement(
+      position,
+      { width, height },
+      this.elements.length,
+    );
+    this.registerElement(newElement, "path");
   };
 
   private createTransformBox = (): void => {
     this.removeTransformBox();
-    const selectedElements = this.getSelectedElements();
+    const selectedElements = this.selection.getSelectedElements();
     if (selectedElements.length) {
       this.transformBox = new TransformBox(selectedElements, this.eventBus);
     }
@@ -211,10 +251,8 @@ export class WorkArea {
     this.transformBox = null;
   };
 
-  private handleDeleteElement = ({ elementId }: { elementId: number }): void => {
-    const removeFromList = (
-      list: Element<TElementData>[],
-    ): boolean => {
+  private handleDeleteElement = ({ elementId }: ElementIdPayload): void => {
+    const removeFromList = (list: Element[]): boolean => {
       const index = list.findIndex((el) => el.elementId === elementId);
       if (index !== -1) {
         list.splice(index, 1);
@@ -228,7 +266,10 @@ export class WorkArea {
       return false;
     };
     removeFromList(this._elements);
-    this.removeTransformBox();
+    this.createTransformBox();
+    this.eventBus.emit("selection:changed", {
+      selectedElements: this.selection.getSelectedElements(),
+    });
     this.eventBus.emit("workarea:update");
   };
 
@@ -251,12 +292,15 @@ export class WorkArea {
       if (isLocked !== undefined) {
         elementToUpdate.isLocked = isLocked;
         if (isLocked) {
-          if (elementToUpdate instanceof ElementGroup && elementToUpdate.children) {
+          if (
+            elementToUpdate instanceof ElementGroup &&
+            elementToUpdate.children
+          ) {
             for (const child of elementToUpdate.children) {
               child.selected = false;
             }
           }
-          this.selectElementsAt({});
+          this.selection.clearSelection();
         }
       }
     }
@@ -266,23 +310,13 @@ export class WorkArea {
     this.eventBus.emit("workarea:update");
   };
 
-  private selectElementsById = ({
-    elementsId,
-  }: SelectElementsByIdPayload): void => {
-    for (const el of this.getFlatElements(this.elements)) {
-      el.selected = elementsId.has(el.elementId) && !el.isLocked;
-    }
-    this.createTransformBox();
-    this.eventBus.emit("selection:changed", {
-      selectedElements: this.getSelectedElements(),
-    });
-    this.eventBus.emit("workarea:update");
+  private handleUpdateProperties = ({ size }: { size: Size }) => {
+    this.setWorkAreaSize(size);
+    this.eventBus.emit("mainWindow:resize");
   };
 
-  private getFlatElements(
-    elements: Element<TElementData>[],
-  ): Element<TElementData>[] {
-    const flatElements: Element<TElementData>[] = [];
+  private getFlatElements(elements: Element[]): Element[] {
+    const flatElements: Element[] = [];
     for (const el of elements) {
       flatElements.push(el);
       if (el instanceof ElementGroup && el.children) {
@@ -294,10 +328,10 @@ export class WorkArea {
 
   private processLayerHierarchy(
     hierarchy: Layer[],
-    flatElements: Element<TElementData>[],
+    flatElements: Element[],
     counter: { value: number },
-  ): Element<TElementData>[] {
-    const orderedElements: Element<TElementData>[] = [];
+  ): Element[] {
+    const orderedElements: Element[] = [];
     for (const layer of hierarchy) {
       const element = flatElements.find((el) => el.elementId === layer.id);
       if (element) {
@@ -310,7 +344,7 @@ export class WorkArea {
             flatElements,
             counter,
           );
-          (element as ElementGroup).children = childElements;
+          element.children = childElements;
         }
       }
     }
@@ -329,15 +363,13 @@ export class WorkArea {
     );
     this.elements = newOrderedElements;
     this.elements.sort((a, b) => a.zDepth - b.zDepth);
-    this.removeTransformBox();
-    this.eventBus.emit("selection:changed", { selectedElements: [] });
-    this.eventBus.emit("workarea:update");
+    this.selection.clearSelection();
   };
 
   public async createElementFromData(
     elData: TElementData,
-  ): Promise<Element<TElementData> | null> {
-    let newElement: Element<TElementData> | null = null;
+  ): Promise<Element | null> {
+    let newElement: Element | null = null;
 
     switch (elData.type) {
       case "image":
@@ -345,28 +377,28 @@ export class WorkArea {
           elData.position,
           elData.size,
           elData.zDepth,
-        ) as Element<TElementData>;
+        );
         break;
       case "path":
         newElement = new PathElement(
           elData.position,
           elData.size,
           elData.zDepth,
-        ) as Element<TElementData>;
+        );
         break;
       case "text":
         newElement = new TextElement(
           elData.position,
           elData.size,
           elData.zDepth,
-        ) as Element<TElementData>;
+        );
         break;
       case "gradient":
         newElement = new GradientElement(
           elData.position,
           elData.size,
           elData.zDepth,
-        ) as Element<TElementData>;
+        );
         break;
       case "group": {
         const children = await Promise.all(
@@ -376,8 +408,8 @@ export class WorkArea {
           elData.position,
           elData.size,
           elData.zDepth,
-          children.filter((el): el is Element<TElementData> => el !== null),
-        ) as Element<TElementData>;
+          children.filter((el): el is Element => el !== null),
+        );
         break;
       }
     }
@@ -389,162 +421,16 @@ export class WorkArea {
     return newElement;
   }
 
-  /**
-   * Returns the current canvas as a blob to be exported
-   * @param {ExportCanvasToStringPayload} payload -
-   * format - format to be exported
-   * quality - quality of the image exported
-   * transparent - export with a transparent background
-   */
-  private handleRequestCanvasBlob = ({
-    format,
-    quality,
-    transparent = false,
-  }: ExportCanvasToStringPayload): Promise<
-    { blob: Blob; dataURL: string } | undefined
-  > => {
-    return new Promise((resolve) => {
-      if (!this.canvas || !this.context) {
-        console.error("Canvas not found");
-        return resolve(undefined);
-      }
-
-      if (transparent) {
-        this.clearCanvas();
-        for (const element of this.elements) {
-          element.draw(this.context);
-        }
-      }
-      const parsedQuality = (Number.parseInt(quality, 10) || 100) / 100;
-      this.canvas.toBlob(
-        (blob) => {
-          if (transparent) {
-            this.draw();
-          }
-
-          if (blob) {
-            const reader = new FileReader();
-            reader.onload = () => {
-              resolve({
-                blob,
-                dataURL: reader.result as string,
-              });
-            };
-            reader.readAsDataURL(blob);
-          } else {
-            resolve(undefined);
-          }
-        },
-        `image/${format}`,
-        parsedQuality,
-      );
-    });
-  };
-
-  private getSelectedElements = (): Element<TElementData>[] => {
-    const selectedElements: Element<TElementData>[] = [];
-    for (const el of this.getFlatElements(this.elements)) {
-      if (el.selected && !el.isLocked && !(el instanceof ElementGroup)) {
-        selectedElements.push(el);
-      }
-    }
-    return selectedElements;
-  };
-
-  public selectElementsAt = ({
-    firstPoint,
-    secondPoint,
-    isAddingToSelection,
-  }: SelectElementsAtPayload): void => {
-    let selectedElements: Element<TElementData>[] = isAddingToSelection ? this.getSelectedElements() : [];
-    if (firstPoint) {
-      const firstElement = this.elements.findLast((el) => {
-        if (el instanceof ElementGroup) {
-          return (
-            el.isVisible &&
-            !el.isLocked &&
-            el.getBoundingBox().isPointInside(firstPoint)
-          );
-        }
-        return (
-          el.isVisible &&
-          !el.isLocked &&
-          el.getBoundingBox().isPointInside(firstPoint)
-        );
-      });
-      if (
-        firstElement &&
-        firstElement instanceof ElementGroup &&
-        firstElement.children
-      ) {
-        const groupChildren = firstElement.children.filter(
-          (child) => !child.isLocked,
-        );
-        if (isAddingToSelection) {
-          for (const child of groupChildren) {
-            const idx = selectedElements.findIndex((el) => el.elementId === child.elementId);
-            if (idx === -1) {
-              selectedElements.push(child);
-            }
-          }
-        } else {
-          selectedElements = groupChildren;
-        }
-      } else if (firstElement && !(firstElement instanceof ElementGroup)) {
-        if (isAddingToSelection) {
-          const idx = selectedElements.findIndex(
-            (el) => el.elementId === firstElement.elementId,
-          );
-          if (idx === -1) {
-            selectedElements.push(firstElement);
-          } else {
-            selectedElements.splice(idx, 1);
-          }
-        } else {
-          selectedElements = [firstElement as Element<TElementData>];
-        }
-      }
-      if (secondPoint) {
-        for (const el of this.elements) {
-          if (el instanceof ElementGroup) {
-            const unlockedChildren =
-              el.children?.filter((child) => !child.isLocked) ?? [];
-            if (
-              unlockedChildren.some((child) =>
-                child
-                  .getBoundingBox()
-                  .isWithinBounds(firstPoint, secondPoint),
-              )
-            ) {
-              selectedElements = [...selectedElements, ...unlockedChildren];
-            }
-          } else {
-            if (
-              el.isVisible &&
-              !el.isLocked &&
-              el
-                .getBoundingBox()
-                .isWithinBounds(firstPoint, secondPoint)
-            ) {
-              selectedElements.push(el);
-            }
-          }
-        }
-      }
-    }
-    this.eventBus.emit("workarea:selectById", {
-      elementsId: new Set(selectedElements.map((el) => el.elementId)),
-    });
-  };
-
-  public draw(): void {
+  public draw(transparent = false): void {
     if (!this.context || !this.canvas) {
       throw new Error("Canvas context is not available");
     }
     this.clearCanvas();
 
-    this.context.fillStyle = "white";
-    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    if (!transparent) {
+      this.context.fillStyle = "white";
+      this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
 
     for (const element of this.elements) {
       element.draw(this.context);
@@ -566,15 +452,7 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
-    this.elements.push(newElement as Element<TElementData>);
-    this.eventBus.emit("workarea:addElement", {
-      elementId: newElement.elementId,
-      isLocked: newElement.isLocked,
-      isVisible: newElement.isVisible,
-      layerName: newElement.layerName,
-      type: "gradient",
-    });
-    this.eventBus.emit("workarea:update");
+    this.registerElement(newElement, "gradient");
   }
 
   public addTextElement(position: Position): TextElement {
@@ -585,16 +463,7 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
-    this.elements.push(newElement as Element<TElementData>);
-    this.eventBus.emit("workarea:addElement", {
-      elementId: newElement.elementId,
-      isLocked: newElement.isLocked,
-      isVisible: newElement.isVisible,
-      layerName: newElement.layerName,
-      type: "text",
-    });
-    this.eventBus.emit("workarea:update");
-
+    this.registerElement(newElement, "text");
     return newElement;
   }
 
@@ -607,16 +476,7 @@ export class WorkArea {
       this.elements.length,
     );
     await newElement.loadImage(encodedImage);
-    this.elements.push(newElement as Element<TElementData>);
-    this.eventBus.emit("workarea:addElement", {
-      elementId: newElement.elementId,
-      isLocked: newElement.isLocked,
-      isVisible: newElement.isVisible,
-      layerName: newElement.layerName,
-      type: "image",
-    });
-    this.eventBus.emit("workarea:update");
-
+    this.registerElement(newElement, "image");
     return newElement;
   }
 
@@ -627,29 +487,18 @@ export class WorkArea {
       this.elements.length,
       [],
     );
-    this.elements.push(newElement as Element<TElementData>);
-    this.eventBus.emit("workarea:addElement", {
-      children: [],
-      elementId: newElement.elementId,
-      isLocked: newElement.isLocked,
-      isVisible: newElement.isVisible,
-      layerName: newElement.layerName,
-      type: "group",
-    });
-    this.eventBus.emit("workarea:update");
+    this.registerElement(newElement, "group", { children: [] });
   };
 
   private getElement = ({
     elementId,
-  }: {
-    elementId: number;
-  }): Element<TElementData> | undefined => {
+  }: ElementIdPayload): Element | undefined => {
     return this.getFlatElements(this.elements).find(
       (el) => el.elementId === elementId,
     );
   };
 
-  private getElements = (): Element<TElementData>[] => {
+  private getElements = (): Element[] => {
     return this.elements;
   };
 
@@ -685,180 +534,20 @@ export class WorkArea {
     }
   };
 
-  private exportLayerToClipboard = ({
-    layerId,
-    transparent,
-  }: ExportLayerToClipBoardPayload): void => {
-    const element = this.getFlatElements(this.elements).find(
-      (el) => el.elementId === layerId,
-    );
-    if (!element) {
-      this.eventBus.emit("alert:add", {
-        message: "Elemento não encontrado",
-        type: "error",
-      });
-      return;
-    }
-
-    const tempCanvas = document.createElement("canvas");
-    const tempContext = tempCanvas.getContext("2d");
-    if (!tempContext) {
-      this.eventBus.emit("alert:add", {
-        message: "Erro ao criar o contexto do canvas",
-        type: "error",
-      });
-      return;
-    }
-
-    const { position, size } = BoundingBox.calculateBoundingBox([element]);
-    tempCanvas.width = size.width;
-    tempCanvas.height = size.height;
-
-    if (!transparent && this.canvas) {
-      tempContext.drawImage(
-        this.canvas,
-        position.x - size.width / 2,
-        position.y - size.height / 2,
-        size.width,
-        size.height,
-        0,
-        0,
-        size.width,
-        size.height,
-      );
-    } else {
-      tempContext.translate(
-        -position.x + size.width * 0.5,
-        -position.y + size.height * 0.5,
-      );
-      element.draw(tempContext);
-    }
-
-    tempCanvas.toBlob((blob) => {
-      if (blob) {
-        const item = new ClipboardItem({ "image/png": blob });
-        navigator.clipboard.write([item]);
-        this.eventBus.emit("alert:add", {
-          message: "Camada copiada para a área de transferência",
-          type: "success",
-        });
-      } else {
-        this.eventBus.emit("alert:add", {
-          message: "Erro ao copiar a camada",
-          type: "error",
-        });
-      }
-    }, "image/png");
-  };
-
-  private handleRotateCanvas = (
-    direction: "clockwise" | "anti-clockwise" = "clockwise",
-  ): void => {
-    if (!this.canvas) return;
-    const oldWidth = this.canvas.width;
-    const oldHeight = this.canvas.height;
-    this.setWorkAreaSize({ width: oldHeight, height: oldWidth });
-
-    for (const element of this.getFlatElements(this.elements)) {
-      const { x, y } = element.position;
-      let newX, newY, newRotation;
-      if (direction === "anti-clockwise") {
-        newX = y;
-        newY = oldWidth - x;
-        newRotation = element.rotation - 90;
-      } else {
-        newX = oldHeight - y;
-        newY = x;
-        newRotation = element.rotation + 90;
-      }
-
-      let newStart = null;
-      let newEnd = null;
-
-      if (element instanceof GradientElement) {
-        const { x: sx, y: sy } = element.startPosition;
-        const { x: ex, y: ey } = element.endPosition;
-        if (direction === "anti-clockwise") {
-          newStart = { x: sy, y: oldWidth - sx };
-          newEnd = { x: ey, y: oldWidth - ex };
-        } else {
-          newStart = { x: oldHeight - sy, y: sx };
-          newEnd = { x: oldHeight - ey, y: ex };
-        }
-        element.size = { width: element.size.height, height: element.size.width };
-      }
-
-      element.position = { x: newX, y: newY };
-      element.rotation = newRotation % 360;
-
-      if (element instanceof GradientElement && newStart && newEnd) {
-        element.startPosition = newStart;
-        element.endPosition = newEnd;
-      }
-    }
-    // Update transform box if selection exists
-    const selectedElements = this.getSelectedElements();
-    if (selectedElements.length > 0) {
-      this.createTransformBox();
-    }
-    this.eventBus.emit("mainWindow:resize");
-  };
-
-  private handleFlipCanvas = (
-    direction: "horizontal" | "vertical" = "horizontal",
-  ): void => {
-    if (!this.canvas) return;
-    const height = this.canvas.height;
-    const width = this.canvas.width;
-
-    for (const element of this.getFlatElements(this.elements)) {
-      let newStart = null;
-      let newEnd = null;
-
-      if (element instanceof GradientElement) {
-        const { x: sx, y: sy } = element.startPosition;
-        const { x: ex, y: ey } = element.endPosition;
-        if (direction === "vertical") {
-          newStart = { x: sx, y: height - sy };
-          newEnd = { x: ex, y: height - ey };
-        } else {
-          newStart = { x: width - sx, y: sy };
-          newEnd = { x: width - ex, y: ey };
-        }
-      }
-
-      if (direction === "vertical") {
-        element.position = {
-          x: element.position.x,
-          y: height - element.position.y,
-        };
-        element.scale = {
-          x: element.scale.x,
-          y: element.scale.y * -1,
-        };
-      } else {
-        element.position = {
-          x: width - element.position.x,
-          y: element.position.y,
-        };
-        element.scale = {
-          x: element.scale.x * -1,
-          y: element.scale.y,
-        };
-      }
-      element.rotation = -element.rotation;
-
-      if (element instanceof GradientElement && newStart && newEnd) {
-        element.startPosition = newStart;
-        element.endPosition = newEnd;
-      }
-    }
-    // Update transform box if selection exists
-    const selectedElements = this.getSelectedElements();
-    if (selectedElements.length > 0) {
-      this.createTransformBox();
-    }
+  private registerElement = (
+    el: RegistrableElement,
+    type: ElementType,
+    extra?: { children: Layer[] },
+  ) => {
+    this.elements.push(el as Element);
+    this.eventBus.emit("workarea:addElement", {
+      children: extra?.children,
+      elementId: el.elementId,
+      isLocked: el.isLocked,
+      isVisible: el.isVisible,
+      layerName: el.layerName,
+      type,
+    });
     this.eventBus.emit("workarea:update");
-    this.eventBus.emit("mainWindow:resize");
   };
 }

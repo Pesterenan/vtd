@@ -1,5 +1,5 @@
 import type { Element } from "src/components/elements/element";
-import type { Position, Scale, Size, TElementData } from "src/components/types";
+import type { Position, Scale, Size } from "src/components/types";
 import { BoundingBox } from "src/utils/boundingBox";
 import { clamp } from "src/utils/easing";
 import type {
@@ -8,21 +8,13 @@ import type {
   PositionPayload,
   UpdateScalePayload,
 } from "src/utils/eventBus";
-import { rotatePoint, toRadians } from "src/utils/transforms";
+import { rotatePoint } from "src/utils/transforms";
 import { Vector } from "src/utils/vector";
 import { ElementGroup } from "./elements/elementGroup";
 import type { CroppingBox } from "src/utils/croppingBox";
-
-export type TransformBoxHandleKeys =
-  | "BOTTOM"
-  | "BOTTOM_LEFT"
-  | "BOTTOM_RIGHT"
-  | "CENTER"
-  | "LEFT"
-  | "RIGHT"
-  | "TOP"
-  | "TOP_LEFT"
-  | "TOP_RIGHT";
+import type { BoxHandleKeys } from "src/utils/boxHandles";
+import { resolveHandleSign } from "src/utils/boxHandles";
+import { toRadians } from "src/utils/angles";
 
 export class TransformBox {
   public position: Position = { x: 0, y: 0 };
@@ -32,19 +24,16 @@ export class TransformBox {
   public rotation = 0;
   public opacity = 1;
 
-  private selectedElements: Element<TElementData>[] = [];
+  private selectedElements: Element[] = [];
   public boundingBox: BoundingBox | null = null;
-  public handles: Record<TransformBoxHandleKeys, Position> | null = null;
+  public handles: Record<BoxHandleKeys, Position> | null = null;
   private eventBus: EventBus;
-  public hoveredHandle: TransformBoxHandleKeys | null = null;
-  public selectedHandle: TransformBoxHandleKeys | null = null;
-  private lockedHandleKey: TransformBoxHandleKeys | null = null;
+  public hoveredHandle: BoxHandleKeys | null = null;
+  public selectedHandle: BoxHandleKeys | null = null;
+  private lockedHandleKey: BoxHandleKeys | null = null;
   private isCroppingBoxVisible = false;
 
-  public constructor(
-    selectedElements: Element<TElementData>[],
-    eventBus: EventBus,
-  ) {
+  public constructor(selectedElements: Element[], eventBus: EventBus) {
     this.eventBus = eventBus;
     this.selectedElements = selectedElements;
 
@@ -176,7 +165,7 @@ export class TransformBox {
       for (const [key, point] of Object.entries(this.handles)) {
         if (Math.hypot(position.x - point.x, position.y - point.y) < 15) {
           snappedHandle = { ...point };
-          this.lockedHandleKey = key as TransformBoxHandleKeys;
+          this.lockedHandleKey = key as BoxHandleKeys;
           break;
         }
       }
@@ -211,15 +200,15 @@ export class TransformBox {
 
   public mousePosition = ({ position }: PositionPayload): void => {
     if (this.handles) {
-      const hitHandle = (
-        Object.keys(this.handles) as TransformBoxHandleKeys[]
-      ).find((key) => {
-        if (this.handles) {
-          const point = this.handles[key];
-          return Math.hypot(position.x - point.x, position.y - point.y) < 30;
-        }
-        return false;
-      });
+      const hitHandle = (Object.keys(this.handles) as BoxHandleKeys[]).find(
+        (key) => {
+          if (this.handles) {
+            const point = this.handles[key];
+            return Math.hypot(position.x - point.x, position.y - point.y) < 30;
+          }
+          return false;
+        },
+      );
       this.hoveredHandle = hitHandle || null;
     }
   };
@@ -299,23 +288,26 @@ export class TransformBox {
     this.updateHandles();
   };
 
+  private forEachTarget = (fn: (element: Element) => void): void => {
+    if (!this.selectedElements) return;
+    for (const element of this.selectedElements) {
+      if (element instanceof ElementGroup) {
+        element.children?.forEach(fn);
+      } else {
+        fn(element);
+      }
+    }
+  };
+
   public updatePosition = ({ position: { x, y } }: PositionPayload): void => {
     const delta = { x: x - this.position.x, y: y - this.position.y };
-    const moveElement = (element: Element<TElementData>) => {
+    const moveElement = (element: Element) => {
       element.position = {
         x: element.position.x + delta.x,
         y: element.position.y + delta.y,
       };
     };
-    if (this.selectedElements) {
-      for (const element of this.selectedElements) {
-        if (element instanceof ElementGroup) {
-          element.children?.forEach(moveElement);
-        } else {
-          moveElement(element);
-        }
-      }
-    }
+    this.forEachTarget(moveElement);
     this.position = { x, y };
     this.anchorPoint = { x, y };
     this.updateHandles();
@@ -325,7 +317,7 @@ export class TransformBox {
     const deltaAngle = angle - this.rotation;
     const deltaPos = rotatePoint(this.position, this.anchorPoint, deltaAngle);
     const angleInRadians = toRadians(deltaAngle);
-    const rotateElement = (element: Element<TElementData>) => {
+    const rotateElement = (element: Element) => {
       if (this.anchorPoint) {
         const deltaX = element.position.x - this.anchorPoint.x;
         const deltaY = element.position.y - this.anchorPoint.y;
@@ -340,15 +332,7 @@ export class TransformBox {
         element.rotation += deltaAngle;
       }
     };
-    if (this.selectedElements) {
-      for (const element of this.selectedElements) {
-        if (element instanceof ElementGroup) {
-          element.children?.forEach(rotateElement);
-        } else {
-          rotateElement(element);
-        }
-      }
-    }
+    this.forEachTarget(rotateElement);
     this.position = deltaPos;
     this.rotation = angle;
     this.updateHandles();
@@ -358,7 +342,7 @@ export class TransformBox {
     delta,
     anchor = this.anchorPoint,
   }: UpdateScalePayload): void => {
-    const scaleElement = (element: Element<TElementData>) => {
+    const scaleElement = (element: Element) => {
       const offset = {
         x: element.position.x - anchor.x,
         y: element.position.y - anchor.y,
@@ -384,15 +368,7 @@ export class TransformBox {
       element.position.y = anchor.y + offsetRotated.y;
     };
 
-    if (this.selectedElements) {
-      for (const element of this.selectedElements) {
-        if (element instanceof ElementGroup) {
-          element.children?.forEach(scaleElement);
-        } else {
-          scaleElement(element);
-        }
-      }
-    }
+    this.forEachTarget(scaleElement);
 
     const offset = {
       x: this.position.x - anchor.x,
@@ -478,70 +454,8 @@ export class TransformBox {
     this.eventBus.emit("workarea:update");
   };
 
-  public contains(element: Element<TElementData>): boolean {
-    return !!this.selectedElements.find((el) => el.zDepth === element.zDepth);
-  }
-
-  public calculateSignAndAnchor = (): {
-    anchor: Position;
-    xSign: 1 | 0 | -1;
-    ySign: 1 | 0 | -1;
-  } => {
-    let anchor = this.anchorPoint;
-    let xSign: 1 | 0 | -1 = 1;
-    let ySign: 1 | 0 | -1 = 1;
-
-    if (!this.handles || !this.selectedHandle) return { anchor, xSign, ySign };
-
-    switch (this.selectedHandle) {
-      case "TOP_LEFT":
-        xSign = -1;
-        ySign = -1;
-        anchor = this.handles.BOTTOM_RIGHT;
-        break;
-      case "TOP_RIGHT":
-        xSign = 1;
-        ySign = -1;
-        anchor = this.handles.BOTTOM_LEFT;
-        break;
-      case "BOTTOM_RIGHT":
-        xSign = 1;
-        ySign = 1;
-        anchor = this.handles.TOP_LEFT;
-        break;
-      case "BOTTOM_LEFT":
-        xSign = -1;
-        ySign = 1;
-        anchor = this.handles.TOP_RIGHT;
-        break;
-      case "TOP":
-        xSign = 0;
-        ySign = -1;
-        anchor = this.handles.BOTTOM;
-        break;
-      case "RIGHT":
-        xSign = 1;
-        ySign = 0;
-        anchor = this.handles.LEFT;
-        break;
-      case "BOTTOM":
-        xSign = 0;
-        ySign = 1;
-        anchor = this.handles.TOP;
-        break;
-      case "LEFT":
-        xSign = -1;
-        ySign = 0;
-        anchor = this.handles.RIGHT;
-        break;
-      case "CENTER":
-        xSign = 0;
-        ySign = 0;
-        anchor = this.handles.CENTER;
-        break;
-    }
-    return { anchor, xSign, ySign };
-  };
+  public calculateSignAndAnchor = (): ReturnType<typeof resolveHandleSign> =>
+    resolveHandleSign(this.selectedHandle, this.handles);
 
   public draw(ctx: CanvasRenderingContext2D): void {
     if (!this.boundingBox) return;
@@ -566,7 +480,7 @@ export class TransformBox {
     ctx.stroke();
     // Draw handles
     if (this.handles) {
-      for (const key of Object.keys(this.handles) as TransformBoxHandleKeys[]) {
+      for (const key of Object.keys(this.handles) as BoxHandleKeys[]) {
         const point = this.handles[key];
         // Outer Ring
         ctx.strokeStyle = "black";

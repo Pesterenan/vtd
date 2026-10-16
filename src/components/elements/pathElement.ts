@@ -2,9 +2,10 @@ import { BoundingBox } from "src/utils/boundingBox";
 import type { IPathElementData, Point, Position, Size } from "../types";
 import { Element } from "./element";
 import { FilterRenderer } from "src/filters/filterRenderer";
-import { rotatePoint, toRadians } from "src/utils/transforms";
+import { rotatePoint } from "src/utils/transforms";
+import { toRadians } from "src/utils/angles";
 
-export class PathElement extends Element<IPathElementData> {
+export class PathElement extends Element {
   // --- Propriedades tipadas (atalhos para `this.properties`) ---
   public get points(): IPathElementData["points"] {
     return this.properties.get("points") as IPathElementData["points"];
@@ -311,7 +312,7 @@ export class PathElement extends Element<IPathElementData> {
   }
 
   public serialize(): IPathElementData {
-    return super.serialize();
+    return super.serialize() as IPathElementData;
   }
 
   public draw(context: CanvasRenderingContext2D): void {
@@ -403,7 +404,8 @@ export class PathElement extends Element<IPathElementData> {
       return this.boundingBox;
     }
 
-    const ext = this.getLocalExtents()!;
+    const ext = this.getLocalExtents();
+    if (!ext) return this.boundingBox;
     const width = ext.maxX - ext.minX || 1;
     const height = ext.maxY - ext.minY || 1;
     const centerWorld = this.toWorldPos({

@@ -1,4 +1,4 @@
-import type { Position, Size, TElementData } from "src/components/types";
+import type { Position, Size } from "src/components/types";
 import type { Element } from "src/components/elements/element";
 import { rotatePoint } from "./transforms";
 import { Vector } from "./vector";
@@ -105,7 +105,7 @@ export class BoundingBox {
     );
   }
 
-  public static calculateBoundingBox(elements: Array<Element<TElementData>>): {
+  public static calculateBoundingBox(elements: Array<Element>): {
     position: Position;
     size: Size;
   } {

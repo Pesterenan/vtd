@@ -28,6 +28,9 @@ const PEN_COLORS = {
   handleLine: "lightgray",
 } as const;
 
+export const TOOL_HINT =
+  "Enter: aceitar path, Esc: cancelar, Backspace: voltar";
+
 export class PenTool extends Tool {
   private static cachedPenIcon: Path2D | null = null;
 
@@ -55,7 +58,7 @@ export class PenTool extends Tool {
   private mouseDownWithAlt = false;
   private dragStarted = false;
   private isClosingPath = false;
-  private hintVisible = false;
+  private isToolHintVisible = false;
 
   constructor(canvas: HTMLCanvasElement, eventBus: EventBus) {
     super(canvas, eventBus);
@@ -80,7 +83,7 @@ export class PenTool extends Tool {
     this.canvas.style.cursor = "";
   }
 
-  private resetTool(): void {
+  private resetTool = (): void => {
     this.points = [];
     this.activePathElement = null;
     this.selectedPointIndex = -1;
@@ -92,17 +95,19 @@ export class PenTool extends Tool {
     this.dragStarted = false;
     this.isClosingPath = false;
     this.dragOriginWorld = null;
-    this.setHint(false);
+    this.updateToolHint(false);
     this.eventBus.emit("workarea:update");
-  }
+  };
 
   private selectActivePath = (): void => {
     const [elements] = this.eventBus.request("workarea:selected:get");
     if (elements?.length === 1 && elements[0] instanceof PathElement) {
       this.activePathElement = elements[0];
       this.updatePointsOverlay();
-      this.selectedPointIndex = this.points.length - 1;
-      this.setHint(true);
+      // Path "somente selecionado": nenhum ponto selecionado. Clicar longe
+      // das linhas cria um path novo; para continuar, clique no ponto final.
+      this.selectedPointIndex = -1;
+      this.updateToolHint(true);
     } else {
       this.resetTool();
     }
@@ -141,9 +146,7 @@ export class PenTool extends Tool {
   }
 
   /** Hit-test único do segmento sob o mouse (espaço de TELA). */
-  private findSegmentUnderMouse(): ReturnType<
-    typeof hitTestPathSegments
-  > {
+  private findSegmentUnderMouse(): ReturnType<typeof hitTestPathSegments> {
     const mousePos = this.mousePos;
     const active = this.activePathElement;
     if (!mousePos || !active) return null;
@@ -190,10 +193,12 @@ export class PenTool extends Tool {
     this.selectedPointIndex = -1;
   }
 
-  private setHint(visible: boolean): void {
-    if (this.hintVisible === visible) return;
-    this.hintVisible = visible;
-    this.eventBus.emit("pen:hint", { visible });
+  private updateToolHint(visible: boolean): void {
+    if (this.isToolHintVisible === visible) return;
+    this.isToolHintVisible = visible;
+    this.eventBus.emit("tool:hint", {
+      hintText: this.isToolHintVisible ? TOOL_HINT : "",
+    });
   }
 
   /** Testa em qual handle do ponto foi o clique */
@@ -247,8 +252,9 @@ export class PenTool extends Tool {
       }
     }
 
-    // Linha elástica - próximo segmento futuro
-    if (this.points.length > 0 && !active?.isClosed && !isDragging) {
+    // Linha elástica - próximo segmento futuro (só no modo "continuar",
+    // ou seja, path aberto com o último ponto selecionado).
+    if (this.isContinuingPath() && !isDragging) {
       const first = this.points[0];
       const lastIndex = this.points.length - 1;
       const last = this.points[lastIndex];
@@ -313,31 +319,82 @@ export class PenTool extends Tool {
     if (mousePos === null) return;
     // Se não existir path, tenta selecionar ou criar um novo ao clicar.
     if (!active) {
-      this.createPathOnEmptyClick(mousePos);
+      this.startNewPath(mousePos, false);
       return;
     }
 
     if (this.tryClosePath(active)) return;
     if (this.tryGrabHandle(active, mousePos)) return;
+
+    // CTRL fora dos pontos/handles do path ativo: seleciona o elemento sob o
+    // cursor ou deseleciona (clicando "no nada").
+    if (this.modifiers.ctrl) {
+      this.handleCtrlClick();
+      return;
+    }
+
+    // Fora do modo "continuar", clicar longe das linhas do path inicia um path
+    // novo em vez de adicionar ponto ao path atual.
+    if (!this.isContinuingPath() && this.isFarFromPath(mousePos)) {
+      this.startNewPath(mousePos, true);
+      return;
+    }
+
     if (this.tryInsertAtSegment(active)) return;
     this.appendPoint(active, mousePos);
   }
 
-  private createPathOnEmptyClick(mouseScreen: Position): void {
-    this.eventBus.emit("edit:path", {
+  /**
+   * Cria (ou seleciona) um path a partir de um clique no vazio.
+   * Com `force`, cria um path novo mesmo que o clique caia dentro da bounding
+   * box de um path existente.
+   */
+  private startNewPath(mouseScreen: Position, force: boolean): void {
+    const previous = this.activePathElement;
+    this.eventBus.emit(force ? "workarea:addPath" : "edit:path", {
       position: this.canvasPos ?? { x: 0, y: 0 },
     });
-    if (this.canvasPos && this.activePathElement) {
-      const active = this.activePathElement;
-      this.beginDrag(
-        0,
-        null,
-        mouseScreen,
-        active.toWorld(active.points[0]).center,
-        false,
-      );
-      this.refreshTransformBox();
-    }
+    const active = this.activePathElement;
+    // Só inicia o drag se o path ativo realmente mudou (o workArea cria e
+    // seleciona o novo path; sem ele, nada muda).
+    if (!this.canvasPos || !active || active === previous) return;
+    this.beginDrag(
+      0,
+      null,
+      mouseScreen,
+      active.toWorld(active.points[0]).center,
+      false,
+    );
+    this.refreshTransformBox();
+  }
+
+  /** CTRL + clique: seleciona o elemento sob o cursor ou deseleciona. */
+  private handleCtrlClick(): void {
+    const canvasPos = this.canvasPos;
+    if (!canvasPos) return;
+    this.eventBus.emit("workarea:selectAt", { firstPoint: canvasPos });
+  }
+
+  /** Verdadeiro se o clique está longe das linhas, pontos e handles do path ativo. */
+  private isFarFromPath(mouseScreen: Position): boolean {
+    return (
+      this.hitHandleOrPoint(mouseScreen) === null &&
+      this.findSegmentUnderMouse() === null
+    );
+  }
+
+  /**
+   * Modo "continuar": path aberto com o último ponto selecionado. É o estado em
+   * que o rubber band aparece e os cliques adicionam pontos ao path.
+   */
+  private isContinuingPath(): boolean {
+    const active = this.activePathElement;
+    return (
+      !!active &&
+      !active.isClosed &&
+      this.points.length > 0 &&
+      this.selectedPointIndex === this.points.length - 1
+    );
   }
 
   /** 1. Fechamento por clique no primeiro ponto. */
@@ -463,7 +520,11 @@ export class PenTool extends Tool {
     // ALT = move só o handle agarrado (centro fixo).
     // Sem modificador = smooth. Com ALT+CTRL, CTRL vence.
     if (this.draggingPoint) {
-      this.dragExistingHandle(this.draggingPointIndex, this.draggingPoint, target);
+      this.dragExistingHandle(
+        this.draggingPointIndex,
+        this.draggingPoint,
+        target,
+      );
     } else {
       this.dragAnchorPoint(this.draggingPointIndex, target);
     }

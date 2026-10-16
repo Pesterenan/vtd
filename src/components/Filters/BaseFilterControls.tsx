@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import SelectInput from "src/components/SelectInput/SelectInput";
 import SliderControl from "src/components/SliderControl/SliderControl";
-import type { ISelectOption } from "src/components/SelectInput/SelectInput";
+import type { ISelectOption } from "src/components/types";
 
 export const COMPOSITE_OPTIONS: Array<ISelectOption> = [
   { label: "Normal", value: "source-over" },

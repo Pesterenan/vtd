@@ -1,5 +1,5 @@
 import type { Position, Size } from "src/components/types";
-import { toDegrees } from "./transforms";
+import { toDegrees } from "./angles";
 
 type Vectorizable = Position | Size;
 

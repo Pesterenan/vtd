@@ -106,25 +106,14 @@ export interface IProjectData {
   workAreaSize: Size;
 }
 
-export interface Rectangle {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 export type TBoundingBox = { x1: number; y1: number; x2: number; y2: number };
 export type Position = { x: number; y: number };
 export type Scale = { x: number; y: number };
 export type Size = { width: number; height: number };
 
-/** Botões do mouse */
-export enum MOUSE_BUTTONS {
-  LEFT = 0,
-  MIDDLE = 1,
-  RIGHT = 2,
-  BACK = 3,
-  FORWARD = 4,
+export interface ISelectOption {
+  label: string;
+  value: string;
 }
 
 /** Ferramentas para manipular elementos @readonly @enum */
@@ -139,6 +128,8 @@ export enum TOOL {
   HAND = "hand-tool",
   /** @prop PEN - Desenhar caminhos */
   PEN = "pen-tool",
+  /** @prop SHAPE - Desenhar formas */
+  SHAPE = "shape-tool",
   /** @prop ZOOM - Modificar zoom */
   ZOOM = "zoom-tool",
 }

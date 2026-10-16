@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { act } from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { EventBusProvider } from "src/contexts/EventBusContext";
 import { EventBus } from "src/utils/eventBus";
 
@@ -10,16 +11,18 @@ import ApplyCropDialog from "./ApplyCropDialog";
 import ElementFiltersDialog from "./ElementFiltersDialog";
 import type { FilterProperties } from "src/filters/filter";
 import type { Element } from "src/components/elements/element";
-import type { TElementData } from "src/components/types";
 
-function renderDialog(component: React.ComponentType<{ isOpen: boolean; onClose: () => void }>, isOpen = true) {
+function renderDialog(
+  component: React.ComponentType<{ isOpen: boolean; onClose: () => void }>,
+  isOpen = true,
+) {
   const onClose = vi.fn();
   const eventBus = new EventBus();
   const Component = component;
   const view = render(
     <EventBusProvider eventBus={eventBus}>
       <Component isOpen={isOpen} onClose={onClose} />
-    </EventBusProvider>
+    </EventBusProvider>,
   );
   return { view, onClose, eventBus };
 }
@@ -52,7 +55,7 @@ describe("NewProjectDialog", () => {
     render(
       <EventBusProvider eventBus={eventBus}>
         <NewProjectDialog isOpen={true} onClose={onClose} />
-      </EventBusProvider>
+      </EventBusProvider>,
     );
 
     fireEvent.click(screen.getByText("Aceitar"));
@@ -66,7 +69,7 @@ describe("NewProjectDialog", () => {
     render(
       <EventBusProvider eventBus={new EventBus()}>
         <NewProjectDialog isOpen={true} onClose={onClose} />
-      </EventBusProvider>
+      </EventBusProvider>,
     );
     fireEvent.click(screen.getByText("Cancelar"));
     expect(onClose).toHaveBeenCalled();
@@ -81,7 +84,9 @@ describe("ExportImageDialog", () => {
 
   it("shows transparency checkbox when PNG is selected", () => {
     renderDialog(ExportImageDialog);
-    const select = document.body.querySelector<HTMLSelectElement>("#slc_export-format-select-input") as HTMLSelectElement;
+    const select = document.body.querySelector<HTMLSelectElement>(
+      "#slc_export-format-select-input",
+    ) as HTMLSelectElement;
     fireEvent.change(select, { target: { value: "png" } });
     expect(screen.getByText(/fundo transparente/i)).toBeInTheDocument();
   });
@@ -91,7 +96,7 @@ describe("ExportImageDialog", () => {
     render(
       <EventBusProvider eventBus={new EventBus()}>
         <ExportImageDialog isOpen={true} onClose={onClose} />
-      </EventBusProvider>
+      </EventBusProvider>,
     );
     fireEvent.click(screen.getByText("Cancelar"));
     expect(onClose).toHaveBeenCalled();
@@ -109,7 +114,7 @@ describe("ProjectPropertiesDialog", () => {
     render(
       <EventBusProvider eventBus={eventBus}>
         <ProjectPropertiesDialog isOpen={true} onClose={vi.fn()} />
-      </EventBusProvider>
+      </EventBusProvider>,
     );
 
     act(() => {
@@ -139,7 +144,7 @@ describe("ApplyCropDialog", () => {
     render(
       <EventBusProvider eventBus={eventBus}>
         <ApplyCropDialog isOpen={true} onClose={onClose} />
-      </EventBusProvider>
+      </EventBusProvider>,
     );
 
     act(() => {
@@ -162,11 +167,14 @@ describe("ApplyCropDialog", () => {
     render(
       <EventBusProvider eventBus={eventBus}>
         <ApplyCropDialog isOpen={true} onClose={onClose} />
-      </EventBusProvider>
+      </EventBusProvider>,
     );
 
     fireEvent.click(screen.getByText("Aceitar"));
-    expect(emitSpy).not.toHaveBeenCalledWith("layer:applyCrop", expect.any(Object));
+    expect(emitSpy).not.toHaveBeenCalledWith(
+      "layer:applyCrop",
+      expect.any(Object),
+    );
   });
 });
 
@@ -176,21 +184,21 @@ describe("ElementFiltersDialog", () => {
     render(
       <EventBusProvider eventBus={eventBus}>
         <ElementFiltersDialog isOpen={true} onClose={vi.fn()} />
-      </EventBusProvider>
+      </EventBusProvider>,
     );
     expect(screen.getByText("Redefinir")).toBeInTheDocument();
   });
 
   it("renders filter list from event payload", () => {
     const eventBus = new EventBus();
-    const mockElement = { filters: [] as FilterProperties[] } as Element<TElementData>;
+    const mockElement = { filters: [] as FilterProperties[] } as Element;
 
     eventBus.on("workarea:selected:get", () => [mockElement]);
 
     render(
       <EventBusProvider eventBus={eventBus}>
         <ElementFiltersDialog isOpen={true} onClose={vi.fn()} />
-      </EventBusProvider>
+      </EventBusProvider>,
     );
 
     act(() => {

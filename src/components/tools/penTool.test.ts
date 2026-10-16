@@ -1,4 +1,4 @@
-import { PenTool } from "./penTool";
+import { PenTool, TOOL_HINT } from "./penTool";
 import { EventBus } from "../../utils/eventBus";
 import { PathElement } from "../elements/pathElement";
 import type { Position } from "../types";
@@ -86,6 +86,14 @@ describe("PenTool", () => {
     });
   }
 
+  /** Coloca a pen tool no modo "continuar": seleciona o último ponto do path. */
+  function selectLastPoint(p: PathElement): void {
+    const last = p.toWorld(p.points[p.points.length - 1]).center;
+    setMouse(last);
+    penTool.onMouseDown(createMouseEvent(0, 0));
+    penTool.onMouseUp(createMouseEvent(0, 0));
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     currentMouse = null;
@@ -123,6 +131,20 @@ describe("PenTool", () => {
     });
   });
 
+  describe("exclusão do path selecionado", () => {
+    it("workarea:deleteElement limpa o overlay (pontos param de flutuar)", () => {
+      const p = makePath();
+      activatePath(p);
+      expect(penTool["activePathElement"]).toBe(p);
+      expect(penTool["points"]).toHaveLength(3);
+
+      eventBus.emit("workarea:deleteElement", { elementId: p.elementId });
+
+      expect(penTool["activePathElement"]).toBeNull();
+      expect(penTool["points"]).toEqual([]);
+    });
+  });
+
   describe("criação de um novo path", () => {
     it("clique sem path ativo emite edit:path com a posição do canvas", () => {
       // mousePos é a fonte de verdade (ToolManager); o offset do evento é ignorado.
@@ -134,12 +156,64 @@ describe("PenTool", () => {
       });
     });
 
-    it("com um path ativo o clique adiciona ponto em vez de emitir edit:path", () => {
+    it("path somente selecionado + clique longe emite workarea:addPath (path novo)", () => {
       const p = makePath();
       activatePath(p);
       setMouse({ x: 200, y: 150 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
+      expect(eventBus.emit).toHaveBeenCalledWith("workarea:addPath", {
+        position: { x: 200, y: 150 },
+      });
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "edit:path",
+        expect.anything(),
+      );
+      expect(p.points).toHaveLength(3);
+    });
+
+    it("ponto não-final selecionado + clique longe emite workarea:addPath", () => {
+      const p = makePath();
+      activatePath(p);
+      // seleciona o ponto do meio (índice 1) -> sai do modo "continuar"
+      setMouse({ x: 150, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+      penTool.onMouseUp(createMouseEvent(0, 0));
+
+      setMouse({ x: 300, y: 300 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(eventBus.emit).toHaveBeenCalledWith("workarea:addPath", {
+        position: { x: 300, y: 300 },
+      });
+      expect(p.points).toHaveLength(3);
+    });
+
+    it("clique perto das linhas ainda adiciona ponto (não cria path novo)", () => {
+      const p = makePath();
+      activatePath(p);
+      // sobre o segmento vertical x=150 (entre 150,100 e 150,150)
+      setMouse({ x: 152, y: 125 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "workarea:addPath",
+        expect.anything(),
+      );
+      expect(p.points).toHaveLength(4);
+    });
+
+    it("com o último ponto selecionado, clique longe adiciona ponto (continuar)", () => {
+      const p = makePath();
+      activatePath(p);
+      selectLastPoint(p);
+      setMouse({ x: 200, y: 150 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "workarea:addPath",
+        expect.anything(),
+      );
       expect(eventBus.emit).not.toHaveBeenCalledWith(
         "edit:path",
         expect.anything(),
@@ -150,6 +224,7 @@ describe("PenTool", () => {
     it("adiciona pontos recentralizando o path e preservando a geometria", () => {
       const p = makePath();
       activatePath(p);
+      selectLastPoint(p);
       setMouse({ x: 200, y: 150 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -227,7 +302,8 @@ describe("PenTool", () => {
       expect(penTool["activePathElement"]).toBe(p);
       // points do overlay são em espaço de tela = world (com mock identity adjust)
       expect(penTool["points"]).toEqual(p.points.map((pt) => p.toWorld(pt)));
-      expect(penTool["selectedPointIndex"]).toBe(p.points.length - 1);
+      // path "somente selecionado": nenhum ponto selecionado
+      expect(penTool["selectedPointIndex"]).toBe(-1);
     });
 
     it("workarea:selectAt também ativa o path selecionado", () => {
@@ -248,6 +324,43 @@ describe("PenTool", () => {
 
       expect(penTool["activePathElement"]).toBeNull();
       expect(penTool["points"]).toEqual([]);
+    });
+  });
+
+  describe("CTRL + clique (selecionar/deselecionar)", () => {
+    it("CTRL + clique longe emite workarea:selectAt e não cria path nem ponto", () => {
+      const p = makePath();
+      activatePath(p);
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }),
+      );
+      setMouse({ x: 400, y: 400 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(eventBus.emit).toHaveBeenCalledWith("workarea:selectAt", {
+        firstPoint: { x: 400, y: 400 },
+      });
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "workarea:addPath",
+        expect.anything(),
+      );
+      expect(p.points).toHaveLength(3);
+    });
+
+    it("CTRL + clique sobre um ponto do path ativo continua agarrando (não emite selectAt)", () => {
+      const p = makePath();
+      activatePath(p);
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }),
+      );
+      setMouse({ x: 150, y: 100 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "workarea:selectAt",
+        expect.anything(),
+      );
+      expect(penTool["selectedPointIndex"]).toBe(1);
     });
   });
 
@@ -299,6 +412,7 @@ describe("PenTool", () => {
     it("clique longe do primeiro ponto adiciona ponto em vez de fechar", () => {
       const p = makePath();
       activatePath(p);
+      selectLastPoint(p);
       setMouse({ x: 300, y: 300 });
       penTool.onMouseMove(createMouseEvent(0, 0));
       penTool.onMouseDown(createMouseEvent(0, 0));
@@ -366,6 +480,7 @@ describe("PenTool", () => {
     it("draw() renderiza as linhas e pontos do path ativo", () => {
       const p = makePath();
       activatePath(p);
+      selectLastPoint(p);
       setMouse({ x: 200, y: 200 });
       penTool.onMouseMove(createMouseEvent(0, 0));
 
@@ -488,6 +603,7 @@ describe("PenTool", () => {
     it("adicionar ponto emite transformBox:refresh", () => {
       const p = makePath();
       activatePath(p);
+      selectLastPoint(p);
       setMouse({ x: 300, y: 300 });
       penTool.onMouseDown(createMouseEvent(0, 0));
 
@@ -613,6 +729,7 @@ describe("PenTool", () => {
     it("Shift+clique alinha o novo ponto ao eixo dominante do último ponto", () => {
       const p = makePath();
       activatePath(p);
+      selectLastPoint(p);
       penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift" }));
       setMouse({ x: 300, y: 250 });
       penTool.onMouseDown(createMouseEvent(0, 0));
@@ -624,6 +741,7 @@ describe("PenTool", () => {
     it("Shift+clique alinha ao eixo vertical quando ele domina", () => {
       const p = makePath();
       activatePath(p);
+      selectLastPoint(p);
       penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift" }));
       setMouse({ x: 250, y: 300 });
       penTool.onMouseDown(createMouseEvent(0, 0));
@@ -657,6 +775,7 @@ describe("PenTool", () => {
     it("soltar Shift desliga o constraint", () => {
       const p = makePath();
       activatePath(p);
+      selectLastPoint(p);
       penTool.onKeyDown(new KeyboardEvent("keydown", { key: "Shift" }));
       penTool.onKeyUp(new KeyboardEvent("keyup", { key: "Shift" }));
       setMouse({ x: 300, y: 250 });
@@ -671,6 +790,7 @@ describe("PenTool", () => {
     it("desenha linha sólida quando isClosing", () => {
       const p = makePath();
       activatePath(p);
+      selectLastPoint(p);
       setMouse({ x: 100, y: 101 });
       penTool.onMouseMove(createMouseEvent(0, 0));
       expect(penTool["isClosingPath"]).toBe(true);
@@ -686,6 +806,7 @@ describe("PenTool", () => {
     it("desenha linha tracejada quando não está fechando", () => {
       const p = makePath();
       activatePath(p);
+      selectLastPoint(p);
       setMouse({ x: 200, y: 200 });
       penTool.onMouseMove(createMouseEvent(0, 0));
       expect(penTool["isClosingPath"]).toBe(false);
@@ -700,22 +821,22 @@ describe("PenTool", () => {
   });
 
   describe("hint overlay", () => {
-    it("equip com path ativo emite pen:hint visível", () => {
+    it("equip com path ativo emite tool:hint", () => {
       const p = makePath();
       configureRequest({ selected: [p] });
       penTool.equip();
 
-      expect(eventBus.emit).toHaveBeenCalledWith("pen:hint", { visible: true });
+      expect(eventBus.emit).toHaveBeenCalledWith("tool:hint", { hintText: TOOL_HINT });
     });
 
-    it("unequip emite pen:hint escondido", () => {
+    it("unequip emite tool:hint escondido", () => {
       const p = makePath();
       configureRequest({ selected: [p] });
       penTool.equip();
       penTool.unequip();
 
-      expect(eventBus.emit).toHaveBeenCalledWith("pen:hint", {
-        visible: false,
+      expect(eventBus.emit).toHaveBeenCalledWith("tool:hint", {
+        hintText: '',
       });
     });
 
@@ -723,12 +844,12 @@ describe("PenTool", () => {
       const p = makePath();
       configureRequest({ selected: [p] });
       penTool.equip();
-      expect(penTool["hintVisible"]).toBe(true);
+      expect(penTool["isToolHintVisible"]).toBe(true);
 
       configureRequest({ selected: [{ type: "image" }] });
       eventBus.emit("workarea:selectById", { elementsId: new Set([99]) });
 
-      expect(penTool["hintVisible"]).toBe(false);
+      expect(penTool["isToolHintVisible"]).toBe(false);
     });
   });
 });

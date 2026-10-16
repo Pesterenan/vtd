@@ -31,7 +31,7 @@
   min-height: 9rem;
   overflow: hidden;
   overflow-y: auto;
-  padding: 1rem 0 0 0;
+  padding: 1rem 0 0.25rem 0;
   list-style: none;
 }
 
@@ -59,7 +59,8 @@
   transition: var(--background-transition);
   padding: 0.25rem;
   width: 100%;
-  cursor: pointer;
+  position: relative;
+  cursor: grab;
 }
 
 .titleRow {
@@ -76,12 +77,48 @@
   color: var(--text-900);
 }
 
-.layerItem.dragOverBefore {
-  box-shadow: 0 -3px 0 var(--primary-500);
+.layerItem.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
 }
 
-.layerItem.dragOverAfter {
-  box-shadow: 0 3px 0 var(--primary-500);
+/* Insertion indicator: a full-width line with a "handle" dot on the left. The
+   list is reversed, so "before" sits on the target's top edge and "after" on its
+   bottom edge; the pseudo-elements overflow the item to sit exactly on the
+   border without shifting the layout. */
+.layerItem.dragOverBefore::before,
+.layerItem.dragOverAfter::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0.5rem;
+  pointer-events: none;
+  z-index: 3;
+  background:
+    radial-gradient(circle at 0.3rem 50%,
+      var(--primary-500) 0.22rem,
+      transparent 0.24rem),
+    linear-gradient(to bottom,
+      transparent calc(50% - 1.5px),
+      var(--primary-500) calc(50% - 1.5px),
+      var(--primary-500) calc(50% + 1.5px),
+      transparent calc(50% + 1.5px));
+}
+
+.layerItem.dragOverBefore::before {
+  top: -0.25rem;
+}
+
+.layerItem.dragOverAfter::after {
+  bottom: -0.25rem;
+}
+
+/* Hovering a group nests the dragged layer inside it. */
+.layerItem.dragOverInside {
+  outline: 2px solid var(--primary-500);
+  outline-offset: -2px;
+  background-color: var(--secondary-200);
 }
 
 .controls {
@@ -102,47 +139,6 @@
   overflow: hidden;
   flex: 1 1 auto;
   align-items: center;
-}
-
-.tglCheckbox {
-  display: none;
-}
-
-.tglLabel {
-  border-radius: var(--border-radius-small);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  height: 1.25rem;
-  justify-content: center;
-  transition: var(--background-transition);
-  width: 1.25rem;
-}
-
-.tglCheckbox:checked + .tglLabel {
-  background-color: var(--primary-500);
-}
-
-.tglLabel::before {
-  content: "";
-  display: block;
-  background: linear-gradient(to bottom right,
-      var(--accent-500) 40%,
-      var(--accent-700));
-  height: 1rem;
-  mask-image: var(--icon-url);
-  mask-position: center;
-  mask-repeat: no-repeat;
-  mask-size: cover;
-  width: 1rem;
-}
-
-.tglCheckbox:checked + .tglLabel::before {
-  mask-image: var(--checked-icon-url);
-}
-
-.tglLabel.active::before {
-  transform: rotate(90deg);
 }
 
 .filterBtn {

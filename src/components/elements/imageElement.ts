@@ -4,9 +4,9 @@ import { FilterRenderer } from "src/filters/filterRenderer";
 import { BoundingBox } from "src/utils/boundingBox";
 import { CroppingBox } from "src/utils/croppingBox";
 import { clamp } from "src/utils/easing";
-import { toRadians } from "src/utils/transforms";
+import { toRadians } from "src/utils/angles";
 
-export class ImageElement extends Element<IImageElementData> {
+export class ImageElement extends Element {
   public get backgroundColor(): string {
     return this.properties.get("backgroundColor") as string;
   }
@@ -46,7 +46,7 @@ export class ImageElement extends Element<IImageElementData> {
   }
 
   public serialize(): IImageElementData {
-    const serialized = super.serialize();
+    const serialized = super.serialize() as IImageElementData;
     if (this.isImageLoaded) {
       serialized.encodedImage = this.properties.get("encodedImage") as string;
     }

@@ -2,11 +2,15 @@ import { EventBus } from "../utils/eventBus";
 import type { Element } from "./elements/element";
 import { TextElement } from "./elements/textElement";
 import { TransformBox } from "./transformBox";
-import type { TElementData } from "./types";
+
+const containsById = (box: TransformBox, element: Element): boolean =>
+  (box as unknown as { selectedElements: Element[] }).selectedElements.some(
+    (el) => el.elementId === element.elementId,
+  );
 
 describe("TransformBox", () => {
   let canvas: HTMLCanvasElement;
-  let elements: Element<TElementData>[];
+  let elements: Element[];
   let bus: EventBus;
   let text: TextElement;
   let transformBox: TransformBox;
@@ -23,7 +27,7 @@ describe("TransformBox", () => {
     );
     text.content = ["VTD"];
     text.font = "monospace";
-    elements = [text as unknown as Element<TElementData>];
+    elements = [text as Element];
 
     vi.spyOn(bus, "on");
     vi.spyOn(bus, "off");
@@ -254,7 +258,7 @@ describe("TransformBox", () => {
 
   it("should contain the element in the selectedElements array", () => {
     const element = elements[0];
-    expect(transformBox.contains(element)).toBe(true);
+    expect(containsById(transformBox, element)).toBe(true);
   });
 
   it("should not contain an element that is not in the selectedElements array", () => {
@@ -263,9 +267,7 @@ describe("TransformBox", () => {
       { width: 50, height: 50 },
       1,
     );
-    expect(transformBox.contains(newElement as Element<TElementData>)).toBe(
-      false,
-    );
+    expect(containsById(transformBox, newElement)).toBe(false);
   });
 
   it("should set hoveredHandle on hoverHandle", () => {

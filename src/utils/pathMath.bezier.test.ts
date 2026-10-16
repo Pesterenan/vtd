@@ -2,7 +2,6 @@ import {
   cubicBezierPoint,
   closestPointOnCubicBezier,
   hitTestPathSegments,
-  hitTestSegments,
 } from "./pathMath";
 import type { Point } from "src/components/types";
 
@@ -53,15 +52,6 @@ describe("hitTestPathSegments", () => {
     expect(onCurve!.segmentIndex).toBe(0);
     expect(onCurve!.projection.x).toBeCloseTo(50, 0);
     expect(onCurve!.projection.y).toBeCloseTo(75, 0);
-
-    // Prova do problema antigo: só com centros (reta), o mesmo mouse erra.
-    const onChord = hitTestSegments(
-      { x: 50, y: 75 },
-      curvePoints().map((p) => p.center),
-      false,
-      8,
-    );
-    expect(onChord).toBeNull();
   });
 
   it("trecho corner continua funcionando como reta (regressão)", () => {

@@ -2,14 +2,14 @@ import { BoundingBox } from "src/utils/boundingBox";
 import type { IElementGroupData, Position, Size, TElementData } from "../types";
 import { Element } from "./element";
 
-export class ElementGroup extends Element<IElementGroupData> {
-  public children: Element<TElementData>[] = [];
+export class ElementGroup extends Element {
+  public children: Element[] = [];
 
   constructor(
     position: Position,
     size: Size,
     zDepth: number,
-    children: Element<TElementData>[],
+    children: Element[],
   ) {
     super(position, size, zDepth);
     this.properties.set("type", "group");
@@ -17,11 +17,13 @@ export class ElementGroup extends Element<IElementGroupData> {
   }
 
   public serialize(): IElementGroupData {
-    const serialized = super.serialize();
+    const serialized = super.serialize() as IElementGroupData;
     if (this.children) {
-      serialized.children = this.children.map((child) => child.serialize());
+      serialized.children = this.children.map((child) =>
+        child.serialize(),
+      ) as TElementData[];
     }
-    return serialized as IElementGroupData;
+    return serialized;
   }
 
   public deserialize(data: IElementGroupData): void {
@@ -46,31 +48,7 @@ export class ElementGroup extends Element<IElementGroupData> {
     if (!this.children || this.children.length === 0) {
       return new BoundingBox(this.position, this.size, this.rotation);
     }
-
-    let minX = Number.POSITIVE_INFINITY;
-    let minY = Number.POSITIVE_INFINITY;
-    let maxX = Number.NEGATIVE_INFINITY;
-    let maxY = Number.NEGATIVE_INFINITY;
-
-    for (const child of this.children) {
-      const box = child.getBoundingBox();
-      const corners = [box.topLeft, box.topRight, box.bottomLeft, box.bottomRight];
-      for (const corner of corners) {
-        if (corner.x < minX) minX = corner.x;
-        if (corner.y < minY) minY = corner.y;
-        if (corner.x > maxX) maxX = corner.x;
-        if (corner.y > maxY) maxY = corner.y;
-      }
-    }
-
-    const center = {
-      x: (minX + maxX) / 2,
-      y: (minY + maxY) / 2,
-    };
-    const size = {
-      width: maxX - minX,
-      height: maxY - minY,
-    };
-    return new BoundingBox(center, size, this.rotation);
+    const { position, size } = BoundingBox.calculateBoundingBox(this.children);
+    return new BoundingBox(position, size, this.rotation);
   }
 }

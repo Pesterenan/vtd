@@ -8,10 +8,10 @@ import type {
   Position,
   Scale,
   Size,
-  TElementData,
   TOOL,
 } from "src/components/types";
 import type { CroppingBox } from "./croppingBox";
+import type { ShapeBox, ShapeMode } from "src/components/tools/shapeGeometry";
 
 export type Callback<P = unknown, R = unknown> = (payload: P) => R;
 
@@ -30,6 +30,12 @@ export type AddElementPayload = {
   children?: Array<Layer>;
 };
 
+export type EditShapePayload = {
+  mode: ShapeMode;
+  box: ShapeBox;
+  sides: number;
+};
+
 export type UpdateElementPayload = {
   elementId: number;
   layerName?: Layer["name"];
@@ -41,7 +47,7 @@ export type SelectElementsByIdPayload = {
   elementsId: Set<number>;
 };
 
-export type DeleteElementPayload = {
+export type ElementIdPayload = {
   elementId: number;
 };
 
@@ -55,7 +61,7 @@ export type ExportLayerToClipBoardPayload = {
 };
 
 export type SelectionChangedPayload = {
-  selectedElements: Element<TElementData>[];
+  selectedElements: Element[];
 };
 
 export type ExportCanvasToStringPayload = {
@@ -83,6 +89,10 @@ export type SelectElementsAtPayload = {
   secondPoint?: Position | null;
   isAddingToSelection?: boolean;
 };
+
+export type ToolHintPayload = {
+  hintText?: string;
+}
 
 export type ContextMenuItem =
   | {
@@ -150,6 +160,10 @@ export interface EventBusMap {
     payload: PositionPayload;
     result: unknown;
   };
+  "edit:shape": {
+    payload: EditShapePayload;
+    result: unknown;
+  };
   "edit:text": {
     payload: PositionPayload;
     result: unknown;
@@ -190,8 +204,8 @@ export interface EventBusMap {
     payload: unknown;
     result: Position | null;
   };
-  "pen:hint": {
-    payload: { visible: boolean };
+  "tool:hint": {
+    payload: ToolHintPayload;
     result: unknown;
   };
   "multiTool:modeChange": {
@@ -353,6 +367,10 @@ export interface EventBusMap {
     payload: unknown;
     result: unknown;
   };
+  "workarea:addPath": {
+    payload: PositionPayload;
+    result: unknown;
+  };
   "workarea:adjustForCanvas": {
     payload: PositionPayload;
     result: Position;
@@ -386,16 +404,16 @@ export interface EventBusMap {
     result: unknown;
   };
   "workarea:deleteElement": {
-    payload: { elementId: number };
+    payload: ElementIdPayload;
     result: unknown;
   };
   "workarea:getElement:get": {
-    payload: { elementId: number };
-    result: Element<TElementData> | undefined;
+    payload: ElementIdPayload;
+    result: Element | undefined;
   };
   "workarea:elements:get": {
     payload: unknown;
-    result: Element<TElementData>[];
+    result: Element[];
   };
   "workarea:offset:change": {
     payload: PositionPayload;
@@ -435,7 +453,7 @@ export interface EventBusMap {
   };
   "workarea:selected:get": {
     payload: unknown;
-    result: Element<TElementData>[];
+    result: Element[];
   };
   "selection:changed": {
     payload: SelectionChangedPayload;

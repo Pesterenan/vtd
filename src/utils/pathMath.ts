@@ -43,64 +43,6 @@ export function closestPointOnSegment(
   };
 }
 
-/** Distância perpendicular de p ao segmento A-B (com clamp). */
-export function distanceToSegment(
-  p: Position,
-  a: Position,
-  b: Position,
-): number {
-  return closestPointOnSegment(p, a, b).dist;
-}
-
-/**
- * Encontra o segmento mais próximo do mouse dentro da tolerância.
- * `points` e `mouse` devem estar no MESMO espaço (screen ou world).
- */
-export function hitTestSegments(
-  mouse: Position,
-  points: Position[],
-  isClosed: boolean,
-  tolerancePx = 8,
-): {
-  segmentIndex: number;
-  projection: Position;
-  t: number;
-  distance: number;
-} | null {
-  if (points.length < 2) return null;
-
-  const nSegs = isClosed ? points.length : points.length - 1;
-  let best: {
-    segmentIndex: number;
-    projection: Position;
-    t: number;
-    distance: number;
-  } | null = null;
-  let bestDist = Infinity;
-
-  for (let i = 0; i < nSegs; i++) {
-    const a = points[i];
-    const b = points[(i + 1) % points.length];
-    const hit = closestPointOnSegment(mouse, a, b);
-
-    if (hit.dist <= tolerancePx && hit.dist < bestDist) {
-      bestDist = hit.dist;
-      best = {
-        segmentIndex: i,
-        projection: hit.q,
-        t: hit.t,
-        distance: hit.dist,
-      };
-    }
-  }
-  return best;
-}
-
-/** Interpolação linear entre dois pontos (alias para lerp). */
-export function lerpPoint(a: Position, b: Position, t: number): Position {
-  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
-}
-
 /** Avalia a cúbica de Bézier em `t` (mesma convenção do draw: p0 -> c1 -> c2 -> p1). */
 export function cubicBezierPoint(
   p0: Position,
@@ -232,18 +174,4 @@ export function constrainAxis(
     return { x: position.x, y: reference.y };
   }
   return { x: reference.x, y: position.y };
-}
-
-/** Snap a múltiplos de 45° preservando distância (8 direções). */
-export function snapTo45(mouse: Position, origin: Position): Position {
-  const dx = mouse.x - origin.x;
-  const dy = mouse.y - origin.y;
-  const ang = Math.atan2(dy, dx);
-  const dist = Math.hypot(dx, dy);
-  const step = Math.PI / 4; // 45°
-  const snapped = Math.round(ang / step) * step;
-  return {
-    x: origin.x + Math.cos(snapped) * dist,
-    y: origin.y + Math.sin(snapped) * dist,
-  };
 }

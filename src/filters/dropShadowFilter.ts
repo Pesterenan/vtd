@@ -1,6 +1,6 @@
 import type { FilterProperties } from "src/filters/filter";
 import { Filter } from "src/filters/filter";
-import { toRadians } from "src/utils/transforms";
+import { toRadians } from "src/utils/angles";
 
 export class DropShadowFilter extends Filter {
   constructor() {

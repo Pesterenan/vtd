@@ -6,44 +6,47 @@ import type {
   Size,
 } from "src/components/types";
 import { FilterRenderer } from "src/filters/filterRenderer";
+import { hexToRgba } from "src/utils/color";
 import { BoundingBox } from "src/utils/boundingBox";
 import { rotatePoint } from "src/utils/transforms";
 import { Vector } from "src/utils/vector";
 
-export class GradientElement extends Element<IGradientElementData> {
+export class GradientElement extends Element {
   public get position(): Position {
     return this.properties.get("position") as Position;
   }
   public set position(value: Position) {
-    if (this.startPosition && this.endPosition) {
-      this.startPosition = {
-        x: this.startPosition.x - (this.position.x - value.x),
-        y: this.startPosition.y - (this.position.y - value.y),
-      };
-      this.endPosition = {
-        x: this.endPosition.x - (this.position.x - value.x),
-        y: this.endPosition.y - (this.position.y - value.y),
-      };
-    }
-    this.properties.set("position", value);
+    super.position = value;
+  }
+  protected onPositionChanged(delta: Position): void {
+    if (!this.startPosition || !this.endPosition) return;
+    this.startPosition = {
+      x: this.startPosition.x + delta.x,
+      y: this.startPosition.y + delta.y,
+    };
+    this.endPosition = {
+      x: this.endPosition.x + delta.x,
+      y: this.endPosition.y + delta.y,
+    };
   }
   public get rotation(): number {
     return this.properties.get("rotation") as number;
   }
   public set rotation(value: number) {
-    if (this.startPosition && this.endPosition) {
-      this.startPosition = rotatePoint(
-        this.startPosition,
-        this.position,
-        value - this.rotation,
-      );
-      this.endPosition = rotatePoint(
-        this.endPosition,
-        this.position,
-        value - this.rotation,
-      );
-    }
-    this.properties.set("rotation", value);
+    super.rotation = value;
+  }
+  protected onRotationChanged(deltaAngle: number): void {
+    if (!this.startPosition || !this.endPosition) return;
+    this.startPosition = rotatePoint(
+      this.startPosition,
+      this.position,
+      deltaAngle,
+    );
+    this.endPosition = rotatePoint(
+      this.endPosition,
+      this.position,
+      deltaAngle,
+    );
   }
   public get startPosition(): Position {
     return this.properties.get("startPosition") as Position;
@@ -94,7 +97,7 @@ export class GradientElement extends Element<IGradientElementData> {
   }
 
   public serialize(): IGradientElementData {
-    return super.serialize();
+    return super.serialize() as IGradientElementData;
   }
 
   public draw(context: CanvasRenderingContext2D): void {
@@ -144,7 +147,7 @@ export class GradientElement extends Element<IGradientElementData> {
 
     if (gradient) {
       for (const cs of this.colorStops) {
-        gradient.addColorStop(cs.portion, this.hexToRgba(cs.color, cs.alpha));
+        gradient.addColorStop(cs.portion, hexToRgba(cs.color, cs.alpha));
       }
 
       context.fillStyle = gradient;
@@ -156,12 +159,5 @@ export class GradientElement extends Element<IGradientElementData> {
   public getBoundingBox(): BoundingBox {
     this.boundingBox.update(this.position, this.size, this.rotation);
     return this.boundingBox;
-  }
-
-  private hexToRgba(hex: string, alpha: number): string {
-    const r = Number.parseInt(hex[1] + hex[2], 16);
-    const g = Number.parseInt(hex[3] + hex[4], 16);
-    const b = Number.parseInt(hex[5] + hex[6], 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 }

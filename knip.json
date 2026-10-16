@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main.tsx",
+    "src/modals/videoFrameExtractor/vfe.tsx",
+    "vitest.setup.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx}"]
+}

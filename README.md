@@ -14,8 +14,7 @@ miniatura tenha o destaque desejado.
   área de trabalho, com barra de progresso e possibilidade de cancelamento.
 - **Edição por camadas** — selecionar, mover, rotacionar, escalar e recortar
   objetos, com composição por camadas.
-- **Ferramentas** — seleção/mão, zoom, textos, gradientes e caneta (traços
-  abertos e fechados).
+- **Ferramentas** — seleção, textos, gradientes e caneta (caminhos), formas e zoom.
 - **Filtros** — sombra externa, brilho (glow) e correção de cor.
 - **Clipboard** — copiar e colar imagens.
 - **Projetos** — importar imagens, exportar a miniatura final e salvar/carregar
@@ -36,3 +35,6 @@ Para a funcionalidade de extração de quadros de vídeo, será necessário ter 
 
 Novas versões da aplicação ficarão disponíveis na página de 'Releases', com
 instalação para Windows (instalador NSIS) e Linux (.deb).
+
+O histórico de mudanças de cada versão está documentado no
+[CHANGELOG.md](./CHANGELOG.md).

@@ -11,6 +11,7 @@ import PenIcon from "src/assets/icons/pen-tool.svg";
 import RotateIcon from "src/assets/icons/rotate-tool.svg";
 import ScaleIcon from "src/assets/icons/scale-tool.svg";
 import SelectIcon from "src/assets/icons/select-tool.svg";
+import ShapeIcon from "src/assets/icons/shape-tool.svg";
 import TextIcon from "src/assets/icons/text-tool.svg";
 import ZoomIcon from "src/assets/icons/zoom-tool.svg";
 
@@ -18,22 +19,29 @@ type Mode = "select" | "move" | "rotate" | "scale";
 
 type MenuItem =
   | { type: "tool"; tool: TOOL; label: string }
-  | { type: "divider" };
+  | { type: "divider"; key: string };
 
 const MENU_ITEMS: MenuItem[] = [
-  { type: "tool", tool: TOOL.MULTI, label: "(V) Selecionar, (G) Mover, (R) Rotacionar, (S) Escalonar" },
-  { type: "tool", tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },
-  { type: "tool", tool: TOOL.ZOOM, label: "(Z) Modificar nível de zoom" },
-  { type: "divider" },
+  {
+    type: "tool",
+    tool: TOOL.MULTI,
+    label: "(V) Selecionar, (G) Mover, (R) Rotacionar, (S) Escalonar",
+  },
+  { type: "divider", key: "create" },
   { type: "tool", tool: TOOL.TEXT, label: "(T) Criar textos" },
   { type: "tool", tool: TOOL.GRADIENT, label: "(H) Criar gradientes" },
   { type: "tool", tool: TOOL.PEN, label: "(P) Criar caminhos vetoriais" },
+  { type: "tool", tool: TOOL.SHAPE, label: "(U) Criar formas vetoriais" },
+  { type: "divider", key: "helpers" },
+  { type: "tool", tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },
+  { type: "tool", tool: TOOL.ZOOM, label: "(Z) Modificar nível de zoom" },
 ];
 
 const toolIcons: Record<string, string> = {
   [TOOL.GRADIENT]: GradientIcon,
   [TOOL.HAND]: HandIcon,
   [TOOL.PEN]: PenIcon,
+  [TOOL.SHAPE]: ShapeIcon,
   [TOOL.TEXT]: TextIcon,
   [TOOL.ZOOM]: ZoomIcon,
 };
@@ -139,10 +147,9 @@ const ToolMenu = () => {
   return (
     <menu className={styles.toolMenu}>
       <div className={styles.container}>
-        <label>Ferr.</label>
         {MENU_ITEMS.map((item) => {
           if (item.type === "divider") {
-            return <div key="divider" className={styles.divider} />;
+            return <div key={item.key} className={styles.divider} />;
           }
           const { tool, label } = item;
           const isMulti = tool === TOOL.MULTI;
@@ -157,14 +164,14 @@ const ToolMenu = () => {
                 data-tool={tool}
                 className={`${styles.btn} ${isMulti ? styles.hasSubmenu : ""} ${activeTool === tool ? styles.active : ""}`}
                 aria-label={resolvedLabel}
-                  {...(isMulti
-                    ? {
-                        onPointerDown: handleMultiPointerDown,
-                        onPointerUp: handleMultiPointerUp,
-                        onPointerLeave: handleMultiPointerLeave,
-                        onContextMenu: handleMultiContextMenu,
-                      }
-                    : { onClick: () => handleToolClick(tool) })}
+                {...(isMulti
+                  ? {
+                      onPointerDown: handleMultiPointerDown,
+                      onPointerUp: handleMultiPointerUp,
+                      onPointerLeave: handleMultiPointerLeave,
+                      onContextMenu: handleMultiContextMenu,
+                    }
+                  : { onClick: () => handleToolClick(tool) })}
               >
                 <div
                   className={styles.icon}

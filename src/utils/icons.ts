@@ -1,5 +1,5 @@
 import type { Position } from "src/components/types";
-import { toRadians } from "./transforms";
+import { toRadians } from "./angles";
 
 export const ICON_SIZE = 24;
 
@@ -105,11 +105,6 @@ export function parseSvgTransform(transform: string | null): Matrix2D {
     }
   }
   return m;
-}
-
-export function extractPathData(svg: string): string | null {
-  const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
-  return doc.querySelector("path")?.getAttribute("d") ?? null;
 }
 
 function buildShape(el: Element): Path2D {

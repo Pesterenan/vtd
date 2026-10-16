@@ -25,6 +25,18 @@ describe("WorkArea - Path Integration", () => {
     });
   });
 
+  describe("handleEditGradient", () => {
+    it("selects the existing gradient instead of duplicating it", () => {
+      const position = { x: 400, y: 300 };
+
+      eventBus.emit("edit:gradient", { position });
+      expect(workArea.elements.length).toBe(1);
+
+      eventBus.emit("edit:gradient", { position });
+      expect(workArea.elements.length).toBe(1);
+    });
+  });
+
   describe("handleEditPath", () => {
     it("should create a PathElement and add to elements on edit:path event", () => {
       const position = { x: 400, y: 300 };
@@ -102,6 +114,34 @@ describe("WorkArea - Path Integration", () => {
         x: 200,
         y: 200,
       });
+    });
+  });
+
+  describe("handleAddPath", () => {
+    it("should create a new path unconditionally", () => {
+      const position = { x: 400, y: 300 };
+
+      eventBus.emit("workarea:addPath", { position });
+
+      expect(workArea.elements.length).toBe(1);
+      expect(workArea.elements[0]).toBeInstanceOf(PathElement);
+    });
+
+    it("should create a new path even inside another path bounding box", () => {
+      const position = { x: 400, y: 300 };
+
+      eventBus.emit("edit:path", { position });
+      expect(workArea.elements.length).toBe(1);
+
+      eventBus.emit("workarea:addPath", { position });
+
+      expect(workArea.elements.length).toBe(2);
+    });
+
+    it("should select the newly created path", () => {
+      eventBus.emit("workarea:addPath", { position: { x: 100, y: 100 } });
+
+      expect(workArea.elements[0].selected).toBe(true);
     });
   });
 
@@ -255,5 +295,32 @@ describe("WorkArea - Path Integration", () => {
       expect((workArea.elements[0] as PathElement).layerName).toBe("Path 1");
       expect((workArea.elements[1] as PathElement).layerName).toBe("Path 2");
     });
+  });
+});
+
+describe("element id contract", () => {
+  let localWorkArea: WorkArea;
+
+  beforeEach(() => {
+    const localBus = new EventBus();
+    localWorkArea = new WorkArea(localBus);
+    localWorkArea.setWorkAreaSize({ width: 800, height: 600 });
+  });
+
+  it("never persists elementId and regenerates fresh unique ids on load", async () => {
+    const original = localWorkArea.addTextElement({ x: 10, y: 10 });
+    const data = original.serialize();
+
+    expect("elementId" in data).toBe(false);
+
+    const copyA = await localWorkArea.createElementFromData({ ...data });
+    const copyB = await localWorkArea.createElementFromData({ ...data });
+
+    expect(copyA).not.toBeNull();
+    expect(copyB).not.toBeNull();
+    expect(copyA?.elementId).not.toBe(original.elementId);
+    expect(copyB?.elementId).not.toBe(original.elementId);
+    expect(copyA?.elementId).not.toBe(copyB?.elementId);
+    expect(copyA?.layerName).toBe(original.layerName);
   });
 });
