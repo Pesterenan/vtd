@@ -5,7 +5,7 @@ Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o
 projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
-## [0.3.0] - 2026-10-15
+## [0.3.0] - 2026-10-16
 
 ### Adicionado
 
@@ -17,6 +17,9 @@ projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - **Abstração `useElementMenu`** que unifica o comportamento dos menus de
   elementos (texto, gradiente e caminho), incluindo ação de desselecionar.
 - Configuração do `knip` e script `typecheck` no `package.json`.
+- **Feedback visual de arraste no menu de camadas**: camada de origem com
+  aparência "desabilitada", linha de inserção com marcador na borda, realce de
+  grupo ao aninhar e cursores `grab`/`grabbing`.
 
 ### Modificado
 
@@ -30,12 +33,20 @@ projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
   `resolveHandleSign`, `forEachTarget` e `resetDrag`.
 - Limpeza de CSS e de tipos duplicados (`ISelectOption` movido para `types`).
 - Nível máximo de zoom ampliado.
+- Assinatura de `renderLayer` passou a receber um objeto de opções, simplificando
+  a renderização das camadas e dos grupos.
 
 ### Corrigido
 
 - Reorganização das ferramentas e correção da classe CSS do estado ativo.
 - Fundo (`backdrop`) transparente no diálogo de filtros.
 - Ajustes de lint e correção do build do Cargo.
+- **Reordenação de camadas** pelo menu: como a lista é renderizada invertida
+  (`column-reverse`), o índice de inserção ficava desalinhado e a camada caía
+  fora de posição (às vezes exigindo arrastar duas posições).
+- Grupos sem filhos apareciam permanentemente como selecionados
+  (`[].every(...)` é verdadeiro) e a seleção do menu não acompanhava a seleção
+  real do canvas, deixando destaques obsoletos após arrastar ou bloquear.
 
 ### Removido
 
