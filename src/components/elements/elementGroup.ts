@@ -1,6 +1,7 @@
 import { BoundingBox } from "src/utils/boundingBox";
 import type { IElementGroupData, Position, Size, TElementData } from "../types";
 import { Element } from "./element";
+import { deepClone } from "src/utils/deepClone";
 
 export class ElementGroup extends Element {
   public children: Element[] = [];
@@ -28,7 +29,7 @@ export class ElementGroup extends Element {
 
   public deserialize(data: IElementGroupData): void {
     super.deserialize(data);
-    this.properties.set("children", data.children);
+    this.properties.set("children", deepClone(data.children));
   }
 
   public draw(context: CanvasRenderingContext2D): void {
