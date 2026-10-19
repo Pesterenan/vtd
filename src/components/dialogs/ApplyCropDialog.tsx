@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import CheckboxInput from "../CheckboxInput/CheckboxInput";
 import styles from "./ApplyCropDialog.module.css";
 
-const ApplyCropDialog = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+const ApplyCropDialog = ({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) => {
   const { on, emit } = useEventBus();
   const currentLayer = useRef<number | null>(null);
   const [keepOriginal, setKeepOriginal] = useState(false);
@@ -16,7 +22,7 @@ const ApplyCropDialog = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
         currentLayer.current = layerId;
       }),
     ];
-    return () => unsubs.forEach(u => u());
+    return () => unsubs.forEach((u) => u());
   }, [on]);
 
   useEffect(() => {
@@ -34,10 +40,9 @@ const ApplyCropDialog = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
         keepOriginal,
         smoothingEnabled,
       });
-      emit("alert:add", { message: "Elemento recortado com sucesso.", type: "success" });
       onClose();
     }
-  }
+  };
 
   return (
     <DialogBase isOpen={isOpen} onClose={onClose} title={"Aplicar Recorte"}>
@@ -47,13 +52,35 @@ const ApplyCropDialog = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
           <p>Esta ação não pode ser desfeita.</p>
         </div>
         <div className="container column">
-          <CheckboxInput id={"keep-original"} label={"Manter o elemento original"} checked={keepOriginal} onChange={setKeepOriginal} />
-          <CheckboxInput id={"smoothing"} label={"Suavizar imagem do elemento recortado"} checked={smoothingEnabled} onChange={setSmoothingEnabled} />
+          <CheckboxInput
+            id={"keep-original"}
+            label={"Manter o elemento original"}
+            checked={keepOriginal}
+            onChange={setKeepOriginal}
+          />
+          <CheckboxInput
+            id={"smoothing"}
+            label={"Suavizar imagem do elemento recortado"}
+            checked={smoothingEnabled}
+            onChange={setSmoothingEnabled}
+          />
         </div>
       </div>
       <menu className={styles.actions}>
-        <button id="btn_apply-crop" className="btn-common-wide" onClick={handleApplyCrop}>Aceitar</button>
-        <button id="btn_cancel-crop" className="btn-common-wide" onClick={onClose}>Cancelar</button>
+        <button
+          id="btn_apply-crop"
+          className="btn-common-wide"
+          onClick={handleApplyCrop}
+        >
+          Aceitar
+        </button>
+        <button
+          id="btn_cancel-crop"
+          className="btn-common-wide"
+          onClick={onClose}
+        >
+          Cancelar
+        </button>
       </menu>
     </DialogBase>
   );

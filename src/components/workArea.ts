@@ -11,6 +11,7 @@ import type {
   TElementData,
 } from "src/components/types";
 import type {
+  ApplyCropPayload,
   EditShapePayload,
   ElementIdPayload,
   EventBus,
@@ -25,6 +26,8 @@ import { SelectionManager } from "./workArea.selection";
 import { ClipboardManager } from "./workArea.clipboard";
 import { TransformsManager } from "./workArea.transforms";
 import { buildShapePoints } from "./tools/shapeGeometry";
+import { rotatePoint } from "src/utils/transforms";
+import { deepClone } from "src/utils/deepClone";
 
 type RegistrableElement = Pick<
   Element,
@@ -502,36 +505,58 @@ export class WorkArea {
     return this.elements;
   };
 
-  private handleApplyCrop = async ({
+  public applyCrop = async ({
     layerId,
     keepOriginal,
     smoothingEnabled,
-  }: {
-    layerId: number;
-    keepOriginal: boolean;
-    smoothingEnabled: boolean;
-  }): Promise<void> => {
-    const originalElement = this.getElement({ elementId: layerId });
+  }: ApplyCropPayload): Promise<ImageElement | null> => {
+    const original = this.getElement({ elementId: layerId });
+    if (!(original instanceof ImageElement)) return null;
 
-    if (originalElement && originalElement instanceof ImageElement) {
-      const newImageData =
-        originalElement.getCroppedImageDataUrl(smoothingEnabled);
-      if (newImageData) {
-        const newElement = await this.addImageElement(newImageData);
-        newElement.position = {
-          x: this.canvas ? this.canvas.width * 0.5 : originalElement.position.x,
-          y: this.canvas
-            ? this.canvas.height * 0.5
-            : originalElement.position.y,
-        };
-        newElement.rotation = originalElement.rotation;
-        newElement.scale = { ...originalElement.scale };
+    const newImageData = original.getCroppedImageDataUrl(smoothingEnabled);
+    if (!newImageData) return null;
 
-        if (!keepOriginal) {
-          this.eventBus.emit("workarea:deleteElement", { elementId: layerId });
-        }
-      }
+    const region = original.getCropRegion();
+    const offset = rotatePoint(
+      {
+        x: region.centerOffset.x * original.scale.x,
+        y: region.centerOffset.y * original.scale.y,
+      },
+      { x: 0, y: 0 },
+      original.rotation,
+    );
+
+    const cropped = new ImageElement(
+      { x: original.position.x + offset.x, y: original.position.y + offset.y },
+      { width: region.width, height: region.height },
+      original.zDepth,
+    );
+    await cropped.loadImage(newImageData);
+
+    cropped.rotation = original.rotation;
+    cropped.scale = { ...original.scale };
+    cropped.opacity = original.opacity;
+    cropped.filters = deepClone(original.filters);
+    cropped.layerName = original.layerName;
+    cropped.zDepth = original.zDepth;
+    cropped.isVisible = original.isVisible;
+    cropped.isLocked = original.isLocked;
+
+    this.registerElement(cropped, "image");
+
+    this.eventBus.emit("alert:add", {
+      message: "Elemento recortado com sucesso.",
+      type: "success",
+    });
+
+    if (!keepOriginal) {
+      this.eventBus.emit("workarea:deleteElement", { elementId: layerId });
     }
+    return cropped;
+  };
+
+  private handleApplyCrop = (payload: ApplyCropPayload): void => {
+    void this.applyCrop(payload);
   };
 
   private registerElement = (
