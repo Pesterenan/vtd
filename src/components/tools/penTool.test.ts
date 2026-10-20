@@ -364,6 +364,72 @@ describe("PenTool", () => {
     });
   });
 
+  describe("botão direito (deselecionar path)", () => {
+    const rightMouseDown = (): MouseEvent =>
+      new MouseEvent("mousedown", { button: 2, bubbles: true });
+
+    it("sem path ativo não cria path nem ponto", () => {
+      setMouse({ x: 200, y: 200 });
+      penTool.onMouseDown(rightMouseDown());
+
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "edit:path",
+        expect.anything(),
+      );
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "workarea:addPath",
+        expect.anything(),
+      );
+    });
+
+    it("com path ativo não adiciona ponto e apenas deseleciona", () => {
+      const p = makePath();
+      activatePath(p);
+      const pointCount = p.points.length;
+
+      setMouse({ x: 400, y: 400 });
+      penTool.onMouseDown(rightMouseDown());
+      expect(p.points).toHaveLength(pointCount);
+      expect(penTool["selectedPointIndex"]).toBe(-1);
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "workarea:addPath",
+        expect.anything(),
+      );
+
+      penTool.onContextMenu(new MouseEvent("contextmenu", { cancelable: true }));
+      expect(penTool["activePathElement"]).toBeNull();
+      expect(p.points).toHaveLength(pointCount);
+    });
+
+    it("deseleciona o path ativo e o próximo clique inicia um path novo", () => {
+      const p = makePath();
+      activatePath(p);
+      expect(penTool["activePathElement"]).toBe(p);
+      expect(penTool["isToolHintVisible"]).toBe(true);
+
+      const evt = new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+      });
+      penTool.onContextMenu(evt);
+
+      expect(evt.defaultPrevented).toBe(true);
+      expect(eventBus.emit).toHaveBeenCalledWith("workarea:selectById", {
+        elementsId: new Set<number>(),
+      });
+      expect(penTool["activePathElement"]).toBeNull();
+      expect(penTool["isToolHintVisible"]).toBe(false);
+
+      configureRequest({ selected: null });
+      setMouse({ x: 300, y: 300 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(eventBus.emit).toHaveBeenCalledWith("edit:path", {
+        position: { x: 300, y: 300 },
+      });
+    });
+  });
+
   describe("fechamento do path", () => {
     it("hover perto do primeiro ponto marca isClosing", () => {
       const p = makePath();

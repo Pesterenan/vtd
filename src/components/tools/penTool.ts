@@ -311,27 +311,44 @@ export class PenTool extends Tool {
     });
   }
 
-  protected handleMouseDown(_evt: MouseEvent): void {
+  protected handleMouseDown(evt: MouseEvent): void {
+    // Só o botão esquerdo desenha/arrasta. O direito abre o `contextmenu`,
+    // que deseleciona o path — sem esta guarda ele criaria um path de 1 ponto.
+    if (evt.button !== 0) return;
     const active = this.activePathElement;
-    // Tela: vem do ToolManager via `mouse:position:get`, que atualiza
-    // lastMousePos no mousedown/mousemove/mouseup antes do delegate.
     const mousePos = this.mousePos;
     if (mousePos === null) return;
-    // Se não existir path, tenta selecionar ou criar um novo ao clicar.
+
+    // Se não tiver path ativo, cria um novo
     if (!active) {
       this.startNewPath(mousePos, false);
       return;
     }
 
-    if (this.tryClosePath(active)) return;
-    if (this.tryGrabHandle(active, mousePos)) return;
-
-    // CTRL fora dos pontos/handles do path ativo: seleciona o elemento sob o
-    // cursor ou deseleciona (clicando "no nada").
+    // CTRL clicando nos pontos ou handles:
     if (this.modifiers.ctrl) {
-      this.handleCtrlClick();
+      const hit = this.hitHandleOrPoint(mousePos);
+      if (!hit) {
+        this.trySelectingPath();
+        return;
+      }
+
+      // Agarrar um handle é intenção inequívoca de remodelar a curva:
+      // o drag começa já no primeiro clique, sem limiar.
+      const isHandle = hit.which !== "center";
+      this.beginDrag(
+        hit.index,
+        hit.which === "center" ? null : hit.which,
+        mousePos,
+        isHandle ? active.toWorld(active.points[hit.index]).center : null,
+        isHandle,
+      );
       return;
     }
+
+    // Pode estar tentando fechar o path atual
+    if (this.tryClosePath(active)) return;
+    if (this.tryGrabHandle(active, mousePos)) return;
 
     // Fora do modo "continuar", clicar longe das linhas do path inicia um path
     // novo em vez de adicionar ponto ao path atual.
@@ -369,7 +386,7 @@ export class PenTool extends Tool {
   }
 
   /** CTRL + clique: seleciona o elemento sob o cursor ou deseleciona. */
-  private handleCtrlClick(): void {
+  private trySelectingPath(): void {
     const canvasPos = this.canvasPos;
     if (!canvasPos) return;
     this.eventBus.emit("workarea:selectAt", { firstPoint: canvasPos });
@@ -516,9 +533,9 @@ export class PenTool extends Tool {
     if (this.modifiers.shift && this.dragOriginWorld) {
       target = constrainAxis(target, this.dragOriginWorld);
     }
-    // CTRL = move o centro (mesmo agarrando um handle);
-    // ALT = move só o handle agarrado (centro fixo).
-    // Sem modificador = smooth. Com ALT+CTRL, CTRL vence.
+    // CTRL no anchor = move o centro (handles relativos);
+    // CTRL em handle = espelha o oposto (smooth), sem mover o centro.
+    // ALT em handle = independente (centro fixo); com ALT+CTRL, ALT vence.
     if (this.draggingPoint) {
       this.dragExistingHandle(
         this.draggingPointIndex,
@@ -539,10 +556,7 @@ export class PenTool extends Tool {
   ): void {
     const active = this.activePathElement;
     if (!active) return;
-    if (this.modifiers.ctrl) {
-      // CTRL: move o ponto central, handles acompanham.
-      active.updatePoint(index, target);
-    } else if (this.modifiers.alt) {
+    if (this.modifiers.alt) {
       // ALT: independente, move só o handle arrastado (centro fixo).
       active.updateHandle(index, which, target);
     } else {
@@ -607,7 +621,9 @@ export class PenTool extends Tool {
     }
   }
 
-  protected handleMouseUp(): void {
+  protected handleMouseUp(evt: MouseEvent): void {
+    // Ignora o botão direito: só o esquerdo encerra um arraste.
+    if (evt.button !== 0) return;
     // Alt+click (sem arrastar) no anchor de um ponto smooth: reverte para corner.
     // O clique continua selecionando o ponto; só os handles são removidos.
     const wasClick = !this.dragStarted && this.draggingPointIndex !== -1;
@@ -626,6 +642,13 @@ export class PenTool extends Tool {
     this.dragStarted = false;
     this.dragOriginWorld = null;
     this.updatePointsOverlay();
+  }
+
+  /** Botão direito: deseleciona o path atual para iniciar outro no próximo clique. */
+  protected handleContextMenu(evt: MouseEvent): void {
+    evt.preventDefault();
+    this.eventBus.emit("workarea:selectById", { elementsId: new Set<number>() });
+    this.resetTool();
   }
 
   protected handleKeyDown(evt: KeyboardEvent): void {

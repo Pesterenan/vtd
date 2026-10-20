@@ -221,7 +221,7 @@ describe("PenTool - Bezier", () => {
     });
   });
 
-  describe("Ctrl+drag move anchor preservando handles relativos", () => {
+  describe("Ctrl+drag move o alvo agarrado (anchor ou handle)", () => {
     it("Ctrl+drag no anchor move center e translada handles", () => {
       const p = makePath();
       p.points = [
@@ -250,7 +250,7 @@ describe("PenTool - Bezier", () => {
       );
     });
 
-    it("Ctrl+drag em handle deve mover o centro (handles acompanham)", () => {
+    it("Ctrl+drag em handle move o handle e espelha o oposto, sem mover o centro", () => {
       const p = makePath();
       p.points = [
         { center: { x: 0, y: 0 }, in: { x: -10, y: 0 }, out: { x: 10, y: 0 } },
@@ -265,14 +265,20 @@ describe("PenTool - Bezier", () => {
       penTool.onMouseMove(createMouseEvent(0, 0));
       penTool.onMouseUp(createMouseEvent(0, 0));
       const pt = p.points[0];
-      // O centro acompanha o mouse; os handles preservam o offset relativo.
+      // O centro fica parado (é o bug: antes ele vinha atrás do mouse)...
       const anchorWorld = p.toWorld(pt).center;
-      expect(Math.hypot(anchorWorld.x - 130, anchorWorld.y - 100)).toBeLessThan(
+      expect(Math.hypot(anchorWorld.x - 100, anchorWorld.y - 100)).toBeLessThan(
         1,
       );
+      // ...o handle agarrado segue o mouse...
       const handleOutWorld = p.toWorldPos(pt.out!);
       expect(
-        Math.hypot(handleOutWorld.x - 140, handleOutWorld.y - 100),
+        Math.hypot(handleOutWorld.x - 130, handleOutWorld.y - 100),
+      ).toBeLessThan(1);
+      // ...e o oposto espelha em torno do centro (smooth).
+      const handleInWorld = p.toWorldPos(pt.in!);
+      expect(
+        Math.hypot(handleInWorld.x - 70, handleInWorld.y - 100),
       ).toBeLessThan(1);
     });
   });
