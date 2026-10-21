@@ -11,6 +11,7 @@ import type {
 import type { FilterProperties } from "src/filters/filter";
 import type { BoundingBox } from "src/utils/boundingBox";
 import type { CroppingBox, ICroppingBoxData } from "src/utils/croppingBox";
+import { deepClone } from "src/utils/deepClone";
 
 /** Value types storable in an element's property bag. */
 export type ElementPropertyValue =
@@ -134,15 +135,15 @@ export abstract class Element {
       if (!this.properties.has(key)) continue;
       const value = raw[key];
       if (key === "filters" && Array.isArray(value)) {
-        this.properties.set(key, value);
+        this.properties.set(key, deepClone(value));
         continue;
       }
-      this.properties.set(key, value);
+      this.properties.set(key, deepClone(value));
     }
   }
 
   public serialize(): IElementData {
-    return Object.fromEntries(this.properties) as unknown as IElementData;
+    return deepClone(Object.fromEntries(this.properties)) as unknown as IElementData;
   }
 
   public abstract draw(context: CanvasRenderingContext2D): void;

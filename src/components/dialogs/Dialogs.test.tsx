@@ -136,7 +136,7 @@ describe("ApplyCropDialog", () => {
     expect(screen.getByText(/recortar a imagem/i)).toBeInTheDocument();
   });
 
-  it("emits layer:applyCrop on accept", () => {
+  it("emits layer:applyCrop on accept, closes and does not emit a success alert", () => {
     const eventBus = new EventBus();
     const onClose = vi.fn();
     const emitSpy = vi.spyOn(eventBus, "emit");
@@ -150,16 +150,54 @@ describe("ApplyCropDialog", () => {
     act(() => {
       eventBus.emit("dialog:applyCrop:open", { layerId: 42 });
     });
+    emitSpy.mockClear();
 
     fireEvent.click(screen.getByText("Aceitar"));
+
     expect(emitSpy).toHaveBeenCalledWith("layer:applyCrop", {
       layerId: 42,
       keepOriginal: false,
       smoothingEnabled: true,
     });
+    // o dono do feedback de sucesso é a operação (WorkArea.applyCrop), não o diálogo
+    expect(emitSpy).not.toHaveBeenCalledWith("alert:add", expect.anything());
+    expect(emitSpy).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalled();
   });
 
-  it("closes without emitting if no layer is set", () => {
+  it("keeps the payload driven by the checkboxes and emits no success alert", () => {
+    const eventBus = new EventBus();
+    const emitSpy = vi.spyOn(eventBus, "emit");
+
+    render(
+      <EventBusProvider eventBus={eventBus}>
+        <ApplyCropDialog isOpen={true} onClose={vi.fn()} />
+      </EventBusProvider>,
+    );
+
+    act(() => {
+      eventBus.emit("dialog:applyCrop:open", { layerId: 7 });
+    });
+
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: /manter o elemento original/i }),
+    );
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: /suavizar imagem do elemento recortado/i }),
+    );
+    emitSpy.mockClear();
+
+    fireEvent.click(screen.getByText("Aceitar"));
+
+    expect(emitSpy).toHaveBeenCalledWith("layer:applyCrop", {
+      layerId: 7,
+      keepOriginal: true,
+      smoothingEnabled: false,
+    });
+    expect(emitSpy).not.toHaveBeenCalledWith("alert:add", expect.anything());
+  });
+
+  it("emits nothing on accept if no layer is set", () => {
     const eventBus = new EventBus();
     const onClose = vi.fn();
     const emitSpy = vi.spyOn(eventBus, "emit");
@@ -171,6 +209,41 @@ describe("ApplyCropDialog", () => {
     );
 
     fireEvent.click(screen.getByText("Aceitar"));
+    expect(emitSpy).not.toHaveBeenCalledWith(
+      "layer:applyCrop",
+      expect.any(Object),
+    );
+    expect(emitSpy).not.toHaveBeenCalledWith("alert:add", expect.anything());
+  });
+
+  it("emits nothing after reopening without a new applyCrop open event", () => {
+    const eventBus = new EventBus();
+    const emitSpy = vi.spyOn(eventBus, "emit");
+    const view = render(
+      <EventBusProvider eventBus={eventBus}>
+        <ApplyCropDialog isOpen={true} onClose={vi.fn()} />
+      </EventBusProvider>,
+    );
+
+    act(() => {
+      eventBus.emit("dialog:applyCrop:open", { layerId: 9 });
+    });
+    fireEvent.click(screen.getByText("Cancelar"));
+
+    view.rerender(
+      <EventBusProvider eventBus={eventBus}>
+        <ApplyCropDialog isOpen={false} onClose={vi.fn()} />
+      </EventBusProvider>,
+    );
+    view.rerender(
+      <EventBusProvider eventBus={eventBus}>
+        <ApplyCropDialog isOpen={true} onClose={vi.fn()} />
+      </EventBusProvider>,
+    );
+    emitSpy.mockClear();
+
+    fireEvent.click(screen.getByText("Aceitar"));
+
     expect(emitSpy).not.toHaveBeenCalledWith(
       "layer:applyCrop",
       expect.any(Object),

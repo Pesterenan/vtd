@@ -132,6 +132,55 @@ describe("PenTool", () => {
   });
 
   describe("exclusão do path selecionado", () => {
+    function makePathWithPointCount(count: number): PathElement {
+      const p = new PathElement(
+        { x: 100, y: 100 },
+        { width: 10, height: 10 },
+        1,
+      );
+      p.points = Array.from({ length: count }, (_, i) => ({
+        center: { x: i * 50, y: 0 },
+        in: null,
+        out: null,
+      }));
+      return p;
+    }
+
+    it("apaga um path com o clique direito se tiver 1 ponto", () => {
+      const p = makePathWithPointCount(1);
+      activatePath(p);
+      expect(penTool["activePathElement"]).toBe(p);
+      expect(penTool["points"]).toHaveLength(1);
+
+      penTool.onContextMenu(
+        new MouseEvent("contextmenu", { cancelable: true }),
+      );
+
+      expect(eventBus.emit).toHaveBeenCalledWith("workarea:deleteElement", {
+        elementId: p.elementId,
+      });
+      expect(penTool["activePathElement"]).toBeNull();
+      expect(penTool["points"]).toEqual([]);
+    });
+
+    it.each([2, 3])(
+      "não apaga com o clique direito um path de %i pontos",
+      (count) => {
+        const p = makePathWithPointCount(count);
+        activatePath(p);
+
+        penTool.onContextMenu(
+          new MouseEvent("contextmenu", { cancelable: true }),
+        );
+
+        expect(eventBus.emit).not.toHaveBeenCalledWith(
+          "workarea:deleteElement",
+          expect.anything(),
+        );
+        expect(penTool["activePathElement"]).toBeNull();
+      },
+    );
+
     it("workarea:deleteElement limpa o overlay (pontos param de flutuar)", () => {
       const p = makePath();
       activatePath(p);
@@ -364,6 +413,78 @@ describe("PenTool", () => {
     });
   });
 
+  describe("botão direito (deselecionar path)", () => {
+    const rightMouseDown = (): MouseEvent =>
+      new MouseEvent("mousedown", { button: 2, bubbles: true });
+
+    it("sem path ativo não cria path nem ponto", () => {
+      setMouse({ x: 200, y: 200 });
+      penTool.onMouseDown(rightMouseDown());
+
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "edit:path",
+        expect.anything(),
+      );
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "workarea:addPath",
+        expect.anything(),
+      );
+    });
+
+    it("com path ativo (2+ pontos) não adiciona ponto e não apaga", () => {
+      const p = makePath();
+      activatePath(p);
+      const pointCount = p.points.length;
+
+      setMouse({ x: 400, y: 400 });
+      penTool.onMouseDown(rightMouseDown());
+      expect(p.points).toHaveLength(pointCount);
+      expect(penTool["selectedPointIndex"]).toBe(-1);
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "workarea:addPath",
+        expect.anything(),
+      );
+
+      penTool.onContextMenu(
+        new MouseEvent("contextmenu", { cancelable: true }),
+      );
+      expect(penTool["activePathElement"]).toBeNull();
+      expect(p.points).toHaveLength(pointCount);
+      expect(eventBus.emit).not.toHaveBeenCalledWith(
+        "workarea:deleteElement",
+        expect.anything(),
+      );
+    });
+
+    it("deseleciona o path ativo e o próximo clique inicia um path novo", () => {
+      const p = makePath();
+      activatePath(p);
+      expect(penTool["activePathElement"]).toBe(p);
+      expect(penTool["isToolHintVisible"]).toBe(true);
+
+      const evt = new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+      });
+      penTool.onContextMenu(evt);
+
+      expect(evt.defaultPrevented).toBe(true);
+      expect(eventBus.emit).toHaveBeenCalledWith("workarea:selectById", {
+        elementsId: new Set<number>(),
+      });
+      expect(penTool["activePathElement"]).toBeNull();
+      expect(penTool["isToolHintVisible"]).toBe(false);
+
+      configureRequest({ selected: null });
+      setMouse({ x: 300, y: 300 });
+      penTool.onMouseDown(createMouseEvent(0, 0));
+
+      expect(eventBus.emit).toHaveBeenCalledWith("edit:path", {
+        position: { x: 300, y: 300 },
+      });
+    });
+  });
+
   describe("fechamento do path", () => {
     it("hover perto do primeiro ponto marca isClosing", () => {
       const p = makePath();
@@ -492,6 +613,133 @@ describe("PenTool", () => {
 
       expect(arcSpy).toHaveBeenCalledTimes(3);
       expect(lineToSpy).toHaveBeenCalled();
+    });
+
+    it("contorno começa no ponto inicial do segmento (moveTo), não no final", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 400, y: 400 });
+
+      const context = canvas.getContext("2d")!;
+      const moveToSpy = vi.spyOn(context, "moveTo").mockClear();
+      const lineToSpy = vi.spyOn(context, "lineTo").mockClear();
+
+      penTool.draw();
+
+      expect(moveToSpy).toHaveBeenCalledWith(100, 100);
+      expect(lineToSpy).toHaveBeenCalledWith(150, 100);
+      expect(lineToSpy).toHaveBeenCalledWith(150, 150);
+    });
+
+    it("contorno fecha o path desenhando último -> primeiro", () => {
+      const p = makePath();
+      p.isClosed = true;
+      activatePath(p);
+      setMouse({ x: 400, y: 400 });
+
+      const context = canvas.getContext("2d")!;
+      const moveToSpy = vi.spyOn(context, "moveTo").mockClear();
+      const lineToSpy = vi.spyOn(context, "lineTo").mockClear();
+
+      penTool.draw();
+
+      expect(moveToSpy).toHaveBeenCalledWith(150, 150);
+      expect(lineToSpy).toHaveBeenCalledWith(100, 100);
+    });
+
+    it("contorno usa os control points na ordem start.out -> end.in", () => {
+      const p = new PathElement(
+        { x: 100, y: 100 },
+        { width: 10, height: 10 },
+        1,
+      );
+      p.points = [
+        { center: { x: 0, y: 0 }, in: null, out: { x: 20, y: 0 } },
+        { center: { x: 100, y: 0 }, in: { x: 80, y: 0 }, out: null },
+      ];
+      activatePath(p);
+      setMouse({ x: 400, y: 400 });
+
+      const context = canvas.getContext("2d")!;
+      const bezierSpy = vi.spyOn(context, "bezierCurveTo").mockClear();
+
+      penTool.draw();
+
+      // out do início = (120,100); in do fim = (180,100); fim = (200,100)
+      expect(bezierSpy).toHaveBeenCalledWith(120, 100, 180, 100, 200, 100);
+    });
+
+    it("contorno desenha duas passadas: halo branco 1.5 e linha preta 1", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 400, y: 400 });
+
+      const context = canvas.getContext("2d")!;
+      const strokes: Array<{ strokeStyle: string; lineWidth: number }> = [];
+      const strokeSpy = vi.spyOn(context, "stroke").mockImplementation(() => {
+        strokes.push({
+          strokeStyle: String(context.strokeStyle),
+          lineWidth: context.lineWidth,
+        });
+      });
+
+      penTool.draw();
+      strokeSpy.mockRestore();
+
+      expect(strokes).toEqual(
+        expect.arrayContaining([
+          { strokeStyle: "white", lineWidth: 1.5 },
+          { strokeStyle: "black", lineWidth: 1 },
+        ]),
+      );
+    });
+
+    it("path com 1 ponto não desenha contorno", () => {
+      const p = new PathElement(
+        { x: 100, y: 100 },
+        { width: 10, height: 10 },
+        1,
+      );
+      p.points = [{ center: { x: 0, y: 0 }, in: null, out: null }];
+      activatePath(p);
+      setMouse({ x: 400, y: 400 });
+
+      const context = canvas.getContext("2d")!;
+      const moveToSpy = vi.spyOn(context, "moveTo").mockClear();
+
+      penTool.draw();
+
+      expect(moveToSpy).not.toHaveBeenCalled();
+    });
+
+    it("com Shift, hover sobre o segmento desenha o ponto preditivo", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 125, y: 100 });
+      penTool.onKeyDown(
+        new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }),
+      );
+
+      const context = canvas.getContext("2d")!;
+      const arcSpy = vi.spyOn(context, "arc").mockClear();
+
+      penTool.draw();
+
+      // 3 vértices + 1 ponto preditivo na projeção do segmento
+      expect(arcSpy).toHaveBeenCalledTimes(4);
+    });
+
+    it("sem Shift, hover sobre o segmento não desenha o ponto preditivo", () => {
+      const p = makePath();
+      activatePath(p);
+      setMouse({ x: 125, y: 100 });
+
+      const context = canvas.getContext("2d")!;
+      const arcSpy = vi.spyOn(context, "arc").mockClear();
+
+      penTool.draw();
+
+      expect(arcSpy).toHaveBeenCalledTimes(3);
     });
   });
 

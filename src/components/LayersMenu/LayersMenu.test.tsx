@@ -3,6 +3,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { EventBusProvider } from "src/contexts/EventBusContext";
 import LayersMenu from "./LayersMenu";
 import { EventBus } from "src/utils/eventBus";
+import type { Element } from "../elements/element";
+import { ImageElement } from "../elements/imageElement";
+import { PathElement } from "../elements/pathElement";
+import type { ElementType, Position, Size } from "src/components/types";
 
 // jsdom does not implement DragEvent. Aliasing it to MouseEvent lets us drive
 // the drag handlers with a real clientY (plus a stubbed dataTransfer), which the
@@ -363,5 +367,167 @@ describe("LayersMenu", () => {
     expect(screen.getByText("Editar Filtros do Elemento")).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByText("Editar Filtros do Elemento")).not.toBeInTheDocument();
+  });
+
+  // Tarefa 15 do `.plans/main/DEVELOPMENT_PLAN.md` (Grupo A, cenário 5):
+  // guardas de regressão para a visibilidade/emissão de "Aplicar Recorte".
+  // `LayersMenu.handleContextMenu` decide `canCrop` consultando
+  // `workarea:getElement:get` e exigindo `instanceof ImageElement` com
+  // `getCroppingBox().isCropped() === true` (`LayersMenu.tsx:360-371`),
+  // renderizando o item apenas nesse caso (`LayersMenu.tsx:528-543`).
+  describe("context menu — Aplicar Recorte", () => {
+    const ELEMENT_POSITION: Position = { x: 0, y: 0 };
+    const IMAGE_SIZE: Size = { width: 300, height: 200 };
+    /** Qualquer deslocamento em relação à caixa original já é um recorte. */
+    const CROP_OFFSET = 50;
+
+    const renderMenu = (eventBus: EventBus) =>
+      render(
+        <EventBusProvider eventBus={eventBus}>
+          <LayersMenu />
+        </EventBusProvider>,
+      );
+
+    const addLayer = (
+      eventBus: EventBus,
+      elementId: number,
+      type: ElementType,
+    ): void => {
+      act(() => {
+        eventBus.emit("workarea:addElement", {
+          elementId,
+          layerName: `Layer ${elementId}`,
+          isVisible: true,
+          isLocked: false,
+          type,
+        });
+      });
+    };
+
+    const openContextMenu = (elementId: number): void => {
+      const layerItem = document.getElementById(`layer-${elementId}`);
+      if (!layerItem) {
+        throw new Error(`Camada ${elementId} não foi renderizada`);
+      }
+      fireEvent.contextMenu(layerItem);
+    };
+
+    /** `cropped: true` desloca a caixa para longe do tamanho original. */
+    const createImageElement = (cropped: boolean): ImageElement => {
+      const element = new ImageElement(ELEMENT_POSITION, IMAGE_SIZE, 1);
+      const croppingBox = element.getCroppingBox();
+      if (cropped) {
+        croppingBox.left = CROP_OFFSET;
+      }
+      return element;
+    };
+
+    /** Espelha o canvas: devolve o elemento do id consultado (`workArea.ts:103`). */
+    const stubElements = (
+      eventBus: EventBus,
+      elements: Map<number, Element>,
+    ): void => {
+      eventBus.on("workarea:getElement:get", (payload) =>
+        elements.get(payload.elementId),
+      );
+    };
+
+    it("renders Aplicar Recorte when the image element cropping box is cropped", () => {
+      const eventBus = new EventBus();
+      const elements = new Map<number, Element>();
+      elements.set(1, createImageElement(true));
+      stubElements(eventBus, elements);
+      renderMenu(eventBus);
+      addLayer(eventBus, 1, "image");
+
+      openContextMenu(1);
+
+      expect(screen.getByText("Aplicar Recorte")).toBeInTheDocument();
+    });
+
+    it("emits dialog:applyCrop:open with the layer id and closes the context menu", () => {
+      const eventBus = new EventBus();
+      const emitSpy = vi.spyOn(eventBus, "emit");
+      const elements = new Map<number, Element>();
+      elements.set(1, createImageElement(true));
+      stubElements(eventBus, elements);
+      renderMenu(eventBus);
+      addLayer(eventBus, 1, "image");
+      openContextMenu(1);
+
+      fireEvent.click(screen.getByText("Aplicar Recorte"));
+
+      expect(emitSpy).toHaveBeenCalledWith("dialog:applyCrop:open", {
+        layerId: 1,
+      });
+      expect(screen.queryByText("Aplicar Recorte")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Editar Filtros do Elemento"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("does not render Aplicar Recorte when the cropping box is untouched", () => {
+      const eventBus = new EventBus();
+      const elements = new Map<number, Element>();
+      elements.set(1, createImageElement(false));
+      stubElements(eventBus, elements);
+      renderMenu(eventBus);
+      addLayer(eventBus, 1, "image");
+
+      openContextMenu(1);
+
+      // O menu continua aberto — só o item condicional não existe.
+      expect(screen.getByText("Editar Filtros do Elemento")).toBeInTheDocument();
+      expect(screen.queryByText("Aplicar Recorte")).not.toBeInTheDocument();
+    });
+
+    it("does not render Aplicar Recorte for a non-image element", () => {
+      const eventBus = new EventBus();
+      const elements = new Map<number, Element>();
+      elements.set(1, new PathElement(ELEMENT_POSITION, IMAGE_SIZE, 1));
+      stubElements(eventBus, elements);
+      renderMenu(eventBus);
+      addLayer(eventBus, 1, "path");
+
+      openContextMenu(1);
+
+      expect(screen.getByText("Editar Filtros do Elemento")).toBeInTheDocument();
+      expect(screen.queryByText("Aplicar Recorte")).not.toBeInTheDocument();
+    });
+
+    it("does not render Aplicar Recorte when the layer has no resolvable element", () => {
+      const eventBus = new EventBus();
+      stubElements(eventBus, new Map<number, Element>());
+      renderMenu(eventBus);
+      addLayer(eventBus, 1, "image");
+
+      openContextMenu(1);
+
+      expect(screen.getByText("Editar Filtros do Elemento")).toBeInTheDocument();
+      expect(screen.queryByText("Aplicar Recorte")).not.toBeInTheDocument();
+    });
+
+    it("decides by the layer under the cursor, not globally", () => {
+      const eventBus = new EventBus();
+      const emitSpy = vi.spyOn(eventBus, "emit");
+      const elements = new Map<number, Element>();
+      elements.set(1, createImageElement(true));
+      elements.set(2, createImageElement(false));
+      stubElements(eventBus, elements);
+      renderMenu(eventBus);
+      addLayer(eventBus, 1, "image");
+      addLayer(eventBus, 2, "image");
+
+      openContextMenu(2);
+      expect(screen.queryByText("Aplicar Recorte")).not.toBeInTheDocument();
+      fireEvent.keyDown(document, { key: "Escape" });
+
+      openContextMenu(1);
+      expect(screen.getByText("Aplicar Recorte")).toBeInTheDocument();
+      fireEvent.click(screen.getByText("Aplicar Recorte"));
+      expect(emitSpy).toHaveBeenCalledWith("dialog:applyCrop:open", {
+        layerId: 1,
+      });
+    });
   });
 });

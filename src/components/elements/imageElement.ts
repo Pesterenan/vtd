@@ -43,7 +43,7 @@ export class ImageElement extends Element {
     if (data.cropping) {
       this.croppingBox.deserialize(data.cropping);
     }
-  }
+  };
 
   public serialize(): IImageElementData {
     const serialized = super.serialize() as IImageElementData;
@@ -64,9 +64,7 @@ export class ImageElement extends Element {
     }
   }
 
-  private drawImage = (
-    context: CanvasRenderingContext2D,
-  ): void => {
+  private drawImage = (context: CanvasRenderingContext2D): void => {
     if (this.isImageLoaded && this.image) {
       context.save();
       context.translate(this.position.x, this.position.y);
@@ -87,7 +85,7 @@ export class ImageElement extends Element {
         destX,
         destY,
         destWidth,
-        destHeight
+        destHeight,
       );
       context.restore();
     }
@@ -97,7 +95,7 @@ export class ImageElement extends Element {
     this.properties.set("encodedImage", encodedImage);
     return new Promise<void>((resolve) => {
       this.image = new Image();
-      this.image.src = encodedImage;
+      this.image.onerror = (): void => resolve();
       this.image.onload = (): void => {
         if (this.image) {
           this.size = { width: this.image.width, height: this.image.height };
@@ -107,8 +105,9 @@ export class ImageElement extends Element {
           resolve();
         }
       };
+      this.image.src = encodedImage;
     });
-  }
+  };
 
   public getBoundingBox(): BoundingBox {
     const scaledSize = {
@@ -124,6 +123,7 @@ export class ImageElement extends Element {
   }
 
   public getCroppedImageDataUrl(smoothingEnabled: boolean): string {
+    if (!this.isImageLoaded || !this.image) return "";
     const { left, top, right, bottom } = this.croppingBox;
     const width = right - left;
     const height = bottom - top;
@@ -132,9 +132,9 @@ export class ImageElement extends Element {
     canvas.width = width;
     canvas.height = height;
     const context = canvas.getContext("2d");
-    if (this.image && context) {
+    if (context) {
       context.imageSmoothingEnabled = smoothingEnabled;
-      context.imageSmoothingQuality = smoothingEnabled ? 'high' : 'low';
+      context.imageSmoothingQuality = smoothingEnabled ? "high" : "low";
       context.drawImage(
         this.image,
         left,
@@ -146,9 +146,25 @@ export class ImageElement extends Element {
         width,
         height,
       );
-      return canvas.toDataURL();
     }
+    return canvas.toDataURL();
+  }
 
-    return "";
+  public getCropRegion(): {
+    width: number;
+    height: number;
+    centerOffset: Position;
+  } {
+    const width = this.croppingBox.right - this.croppingBox.left;
+    const height = this.croppingBox.bottom - this.croppingBox.top;
+    const centerOffset = {
+      x:
+        (this.croppingBox.left + this.croppingBox.right) / 2 -
+        this.size.width / 2,
+      y:
+        (this.croppingBox.top + this.croppingBox.bottom) / 2 -
+        this.size.height / 2,
+    };
+    return { width, height, centerOffset };
   }
 }

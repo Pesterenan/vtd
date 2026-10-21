@@ -2,8 +2,9 @@ import {
   cubicBezierPoint,
   closestPointOnCubicBezier,
   hitTestPathSegments,
+  traceSegment,
 } from "./pathMath";
-import type { Point } from "src/components/types";
+import type { Point, Position } from "src/components/types";
 
 // Curva com barriga bem marcada: corda vai de (0,0) a (100,0),
 // mas a curva passa por (50,75) em t=0.5.
@@ -68,5 +69,57 @@ describe("hitTestPathSegments", () => {
     expect(
       hitTestPathSegments({ x: 200, y: 200 }, curvePoints(), false, 8),
     ).toBeNull();
+  });
+});
+
+describe("traceSegment", () => {
+  function makeContext(): CanvasRenderingContext2D {
+    return document.createElement("canvas").getContext("2d")!;
+  }
+
+  function makePoint(
+    center: Position,
+    handleOut: Position | null = null,
+    handleIn: Position | null = null,
+  ): Point {
+    return { center, in: handleIn, out: handleOut };
+  }
+
+  it("desenha reta quando nenhum dos pontos tem handle", () => {
+    const ctx = makeContext();
+    const lineToSpy = vi.spyOn(ctx, "lineTo").mockClear();
+    const bezierSpy = vi.spyOn(ctx, "bezierCurveTo").mockClear();
+
+    traceSegment(
+      ctx,
+      makePoint({ x: 0, y: 0 }),
+      makePoint({ x: 10, y: 5 }),
+    );
+
+    expect(lineToSpy).toHaveBeenCalledWith(10, 5);
+    expect(bezierSpy).not.toHaveBeenCalled();
+  });
+
+  it("desenha cúbica usando out do início e in do fim", () => {
+    const ctx = makeContext();
+    const bezierSpy = vi.spyOn(ctx, "bezierCurveTo").mockClear();
+
+    traceSegment(ctx, curvePoints()[0], curvePoints()[1]);
+
+    expect(bezierSpy).toHaveBeenCalledWith(C1.x, C1.y, C2.x, C2.y, P1.x, P1.y);
+  });
+
+  it("curva também quando só o fim tem handle in", () => {
+    const ctx = makeContext();
+    const bezierSpy = vi.spyOn(ctx, "bezierCurveTo").mockClear();
+
+    traceSegment(
+      ctx,
+      makePoint({ x: 0, y: 0 }),
+      makePoint({ x: 100, y: 0 }, null, { x: 100, y: 100 }),
+    );
+
+    // cp1 cai no próprio início quando não há out
+    expect(bezierSpy).toHaveBeenCalledWith(0, 0, 100, 100, 100, 0);
   });
 });

@@ -30,6 +30,12 @@ export type AddElementPayload = {
   children?: Array<Layer>;
 };
 
+export type ApplyCropPayload = {
+  layerId: number;
+  keepOriginal: boolean;
+  smoothingEnabled: boolean;
+};
+
 export type EditShapePayload = {
   mode: ShapeMode;
   box: ShapeBox;
@@ -92,7 +98,7 @@ export type SelectElementsAtPayload = {
 
 export type ToolHintPayload = {
   hintText?: string;
-}
+};
 
 export type ContextMenuItem =
   | {
@@ -177,11 +183,7 @@ export interface EventBusMap {
     result: unknown;
   };
   "layer:applyCrop": {
-    payload: {
-      layerId: number;
-      keepOriginal: boolean;
-      smoothingEnabled: boolean;
-    };
+    payload: ApplyCropPayload;
     result: unknown;
   };
   "layer:export": {

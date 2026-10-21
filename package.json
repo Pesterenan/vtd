@@ -1,7 +1,7 @@
 {
     "name": "vtd",
     "type": "module",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "description": "Editor de miniaturas de videos.",
     "productName": "vtd",
     "scripts": {
