@@ -5,6 +5,30 @@ Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o
 projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.3.1] - 2026-10-21
+
+### Adicionado
+
+- **Contorno destacado do path selecionado** na ferramenta caneta: halo branco
+  de 1.5px com linha preta de 1px sobre o path ativo, incluindo o segmento de
+  fechamento.
+- **Ponto preditivo de inserção de vértice** na caneta agora exige `Shift`,
+  alinhando o indicador à ação real; a dica da ferramenta foi atualizada.
+- Clique direito descarta um path em construção (com 1 ponto).
+- Utilitário `deepClone` para cópia profunda de valores.
+
+### Modificado
+
+- Regra "reta vs. Bézier" centralizada em `traceSegment` (`utils/pathMath`) e
+  reutilizada pelo render do `PathElement`, pelo contorno da caneta e pela linha
+  elástica.
+
+### Corrigido
+
+- Cópia de elementos agora preserva todas as propriedades (clone profundo).
+- Fluxo de aplicação de recorte em elementos de imagem.
+- Criação de path e arraste de handles na ferramenta caneta.
+
 ## [0.3.0] - 2026-10-16
 
 ### Adicionado
@@ -196,6 +220,7 @@ Primeira versão pública, baseada em **Electron + TypeScript**.
 - Salvamento e carregamento de projetos em JSON.
 - Ícones e organização inicial das ferramentas.
 
+[0.3.1]: https://github.com/Pesterenan/vtd/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Pesterenan/vtd/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Pesterenan/vtd/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Pesterenan/vtd/compare/v0.0.5...v0.1.0
