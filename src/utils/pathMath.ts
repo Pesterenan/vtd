@@ -111,6 +111,29 @@ export function closestPointOnCubicBezier(
 }
 
 /**
+ * Traça UM segmento `start → end` no contexto, assumindo que o "pincel" já
+ * está em `start.center` (o caller faz o `moveTo`).
+ *
+ * O segmento vira curva quando o início tem handle `out` ou o fim tem `in`.
+ * Esta é a ÚNICA fonte da regra — usada pelo render do `PathElement`, pelo
+ * contorno da pen tool e pela linha elástica — para que overlay e path real
+ * nunca divirjam.
+ */
+export function traceSegment(
+  ctx: CanvasRenderingContext2D,
+  start: Point,
+  end: Point,
+): void {
+  if (start.out || end.in) {
+    const cp1 = start.out ?? start.center;
+    const cp2 = end.in ?? end.center;
+    ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, end.center.x, end.center.y);
+  } else {
+    ctx.lineTo(end.center.x, end.center.y);
+  }
+}
+
+/**
  * Encontra o segmento mais próximo do mouse dentro da tolerância,
  * seguindo a curva de Bézier quando há handles (`out`/`in`) e a reta
  * quando o trecho é corner — igual ao que `drawPath` renderiza.

@@ -4,6 +4,7 @@ import { Element } from "./element";
 import { FilterRenderer } from "src/filters/filterRenderer";
 import { rotatePoint } from "src/utils/transforms";
 import { toRadians } from "src/utils/angles";
+import { traceSegment } from "src/utils/pathMath";
 
 export class PathElement extends Element {
   // --- Propriedades tipadas (atalhos para `this.properties`) ---
@@ -336,38 +337,14 @@ export class PathElement extends Element {
     ctx.beginPath();
     ctx.moveTo(this.points[0].center.x, this.points[0].center.y);
     for (let i = 1; i < this.points.length; i++) {
-      const prev = this.points[i - 1],
-        cur = this.points[i];
-      if (prev.out || cur.in) {
-        const cp1 = prev.out ?? prev.center;
-        const cp2 = cur.in ?? cur.center;
-        ctx.bezierCurveTo(
-          cp1.x,
-          cp1.y,
-          cp2.x,
-          cp2.y,
-          cur.center.x,
-          cur.center.y,
-        );
-      } else {
-        ctx.lineTo(cur.center.x, cur.center.y);
-      }
+      traceSegment(ctx, this.points[i - 1], this.points[i]);
     }
     if (this.isClosed && this.points.length > 1) {
-      const last = this.points[this.points.length - 1];
-      const first = this.points[0];
-      if (last.out || first.in) {
-        const cp1 = last.out ?? last.center;
-        const cp2 = first.in ?? first.center;
-        ctx.bezierCurveTo(
-          cp1.x,
-          cp1.y,
-          cp2.x,
-          cp2.y,
-          first.center.x,
-          first.center.y,
-        );
-      }
+      traceSegment(
+        ctx,
+        this.points[this.points.length - 1],
+        this.points[0],
+      );
       ctx.closePath();
     } else if (this.isClosed) {
       ctx.closePath();

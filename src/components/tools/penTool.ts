@@ -9,6 +9,7 @@ import {
   cubicBezierPoint,
   hitTestPathSegments,
   constrainAxis,
+  traceSegment,
 } from "src/utils/pathMath";
 
 const CLOSING_DISTANCE = 20;
@@ -26,10 +27,12 @@ const PEN_COLORS = {
   handle: "gray",
   outline: "white",
   handleLine: "lightgray",
+  outlineBack: "white",
+  outlineFront: "black",
 } as const;
 
 export const TOOL_HINT =
-  "Enter: aceitar path, Esc: cancelar, Backspace: voltar";
+  "Enter: aceitar path, Esc: cancelar, Backspace: voltar, Shift: inserir vértice";
 
 export class PenTool extends Tool {
   private static cachedPenIcon: Path2D | null = null;
@@ -221,19 +224,47 @@ export class PenTool extends Tool {
     return null;
   }
 
+  /**
+   * Contorno destacado do path ativo: halo branco de 1.5px
+   * por baixo e linha preta de 1px por cima. Independe de cor/espessura do
+   * elemento, então indica onde o path está mesmo sem stroke.
+   * Desenha o segmento de fechamento quando o path é fechado.
+   */
+  private drawPathOutline(): void {
+    const ctx = this.context;
+    const active = this.activePathElement;
+    if (!ctx || !active || this.points.length < 2) return;
+
+    const lastIndex = this.points.length - 1;
+    const drawPass = (style: SegmentStyle): void => {
+      for (let i = 0; i < lastIndex; i++) {
+        drawSegment(ctx, this.points[i], this.points[i + 1], style);
+      }
+      if (active.isClosed) {
+        drawSegment(ctx, this.points[lastIndex], this.points[0], style);
+      }
+    };
+
+    drawPass({ strokeStyle: PEN_COLORS.outlineBack, lineWidth: 1.5 });
+    drawPass({ strokeStyle: PEN_COLORS.outlineFront, lineWidth: 1 });
+  }
+
   public draw(): void {
     const mousePos = this.mousePos;
     const ctx = this.context;
     const penIcon = PenTool.getPenIcon();
     const active = this.activePathElement;
+
+    // 1- Contorno do path (não depende do mouse estar sobre o canvas)
+    this.drawPathOutline();
+
     if (!ctx || !mousePos || !penIcon) return;
 
     const isDragging = this.draggingPointIndex !== -1 && this.dragStarted;
 
-    // --- Ponto preditivo no meio do segmento (hover-inserção) ---
-    // Segue a curva de Bézier (igual ao render), não a reta entre centros.
-    // Só mostra se não está arrastando, não está fechando e não está sobre vértice.
+    // 2- Ponto preditivo para adicionar vértice
     if (
+      this.modifiers.shift &&
       active &&
       !isDragging &&
       !this.isClosingPath &&
@@ -252,13 +283,19 @@ export class PenTool extends Tool {
       }
     }
 
-    // Linha elástica - próximo segmento futuro (só no modo "continuar",
-    // ou seja, path aberto com o último ponto selecionado).
+    // 3- Linha elástica até o fechamento, ou mouse
     if (this.isContinuingPath() && !isDragging) {
       const first = this.points[0];
       const lastIndex = this.points.length - 1;
       const last = this.points[lastIndex];
       const end = this.isClosingPath ? first.center : mousePos;
+      // Endpoint virtual: ao fechar, o `in` do primeiro ponto participa da
+      // curva; seguindo o mouse, não existe handle de entrada.
+      const endPoint: Point = {
+        center: end,
+        in: this.isClosingPath ? first.in : null,
+        out: null,
+      };
 
       ctx.save();
       ctx.setLineDash(this.isClosingPath ? [] : [2, 2]);
@@ -267,20 +304,12 @@ export class PenTool extends Tool {
         : PEN_COLORS.elasticOpen;
       ctx.beginPath();
       ctx.moveTo(last.center.x, last.center.y);
-      if (active?.isBezier(lastIndex) && last.out) {
-        const cp1 = last.out;
-        const cp2 = first.in ?? first.center;
-        const cp2x = this.isClosingPath ? cp2.x : end.x;
-        const cp2y = this.isClosingPath ? cp2.y : end.y;
-        ctx.bezierCurveTo(cp1.x, cp1.y, cp2x, cp2y, end.x, end.y);
-      } else {
-        ctx.lineTo(end.x, end.y);
-      }
+      traceSegment(ctx, last, endPoint);
       ctx.stroke();
       ctx.restore();
     }
 
-    // Handles dos pontos bézier
+    // 4- Handles dos pontos bézier
     for (let i = 0; i < this.points.length; i++) {
       if (!active?.isBezier(i)) continue;
       const point = this.points[i];
@@ -292,7 +321,7 @@ export class PenTool extends Tool {
       }
     }
 
-    // Vértices
+    // 5- Vértices
     this.points.forEach((point, index) => {
       drawPoint(
         ctx,
@@ -304,7 +333,7 @@ export class PenTool extends Tool {
       );
     });
 
-    // Ícone da caneta
+    // 6- Ícone da caneta
     drawCursorIcon(ctx, penIcon, mousePos, {
       offset: { x: -ICON_SIZE / 3 - 2, y: ICON_SIZE / 3 },
       rotationDeg: -45,
@@ -312,12 +341,12 @@ export class PenTool extends Tool {
   }
 
   protected handleMouseDown(evt: MouseEvent): void {
-    // Só o botão esquerdo desenha/arrasta. O direito abre o `contextmenu`,
-    // que deseleciona o path — sem esta guarda ele criaria um path de 1 ponto.
+    // Só trata do botão esquerdo
     if (evt.button !== 0) return;
     const active = this.activePathElement;
     const mousePos = this.mousePos;
-    if (mousePos === null) return;
+    const canvasPos = this.canvasPos;
+    if (!mousePos || !canvasPos) return;
 
     // Se não tiver path ativo, cria um novo
     if (!active) {
@@ -325,11 +354,11 @@ export class PenTool extends Tool {
       return;
     }
 
-    // CTRL clicando nos pontos ou handles:
+    // CTRL + clique: seleciona o elemento sob o cursor ou deseleciona.
     if (this.modifiers.ctrl) {
       const hit = this.hitHandleOrPoint(mousePos);
       if (!hit) {
-        this.trySelectingPath();
+        this.eventBus.emit("workarea:selectAt", { firstPoint: canvasPos });
         return;
       }
 
@@ -383,13 +412,6 @@ export class PenTool extends Tool {
       false,
     );
     this.refreshTransformBox();
-  }
-
-  /** CTRL + clique: seleciona o elemento sob o cursor ou deseleciona. */
-  private trySelectingPath(): void {
-    const canvasPos = this.canvasPos;
-    if (!canvasPos) return;
-    this.eventBus.emit("workarea:selectAt", { firstPoint: canvasPos });
   }
 
   /** Verdadeiro se o clique está longe das linhas, pontos e handles do path ativo. */
@@ -644,10 +666,21 @@ export class PenTool extends Tool {
     this.updatePointsOverlay();
   }
 
-  /** Botão direito: deseleciona o path atual para iniciar outro no próximo clique. */
+  /**
+   * Botão direito: descarta um path "em construção" (1 ponto) e deseleciona,
+   * para o próximo clique iniciar um path novo.
+   */
   protected handleContextMenu(evt: MouseEvent): void {
     evt.preventDefault();
-    this.eventBus.emit("workarea:selectById", { elementsId: new Set<number>() });
+    const active = this.activePathElement;
+    if (active && active.points.length < 2) {
+      this.eventBus.emit("workarea:deleteElement", {
+        elementId: active.elementId,
+      });
+    }
+    this.eventBus.emit("workarea:selectById", {
+      elementsId: new Set<number>(),
+    });
     this.resetTool();
   }
 
@@ -722,6 +755,34 @@ function mirrorPoint(anchor: Position, target: Position): Position {
 }
 
 // Drawing helpers
+
+type SegmentStyle = {
+  strokeStyle: CanvasFillStrokeStyles["strokeStyle"];
+  lineWidth: number;
+};
+
+/**
+ * Desenha UM segmento `start → end` de um path nas coordenadas atuais
+ * Delega a regra reta/curva ao `traceSegment`, então o
+ * contorno coincide com o que o `PathElement` renderiza e com o que o
+ * hit-test considera clicável.
+ */
+function drawSegment(
+  ctx: CanvasRenderingContext2D,
+  start: Point,
+  end: Point,
+  style: SegmentStyle,
+): void {
+  ctx.save();
+  ctx.strokeStyle = style.strokeStyle;
+  ctx.lineWidth = style.lineWidth;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(start.center.x, start.center.y);
+  traceSegment(ctx, start, end);
+  ctx.stroke();
+  ctx.restore();
+}
 
 function drawPoint(
   ctx: CanvasRenderingContext2D,
