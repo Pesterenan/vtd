@@ -63,5 +63,18 @@ describe("ToolMenu", () => {
 
     expect(emitSpy).toHaveBeenCalledWith("tool:change", TOOL.PEN);
   });
+
+  it("renders the fill and stroke color swatches", () => {
+    const eventBus = new EventBus();
+
+    render(
+      <EventBusProvider eventBus={eventBus}>
+        <ToolMenu />
+      </EventBusProvider>
+    );
+
+    expect(screen.getByLabelText("Cor de preenchimento")).toBeInTheDocument();
+    expect(screen.getByLabelText("Cor de contorno")).toBeInTheDocument();
+  });
 });
 

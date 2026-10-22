@@ -1,4 +1,12 @@
-import { hexToRgba, parseHex, toHex } from "./color";
+import {
+  ACTIVE_COLORS_STORAGE_KEY,
+  ActiveColorsStore,
+  DEFAULT_ACTIVE_COLORS,
+  hexToRgba,
+  parseHex,
+  toHex,
+} from "./color";
+import type { ColorsStorage } from "./color";
 
 describe("parseHex", () => {
   it("should parse uppercase hex channels", () => {
@@ -45,5 +53,127 @@ describe("hexToRgba", () => {
     expect(toHex(parsed.r, parsed.g, parsed.b)).toBe("#bababa");
     const upper = parseHex("#FFFFFF");
     expect(toHex(upper.r, upper.g, upper.b)).toBe("#ffffff");
+  });
+});
+
+const createStorage = (initial: Record<string, string> = {}): ColorsStorage => {
+  const data = new Map(Object.entries(initial));
+  return {
+    getItem: (key: string) => data.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      data.set(key, value);
+    },
+  };
+};
+
+describe("ActiveColorsStore", () => {
+  it("inicia com as cores padrão quando o storage está vazio", () => {
+    const store = new ActiveColorsStore(createStorage());
+    expect(store.get()).toEqual(DEFAULT_ACTIVE_COLORS);
+  });
+
+  it("persiste uma cor válida", () => {
+    const storage = createStorage();
+    const setItem = vi.spyOn(storage, "setItem");
+    const store = new ActiveColorsStore(storage);
+
+    expect(store.set("fill", "#FF0000")).toEqual({
+      ...DEFAULT_ACTIVE_COLORS,
+      fill: "#FF0000",
+    });
+    expect(setItem).toHaveBeenCalledWith(
+      ACTIVE_COLORS_STORAGE_KEY,
+      JSON.stringify({ ...DEFAULT_ACTIVE_COLORS, fill: "#FF0000" }),
+    );
+  });
+
+  it("ignora valores que não são hexadecimais de seis dígitos", () => {
+    const storage = createStorage();
+    const setItem = vi.spyOn(storage, "setItem");
+    const store = new ActiveColorsStore(storage);
+
+    store.set("stroke", "red");
+    store.set("stroke", "#fff");
+    store.set("stroke", "#GGGGGG");
+
+    expect(store.get().stroke).toBe(DEFAULT_ACTIVE_COLORS.stroke);
+    expect(setItem).not.toHaveBeenCalled();
+  });
+
+  it("restaura cores persistidas", () => {
+    const store = new ActiveColorsStore(
+      createStorage({
+        [ACTIVE_COLORS_STORAGE_KEY]: JSON.stringify({
+          fill: "#112233",
+          stroke: "#445566",
+        }),
+      }),
+    );
+
+    expect(store.get()).toEqual({ fill: "#112233", stroke: "#445566" });
+  });
+
+  it("usa o padrão por slot quando o JSON persistido é inválido", () => {
+    const store = new ActiveColorsStore(
+      createStorage({
+        [ACTIVE_COLORS_STORAGE_KEY]: JSON.stringify({
+          fill: "nope",
+          stroke: "#445566",
+        }),
+      }),
+    );
+
+    expect(store.get()).toEqual({
+      fill: DEFAULT_ACTIVE_COLORS.fill,
+      stroke: "#445566",
+    });
+  });
+
+  it("cai no padrão quando o storage não é JSON válido", () => {
+    const store = new ActiveColorsStore(
+      createStorage({ [ACTIVE_COLORS_STORAGE_KEY]: "{not json" }),
+    );
+    expect(store.get()).toEqual(DEFAULT_ACTIVE_COLORS);
+  });
+
+  it("notifica assinantes até o unsubscribe", () => {
+    const store = new ActiveColorsStore(createStorage());
+    const listener = vi.fn();
+    const unsubscribe = store.subscribe(listener);
+
+    store.set("fill", "#123456");
+    expect(listener).toHaveBeenCalledWith({
+      ...DEFAULT_ACTIVE_COLORS,
+      fill: "#123456",
+    });
+
+    unsubscribe();
+    store.set("fill", "#654321");
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("swap troca preenchimento e contorno e persiste", () => {
+    const storage = createStorage();
+    const setItem = vi.spyOn(storage, "setItem");
+    const store = new ActiveColorsStore(storage);
+    store.set("fill", "#112233");
+    store.set("stroke", "#445566");
+    setItem.mockClear();
+
+    expect(store.swap()).toEqual({ fill: "#445566", stroke: "#112233" });
+    expect(store.get()).toEqual({ fill: "#445566", stroke: "#112233" });
+    expect(setItem).toHaveBeenCalledWith(
+      ACTIVE_COLORS_STORAGE_KEY,
+      JSON.stringify({ fill: "#445566", stroke: "#112233" }),
+    );
+  });
+
+  it("reset restaura e persiste o par informado", () => {
+    const storage = createStorage();
+    const store = new ActiveColorsStore(storage);
+    store.set("fill", "#123456");
+
+    expect(store.reset()).toEqual(DEFAULT_ACTIVE_COLORS);
+    expect(store.get()).toEqual(DEFAULT_ACTIVE_COLORS);
   });
 });

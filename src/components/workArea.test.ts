@@ -22,6 +22,7 @@ import type {
 import type { FilterProperties } from "src/filters/filter";
 import { EventBus } from "src/utils/eventBus";
 import { rotatePoint } from "src/utils/transforms";
+import { activeColors } from "src/utils/color";
 import { WorkArea } from "./workArea";
 
 const STUB_DATA_URL = "data:image/png;base64,STUB";
@@ -137,6 +138,10 @@ describe("WorkArea - Path Integration", () => {
     });
   });
 
+  afterEach(() => {
+    activeColors.reset();
+  });
+
   describe("handleEditGradient", () => {
     it("selects the existing gradient instead of duplicating it", () => {
       const position = { x: 400, y: 300 };
@@ -192,6 +197,16 @@ describe("WorkArea - Path Integration", () => {
       eventBus.emit("edit:path", { position });
 
       expect(workArea.elements[0].selected).toBe(true);
+    });
+
+    it("should create new paths with the active colors", () => {
+      activeColors.reset({ fill: "#112233", stroke: "#445566" });
+
+      eventBus.emit("edit:path", { position: { x: 400, y: 300 } });
+
+      const pathElement = workArea.elements[0] as PathElement;
+      expect(pathElement.fillColor).toBe("#112233");
+      expect(pathElement.strokeColor).toBe("#445566");
     });
 
     it("should handle closed path correctly - new paths start open", () => {

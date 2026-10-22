@@ -12,6 +12,7 @@ import type {
 } from "src/components/types";
 import type { CroppingBox } from "./croppingBox";
 import type { ShapeBox, ShapeMode } from "src/components/tools/shapeGeometry";
+import type { ColorSlot } from "./color";
 
 export type Callback<P = unknown, R = unknown> = (payload: P) => R;
 
@@ -168,6 +169,14 @@ export interface EventBusMap {
   };
   "edit:shape": {
     payload: EditShapePayload;
+    result: unknown;
+  };
+  "element:color:changed": {
+    payload: {
+      elementIds: number[];
+      slot: ColorSlot;
+      value: string;
+    };
     result: unknown;
   };
   "edit:text": {

@@ -18,6 +18,7 @@ import IconFontWeightBold from "src/assets/icons/fontWeightBold.svg";
 import IconFontWeightBoldItalic from "src/assets/icons/fontWeightBoldItalic.svg";
 import IconFontWeightItalic from "src/assets/icons/fontWeightItalic.svg";
 import useElementMenu from "src/hooks/useElementMenu";
+import type { EventBusMap } from "src/utils/eventBus";
 
 interface TextMenuState {
   content: string;
@@ -46,6 +47,10 @@ const DEFAULT_PROPS: TextMenuState = {
   fontStyle: "normal",
   fontWeight: "normal",
 };
+
+const EXTRA_SUBSCRIPTIONS: Array<keyof EventBusMap> = [
+  "element:color:changed",
+];
 
 interface RadioOption {
   value: string;
@@ -110,6 +115,7 @@ const TextMenu = () => {
   const { activeRef, deselect, disabled, selected, state: textProps, setState: setTextProps } = useElementMenu<TextElement, TextMenuState>(
     {
       defaultState: DEFAULT_PROPS,
+      extraSubscriptions: EXTRA_SUBSCRIPTIONS,
       findSelected: (els) => els.find((el) => el instanceof TextElement),
       syncFromElement: (el) => ({
         content: el.content.join('\n'),
@@ -202,6 +208,11 @@ const TextMenu = () => {
     updateProp("fillColor", color);
     if (activeRef.current) {
       activeRef.current.fillColor = color;
+      emit("element:color:changed", {
+        elementIds: [activeRef.current.elementId],
+        slot: "fill",
+        value: color,
+      });
       emit("workarea:update");
     }
   };
@@ -210,6 +221,11 @@ const TextMenu = () => {
     updateProp("strokeColor", color);
     if (activeRef.current) {
       activeRef.current.strokeColor = color;
+      emit("element:color:changed", {
+        elementIds: [activeRef.current.elementId],
+        slot: "stroke",
+        value: color,
+      });
       emit("workarea:update");
     }
   };

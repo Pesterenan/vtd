@@ -28,6 +28,7 @@ import { TransformsManager } from "./workArea.transforms";
 import { buildShapePoints } from "./tools/shapeGeometry";
 import { rotatePoint } from "src/utils/transforms";
 import { deepClone } from "src/utils/deepClone";
+import { activeColors } from "src/utils/color";
 
 type RegistrableElement = Pick<
   Element,
@@ -225,6 +226,7 @@ export class WorkArea {
     const newElement = new PathElement(position, size, this.elements.length);
     newElement.points = points;
     newElement.isClosed = true;
+    this.applyActiveColors(newElement);
     newElement.getBoundingBox();
     this.registerElement(newElement, "path");
   };
@@ -238,8 +240,15 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
+    this.applyActiveColors(newElement);
     this.registerElement(newElement, "path");
   };
+
+  private applyActiveColors(element: PathElement | TextElement): void {
+    const { fill, stroke } = activeColors.get();
+    element.fillColor = fill;
+    element.strokeColor = stroke;
+  }
 
   private createTransformBox = (): void => {
     this.removeTransformBox();
@@ -466,6 +475,7 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
+    this.applyActiveColors(newElement);
     this.registerElement(newElement, "text");
     return newElement;
   }

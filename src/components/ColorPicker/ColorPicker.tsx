@@ -20,6 +20,7 @@ const ColorPicker = ({ id, label, value = "#000000", disabled = false, onChange 
       </label>
       <input
         id={`${id}-color-input`}
+        className={styles.input}
         disabled={disabled}
         type="color"
         onChange={handleChange}

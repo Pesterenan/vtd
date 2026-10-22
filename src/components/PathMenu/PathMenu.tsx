@@ -1,4 +1,5 @@
 import useElementMenu from "src/hooks/useElementMenu";
+import { useEventBus } from "src/hooks/useEventBus";
 import { PathElement } from "../elements/pathElement";
 import styles from "./PathMenu.module.css";
 import CheckboxInput from "../CheckboxInput/CheckboxInput";
@@ -6,6 +7,7 @@ import ColorPicker from "../ColorPicker/ColorPicker";
 import SliderControl from "../SliderControl/SliderControl";
 import SelectInput from "../SelectInput/SelectInput";
 import type { ISelectOption, Point } from "../types";
+import type { EventBusMap } from "src/utils/eventBus";
 
 interface PathMenuState {
   fillColor: string;
@@ -53,7 +55,12 @@ const LINE_DASH_OPTIONS: ISelectOption[] = [
   { label: "Pontilhado", value: "dotted" },
 ];
 
+const EXTRA_SUBSCRIPTIONS: Array<keyof EventBusMap> = [
+  "element:color:changed",
+];
+
 const PathMenu = () => {
+  const { emit } = useEventBus();
   const {
     disabled,
     selected,
@@ -61,6 +68,7 @@ const PathMenu = () => {
     bindProp,
   } = useElementMenu<PathElement, PathMenuState>({
     defaultState: DEFAULT_PROPS,
+    extraSubscriptions: EXTRA_SUBSCRIPTIONS,
     findSelected: (els) => els.find((el) => el instanceof PathElement),
     syncFromElement: (el) => ({
       fillColor: el.fillColor,
@@ -87,10 +95,20 @@ const PathMenu = () => {
 
   const handleChangeStrokeColor = bindProp("strokeColor", (el, color) => {
     el.strokeColor = color;
+    emit("element:color:changed", {
+      elementIds: [el.elementId],
+      slot: "stroke",
+      value: color,
+    });
   });
 
   const handleChangeFillColor = bindProp("fillColor", (el, color) => {
     el.fillColor = color;
+    emit("element:color:changed", {
+      elementIds: [el.elementId],
+      slot: "fill",
+      value: color,
+    });
   });
 
   const handleChangeStrokeWidth = bindProp("strokeWidth", (el, value) => {
