@@ -5,7 +5,7 @@ import type { ToolHintPayload } from "src/utils/eventBus";
 
 const ToolHintOverlay = () => {
   const { on } = useEventBus();
-  const [state, setState] = useState<ToolHintPayload>({  hintText: '' });
+  const [state, setState] = useState<ToolHintPayload>({ hintText: "" });
 
   useEffect(() => {
     const unsubHint = on("tool:hint", (payload: ToolHintPayload) => {

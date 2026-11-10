@@ -19,6 +19,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { MultiTool } from "./tools/multiTool";
 import { FileIOManager } from "./mainWindow.fileio";
 import { ShapeTool } from "./tools/shapeTool";
+import { EyedropperTool } from "./tools/eyedropperTool";
 
 export class MainWindow {
   private static instance: MainWindow | null = null;
@@ -69,6 +70,7 @@ export class MainWindow {
       this.toolManager = new ToolManager(this.canvas, this.eventBus);
       this.tools = {
         [TOOL.GRADIENT]: new GradientTool(this.canvas, this.eventBus),
+        [TOOL.EYEDROPPER]: new EyedropperTool(this.canvas, this.eventBus),
         [TOOL.HAND]: new HandTool(this.canvas, this.eventBus),
         [TOOL.MULTI]: new MultiTool(this.canvas, this.eventBus),
         [TOOL.PEN]: new PenTool(this.canvas, this.eventBus),
@@ -522,6 +524,9 @@ export class MainWindow {
     switch (evt.code) {
       case "KeyH":
         tool = TOOL.GRADIENT;
+        break;
+      case "KeyI":
+        tool = TOOL.EYEDROPPER;
         break;
       case "KeyP":
         tool = TOOL.PEN;

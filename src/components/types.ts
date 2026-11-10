@@ -124,6 +124,8 @@ export enum TOOL {
   TEXT = "text-tool",
   /** @prop GRADIENT - Criar gradientes */
   GRADIENT = "gradient-tool",
+  /** @prop EYEDROPPER - Copiar cores entre elementos */
+  EYEDROPPER = "eyedropper-tool",
   /** @prop HAND - Mover área de trabalho */
   HAND = "hand-tool",
   /** @prop PEN - Desenhar caminhos */

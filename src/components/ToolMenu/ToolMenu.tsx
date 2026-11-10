@@ -5,6 +5,7 @@ import { TOOL } from "../types";
 import ColorSwatches from "../ColorSwatches/ColorSwatches";
 import styles from "./ToolMenu.module.css";
 
+import EyedropperIcon from "src/assets/icons/eyedropper-tool.svg";
 import GrabIcon from "src/assets/icons/move-tool.svg";
 import GradientIcon from "src/assets/icons/gradient-tool.svg";
 import HandIcon from "src/assets/icons/hand-tool.svg";
@@ -34,11 +35,17 @@ const MENU_ITEMS: MenuItem[] = [
   { type: "tool", tool: TOOL.PEN, label: "(P) Criar caminhos vetoriais" },
   { type: "tool", tool: TOOL.SHAPE, label: "(U) Criar formas vetoriais" },
   { type: "divider", key: "helpers" },
+  {
+    type: "tool",
+    tool: TOOL.EYEDROPPER,
+    label: "(I) Copiar cores entre elementos",
+  },
   { type: "tool", tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },
   { type: "tool", tool: TOOL.ZOOM, label: "(Z) Modificar nível de zoom" },
 ];
 
 const toolIcons: Record<string, string> = {
+  [TOOL.EYEDROPPER]: EyedropperIcon,
   [TOOL.GRADIENT]: GradientIcon,
   [TOOL.HAND]: HandIcon,
   [TOOL.PEN]: PenIcon,
