@@ -60,7 +60,12 @@ export const useActiveColors = () => {
     );
 
     const unsubscribeColors = on("element:color:changed", () => {
-      setColors(resolveColors(selectedRef.current));
+      const resolved = resolveColors(selectedRef.current);
+      setColors(resolved);
+      if (selectedRef.current.length > 0) {
+        activeColors.set("fill", resolved.fill);
+        activeColors.set("stroke", resolved.stroke);
+      }
     });
 
     const unsubscribeClear = on("workarea:clear", () => {

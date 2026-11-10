@@ -4,6 +4,12 @@ export type RGB = {
   b: number;
 };
 
+export type HSL = {
+  h: number;
+  s: number;
+  l: number;
+};
+
 const HEX_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
 export function isHexColor(value: unknown): value is string {
@@ -18,6 +24,104 @@ export function parseHex(hex: string): RGB {
     r: Number.parseInt(hex.slice(1, 3), 16),
     g: Number.parseInt(hex.slice(3, 5), 16),
     b: Number.parseInt(hex.slice(5, 7), 16),
+  };
+}
+
+/**
+ * Converte HSL para `#RRGGBB`.
+ *
+ * `h` fica em graus (0–360) e `s`/`l` em percentual (0–100). Cores acromáticas
+ * retornam `h = 0` e `s = 0`.
+ */
+export function hslToHex(hsl: HSL): string {
+  const { h, s, l } = hsl;
+  const hue = ((h % 360) + 360) % 360;
+  const sat = s / 100;
+  const light = l / 100;
+  const chroma = (1 - Math.abs(2 * light - 1)) * sat;
+  const hPrime = hue / 60;
+  const x = chroma * (1 - Math.abs((hPrime % 2) - 1));
+  const m = light - chroma / 2;
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+  const sector = Math.floor(hPrime);
+  switch (sector) {
+    default:
+    case 0:
+      red = chroma;
+      green = x;
+      blue = 0;
+      break;
+    case 1:
+      red = x;
+      green = chroma;
+      blue = 0;
+      break;
+    case 2:
+      red = 0;
+      green = chroma;
+      blue = x;
+      break;
+    case 3:
+      red = 0;
+      green = x;
+      blue = chroma;
+      break;
+    case 4:
+      red = x;
+      green = 0;
+      blue = chroma;
+      break;
+    case 5:
+      red = chroma;
+      green = 0;
+      blue = x;
+      break;
+  }
+
+  return toHex((red + m) * 255, (green + m) * 255, (blue + m) * 255);
+}
+
+/**
+ * Converte `#RRGGBB` para HSL.
+ *
+ * `h` fica em graus (0–360) e `s`/`l` em percentual (0–100). Cores acromáticas
+ * retornam `h = 0` e `s = 0`.
+ */
+export function hexToHsl(hex: string): HSL {
+  const { r, g, b } = parseHex(hex);
+  const red = r / 255;
+  const green = g / 255;
+  const blue = b / 255;
+
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+  const lightness = (max + min) / 2;
+
+  if (delta === 0) {
+    return { h: 0, s: 0, l: lightness * 100 };
+  }
+
+  const saturation = delta / (1 - Math.abs(2 * lightness - 1));
+
+  let hue: number;
+  if (max === red) {
+    hue = ((green - blue) / delta) % 6;
+  } else if (max === green) {
+    hue = (blue - red) / delta + 2;
+  } else {
+    hue = (red - green) / delta + 4;
+  }
+
+  hue *= 60;
+  if (hue < 0) hue += 360;
+
+  return {
+    h: hue,
+    s: saturation * 100,
+    l: lightness * 100,
   };
 }
 
@@ -125,7 +229,9 @@ export class ActiveColorsStore {
     try {
       const parsed = JSON.parse(raw) as Partial<ActiveColors>;
       return {
-        fill: isHexColor(parsed.fill) ? parsed.fill : DEFAULT_ACTIVE_COLORS.fill,
+        fill: isHexColor(parsed.fill)
+          ? parsed.fill
+          : DEFAULT_ACTIVE_COLORS.fill,
         stroke: isHexColor(parsed.stroke)
           ? parsed.stroke
           : DEFAULT_ACTIVE_COLORS.stroke,

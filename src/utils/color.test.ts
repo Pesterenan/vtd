@@ -2,6 +2,7 @@ import {
   ACTIVE_COLORS_STORAGE_KEY,
   ActiveColorsStore,
   DEFAULT_ACTIVE_COLORS,
+  hexToHsl,
   hexToRgba,
   parseHex,
   toHex,
@@ -24,6 +25,39 @@ describe("parseHex", () => {
 
   it("Hipótese: should reject malformed hex input", () => {
     expect(() => parseHex("#fff")).toThrow();
+  });
+});
+
+describe("hexToHsl", () => {
+  it("should convert the primary colors", () => {
+    expect(hexToHsl("#ff0000")).toEqual({ h: 0, s: 100, l: 50 });
+    expect(hexToHsl("#00ff00")).toEqual({ h: 120, s: 100, l: 50 });
+    expect(hexToHsl("#0000ff")).toEqual({ h: 240, s: 100, l: 50 });
+  });
+
+  it("should convert a secondary color", () => {
+    expect(hexToHsl("#ffff00")).toEqual({ h: 60, s: 100, l: 50 });
+  });
+
+  it("should convert a mixed color", () => {
+    const hsl = hexToHsl("#336699");
+    expect(hsl.h).toBeCloseTo(210);
+    expect(hsl.s).toBeCloseTo(50);
+    expect(hsl.l).toBeCloseTo(40);
+  });
+
+  it("should return zero hue and saturation for grayscale", () => {
+    expect(hexToHsl("#000000")).toEqual({ h: 0, s: 0, l: 0 });
+    expect(hexToHsl("#ffffff")).toEqual({ h: 0, s: 0, l: 100 });
+
+    const gray = hexToHsl("#bababa");
+    expect(gray.h).toBe(0);
+    expect(gray.s).toBe(0);
+    expect(gray.l).toBeCloseTo(72.94, 2);
+  });
+
+  it("Hipótese: should reject malformed hex input", () => {
+    expect(() => hexToHsl("#fff")).toThrow();
   });
 });
 

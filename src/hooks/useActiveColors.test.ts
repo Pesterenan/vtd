@@ -155,6 +155,10 @@ describe("useActiveColors", () => {
     });
 
     expect(result.current.fillColor).toBe("#00ff00");
+    expect(activeColors.get()).toEqual({
+      fill: "#00ff00",
+      stroke: "#00ff00",
+    });
   });
 
   it("ignora cores inválidas", () => {
