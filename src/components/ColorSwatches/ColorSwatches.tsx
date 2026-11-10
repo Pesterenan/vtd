@@ -4,11 +4,13 @@ import { useActiveColors } from "src/hooks/useActiveColors";
 import styles from "./ColorSwatches.module.css";
 
 import SwapIcon from "src/assets/icons/swap-colors.svg";
+import { useEventBus } from "src/hooks/useEventBus";
 
 const ColorSwatches = () => {
   const { fillColor, strokeColor, setFillColor, setStrokeColor, swapColors } =
     useActiveColors();
   const [isOpen, setIsOpen] = useState(false);
+  const { emit } = useEventBus();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -33,7 +35,9 @@ const ColorSwatches = () => {
         >
           <span
             className={styles.swapIcon}
-            style={{ "--icon-url": `url("${SwapIcon}")` } as React.CSSProperties}
+            style={
+              { "--icon-url": `url("${SwapIcon}")` } as React.CSSProperties
+            }
           />
         </button>
         <button
@@ -43,7 +47,13 @@ const ColorSwatches = () => {
           aria-label="Cor de contorno"
           aria-haspopup="dialog"
           aria-expanded={isOpen}
-          onClick={togglePopover}
+          onClick={() => {
+            togglePopover();
+            emit("wheelColorPicker", {
+              isOpen: true,
+              activeColor: strokeColor,
+            });
+          }}
         />
         <button
           type="button"
@@ -52,7 +62,13 @@ const ColorSwatches = () => {
           aria-label="Cor de preenchimento"
           aria-haspopup="dialog"
           aria-expanded={isOpen}
-          onClick={togglePopover}
+          onClick={() => {
+            togglePopover();
+            emit("wheelColorPicker", {
+              isOpen: true,
+              activeColor: fillColor,
+            });
+          }}
         />
       </div>
 

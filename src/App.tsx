@@ -17,6 +17,7 @@ import AlertsProvider from "./components/alerts/AlertsProvider";
 import LoadingProvider from "./components/LoadingOverlay/LoadingProvider";
 import type { IProjectData } from "./components/types";
 import exampleProject from "./exampleProject.json";
+import WheelColorPicker from "./components/WheelColorPicker/WheelColorPicker";
 
 let vtdInitialized = false;
 
@@ -58,6 +59,7 @@ const App = () => {
             <ToolMenu />
 
             <div style={{ flex: 1, position: "relative" }}>
+              <WheelColorPicker />
               <ContextMenu />
               <CanvasShell ref={canvasRef} />
               <ToolHintOverlay />
