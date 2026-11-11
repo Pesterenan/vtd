@@ -359,8 +359,12 @@ export interface EventBusMap {
     };
     result: unknown;
   };
-  wheelColorPicker: {
-    payload: { isOpen: boolean; activeColor: string; slot: ColorSlot };
+  "colorPicker:open": {
+    payload: {
+      anchor: HTMLElement;
+      color: string;
+      onChange: (color: string) => void;
+    };
     result: unknown;
   };
   "workarea:addImage": {

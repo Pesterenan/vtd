@@ -17,24 +17,22 @@ const RECT = {
   toJSON: () => ({}),
 } as DOMRect;
 
-const renderPicker = () => {
+const setup = (color: string) => {
   const eventBus = new EventBus();
+  const onChange = vi.fn();
+  const anchor = document.createElement("div");
+
   render(
     <EventBusProvider eventBus={eventBus}>
       <WheelColorPicker />
     </EventBusProvider>,
   );
-  return eventBus;
-};
 
-const openPicker = (
-  eventBus: EventBus,
-  activeColor: string,
-  slot: "fill" | "stroke" = "fill",
-) => {
   act(() => {
-    eventBus.emit("wheelColorPicker", { isOpen: true, activeColor, slot });
+    eventBus.emit("colorPicker:open", { anchor, color, onChange });
   });
+
+  return { eventBus, onChange, anchor };
 };
 
 const getWheel = () => {
@@ -54,13 +52,21 @@ describe("WheelColorPicker", () => {
   });
 
   it("não renderiza nada enquanto está fechado", () => {
-    renderPicker();
-    expect(screen.queryByTestId("wheel-color-picker")).toBeNull();
+    const eventBus = new EventBus();
+    render(
+      <EventBusProvider eventBus={eventBus}>
+        <WheelColorPicker />
+      </EventBusProvider>,
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("posiciona os indicadores na cor ativa ao abrir", () => {
-    const eventBus = renderPicker();
-    openPicker(eventBus, "#ff0000");
+  it("abre o painel ancorado e posiciona os indicadores na cor ativa", () => {
+    setup("#ff0000");
+
+    expect(
+      screen.getByRole("dialog", { name: "Seletor de cores" }),
+    ).toBeInTheDocument();
 
     const hueIndicator = screen.getByTestId(
       "wheel-color-picker-hue-indicator",
@@ -75,37 +81,79 @@ describe("WheelColorPicker", () => {
     expect(colorIndicator).toHaveAttribute("cy", "40");
   });
 
-  it("escolher o hue no anel aplica a cor no slot ativo", () => {
-    const eventBus = renderPicker();
-    openPicker(eventBus, "#ff0000", "fill");
+  it("escolher o hue no anel emite a cor correspondente", () => {
+    const { onChange } = setup("#ff0000");
 
     // (240, 128) fica à direita do centro: hue 90.
     fireEvent.mouseDown(getWheel(), { clientX: 240, clientY: 128 });
     fireEvent.mouseUp(document);
 
-    expect(activeColors.get().fill).toBe("#80ff00");
-    expect(activeColors.get().stroke).toBe("#202020");
+    expect(onChange).toHaveBeenLastCalledWith("#80ff00");
   });
 
   it("escolher no centro do triângulo mistura cor pura, branco e preto", () => {
-    const eventBus = renderPicker();
-    openPicker(eventBus, "#ff0000", "fill");
+    const { onChange } = setup("#ff0000");
 
     // Centro do triângulo (hue 0): 1/3 de cada vértice.
     fireEvent.mouseDown(getWheel(), { clientX: 128, clientY: 128 });
     fireEvent.mouseUp(document);
 
-    expect(activeColors.get().fill).toBe("#aa5555");
+    expect(onChange).toHaveBeenLastCalledWith("#aa5555");
   });
 
-  it("aplicar no slot de contorno não altera o preenchimento", () => {
-    const eventBus = renderPicker();
-    openPicker(eventBus, "#ff0000", "stroke");
+  it("mostra o swatch e os valores HSL da cor escolhida", () => {
+    setup("#336699");
 
-    fireEvent.mouseDown(getWheel(), { clientX: 240, clientY: 128 });
-    fireEvent.mouseUp(document);
+    expect(screen.getByTestId("color-picker-swatch")).toHaveStyle({
+      backgroundColor: "#336699",
+    });
+    expect(screen.getByLabelText("H")).toHaveValue(210);
+    expect(screen.getByLabelText("S")).toHaveValue(50);
+    expect(screen.getByLabelText("L")).toHaveValue(40);
+  });
 
-    expect(activeColors.get().stroke).toBe("#80ff00");
-    expect(activeColors.get().fill).toBe("#E0E0E0");
+  it("editar a saturação no input emite a nova cor e atualiza o swatch", () => {
+    const { onChange } = setup("#336699");
+
+    fireEvent.change(screen.getByLabelText("S"), { target: { value: "100" } });
+
+    expect(onChange).toHaveBeenLastCalledWith("#0066cc");
+    expect(screen.getByTestId("color-picker-swatch")).toHaveStyle({
+      backgroundColor: "#0066cc",
+    });
+  });
+
+  it("fecha com Escape", () => {
+    setup("#ff0000");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("fecha ao clicar fora do painel e da âncora", () => {
+    setup("#ff0000");
+
+    fireEvent.mouseDown(document.body);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("reaproveita a cor da nova âncora ao abrir de novo", () => {
+    const { eventBus } = setup("#ff0000");
+    const onChange = vi.fn();
+
+    act(() => {
+      eventBus.emit("colorPicker:open", {
+        anchor: document.createElement("div"),
+        color: "#336699",
+        onChange,
+      });
+    });
+
+    expect(screen.getByLabelText("H")).toHaveValue(210);
+    expect(screen.getByTestId("color-picker-swatch")).toHaveStyle({
+      backgroundColor: "#336699",
+    });
   });
 });
