@@ -1,7 +1,12 @@
-.wheel {
+.wheelContainer {
   position: relative;
   width: 256px;
   height: 256px;
+}
+
+.wheel {
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
   cursor: pointer;
   background: conic-gradient(
@@ -10,6 +15,15 @@
     hsl(360 100% 50%)
     );
     mask-image: radial-gradient(closest-side, #0000 74.6%, #000 75.4%);
+}
+
+.triangle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transform-origin: 50% 50%;
 }
 
 .overlay {

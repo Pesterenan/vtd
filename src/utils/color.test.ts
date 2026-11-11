@@ -4,6 +4,7 @@ import {
   DEFAULT_ACTIVE_COLORS,
   hexToHsl,
   hexToRgba,
+  hslToHex,
   parseHex,
   toHex,
 } from "./color";
@@ -61,8 +62,37 @@ describe("hexToHsl", () => {
   });
 });
 
-describe("toHex", () => {
-  it("should convert channel boundaries to lowercase hex", () => {
+describe("hslToHex", () => {
+  it("should convert the primary colors", () => {
+    expect(hslToHex({ h: 0, s: 100, l: 50 })).toBe("#ff0000");
+    expect(hslToHex({ h: 120, s: 100, l: 50 })).toBe("#00ff00");
+    expect(hslToHex({ h: 240, s: 100, l: 50 })).toBe("#0000ff");
+  });
+
+  it("should convert a secondary color", () => {
+    expect(hslToHex({ h: 60, s: 100, l: 50 })).toBe("#ffff00");
+  });
+
+  it("should convert grayscale colors without saturation", () => {
+    expect(hslToHex({ h: 0, s: 0, l: 0 })).toBe("#000000");
+    expect(hslToHex({ h: 0, s: 0, l: 100 })).toBe("#ffffff");
+    expect(hslToHex({ h: 210, s: 0, l: 50 })).toBe("#808080");
+  });
+
+  it("should normalize hue out of the 0-360 range", () => {
+    expect(hslToHex({ h: 360, s: 100, l: 50 })).toBe("#ff0000");
+    expect(hslToHex({ h: -30, s: 100, l: 50 })).toBe("#ff0080");
+  });
+
+  it("should round-trip with hexToHsl", () => {
+    const hexes = ["#336699", "#bababa", "#E0E0E0", "#202020", "#ff8800"];
+    for (const hex of hexes) {
+      expect(hslToHex(hexToHsl(hex))).toBe(hex.toLowerCase());
+    }
+  });
+});
+
+describe("toHex", () => {  it("should convert channel boundaries to lowercase hex", () => {
     expect(toHex(0, 0, 0)).toBe("#000000");
     expect(toHex(255, 255, 255)).toBe("#ffffff");
   });

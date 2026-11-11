@@ -360,7 +360,7 @@ export interface EventBusMap {
     result: unknown;
   };
   wheelColorPicker: {
-    payload: { isOpen: boolean; activeColor: string };
+    payload: { isOpen: boolean; activeColor: string; slot: ColorSlot };
     result: unknown;
   };
   "workarea:addImage": {
