@@ -112,6 +112,36 @@ describe("WheelColorPicker", () => {
     expect(screen.getByLabelText("L")).toHaveValue(40);
   });
 
+  it("mostra as unidades nos campos HSL", () => {
+    setup("#336699");
+
+    expect(screen.getByText("°")).toBeInTheDocument();
+    expect(screen.getAllByText("%")).toHaveLength(2);
+  });
+
+  it("o swatch é o próprio botão do conta-gotas", () => {
+    setup("#336699");
+
+    const swatch = screen.getByTestId("color-picker-swatch");
+    expect(swatch.tagName).toBe("BUTTON");
+
+    fireEvent.click(swatch);
+
+    expect(screen.getByTestId("color-sampling-overlay")).toBeInTheDocument();
+  });
+
+  it("arrastar o rótulo H gira a roda", () => {
+    const { onChange } = setup("#ff0000");
+
+    fireEvent.mouseDown(screen.getByText("H"), { clientX: 0 });
+    fireEvent.mouseMove(window, { clientX: 200 });
+    fireEvent.mouseUp(window);
+
+    // 200px de arrasto sobre a faixa 0-360 = +36°.
+    expect(onChange).toHaveBeenLastCalledWith("#ff9900");
+    expect(screen.getByLabelText("H")).toHaveValue(36);
+  });
+
   it("editar a saturação no input emite a nova cor e atualiza o swatch", () => {
     const { onChange } = setup("#336699");
 

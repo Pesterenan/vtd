@@ -11,11 +11,11 @@ import {
   triangleForHue,
   weightsFromHex,
 } from "src/utils/colorTriangle";
-import { clamp } from "src/utils/easing";
 import { placeNearAnchor } from "src/utils/placement";
 import { WHEEL_SIZE, hueToPoint, pointToHue, rotatePoint } from "src/utils/wheel";
 import type { Position } from "../types";
 import EyedropperIcon from "src/assets/icons/eyedropper-tool.svg";
+import SliderControl from "../SliderControl/SliderControl";
 
 import styles from "./WheelColorPicker.module.css";
 
@@ -30,14 +30,6 @@ type ColorPickerPanelProps = ColorPickerRequest & {
 };
 
 const hueOf = (hex: string): number => hexToHsl(hex).h;
-
-const handleNumberInput =
-  (max: number, apply: (value: number) => void) =>
-  (event: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = event.target.value;
-    if (raw === "") return;
-    apply(clamp(Number(raw), 0, max));
-  };
 
 const ColorPickerPanel = ({
   anchor,
@@ -250,67 +242,65 @@ const ColorPickerPanel = ({
         </div>
 
         <div className={styles.footer}>
-          <span
-            className={styles.swatch}
-            data-testid="color-picker-swatch"
-            style={{ backgroundColor: state.activeColor }}
-          />
-          <label className={styles.field}>
-            <span>H</span>
-            <input
-              type="number"
-              className={styles.number}
-              min={0}
-              max={360}
-              step={1}
-              value={Math.round(state.hue)}
-              onChange={handleNumberInput(360, (value) =>
-                commit(
-                  hslToHex({ h: value, s: saturation, l: lightness }),
-                  value,
-                ),
-              )}
-            />
-          </label>
-          <label className={styles.field}>
-            <span>S</span>
-            <input
-              type="number"
-              className={styles.number}
-              min={0}
-              max={100}
-              step={1}
-              value={Math.round(saturation)}
-              onChange={handleNumberInput(100, (value) =>
-                commit(hslToHex({ h: state.hue, s: value, l: lightness })),
-              )}
-            />
-          </label>
-          <label className={styles.field}>
-            <span>L</span>
-            <input
-              type="number"
-              className={styles.number}
-              min={0}
-              max={100}
-              step={1}
-              value={Math.round(lightness)}
-              onChange={handleNumberInput(100, (value) =>
-                commit(hslToHex({ h: state.hue, s: saturation, l: value })),
-              )}
-            />
-          </label>
           <button
             type="button"
-            className={styles.eyedropperButton}
-            style={
-              {
-                "--icon-url": `url("${EyedropperIcon}")`,
-              } as React.CSSProperties
-            }
+            className={styles.swatchButton}
+            data-testid="color-picker-swatch"
+            style={{ backgroundColor: state.activeColor }}
             aria-label="Capturar cor do canvas"
-            title="Capturar cor do canvas"
+            title={`Capturar cor do canvas (${state.activeColor})`}
             onClick={startSampling}
+          >
+            <span
+              className={styles.swatchIcon}
+              style={
+                {
+                  "--icon-url": `url("${EyedropperIcon}")`,
+                } as React.CSSProperties
+              }
+            />
+          </button>
+          <SliderControl
+            id="wheel-hue"
+            label="H"
+            min={0}
+            max={360}
+            step={1}
+            value={Math.round(state.hue)}
+            onChange={(value) =>
+              commit(
+                hslToHex({ h: value, s: saturation, l: lightness }),
+                value,
+              )
+            }
+            compact
+            suffix="°"
+          />
+          <SliderControl
+            id="wheel-saturation"
+            label="S"
+            min={0}
+            max={100}
+            step={1}
+            value={Math.round(saturation)}
+            onChange={(value) =>
+              commit(hslToHex({ h: state.hue, s: value, l: lightness }))
+            }
+            compact
+            suffix="%"
+          />
+          <SliderControl
+            id="wheel-lightness"
+            label="L"
+            min={0}
+            max={100}
+            step={1}
+            value={Math.round(lightness)}
+            onChange={(value) =>
+              commit(hslToHex({ h: state.hue, s: saturation, l: value }))
+            }
+            compact
+            suffix="%"
           />
         </div>
       </div>
