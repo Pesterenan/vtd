@@ -109,7 +109,7 @@ describe("EyedropperTool", () => {
     expect(target.strokeColor).toBe("#123456");
   });
 
-  it("não altera o destino quando o clique não atinge um elemento colorível", () => {
+  it("não altera o destino quando o clique não atinge um elemento colorível e não há pixel", () => {
     const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
     const image = new ImageElement(
       { x: 100, y: 100 },
@@ -118,6 +118,7 @@ describe("EyedropperTool", () => {
     );
     eventBus.on("workarea:selected:get", () => [target]);
     eventBus.on("workarea:elements:get", () => [image]);
+    eventBus.on("workarea:sampleColorAt", () => null);
     const emitSpy = vi.spyOn(eventBus, "emit");
 
     click();
@@ -157,6 +158,135 @@ describe("EyedropperTool", () => {
       "element:color:changed",
       expect.anything(),
     );
+  });
+
+  describe("amostragem do canvas fora de formas", () => {
+    const withPixel = (pixel: string | null) => {
+      const sampleSpy = vi.fn(() => pixel);
+      eventBus.on("workarea:sampleColorAt", sampleSpy);
+      return sampleSpy;
+    };
+
+    const withImageUnderCursor = (target: PathElement) => {
+      const image = new ImageElement(
+        { x: 100, y: 100 },
+        { width: 20, height: 20 },
+        0,
+      );
+      eventBus.on("workarea:selected:get", () => [target]);
+      eventBus.on("workarea:elements:get", () => [image]);
+    };
+
+    it("clique simples copia o pixel para as duas cores sem mexer nos flags", () => {
+      const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+      target.hasFill = false;
+      target.hasStroke = false;
+      withImageUnderCursor(target);
+      const sampleSpy = withPixel("#336699");
+      const emitSpy = vi.spyOn(eventBus, "emit");
+
+      click();
+
+      expect(sampleSpy).toHaveBeenCalledWith({ position: mousePosition });
+      expect(target.fillColor).toBe("#336699");
+      expect(target.strokeColor).toBe("#336699");
+      expect(target.hasFill).toBe(false);
+      expect(target.hasStroke).toBe(false);
+      expect(emitSpy).toHaveBeenCalledWith("element:color:changed", {
+        elementIds: [target.elementId],
+        slot: "fill",
+        value: "#336699",
+      });
+      expect(emitSpy).toHaveBeenCalledWith("element:color:changed", {
+        elementIds: [target.elementId],
+        slot: "stroke",
+        value: "#336699",
+      });
+    });
+
+    it("com SHIFT amostra o pixel e liga o preenchimento", () => {
+      const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+      target.hasFill = false;
+      withImageUnderCursor(target);
+      withPixel("#336699");
+      const emitSpy = vi.spyOn(eventBus, "emit");
+
+      clickWith({ shiftKey: true });
+
+      expect(target.fillColor).toBe("#336699");
+      expect(target.hasFill).toBe(true);
+      expect(target.strokeColor).toBe("#222222");
+      expect(emitSpy).not.toHaveBeenCalledWith(
+        "element:color:changed",
+        expect.objectContaining({ slot: "stroke" }),
+      );
+    });
+
+    it("com ALT amostra o pixel e liga o contorno", () => {
+      const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+      target.hasStroke = false;
+      withImageUnderCursor(target);
+      withPixel("#336699");
+      const emitSpy = vi.spyOn(eventBus, "emit");
+
+      clickWith({ altKey: true });
+
+      expect(target.strokeColor).toBe("#336699");
+      expect(target.hasStroke).toBe(true);
+      expect(target.fillColor).toBe("#111111");
+      expect(emitSpy).not.toHaveBeenCalledWith(
+        "element:color:changed",
+        expect.objectContaining({ slot: "fill" }),
+      );
+    });
+
+    it("com CTRL não copia nada e nem amostra o canvas", () => {
+      const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+      withImageUnderCursor(target);
+      const sampleSpy = withPixel("#336699");
+      const emitSpy = vi.spyOn(eventBus, "emit");
+
+      clickWith({ ctrlKey: true });
+
+      expect(sampleSpy).not.toHaveBeenCalled();
+      expect(target.fillColor).toBe("#111111");
+      expect(target.strokeColor).toBe("#222222");
+      expect(emitSpy).not.toHaveBeenCalledWith(
+        "element:color:changed",
+        expect.anything(),
+      );
+    });
+
+    it("dá prioridade à forma quando o cursor está sobre um elemento colorível", () => {
+      const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+      const source = createPath({ x: 100, y: 100 }, "#abcdef", "#123456");
+      eventBus.on("workarea:selected:get", () => [target]);
+      eventBus.on("workarea:elements:get", () => [target, source]);
+      const sampleSpy = withPixel("#336699");
+
+      click();
+
+      expect(sampleSpy).not.toHaveBeenCalled();
+      expect(target.fillColor).toBe("#abcdef");
+      expect(target.strokeColor).toBe("#123456");
+    });
+
+    it("não amostra o canvas sem path ou texto selecionado", () => {
+      const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+      const image = new ImageElement(
+        { x: 100, y: 100 },
+        { width: 20, height: 20 },
+        0,
+      );
+      eventBus.on("workarea:selected:get", () => []);
+      eventBus.on("workarea:elements:get", () => [target, image]);
+      const sampleSpy = withPixel("#336699");
+
+      click();
+
+      expect(sampleSpy).not.toHaveBeenCalled();
+      expect(target.fillColor).toBe("#111111");
+    });
   });
 
   it("mostra o hint e usa o cursor customizado ao equipar", () => {

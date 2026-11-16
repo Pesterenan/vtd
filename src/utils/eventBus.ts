@@ -489,6 +489,13 @@ export interface EventBusMap {
     };
     result: string | null;
   };
+  /** Amostra a cor renderizada no canvas a partir de uma posição do workArea. */
+  "workarea:sampleColorAt": {
+    payload: {
+      position: Position;
+    };
+    result: string | null;
+  };
   "selection:changed": {
     payload: SelectionChangedPayload;
     result: unknown;

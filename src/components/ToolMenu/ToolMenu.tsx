@@ -38,7 +38,7 @@ const MENU_ITEMS: MenuItem[] = [
   {
     type: "tool",
     tool: TOOL.EYEDROPPER,
-    label: "(I) Copiar cores entre elementos",
+    label: "(I) Copiar cores de elementos e do canvas",
   },
   { type: "tool", tool: TOOL.HAND, label: "(Espaço) Mover Área de Trabalho" },
   { type: "tool", tool: TOOL.ZOOM, label: "(Z) Modificar nível de zoom" },

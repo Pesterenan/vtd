@@ -73,7 +73,7 @@ describe("ToolMenu", () => {
     );
 
     const eyedropperBtn = screen.getByLabelText(
-      /Copiar cores entre elementos/i,
+      /Copiar cores de elementos e do canvas/i,
     );
     const handBtn = screen.getByLabelText(/Mover Área de Trabalho/i);
     const items = Array.from(container.querySelectorAll<HTMLElement>("button"));
@@ -92,7 +92,7 @@ describe("ToolMenu", () => {
       </EventBusProvider>,
     );
 
-    fireEvent.click(screen.getByLabelText(/Copiar cores entre elementos/i));
+    fireEvent.click(screen.getByLabelText(/Copiar cores de elementos e do canvas/i));
 
     expect(emitSpy).toHaveBeenCalledWith("tool:change", TOOL.EYEDROPPER);
   });

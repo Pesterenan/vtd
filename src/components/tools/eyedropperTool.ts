@@ -8,7 +8,7 @@ import eyedropperIconSvg from "src/assets/icons/eyedropper-tool.svg?raw";
 import { drawCursorIcon, svgToCanvasPath } from "src/utils/icons";
 
 const TOOL_HINT =
-  "Selecione o destino · clique na origem · SHIFT: preenchimento · ALT: contorno · CTRL: aparência";
+  "Selecione o destino · clique na origem · SHIFT: preenchimento · ALT: contorno · CTRL: aparência · fora de formas: cor do canvas";
 
 /** Canal copiado da origem para os elementos selecionados. */
 type EyedropperMode = "both" | "fill" | "stroke" | "appearance";
@@ -66,6 +66,7 @@ const flattenVisible = (elements: Element[]): Element[] => {
 export class EyedropperTool extends Tool {
   private static eyedropperIcon: Path2D | null = null;
   private hoveredElement: ColorableElement | null = null;
+  private hasColorableSelection = false;
   private lastHint: string | null = null;
 
   private static getEyedropperIcon(): Path2D | null {
@@ -78,12 +79,14 @@ export class EyedropperTool extends Tool {
   public equip(): void {
     super.equip();
     this.hoveredElement = null;
+    this.hasColorableSelection = false;
     this.canvas.style.cursor = "none";
     this.updateHint(this.activeMode);
   }
 
   public unequip(): void {
     this.hoveredElement = null;
+    this.hasColorableSelection = false;
     this.lastHint = null;
     this.canvas.style.cursor = "";
     this.eventBus.emit("tool:hint", { hintText: "" });
@@ -96,10 +99,20 @@ export class EyedropperTool extends Tool {
     const icon = EyedropperTool.getEyedropperIcon();
     if (!ctx || !mousePos || !icon) return;
 
-    drawCursorIcon(ctx, icon, mousePos, {
-      fill: this.hoveredElement ? "lightblue" : "grey",
-    });
+    drawCursorIcon(ctx, icon, mousePos, { fill: this.cursorFill() });
     this.drawModeBadge(ctx, mousePos, this.activeMode);
+  }
+
+  /**
+   * Azul: vai copiar de uma forma. Verde: vai amostrar o pixel do canvas.
+   * Cinza: não há destino (ou CTRL, que não existe em pixel).
+   */
+  private cursorFill(): string {
+    if (this.hoveredElement) return "lightblue";
+    if (this.hasColorableSelection && this.activeMode !== "appearance") {
+      return "lightgreen";
+    }
+    return "grey";
   }
 
   private get activeMode(): EyedropperMode {
@@ -153,26 +166,57 @@ export class EyedropperTool extends Tool {
   protected handleMouseMove(): void {
     const element = this.getElementAt(this.canvasPos);
     this.hoveredElement = isColorable(element) ? element : null;
+    this.hasColorableSelection = this.getSelectedColorables().length > 0;
   }
 
   protected handleMouseDown(evt: MouseEvent): void {
     evt.preventDefault();
-
-    const source = this.getElementAt(this.canvasPos);
-    if (!isColorable(source)) return;
-
-    const targets = this.getSelectedColorables().filter(
-      (target) => target.elementId !== source.elementId,
-    );
-    if (targets.length === 0) return;
-
-    this.hoveredElement = source;
 
     const mode = modeFrom(
       evt.shiftKey,
       evt.altKey,
       evt.ctrlKey || evt.metaKey,
     );
+    const targets = this.getSelectedColorables();
+    const source = this.getElementAt(this.canvasPos);
+
+    if (isColorable(source)) {
+      const others = targets.filter(
+        (target) => target.elementId !== source.elementId,
+      );
+      if (others.length === 0) return;
+
+      this.hoveredElement = source;
+      this.copyFromElement(source, others, mode);
+    } else {
+      // Fora de formas a origem passa a ser o pixel renderizado do canvas.
+      if (mode === "appearance" || targets.length === 0) return;
+
+      const pixel = this.samplePixel();
+      if (!pixel) return;
+
+      this.hoveredElement = null;
+      this.copyFromPixel(pixel, targets, mode);
+    }
+
+    this.eventBus.emit("workarea:update");
+  }
+
+  /** Cor renderizada sob o cursor, no espaço do workArea. */
+  private samplePixel(): string | null {
+    if (!this.canvasPos) return null;
+    return (
+      this.eventBus.request("workarea:sampleColorAt", {
+        position: this.canvasPos,
+      })[0] ?? null
+    );
+  }
+
+  private copyFromElement(
+    source: ColorableElement,
+    targets: ColorableElement[],
+    mode: EyedropperMode,
+  ): void {
     if (mode === "fill") {
       if (!source.hasFill) return;
       this.copyFill(source, targets);
@@ -194,8 +238,42 @@ export class EyedropperTool extends Tool {
       this.emitColorChanged("fill", source.fillColor, targets);
       this.emitColorChanged("stroke", source.strokeColor, targets);
     }
+  }
 
-    this.eventBus.emit("workarea:update");
+  /**
+   * Pixel não tem flags de traço nem tipografia: só as cores são copiadas.
+   * No modo legado os flags ficam como estão; nos modos por canal o flag do
+   * canal é ligado para a cor ter efeito.
+   */
+  private copyFromPixel(
+    pixel: string,
+    targets: ColorableElement[],
+    mode: EyedropperMode,
+  ): void {
+    if (mode === "fill") {
+      for (const target of targets) {
+        target.fillColor = pixel;
+        target.hasFill = true;
+      }
+      this.emitColorChanged("fill", pixel, targets);
+      return;
+    }
+
+    if (mode === "stroke") {
+      for (const target of targets) {
+        target.strokeColor = pixel;
+        target.hasStroke = true;
+      }
+      this.emitColorChanged("stroke", pixel, targets);
+      return;
+    }
+
+    for (const target of targets) {
+      target.fillColor = pixel;
+      target.strokeColor = pixel;
+    }
+    this.emitColorChanged("fill", pixel, targets);
+    this.emitColorChanged("stroke", pixel, targets);
   }
 
   private emitColorChanged(

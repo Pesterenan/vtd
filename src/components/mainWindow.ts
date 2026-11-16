@@ -246,6 +246,9 @@ export class MainWindow {
         }),
       );
     });
+    this.eventBus.on("workarea:sampleColorAt", ({ position }) =>
+      this.workArea ? this.workArea.sampleColorAt(position) : null,
+    );
     this.eventBus.on("selection:changed", ({ selectedElements }) => {
       invoke("enable_copy", { isEnabled: selectedElements.length > 0 });
       if (this.copiedElements.length === 0) {
