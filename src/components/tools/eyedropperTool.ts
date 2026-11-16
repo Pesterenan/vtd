@@ -8,7 +8,23 @@ import eyedropperIconSvg from "src/assets/icons/eyedropper-tool.svg?raw";
 import { drawCursorIcon, svgToCanvasPath } from "src/utils/icons";
 
 const TOOL_HINT =
-  "Selecione o path ou texto de destino e clique no elemento de origem das cores";
+  "Selecione o destino e clique na origem · SHIFT: preenchimento · ALT: contorno";
+
+/** Canal de cor que o clique copia da origem para os elementos selecionados. */
+type EyedropperMode = "both" | "fill" | "stroke";
+
+const MODE_HINTS: Record<EyedropperMode, string> = {
+  both: TOOL_HINT,
+  fill: "Modo preenchimento · SHIFT · clique na origem para copiar só a cor de preenchimento",
+  stroke: "Modo contorno · ALT · clique na origem para copiar só a cor de contorno",
+};
+
+/** SHIFT = preenchimento, ALT = contorno; combinações caem no legado (ambos). */
+const modeFrom = (shift: boolean, alt: boolean): EyedropperMode => {
+  if (shift && !alt) return "fill";
+  if (alt && !shift) return "stroke";
+  return "both";
+};
 
 type ColorableElement = PathElement | TextElement;
 
@@ -34,6 +50,7 @@ const flattenVisible = (elements: Element[]): Element[] => {
 export class EyedropperTool extends Tool {
   private static eyedropperIcon: Path2D | null = null;
   private hoveredElement: ColorableElement | null = null;
+  private lastHint: string | null = null;
 
   private static getEyedropperIcon(): Path2D | null {
     if (!this.eyedropperIcon) {
@@ -46,11 +63,12 @@ export class EyedropperTool extends Tool {
     super.equip();
     this.hoveredElement = null;
     this.canvas.style.cursor = "none";
-    this.eventBus.emit("tool:hint", { hintText: TOOL_HINT });
+    this.updateHint(modeFrom(this.modifiers.shift, this.modifiers.alt));
   }
 
   public unequip(): void {
     this.hoveredElement = null;
+    this.lastHint = null;
     this.canvas.style.cursor = "";
     this.eventBus.emit("tool:hint", { hintText: "" });
     super.unequip();
@@ -65,6 +83,51 @@ export class EyedropperTool extends Tool {
     drawCursorIcon(ctx, icon, mousePos, {
       fill: this.hoveredElement ? "lightblue" : "grey",
     });
+    this.drawModeBadge(ctx, mousePos, this.activeMode);
+  }
+
+  private get activeMode(): EyedropperMode {
+    return modeFrom(this.modifiers.shift, this.modifiers.alt);
+  }
+
+  /** Atualiza o hint e o cursor quando o modificador muda (sem repetir o mesmo texto). */
+  private updateHint(mode: EyedropperMode): void {
+    const hint = MODE_HINTS[mode];
+    if (hint === this.lastHint) return;
+    this.lastHint = hint;
+    this.eventBus.emit("tool:hint", { hintText: hint });
+  }
+
+  /** Selo "P"/"C" no cursor indicando o canal armado (some no modo padrão). */
+  private drawModeBadge(
+    ctx: CanvasRenderingContext2D,
+    mousePos: Position,
+    mode: EyedropperMode,
+  ): void {
+    if (mode === "both") return;
+    const center = { x: mousePos.x + 10, y: mousePos.y + 10 };
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = "white";
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "#202020";
+    ctx.stroke();
+    ctx.fillStyle = "#202020";
+    ctx.font = "bold 9px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(mode === "fill" ? "P" : "C", center.x, center.y + 0.5);
+    ctx.restore();
+  }
+
+  protected handleKeyDown(): void {
+    this.updateHint(this.activeMode);
+  }
+
+  protected handleKeyUp(): void {
+    this.updateHint(this.activeMode);
   }
 
   protected handleMouseMove(): void {
@@ -84,18 +147,57 @@ export class EyedropperTool extends Tool {
     if (targets.length === 0) return;
 
     this.hoveredElement = source;
-    this.copyColors(source, targets);
-    this.eventBus.emit("element:color:changed", {
-      elementIds: targets.map((target) => target.elementId),
-      slot: "fill",
-      value: source.fillColor,
-    });
-    this.eventBus.emit("element:color:changed", {
-      elementIds: targets.map((target) => target.elementId),
-      slot: "stroke",
-      value: source.strokeColor,
-    });
+
+    const mode = modeFrom(evt.shiftKey, evt.altKey);
+    if (mode === "fill") {
+      if (!source.hasFill) return;
+      this.copyFill(source, targets);
+      this.emitColorChanged("fill", source.fillColor, targets);
+    } else if (mode === "stroke") {
+      if (!source.hasStroke) return;
+      this.copyStroke(source, targets);
+      this.emitColorChanged("stroke", source.strokeColor, targets);
+    } else {
+      this.copyColors(source, targets);
+      this.emitColorChanged("fill", source.fillColor, targets);
+      this.emitColorChanged("stroke", source.strokeColor, targets);
+    }
+
     this.eventBus.emit("workarea:update");
+  }
+
+  private emitColorChanged(
+    slot: "fill" | "stroke",
+    value: string,
+    targets: ColorableElement[],
+  ): void {
+    this.eventBus.emit("element:color:changed", {
+      elementIds: targets.map((target) => target.elementId),
+      slot,
+      value,
+    });
+  }
+
+  /** Copia cor + liga o preenchimento no destino (origem sem fill já foi filtrada). */
+  private copyFill(
+    source: ColorableElement,
+    targets: ColorableElement[],
+  ): void {
+    for (const target of targets) {
+      target.fillColor = source.fillColor;
+      target.hasFill = true;
+    }
+  }
+
+  /** Copia cor + liga o contorno no destino. */
+  private copyStroke(
+    source: ColorableElement,
+    targets: ColorableElement[],
+  ): void {
+    for (const target of targets) {
+      target.strokeColor = source.strokeColor;
+      target.hasStroke = true;
+    }
   }
 
   private copyColors(

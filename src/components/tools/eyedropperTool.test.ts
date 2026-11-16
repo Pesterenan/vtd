@@ -33,6 +33,8 @@ describe("EyedropperTool", () => {
   });
 
   const click = () => tool.onMouseDown(new MouseEvent("mousedown"));
+  const clickWith = (init: MouseEventInit) =>
+    tool.onMouseDown(new MouseEvent("mousedown", init));
 
   it("copia as cores do elemento clicado para o path selecionado", () => {
     const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
@@ -165,6 +167,127 @@ describe("EyedropperTool", () => {
     expect(canvas.style.cursor).toBe("none");
     expect(emitSpy).toHaveBeenCalledWith("tool:hint", {
       hintText: expect.stringContaining("destino"),
+    });
+  });
+
+  it("com SHIFT copia só o preenchimento e liga hasFill no destino", () => {
+    const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+    target.hasFill = false;
+    const source = createPath({ x: 100, y: 100 }, "#abcdef", "#123456");
+    source.hasFill = true;
+    eventBus.on("workarea:selected:get", () => [target]);
+    eventBus.on("workarea:elements:get", () => [target, source]);
+    const emitSpy = vi.spyOn(eventBus, "emit");
+
+    clickWith({ shiftKey: true });
+
+    expect(target.fillColor).toBe("#abcdef");
+    expect(target.hasFill).toBe(true);
+    expect(target.strokeColor).toBe("#222222");
+    expect(emitSpy).toHaveBeenCalledWith("element:color:changed", {
+      elementIds: [target.elementId],
+      slot: "fill",
+      value: "#abcdef",
+    });
+    expect(emitSpy).not.toHaveBeenCalledWith(
+      "element:color:changed",
+      expect.objectContaining({ slot: "stroke" }),
+    );
+  });
+
+  it("com ALT copia só o contorno e liga hasStroke no destino", () => {
+    const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+    target.hasStroke = false;
+    const source = createPath({ x: 100, y: 100 }, "#abcdef", "#123456");
+    source.hasStroke = true;
+    eventBus.on("workarea:selected:get", () => [target]);
+    eventBus.on("workarea:elements:get", () => [target, source]);
+    const emitSpy = vi.spyOn(eventBus, "emit");
+
+    clickWith({ altKey: true });
+
+    expect(target.strokeColor).toBe("#123456");
+    expect(target.hasStroke).toBe(true);
+    expect(target.fillColor).toBe("#111111");
+    expect(emitSpy).toHaveBeenCalledWith("element:color:changed", {
+      elementIds: [target.elementId],
+      slot: "stroke",
+      value: "#123456",
+    });
+    expect(emitSpy).not.toHaveBeenCalledWith(
+      "element:color:changed",
+      expect.objectContaining({ slot: "fill" }),
+    );
+  });
+
+  it("com SHIFT não faz nada quando a origem não tem preenchimento", () => {
+    const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+    const source = createPath({ x: 100, y: 100 }, "#abcdef", "#123456");
+    eventBus.on("workarea:selected:get", () => [target]);
+    eventBus.on("workarea:elements:get", () => [target, source]);
+    const emitSpy = vi.spyOn(eventBus, "emit");
+
+    clickWith({ shiftKey: true });
+
+    expect(target.fillColor).toBe("#111111");
+    expect(target.hasFill).toBe(false);
+    expect(emitSpy).not.toHaveBeenCalledWith(
+      "element:color:changed",
+      expect.anything(),
+    );
+  });
+
+  it("com ALT não faz nada quando a origem não tem contorno", () => {
+    const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+    const source = createPath({ x: 100, y: 100 }, "#abcdef", "#123456");
+    source.hasStroke = false;
+    eventBus.on("workarea:selected:get", () => [target]);
+    eventBus.on("workarea:elements:get", () => [target, source]);
+    const emitSpy = vi.spyOn(eventBus, "emit");
+
+    clickWith({ altKey: true });
+
+    expect(target.strokeColor).toBe("#222222");
+    expect(target.hasStroke).toBe(true);
+    expect(emitSpy).not.toHaveBeenCalledWith(
+      "element:color:changed",
+      expect.anything(),
+    );
+  });
+
+  it("com SHIFT e ALT juntos copia as duas cores (modo padrão)", () => {
+    const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+    const source = createPath({ x: 100, y: 100 }, "#abcdef", "#123456");
+    eventBus.on("workarea:selected:get", () => [target]);
+    eventBus.on("workarea:elements:get", () => [target, source]);
+
+    clickWith({ shiftKey: true, altKey: true });
+
+    expect(target.fillColor).toBe("#abcdef");
+    expect(target.strokeColor).toBe("#123456");
+  });
+
+  it("atualiza o hint conforme o modificador pressionado", () => {
+    tool.equip();
+    const emitSpy = vi.spyOn(eventBus, "emit");
+
+    tool.onKeyDown(
+      new KeyboardEvent("keydown", { key: "Shift", shiftKey: true }),
+    );
+    expect(emitSpy).toHaveBeenCalledWith("tool:hint", {
+      hintText: expect.stringContaining("preenchimento"),
+    });
+
+    emitSpy.mockClear();
+    tool.onKeyDown(new KeyboardEvent("keydown", { key: "Alt", altKey: true }));
+    expect(emitSpy).toHaveBeenCalledWith("tool:hint", {
+      hintText: expect.stringContaining("contorno"),
+    });
+
+    emitSpy.mockClear();
+    tool.onKeyUp(new KeyboardEvent("keyup", { key: "Alt" }));
+    expect(emitSpy).toHaveBeenCalledWith("tool:hint", {
+      hintText: expect.stringContaining("SHIFT"),
     });
   });
 
