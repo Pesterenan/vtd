@@ -24,17 +24,20 @@ export abstract class Tool {
     shift: false,
     alt: false,
     ctrl: false,
+    meta: false,
   };
 
   private syncModifiersOnKeyDown(evt: KeyboardEvent): void {
     this.modifiers.alt = evt.altKey || evt.key === "Alt";
     this.modifiers.ctrl = evt.ctrlKey || evt.key === "Control";
+    this.modifiers.meta = evt.metaKey || evt.key === "Meta";
     this.modifiers.shift = evt.shiftKey || evt.key === "Shift";
   }
 
   private syncModifiersOnKeyUp(evt: KeyboardEvent): void {
     this.modifiers.alt = evt.key === "Alt" ? false : evt.altKey;
     this.modifiers.ctrl = evt.key === "Control" ? false : evt.ctrlKey;
+    this.modifiers.meta = evt.key === "Meta" ? false : evt.metaKey;
     this.modifiers.shift = evt.key === "Shift" ? false : evt.shiftKey;
   }
 

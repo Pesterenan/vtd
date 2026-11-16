@@ -57,6 +57,7 @@ const LINE_DASH_OPTIONS: ISelectOption[] = [
 
 const EXTRA_SUBSCRIPTIONS: Array<keyof EventBusMap> = [
   "element:color:changed",
+  "element:properties:changed",
 ];
 
 const PathMenu = () => {

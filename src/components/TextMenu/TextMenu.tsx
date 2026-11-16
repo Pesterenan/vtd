@@ -50,6 +50,7 @@ const DEFAULT_PROPS: TextMenuState = {
 
 const EXTRA_SUBSCRIPTIONS: Array<keyof EventBusMap> = [
   "element:color:changed",
+  "element:properties:changed",
 ];
 
 interface RadioOption {

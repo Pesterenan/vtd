@@ -179,6 +179,13 @@ export interface EventBusMap {
     };
     result: unknown;
   };
+  /** Alteração de atributos que não são cor (traço, tipografia, opacidade...). */
+  "element:properties:changed": {
+    payload: {
+      elementIds: number[];
+    };
+    result: unknown;
+  };
   "edit:text": {
     payload: PositionPayload;
     result: unknown;

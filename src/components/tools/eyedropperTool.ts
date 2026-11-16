@@ -8,19 +8,35 @@ import eyedropperIconSvg from "src/assets/icons/eyedropper-tool.svg?raw";
 import { drawCursorIcon, svgToCanvasPath } from "src/utils/icons";
 
 const TOOL_HINT =
-  "Selecione o destino e clique na origem · SHIFT: preenchimento · ALT: contorno";
+  "Selecione o destino · clique na origem · SHIFT: preenchimento · ALT: contorno · CTRL: aparência";
 
-/** Canal de cor que o clique copia da origem para os elementos selecionados. */
-type EyedropperMode = "both" | "fill" | "stroke";
+/** Canal copiado da origem para os elementos selecionados. */
+type EyedropperMode = "both" | "fill" | "stroke" | "appearance";
 
 const MODE_HINTS: Record<EyedropperMode, string> = {
   both: TOOL_HINT,
   fill: "Modo preenchimento · SHIFT · clique na origem para copiar só a cor de preenchimento",
   stroke: "Modo contorno · ALT · clique na origem para copiar só a cor de contorno",
+  appearance:
+    "Modo aparência · CTRL · copia cores, traço, tipografia e opacidade (sem filtros)",
 };
 
-/** SHIFT = preenchimento, ALT = contorno; combinações caem no legado (ambos). */
-const modeFrom = (shift: boolean, alt: boolean): EyedropperMode => {
+const MODE_BADGES: Record<Exclude<EyedropperMode, "both">, string> = {
+  fill: "P",
+  stroke: "C",
+  appearance: "A",
+};
+
+/**
+ * CTRL = aparência completa; senão SHIFT = preenchimento, ALT = contorno.
+ * SHIFT+ALT (sem CTRL) e o clique simples caem no modo legado (ambas as cores).
+ */
+const modeFrom = (
+  shift: boolean,
+  alt: boolean,
+  ctrl: boolean,
+): EyedropperMode => {
+  if (ctrl) return "appearance";
   if (shift && !alt) return "fill";
   if (alt && !shift) return "stroke";
   return "both";
@@ -63,7 +79,7 @@ export class EyedropperTool extends Tool {
     super.equip();
     this.hoveredElement = null;
     this.canvas.style.cursor = "none";
-    this.updateHint(modeFrom(this.modifiers.shift, this.modifiers.alt));
+    this.updateHint(this.activeMode);
   }
 
   public unequip(): void {
@@ -87,7 +103,11 @@ export class EyedropperTool extends Tool {
   }
 
   private get activeMode(): EyedropperMode {
-    return modeFrom(this.modifiers.shift, this.modifiers.alt);
+    return modeFrom(
+      this.modifiers.shift,
+      this.modifiers.alt,
+      this.modifiers.ctrl || this.modifiers.meta,
+    );
   }
 
   /** Atualiza o hint e o cursor quando o modificador muda (sem repetir o mesmo texto). */
@@ -98,7 +118,7 @@ export class EyedropperTool extends Tool {
     this.eventBus.emit("tool:hint", { hintText: hint });
   }
 
-  /** Selo "P"/"C" no cursor indicando o canal armado (some no modo padrão). */
+  /** Selo "P"/"C"/"A" no cursor indicando o canal armado (some no modo padrão). */
   private drawModeBadge(
     ctx: CanvasRenderingContext2D,
     mousePos: Position,
@@ -118,7 +138,7 @@ export class EyedropperTool extends Tool {
     ctx.font = "bold 9px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(mode === "fill" ? "P" : "C", center.x, center.y + 0.5);
+    ctx.fillText(MODE_BADGES[mode], center.x, center.y + 0.5);
     ctx.restore();
   }
 
@@ -148,7 +168,11 @@ export class EyedropperTool extends Tool {
 
     this.hoveredElement = source;
 
-    const mode = modeFrom(evt.shiftKey, evt.altKey);
+    const mode = modeFrom(
+      evt.shiftKey,
+      evt.altKey,
+      evt.ctrlKey || evt.metaKey,
+    );
     if (mode === "fill") {
       if (!source.hasFill) return;
       this.copyFill(source, targets);
@@ -157,6 +181,14 @@ export class EyedropperTool extends Tool {
       if (!source.hasStroke) return;
       this.copyStroke(source, targets);
       this.emitColorChanged("stroke", source.strokeColor, targets);
+    } else if (mode === "appearance") {
+      this.copyAppearance(source, targets);
+      this.emitColorChanged("fill", source.fillColor, targets);
+      this.emitColorChanged("stroke", source.strokeColor, targets);
+      this.eventBus.emit("element:properties:changed", {
+        elementIds: targets.map((target) => target.elementId),
+      });
+      this.eventBus.emit("transformBox:refresh");
     } else {
       this.copyColors(source, targets);
       this.emitColorChanged("fill", source.fillColor, targets);
@@ -197,6 +229,41 @@ export class EyedropperTool extends Tool {
     for (const target of targets) {
       target.strokeColor = source.strokeColor;
       target.hasStroke = true;
+    }
+  }
+
+  /**
+   * Aparência completa: cores, flags, espessura, opacidade e os atributos
+   * exclusivos do tipo. `filters` fica de fora; nunca copia geometria,
+   * posição, escala ou rotação.
+   */
+  private copyAppearance(
+    source: ColorableElement,
+    targets: ColorableElement[],
+  ): void {
+    for (const target of targets) {
+      target.fillColor = source.fillColor;
+      target.strokeColor = source.strokeColor;
+      target.hasFill = source.hasFill;
+      target.hasStroke = source.hasStroke;
+      target.strokeWidth = source.strokeWidth;
+      target.opacity = source.opacity;
+
+      if (source instanceof PathElement && target instanceof PathElement) {
+        target.lineCap = source.lineCap;
+        target.lineJoin = source.lineJoin;
+        target.lineDash = source.lineDash;
+        target.miterLimit = source.miterLimit;
+      }
+
+      if (source instanceof TextElement && target instanceof TextElement) {
+        target.font = source.font;
+        target.fontSize = source.fontSize;
+        target.fontWeight = source.fontWeight;
+        target.fontStyle = source.fontStyle;
+        target.lineHeight = source.lineHeight;
+        target.textAlign = source.textAlign;
+      }
     }
   }
 

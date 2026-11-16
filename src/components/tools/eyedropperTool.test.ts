@@ -267,6 +267,132 @@ describe("EyedropperTool", () => {
     expect(target.strokeColor).toBe("#123456");
   });
 
+  it("com CTRL copia a aparência completa e sincroniza os flags", () => {
+    const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+    target.hasFill = false;
+    target.strokeWidth = 2;
+    target.lineCap = "butt";
+    target.lineJoin = "bevel";
+    target.lineDash = "solid";
+    target.miterLimit = 4;
+
+    const source = createPath({ x: 100, y: 100 }, "#abcdef", "#123456");
+    source.hasFill = true;
+    source.hasStroke = false;
+    source.strokeWidth = 12;
+    source.lineCap = "square";
+    source.lineJoin = "round";
+    source.lineDash = "dashed";
+    source.miterLimit = 20;
+    source.opacity = 0.4;
+
+    eventBus.on("workarea:selected:get", () => [target]);
+    eventBus.on("workarea:elements:get", () => [target, source]);
+    const emitSpy = vi.spyOn(eventBus, "emit");
+
+    clickWith({ ctrlKey: true });
+
+    expect(target.fillColor).toBe("#abcdef");
+    expect(target.strokeColor).toBe("#123456");
+    expect(target.hasFill).toBe(true);
+    expect(target.hasStroke).toBe(false);
+    expect(target.strokeWidth).toBe(12);
+    expect(target.lineCap).toBe("square");
+    expect(target.lineJoin).toBe("round");
+    expect(target.lineDash).toBe("dashed");
+    expect(target.miterLimit).toBe(20);
+    expect(target.opacity).toBe(0.4);
+    expect(emitSpy).toHaveBeenCalledWith("element:properties:changed", {
+      elementIds: [target.elementId],
+    });
+    expect(emitSpy).toHaveBeenCalledWith("transformBox:refresh");
+  });
+
+  it("com CTRL copia tipografia somente entre textos", () => {
+    const target = new TextElement(
+      { x: 0, y: 0 },
+      { width: 100, height: 50 },
+      0,
+    );
+    const source = new TextElement(
+      { x: 100, y: 100 },
+      { width: 100, height: 50 },
+      1,
+    );
+    source.font = "Arial";
+    source.fontSize = 72;
+    source.fontWeight = "bold";
+    source.fontStyle = "underline";
+    source.lineHeight = 1.5;
+    source.textAlign = "left";
+    source.strokeWidth = 4;
+
+    eventBus.on("workarea:selected:get", () => [target]);
+    eventBus.on("workarea:elements:get", () => [target, source]);
+
+    clickWith({ ctrlKey: true });
+
+    expect(target.font).toBe("Arial");
+    expect(target.fontSize).toBe(72);
+    expect(target.fontWeight).toBe("bold");
+    expect(target.fontStyle).toBe("underline");
+    expect(target.lineHeight).toBe(1.5);
+    expect(target.textAlign).toBe("left");
+    expect(target.strokeWidth).toBe(4);
+  });
+
+  it("com CTRL não copia tipografia de path para texto", () => {
+    const textTarget = new TextElement(
+      { x: 0, y: 0 },
+      { width: 100, height: 50 },
+      0,
+    );
+    const pathSource = createPath({ x: 100, y: 100 }, "#abcdef", "#123456");
+    pathSource.strokeWidth = 7;
+    eventBus.on("workarea:selected:get", () => [textTarget]);
+    eventBus.on("workarea:elements:get", () => [textTarget, pathSource]);
+
+    clickWith({ ctrlKey: true });
+
+    expect(textTarget.fillColor).toBe("#abcdef");
+    expect(textTarget.strokeColor).toBe("#123456");
+    expect(textTarget.strokeWidth).toBe(7);
+    expect(textTarget.font).toBe("Impact");
+  });
+
+  it("com CTRL não copia geometria de texto para path", () => {
+    const pathTarget = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+    const textSource = new TextElement(
+      { x: 100, y: 100 },
+      { width: 100, height: 50 },
+      1,
+    );
+    textSource.font = "Arial";
+    textSource.hasFill = true;
+    eventBus.on("workarea:selected:get", () => [pathTarget]);
+    eventBus.on("workarea:elements:get", () => [pathTarget, textSource]);
+
+    clickWith({ ctrlKey: true });
+
+    expect(pathTarget.fillColor).toBe(textSource.fillColor);
+    expect(pathTarget.lineCap).toBe("round");
+    expect(pathTarget.lineJoin).toBe("miter");
+  });
+
+  it("com CTRL não copia filtros da origem", () => {
+    const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
+    const source = createPath({ x: 100, y: 100 }, "#abcdef", "#123456");
+    source.filters = [
+      { id: "drop-shadow", composite: "source-over", globalAlpha: 1 },
+    ];
+    eventBus.on("workarea:selected:get", () => [target]);
+    eventBus.on("workarea:elements:get", () => [target, source]);
+
+    clickWith({ ctrlKey: true });
+
+    expect(target.filters).toEqual([]);
+  });
+
   it("atualiza o hint conforme o modificador pressionado", () => {
     tool.equip();
     const emitSpy = vi.spyOn(eventBus, "emit");
@@ -285,7 +411,15 @@ describe("EyedropperTool", () => {
     });
 
     emitSpy.mockClear();
-    tool.onKeyUp(new KeyboardEvent("keyup", { key: "Alt" }));
+    tool.onKeyDown(
+      new KeyboardEvent("keydown", { key: "Control", ctrlKey: true }),
+    );
+    expect(emitSpy).toHaveBeenCalledWith("tool:hint", {
+      hintText: expect.stringContaining("aparência"),
+    });
+
+    emitSpy.mockClear();
+    tool.onKeyUp(new KeyboardEvent("keyup", { key: "Control" }));
     expect(emitSpy).toHaveBeenCalledWith("tool:hint", {
       hintText: expect.stringContaining("SHIFT"),
     });
