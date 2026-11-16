@@ -28,7 +28,7 @@ import { TransformsManager } from "./workArea.transforms";
 import { buildShapePoints } from "./tools/shapeGeometry";
 import { rotatePoint } from "src/utils/transforms";
 import { deepClone } from "src/utils/deepClone";
-import { activeColors } from "src/utils/color";
+import { activeColors, toHex } from "src/utils/color";
 
 type RegistrableElement = Pick<
   Element,
@@ -431,6 +431,27 @@ export class WorkArea {
     }
 
     return newElement;
+  }
+
+  /**
+   * Cor renderizada no pixel informado (espaço do workArea, já com zoom/offset
+   * resolvidos). Retorna `null` fora dos limites ou em área transparente.
+   */
+  public sampleColorAt(position: Position): string | null {
+    if (!this.context || !this.canvas) return null;
+    const x = Math.floor(position.x);
+    const y = Math.floor(position.y);
+    if (x < 0 || y < 0 || x >= this.canvas.width || y >= this.canvas.height) {
+      return null;
+    }
+    const [red, green, blue, alpha] = this.context.getImageData(
+      x,
+      y,
+      1,
+      1,
+    ).data;
+    if (alpha === 0) return null;
+    return toHex(red, green, blue);
   }
 
   public draw(transparent = false): void {

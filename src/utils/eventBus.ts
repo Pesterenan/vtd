@@ -481,6 +481,14 @@ export interface EventBusMap {
     payload: unknown;
     result: Element[];
   };
+  /** Amostra a cor renderizada no canvas a partir de coordenadas de cliente. */
+  "workarea:sampleColor": {
+    payload: {
+      clientX: number;
+      clientY: number;
+    };
+    result: string | null;
+  };
   "selection:changed": {
     payload: SelectionChangedPayload;
     result: unknown;

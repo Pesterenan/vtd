@@ -844,3 +844,58 @@ describe("applyCrop (Grupo A / tarefa 13)", () => {
     );
   });
 });
+
+describe("WorkArea.sampleColorAt", () => {
+  let workArea: WorkArea;
+  let getImageData: Mock;
+
+  const pixel = (channels: [number, number, number, number]) => ({
+    data: new Uint8ClampedArray(channels),
+  });
+
+  beforeEach(() => {
+    workArea = createWorkAreaHarness().workArea;
+    const context = workArea.canvas?.getContext("2d") as unknown as {
+      getImageData: Mock;
+    };
+    getImageData = context.getImageData;
+    getImageData.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("converte o pixel renderizado em hexadecimal", () => {
+    getImageData.mockReturnValue(pixel([18, 52, 86, 255]));
+
+    expect(workArea.sampleColorAt({ x: 10, y: 20 })).toBe("#123456");
+    expect(getImageData).toHaveBeenCalledWith(10, 20, 1, 1);
+  });
+
+  it("trunca coordenadas fracionárias antes de ler o pixel", () => {
+    getImageData.mockReturnValue(pixel([255, 255, 255, 255]));
+
+    workArea.sampleColorAt({ x: 10.8, y: 20.4 });
+
+    expect(getImageData).toHaveBeenCalledWith(10, 20, 1, 1);
+  });
+
+  it("retorna null fora dos limites do canvas sem ler o pixel", () => {
+    expect(workArea.sampleColorAt({ x: -1, y: 10 })).toBeNull();
+    expect(workArea.sampleColorAt({ x: 10, y: -1 })).toBeNull();
+    expect(
+      workArea.sampleColorAt({ x: WORK_AREA_SIZE.width, y: 10 }),
+    ).toBeNull();
+    expect(
+      workArea.sampleColorAt({ x: 10, y: WORK_AREA_SIZE.height }),
+    ).toBeNull();
+    expect(getImageData).not.toHaveBeenCalled();
+  });
+
+  it("retorna null em pixel transparente", () => {
+    getImageData.mockReturnValue(pixel([0, 0, 0, 0]));
+
+    expect(workArea.sampleColorAt({ x: 5, y: 5 })).toBeNull();
+  });
+});

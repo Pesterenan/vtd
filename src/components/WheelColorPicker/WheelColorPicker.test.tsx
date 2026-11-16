@@ -139,6 +139,105 @@ describe("WheelColorPicker", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  describe("captura de cor do canvas", () => {
+    const openSampling = (sample: (x: number, y: number) => string | null) => {
+      const harness = setup("#ff0000");
+      const sampleSpy = vi.fn(
+        ({ clientX, clientY }: { clientX: number; clientY: number }) =>
+          sample(clientX, clientY),
+      );
+      harness.eventBus.on("workarea:sampleColor", sampleSpy);
+
+      fireEvent.click(screen.getByLabelText("Capturar cor do canvas"));
+
+      return { ...harness, sampleSpy };
+    };
+
+    const getOverlay = () => screen.getByTestId("color-sampling-overlay");
+    const getDialog = () => screen.getByLabelText("Seletor de cores");
+
+    it("entra em modo de captura e esconde o painel", () => {
+      openSampling(() => "#123456");
+
+      expect(getOverlay()).toBeInTheDocument();
+      expect(getDialog()).toHaveStyle({ visibility: "hidden" });
+    });
+
+    it("mostra a pré-visualização da cor sob o cursor", () => {
+      const { sampleSpy } = openSampling((x, y) =>
+        x === 40 && y === 50 ? "#123456" : null,
+      );
+
+      fireEvent.mouseMove(getOverlay(), { clientX: 40, clientY: 50 });
+
+      expect(sampleSpy).toHaveBeenCalledWith({ clientX: 40, clientY: 50 });
+      expect(screen.getByTestId("color-sampling-preview")).toHaveStyle({
+        backgroundColor: "#123456",
+      });
+    });
+
+    it("clique confirma a cor capturada e reabre o painel", () => {
+      const { onChange } = openSampling(() => "#123456");
+
+      fireEvent.click(getOverlay(), { clientX: 40, clientY: 50 });
+
+      expect(onChange).toHaveBeenLastCalledWith("#123456");
+      expect(screen.getByTestId("color-picker-swatch")).toHaveStyle({
+        backgroundColor: "#123456",
+      });
+      expect(screen.queryByTestId("color-sampling-overlay")).toBeNull();
+      expect(
+        screen.getByRole("dialog", { name: "Seletor de cores" }),
+      ).toHaveStyle({ visibility: "visible" });
+    });
+
+    it("atualiza a roda e os valores HSL com a cor capturada", () => {
+      openSampling(() => "#123456");
+
+      fireEvent.click(getOverlay(), { clientX: 40, clientY: 50 });
+
+      // #123456 = hsl(210, 65%, 20%)
+      expect(screen.getByLabelText("H")).toHaveValue(210);
+      expect(screen.getByLabelText("S")).toHaveValue(65);
+      expect(screen.getByLabelText("L")).toHaveValue(20);
+
+      const hueIndicator = screen.getByTestId(
+        "wheel-color-picker-hue-indicator",
+      );
+      expect(Number(hueIndicator.getAttribute("cx"))).toBeCloseTo(72, 1);
+      expect(Number(hueIndicator.getAttribute("cy"))).toBeCloseTo(225, 1);
+    });
+
+    it("mantém a captura quando o pixel não tem cor", () => {
+      const { onChange } = openSampling(() => null);
+
+      fireEvent.click(getOverlay(), { clientX: 40, clientY: 50 });
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(getOverlay()).toBeInTheDocument();
+    });
+
+    it("Escape cancela a captura sem fechar o painel", () => {
+      openSampling(() => "#123456");
+
+      fireEvent.keyDown(document, { key: "Escape" });
+
+      expect(screen.queryByTestId("color-sampling-overlay")).toBeNull();
+      expect(
+        screen.getByRole("dialog", { name: "Seletor de cores" }),
+      ).toBeInTheDocument();
+    });
+
+    it("clicar fora não fecha o painel durante a captura", () => {
+      openSampling(() => "#123456");
+
+      fireEvent.mouseDown(document.body);
+
+      expect(getDialog()).toBeInTheDocument();
+      expect(getOverlay()).toBeInTheDocument();
+    });
+  });
+
   it("reaproveita a cor da nova âncora ao abrir de novo", () => {
     const { eventBus } = setup("#ff0000");
     const onChange = vi.fn();
