@@ -1,4 +1,7 @@
-import useElementMenu from "src/hooks/useElementMenu";
+import useElementMenu, {
+  ELEMENT_VISUAL_SUBSCRIPTIONS,
+} from "src/hooks/useElementMenu";
+import { useEventBus } from "src/hooks/useEventBus";
 import { PathElement } from "../elements/pathElement";
 import styles from "./PathMenu.module.css";
 import CheckboxInput from "../CheckboxInput/CheckboxInput";
@@ -54,6 +57,7 @@ const LINE_DASH_OPTIONS: ISelectOption[] = [
 ];
 
 const PathMenu = () => {
+  const { emit } = useEventBus();
   const {
     disabled,
     selected,
@@ -61,6 +65,7 @@ const PathMenu = () => {
     bindProp,
   } = useElementMenu<PathElement, PathMenuState>({
     defaultState: DEFAULT_PROPS,
+    extraSubscriptions: ELEMENT_VISUAL_SUBSCRIPTIONS,
     findSelected: (els) => els.find((el) => el instanceof PathElement),
     syncFromElement: (el) => ({
       fillColor: el.fillColor,
@@ -87,10 +92,20 @@ const PathMenu = () => {
 
   const handleChangeStrokeColor = bindProp("strokeColor", (el, color) => {
     el.strokeColor = color;
+    emit("element:color:changed", {
+      elementIds: [el.elementId],
+      slot: "stroke",
+      value: color,
+    });
   });
 
   const handleChangeFillColor = bindProp("fillColor", (el, color) => {
     el.fillColor = color;
+    emit("element:color:changed", {
+      elementIds: [el.elementId],
+      slot: "fill",
+      value: color,
+    });
   });
 
   const handleChangeStrokeWidth = bindProp("strokeWidth", (el, value) => {

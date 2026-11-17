@@ -22,6 +22,7 @@ import type {
 import type { FilterProperties } from "src/filters/filter";
 import { EventBus } from "src/utils/eventBus";
 import { rotatePoint } from "src/utils/transforms";
+import { activeColors } from "src/utils/color";
 import { WorkArea } from "./workArea";
 
 const STUB_DATA_URL = "data:image/png;base64,STUB";
@@ -137,6 +138,10 @@ describe("WorkArea - Path Integration", () => {
     });
   });
 
+  afterEach(() => {
+    activeColors.reset();
+  });
+
   describe("handleEditGradient", () => {
     it("selects the existing gradient instead of duplicating it", () => {
       const position = { x: 400, y: 300 };
@@ -194,6 +199,24 @@ describe("WorkArea - Path Integration", () => {
       expect(workArea.elements[0].selected).toBe(true);
     });
 
+    it("should create new paths with the active colors", () => {
+      activeColors.reset({ fill: "#112233", stroke: "#445566" });
+
+      eventBus.emit("edit:path", { position: { x: 400, y: 300 } });
+
+      const pathElement = workArea.elements[0] as PathElement;
+      expect(pathElement.fillColor).toBe("#112233");
+      expect(pathElement.strokeColor).toBe("#445566");
+    });
+
+    it("should keep freehand paths unfilled", () => {
+      activeColors.reset({ fill: "#112233", stroke: "#445566" });
+
+      eventBus.emit("edit:path", { position: { x: 400, y: 300 } });
+
+      expect((workArea.elements[0] as PathElement).hasFill).toBe(false);
+    });
+
     it("should handle closed path correctly - new paths start open", () => {
       const position = { x: 200, y: 150 };
 
@@ -226,6 +249,24 @@ describe("WorkArea - Path Integration", () => {
         x: 200,
         y: 200,
       });
+    });
+  });
+
+  describe("handleEditShape", () => {
+    it("should create closed shapes filled with the active fill color", () => {
+      activeColors.reset({ fill: "#112233", stroke: "#445566" });
+
+      eventBus.emit("edit:shape", {
+        mode: "rectangle",
+        box: { x: 100, y: 100, w: 80, h: 60 },
+        sides: 4,
+      });
+
+      const shape = workArea.elements[0] as PathElement;
+      expect(shape.isClosed).toBe(true);
+      expect(shape.hasFill).toBe(true);
+      expect(shape.fillColor).toBe("#112233");
+      expect(shape.strokeColor).toBe("#445566");
     });
   });
 
@@ -827,5 +868,60 @@ describe("applyCrop (Grupo A / tarefa 13)", () => {
     expect(atZoomed!.getCroppingBox().serialize()).toEqual(
       atDefault!.getCroppingBox().serialize(),
     );
+  });
+});
+
+describe("WorkArea.sampleColorAt", () => {
+  let workArea: WorkArea;
+  let getImageData: Mock;
+
+  const pixel = (channels: [number, number, number, number]) => ({
+    data: new Uint8ClampedArray(channels),
+  });
+
+  beforeEach(() => {
+    workArea = createWorkAreaHarness().workArea;
+    const context = workArea.canvas?.getContext("2d") as unknown as {
+      getImageData: Mock;
+    };
+    getImageData = context.getImageData;
+    getImageData.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("converte o pixel renderizado em hexadecimal", () => {
+    getImageData.mockReturnValue(pixel([18, 52, 86, 255]));
+
+    expect(workArea.sampleColorAt({ x: 10, y: 20 })).toBe("#123456");
+    expect(getImageData).toHaveBeenCalledWith(10, 20, 1, 1);
+  });
+
+  it("trunca coordenadas fracionárias antes de ler o pixel", () => {
+    getImageData.mockReturnValue(pixel([255, 255, 255, 255]));
+
+    workArea.sampleColorAt({ x: 10.8, y: 20.4 });
+
+    expect(getImageData).toHaveBeenCalledWith(10, 20, 1, 1);
+  });
+
+  it("retorna null fora dos limites do canvas sem ler o pixel", () => {
+    expect(workArea.sampleColorAt({ x: -1, y: 10 })).toBeNull();
+    expect(workArea.sampleColorAt({ x: 10, y: -1 })).toBeNull();
+    expect(
+      workArea.sampleColorAt({ x: WORK_AREA_SIZE.width, y: 10 }),
+    ).toBeNull();
+    expect(
+      workArea.sampleColorAt({ x: 10, y: WORK_AREA_SIZE.height }),
+    ).toBeNull();
+    expect(getImageData).not.toHaveBeenCalled();
+  });
+
+  it("retorna null em pixel transparente", () => {
+    getImageData.mockReturnValue(pixel([0, 0, 0, 0]));
+
+    expect(workArea.sampleColorAt({ x: 5, y: 5 })).toBeNull();
   });
 });

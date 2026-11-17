@@ -63,5 +63,51 @@ describe("ToolMenu", () => {
 
     expect(emitSpy).toHaveBeenCalledWith("tool:change", TOOL.PEN);
   });
+
+  it("renders the Eyedropper tool before the Hand tool", () => {
+    const eventBus = new EventBus();
+    const { container } = render(
+      <EventBusProvider eventBus={eventBus}>
+        <ToolMenu />
+      </EventBusProvider>,
+    );
+
+    const eyedropperBtn = screen.getByLabelText(
+      /Copiar cores de elementos e do canvas/i,
+    );
+    const handBtn = screen.getByLabelText(/Mover Área de Trabalho/i);
+    const items = Array.from(container.querySelectorAll<HTMLElement>("button"));
+
+    expect(eyedropperBtn).toBeInTheDocument();
+    expect(items.indexOf(eyedropperBtn)).toBeLessThan(items.indexOf(handBtn));
+  });
+
+  it("emits tool:change with TOOL.EYEDROPPER when clicked", () => {
+    const eventBus = new EventBus();
+    const emitSpy = vi.spyOn(eventBus, "emit");
+
+    render(
+      <EventBusProvider eventBus={eventBus}>
+        <ToolMenu />
+      </EventBusProvider>,
+    );
+
+    fireEvent.click(screen.getByLabelText(/Copiar cores de elementos e do canvas/i));
+
+    expect(emitSpy).toHaveBeenCalledWith("tool:change", TOOL.EYEDROPPER);
+  });
+
+  it("renders the fill and stroke color swatches", () => {
+    const eventBus = new EventBus();
+
+    render(
+      <EventBusProvider eventBus={eventBus}>
+        <ToolMenu />
+      </EventBusProvider>
+    );
+
+    expect(screen.getByLabelText("Cor de preenchimento")).toBeInTheDocument();
+    expect(screen.getByLabelText("Cor de contorno")).toBeInTheDocument();
+  });
 });
 

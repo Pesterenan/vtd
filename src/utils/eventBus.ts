@@ -12,6 +12,7 @@ import type {
 } from "src/components/types";
 import type { CroppingBox } from "./croppingBox";
 import type { ShapeBox, ShapeMode } from "src/components/tools/shapeGeometry";
+import type { ColorSlot } from "./color";
 
 export type Callback<P = unknown, R = unknown> = (payload: P) => R;
 
@@ -168,6 +169,21 @@ export interface EventBusMap {
   };
   "edit:shape": {
     payload: EditShapePayload;
+    result: unknown;
+  };
+  "element:color:changed": {
+    payload: {
+      elementIds: number[];
+      slot: ColorSlot;
+      value: string;
+    };
+    result: unknown;
+  };
+  /** Alteração de atributos que não são cor (traço, tipografia, opacidade...). */
+  "element:properties:changed": {
+    payload: {
+      elementIds: number[];
+    };
     result: unknown;
   };
   "edit:text": {
@@ -350,6 +366,14 @@ export interface EventBusMap {
     };
     result: unknown;
   };
+  "colorPicker:open": {
+    payload: {
+      anchor: HTMLElement;
+      color: string;
+      onChange: (color: string) => void;
+    };
+    result: unknown;
+  };
   "workarea:addImage": {
     payload: string;
     result: unknown;
@@ -456,6 +480,21 @@ export interface EventBusMap {
   "workarea:selected:get": {
     payload: unknown;
     result: Element[];
+  };
+  /** Amostra a cor do canvas em coordenadas de cliente (tela). */
+  "workarea:sampleColorAtClient": {
+    payload: {
+      clientX: number;
+      clientY: number;
+    };
+    result: string | null;
+  };
+  /** Amostra a cor na resolução do documento, a partir de uma posição do workArea. */
+  "workarea:sampleColorAt": {
+    payload: {
+      position: Position;
+    };
+    result: string | null;
   };
   "selection:changed": {
     payload: SelectionChangedPayload;

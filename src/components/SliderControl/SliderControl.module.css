@@ -5,6 +5,11 @@
   width: 100%;
 }
 
+.containerCompact {
+  gap: 0.1875rem;
+  width: auto;
+}
+
 .label {
   cursor: ew-resize;
   font-size: var(--font-small);
@@ -13,7 +18,49 @@
   white-space: nowrap;
 }
 
+.labelCompact {
+  min-width: 0;
+}
+
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .numberInput {
   width: 4rem;
   text-align: center;
+}
+
+.numberInputCompact {
+  width: 2.75rem;
+}
+
+/* A unidade ocupa a borda direita, então o navegador não desenha os spinners. */
+.numberInputWithSuffix,
+.numberInputCompact {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.numberInputWithSuffix {
+  padding-right: 0.75rem;
+}
+
+.numberInputCompact::-webkit-outer-spin-button,
+.numberInputCompact::-webkit-inner-spin-button,
+.numberInputWithSuffix::-webkit-outer-spin-button,
+.numberInputWithSuffix::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.suffix {
+  position: absolute;
+  right: 0.25rem;
+  color: var(--text-700);
+  font-size: var(--font-small);
+  pointer-events: none;
+  user-select: none;
 }

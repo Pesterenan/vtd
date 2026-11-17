@@ -28,6 +28,7 @@ import { TransformsManager } from "./workArea.transforms";
 import { buildShapePoints } from "./tools/shapeGeometry";
 import { rotatePoint } from "src/utils/transforms";
 import { deepClone } from "src/utils/deepClone";
+import { activeColors, toHex } from "src/utils/color";
 
 type RegistrableElement = Pick<
   Element,
@@ -225,6 +226,7 @@ export class WorkArea {
     const newElement = new PathElement(position, size, this.elements.length);
     newElement.points = points;
     newElement.isClosed = true;
+    this.applyActiveColors(newElement, { fillEnabled: true });
     newElement.getBoundingBox();
     this.registerElement(newElement, "path");
   };
@@ -238,8 +240,25 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
+    this.applyActiveColors(newElement);
     this.registerElement(newElement, "path");
   };
+
+  /**
+   * Aplica as cores ativas ao elemento novo.
+   *
+   * `fillEnabled` liga o preenchimento para formas fechadas (retângulo,
+   * elipse, polígono); traços à mão livre continuam só com contorno.
+   */
+  private applyActiveColors(
+    element: PathElement | TextElement,
+    { fillEnabled = false }: { fillEnabled?: boolean } = {},
+  ): void {
+    const { fill, stroke } = activeColors.get();
+    element.fillColor = fill;
+    element.strokeColor = stroke;
+    if (fillEnabled) element.hasFill = true;
+  }
 
   private createTransformBox = (): void => {
     this.removeTransformBox();
@@ -424,6 +443,36 @@ export class WorkArea {
     return newElement;
   }
 
+  /**
+   * Cor renderizada no pixel informado (espaço do workArea, já com zoom/offset
+   * resolvidos). Retorna `null` fora dos limites ou em área transparente.
+   *
+   * A leitura é feita no canvas do documento, na resolução 1:1: com zoom
+   * diferente de 100% a cor pode diferir do pixel exibido na tela, que é
+   * interpolado pelo navegador. É a cor da arte, não do preview — o que o
+   * conta-gotas deve copiar.
+   *
+   * Cada chamada lê 1×1 via `getImageData`, então o custo acompanha apenas a
+   * frequência de amostragem (um pixel por `mousemove` no modo captura), não o
+   * tamanho do documento.
+   */
+  public sampleColorAt(position: Position): string | null {
+    if (!this.context || !this.canvas) return null;
+    const x = Math.floor(position.x);
+    const y = Math.floor(position.y);
+    if (x < 0 || y < 0 || x >= this.canvas.width || y >= this.canvas.height) {
+      return null;
+    }
+    const [red, green, blue, alpha] = this.context.getImageData(
+      x,
+      y,
+      1,
+      1,
+    ).data;
+    if (alpha === 0) return null;
+    return toHex(red, green, blue);
+  }
+
   public draw(transparent = false): void {
     if (!this.context || !this.canvas) {
       throw new Error("Canvas context is not available");
@@ -466,6 +515,7 @@ export class WorkArea {
       { width, height },
       this.elements.length,
     );
+    this.applyActiveColors(newElement);
     this.registerElement(newElement, "text");
     return newElement;
   }

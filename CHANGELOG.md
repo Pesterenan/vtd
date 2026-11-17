@@ -5,6 +5,56 @@ Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o
 projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.4.0] - 2026-11-17
+
+### Adicionado
+
+- **Ferramenta conta-gotas** (`I`) para copiar cores entre elementos: `Shift`
+  copia só o preenchimento, `Alt` só o contorno e `Ctrl` a aparência completa
+  (cores, traço, tipografia e opacidade, sem filtros). Fora de formas, a origem
+  passa a ser o pixel renderizado do canvas. O cursor indica o canal armado com
+  os selos `P`, `C` e `A`.
+- **Seletor de cores circular** com anel de matiz e triângulo de
+  saturação/valor em HSL, exibido como popover ancorado no swatch clicado.
+- **Conta-gotas embutido no seletor de cores**, para capturar a cor de qualquer
+  pixel do canvas sem trocar de ferramenta.
+- **Cores ativas** com swatches de preenchimento e contorno e botão de troca; o
+  par é persistido no `localStorage` e serve de cor padrão para novos elementos.
+- **Sufixo da unidade dentro do campo numérico** do `SliderControl`.
+- Utilitários de conversão HSL/hex, geometria do triângulo de cor e
+  posicionamento do popover.
+
+### Modificado
+
+- Aviso explícito quando a origem não tem o canal pedido (`Shift`/`Alt`), em vez
+  de copiar em silêncio.
+- **Acessibilidade do seletor circular**: anel e triângulo operáveis por teclado,
+  com rótulos e foco visível.
+- Repintura do triângulo coalescida com `requestAnimationFrame` e gravação das
+  cores ativas limitada a 150 ms (primeira mudança imediata + escrita final).
+- Anel de matiz desenhado com paradas explícitas de 60°, sem depender de
+  `conic-gradient` com interpolação estendida.
+- Evento de amostragem em coordenadas de cliente renomeado para
+  `workarea:sampleColorAtClient`, com a semântica de resolução documentada no
+  `workArea`.
+
+### Corrigido
+
+- Formas fechadas criadas pela ferramenta de formas agora herdam a cor de
+  preenchimento ativa; caminhos livres continuam apenas com contorno.
+- Estado HSL do seletor independente do hex, preservando o matiz ao alterar
+  luminosidade ou digitar um valor.
+- Campo numérico do slider pode ser limpo e digitado novamente, com validação
+  apenas ao confirmar.
+- Cores que não estão em hex caem no preenchimento padrão.
+- Arraste da roda é encerrado ao fechar o painel ou perder o foco da janela.
+- Cliques fora do anel de matiz são ignorados.
+- Conta-gotas emite `workarea:update` uma única vez por clique e alinha a ponta
+  do ícone ao pixel amostrado.
+- Abertura do seletor de cores por teclado não duplica mais os eventos de
+  abertura.
+- Remoção do `onChange` nativo morto do seletor de cores.
+
 ## [0.3.1] - 2026-10-21
 
 ### Adicionado
@@ -220,6 +270,7 @@ Primeira versão pública, baseada em **Electron + TypeScript**.
 - Salvamento e carregamento de projetos em JSON.
 - Ícones e organização inicial das ferramentas.
 
+[0.4.0]: https://github.com/Pesterenan/vtd/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Pesterenan/vtd/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Pesterenan/vtd/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Pesterenan/vtd/compare/v0.1.0...v0.2.0
