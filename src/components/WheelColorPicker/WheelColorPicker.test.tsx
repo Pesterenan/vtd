@@ -307,6 +307,17 @@ describe("WheelColorPicker", () => {
     expect(screen.getByLabelText("S")).toHaveValue(0);
   });
 
+  it("arrastar no triângulo com matiz girado aplica a rotação inversa", () => {
+    const { onChange } = setup("#80ff00");
+
+    // Em hue 90 o vértice branco vai para (84, 52); sem a rotação inversa esse
+    // ponto cairia em outra posição do triângulo.
+    fireEvent.mouseDown(getWheel(), { clientX: 84, clientY: 52 });
+    fireEvent.mouseUp(document);
+
+    expect(onChange).toHaveBeenLastCalledWith("#ffffff");
+  });
+
   it("ignora cliques fora do anel de matiz", () => {
     const { onChange } = setup("#ff0000");
 

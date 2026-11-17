@@ -116,5 +116,43 @@ describe("MainWindow - PenTool integration", () => {
       elementId: 1,
     });
   });
+
+  it("KeyI troca para o conta-gotas", () => {
+    vi.spyOn(eventBus, "emit");
+    MainWindow.getInstance(eventBus, { canvas });
+    vi.mocked(eventBus.emit).mockClear();
+
+    window.dispatchEvent(new KeyboardEvent("keypress", { code: "KeyI" }));
+
+    expect(eventBus.emit).toHaveBeenCalledWith("tool:change", TOOL.EYEDROPPER);
+  });
+
+  it("converte coordenadas de cliente para o espaço do workArea ao amostrar", () => {
+    const instance = MainWindow.getInstance(eventBus, { canvas });
+    const sampleColorAt = vi.fn(() => "#123456");
+    (
+      instance as unknown as { workArea: { sampleColorAt: typeof sampleColorAt } }
+    ).workArea = { sampleColorAt };
+    canvas.getBoundingClientRect = () =>
+      ({
+        left: 10,
+        top: 20,
+        right: 810,
+        bottom: 620,
+        width: 800,
+        height: 600,
+        x: 10,
+        y: 20,
+        toJSON: () => ({}),
+      }) as DOMRect;
+
+    const [color] = eventBus.request("workarea:sampleColorAtClient", {
+      clientX: 30,
+      clientY: 50,
+    });
+
+    expect(color).toBe("#123456");
+    expect(sampleColorAt).toHaveBeenCalledWith({ x: 20, y: 30 });
+  });
 });
 
