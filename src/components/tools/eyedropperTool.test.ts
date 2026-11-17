@@ -36,6 +36,19 @@ describe("EyedropperTool", () => {
   const clickWith = (init: MouseEventInit) =>
     tool.onMouseDown(new MouseEvent("mousedown", init));
 
+  it("desenha o ícone com a ponta do conta-gotas sob o cursor", () => {
+    const context = canvas.getContext("2d") as CanvasRenderingContext2D;
+    tool.equip();
+
+    tool.draw();
+
+    // Icone de 24x24 com a ponta em (6, 17): o canto fica no cursor.
+    expect(context.translate).toHaveBeenCalledWith(
+      mousePosition.x - 6,
+      mousePosition.y - 17,
+    );
+  });
+
   it("copia as cores do elemento clicado para o path selecionado", () => {
     const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
     const source = createPath({ x: 100, y: 100 }, "#abcdef", "#123456");

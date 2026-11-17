@@ -28,6 +28,12 @@ const MODE_BADGES: Record<Exclude<EyedropperMode, "both">, string> = {
 };
 
 /**
+ * Deslocamento que coloca a ponta do ícone (canto inferior esquerdo do SVG)
+ * exatamente sob o cursor, como no `penTool`.
+ */
+const CURSOR_OFFSET = { x: -6, y: -17 };
+
+/**
  * CTRL = aparência completa; senão SHIFT = preenchimento, ALT = contorno.
  * SHIFT+ALT (sem CTRL) e o clique simples caem no modo legado (ambas as cores).
  */
@@ -99,7 +105,10 @@ export class EyedropperTool extends Tool {
     const icon = EyedropperTool.getEyedropperIcon();
     if (!ctx || !mousePos || !icon) return;
 
-    drawCursorIcon(ctx, icon, mousePos, { fill: this.cursorFill() });
+    drawCursorIcon(ctx, icon, mousePos, {
+      fill: this.cursorFill(),
+      offset: CURSOR_OFFSET,
+    });
     this.drawModeBadge(ctx, mousePos, this.activeMode);
   }
 
