@@ -2,7 +2,7 @@ import { act } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { EventBusProvider } from "src/contexts/EventBusContext";
 import { EventBus } from "src/utils/eventBus";
-import ColorPicker from "./ColorPicker";
+import ColorPicker, { DUPLICATE_OPEN_WINDOW_MS } from "./ColorPicker";
 
 type OpenPayload = {
   anchor: HTMLElement;
@@ -72,6 +72,26 @@ describe("ColorPicker", () => {
     act(() => opens[0].onChange("#123456"));
 
     expect(onChange).toHaveBeenCalledWith("#123456");
+  });
+
+  it("abre uma única vez quando o teclado dispara keydown e click", () => {
+    const { opens } = renderPicker();
+    vi.useFakeTimers();
+    try {
+      const input = getInput();
+
+      fireEvent.keyDown(input, { key: "Enter" });
+      fireEvent.click(input);
+
+      expect(opens).toHaveLength(1);
+
+      vi.advanceTimersByTime(DUPLICATE_OPEN_WINDOW_MS + 1);
+      fireEvent.click(input);
+
+      expect(opens).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("não abre quando está desabilitado", () => {
