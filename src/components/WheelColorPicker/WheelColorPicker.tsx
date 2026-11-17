@@ -31,6 +31,18 @@ type ColorPickerPanelProps = ColorPickerRequest & {
 
 const hueOf = (hex: string): number => hexToHsl(hex).h;
 
+type PickerState = {
+  activeColor: string;
+  hue: number;
+  saturation: number;
+  lightness: number;
+};
+
+const stateFromHex = (hex: string, hue = hueOf(hex)): PickerState => {
+  const { s, l } = hexToHsl(hex);
+  return { activeColor: hex, hue, saturation: s, lightness: l };
+};
+
 const ColorPickerPanel = ({
   anchor,
   color,
@@ -38,10 +50,7 @@ const ColorPickerPanel = ({
   onClose,
 }: ColorPickerPanelProps) => {
   const { request } = useEventBus();
-  const [state, setState] = useState(() => ({
-    activeColor: color,
-    hue: hueOf(color),
-  }));
+  const [state, setState] = useState<PickerState>(() => stateFromHex(color));
   const [position, setPosition] = useState<{ left: number; top: number } | null>(
     null,
   );
@@ -105,10 +114,23 @@ const ColorPickerPanel = ({
     [state.activeColor, triangle],
   );
 
-  const { s: saturation, l: lightness } = hexToHsl(state.activeColor);
+  const { hue, saturation, lightness } = state;
 
-  const commit = (hex: string, hue = state.hue) => {
-    setState({ activeColor: hex, hue });
+  /** Cor vinda do hex (triângulo, anel, captura): o HSL acompanha o hex. */
+  const commitHex = (hex: string) => {
+    setState(stateFromHex(hex));
+    onChange(hex);
+  };
+
+  /** Cor vinda dos sliders HSL: preserva H/S/L mesmo quando o hex satura. */
+  const commitHsl = (next: { h: number; s: number; l: number }) => {
+    const hex = hslToHex(next);
+    setState({
+      activeColor: hex,
+      hue: next.h,
+      saturation: next.s,
+      lightness: next.l,
+    });
     onChange(hex);
   };
 
@@ -139,7 +161,7 @@ const ColorPickerPanel = ({
     const sampled = sampleAt(event.clientX, event.clientY);
     if (!sampled) return;
     // O modo de captura também pode mudar o matiz: a roda precisa acompanhar.
-    commit(sampled, hueOf(sampled));
+    commitHex(sampled);
     cancelSampling();
   };
 
@@ -151,7 +173,6 @@ const ColorPickerPanel = ({
     });
 
     const { hue } = state;
-    const startWeights = weightsFromHex(state.activeColor);
     const startPoint = toPoint(event.clientX, event.clientY);
     const dragsTriangle =
       barycentricWeights(rotatePoint(startPoint, -hue), UPWARD_TRIANGLE) !==
@@ -166,12 +187,12 @@ const ColorPickerPanel = ({
           UPWARD_TRIANGLE,
         );
         if (!weights) return;
-        commit(hexFromWeights(hue, weights), hue);
+        commitHex(hexFromWeights(hue, weights));
         return;
       }
 
       const nextHue = pointToHue(point);
-      commit(hexFromWeights(nextHue, startWeights), nextHue);
+      commitHsl({ h: nextHue, s: saturation, l: lightness });
     };
 
     update(event.clientX, event.clientY);
@@ -268,10 +289,7 @@ const ColorPickerPanel = ({
             step={1}
             value={Math.round(state.hue)}
             onChange={(value) =>
-              commit(
-                hslToHex({ h: value, s: saturation, l: lightness }),
-                value,
-              )
+              commitHsl({ h: value, s: saturation, l: lightness })
             }
             compact
             suffix="°"
@@ -284,7 +302,7 @@ const ColorPickerPanel = ({
             step={1}
             value={Math.round(saturation)}
             onChange={(value) =>
-              commit(hslToHex({ h: state.hue, s: value, l: lightness }))
+              commitHsl({ h: hue, s: value, l: lightness })
             }
             compact
             suffix="%"
@@ -297,7 +315,7 @@ const ColorPickerPanel = ({
             step={1}
             value={Math.round(lightness)}
             onChange={(value) =>
-              commit(hslToHex({ h: state.hue, s: saturation, l: value }))
+              commitHsl({ h: hue, s: saturation, l: value })
             }
             compact
             suffix="%"

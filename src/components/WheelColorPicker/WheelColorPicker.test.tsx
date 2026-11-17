@@ -153,6 +153,32 @@ describe("WheelColorPicker", () => {
     });
   });
 
+  it("preserva H e S ao passar por L=100 e voltar", () => {
+    const { onChange } = setup("#336699");
+
+    fireEvent.change(screen.getByLabelText("L"), { target: { value: "100" } });
+    expect(onChange).toHaveBeenLastCalledWith("#ffffff");
+    expect(screen.getByLabelText("S")).toHaveValue(50);
+
+    fireEvent.change(screen.getByLabelText("L"), { target: { value: "40" } });
+
+    expect(onChange).toHaveBeenLastCalledWith("#336699");
+    expect(screen.getByLabelText("H")).toHaveValue(210);
+    expect(screen.getByLabelText("S")).toHaveValue(50);
+  });
+
+  it("preserva o matiz ao zerar a saturação e voltar", () => {
+    const { onChange } = setup("#336699");
+
+    fireEvent.change(screen.getByLabelText("S"), { target: { value: "0" } });
+    expect(onChange).toHaveBeenLastCalledWith("#666666");
+
+    fireEvent.change(screen.getByLabelText("S"), { target: { value: "50" } });
+
+    expect(onChange).toHaveBeenLastCalledWith("#336699");
+    expect(screen.getByLabelText("H")).toHaveValue(210);
+  });
+
   it("fecha com Escape", () => {
     setup("#ff0000");
 
