@@ -123,7 +123,9 @@ const ColorPickerPanel = ({
   useEffect(() => {
     const context = canvasRef.current?.getContext("2d");
     if (!context) return;
-    paintTriangle(context, state.hue);
+    // Coalesce mudanças de matiz em um único repaint por frame.
+    const frame = requestAnimationFrame(() => paintTriangle(context, state.hue));
+    return () => cancelAnimationFrame(frame);
   }, [state.hue]);
 
   const triangle = useMemo(() => triangleForHue(state.hue), [state.hue]);

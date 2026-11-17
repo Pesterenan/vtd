@@ -148,6 +148,9 @@ export function hexToRgba(hex: string, alpha: number): string {
  * elemento selecionado e edita o próprio elemento.
  */
 
+/** Intervalo mínimo entre gravações consecutivas no storage. */
+export const PERSIST_INTERVAL_MS = 150;
+
 export type ColorSlot = "fill" | "stroke";
 
 export interface ActiveColors {
@@ -175,6 +178,8 @@ const getBrowserStorage = (): ColorsStorage | null => {
 export class ActiveColorsStore {
   private colors: ActiveColors;
   private listeners = new Set<(colors: ActiveColors) => void>();
+  /** Gravação agendada: arrastar no seletor não deve escrever a cada pixel. */
+  private writeTimer: ReturnType<typeof setTimeout> | null = null;
 
   public constructor(
     private storage: ColorsStorage | null = getBrowserStorage(),
@@ -191,21 +196,21 @@ export class ActiveColorsStore {
       return this.get();
     }
     this.colors = { ...this.colors, [slot]: value };
-    this.write();
+    this.scheduleWrite();
     this.notify();
     return this.get();
   }
 
   public swap(): ActiveColors {
     this.colors = { fill: this.colors.stroke, stroke: this.colors.fill };
-    this.write();
+    this.flushWrite();
     this.notify();
     return this.get();
   }
 
   public reset(colors: ActiveColors = DEFAULT_ACTIVE_COLORS): ActiveColors {
     this.colors = { ...colors };
-    this.write();
+    this.flushWrite();
     this.notify();
     return this.get();
   }
@@ -241,7 +246,28 @@ export class ActiveColorsStore {
     }
   }
 
-  private write(): void {
+  /**
+   * Primeira alteração da janela grava na hora; as seguintes são cobertas por
+   * uma única gravação trailing, que sempre persiste o estado mais recente.
+   */
+  private scheduleWrite(): void {
+    if (this.writeTimer !== null) return;
+    this.persist();
+    this.writeTimer = setTimeout(() => {
+      this.writeTimer = null;
+      this.persist();
+    }, PERSIST_INTERVAL_MS);
+  }
+
+  private flushWrite(): void {
+    if (this.writeTimer !== null) {
+      clearTimeout(this.writeTimer);
+      this.writeTimer = null;
+    }
+    this.persist();
+  }
+
+  private persist(): void {
     try {
       this.storage?.setItem(
         ACTIVE_COLORS_STORAGE_KEY,

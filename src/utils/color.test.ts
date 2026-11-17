@@ -200,6 +200,31 @@ describe("ActiveColorsStore", () => {
     expect(store.get()).toEqual(DEFAULT_ACTIVE_COLORS);
   });
 
+  it("coalesce gravações em sequência rápida e persiste o último valor", () => {
+    vi.useFakeTimers();
+    try {
+      const storage = createStorage();
+      const setItem = vi.spyOn(storage, "setItem");
+      const store = new ActiveColorsStore(storage);
+
+      store.set("fill", "#111111");
+      store.set("fill", "#222222");
+      store.set("fill", "#333333");
+
+      expect(setItem).toHaveBeenCalledTimes(1);
+
+      vi.runAllTimers();
+
+      expect(setItem).toHaveBeenCalledTimes(2);
+      expect(setItem).toHaveBeenLastCalledWith(
+        ACTIVE_COLORS_STORAGE_KEY,
+        JSON.stringify({ ...DEFAULT_ACTIVE_COLORS, fill: "#333333" }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("notifica assinantes até o unsubscribe", () => {
     const store = new ActiveColorsStore(createStorage());
     const listener = vi.fn();
