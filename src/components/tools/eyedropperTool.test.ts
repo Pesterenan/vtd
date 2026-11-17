@@ -352,7 +352,7 @@ describe("EyedropperTool", () => {
     );
   });
 
-  it("com SHIFT não faz nada quando a origem não tem preenchimento", () => {
+  it("com SHIFT avisa quando a origem não tem preenchimento", () => {
     const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
     const source = createPath({ x: 100, y: 100 }, "#abcdef", "#123456");
     eventBus.on("workarea:selected:get", () => [target]);
@@ -367,9 +367,13 @@ describe("EyedropperTool", () => {
       "element:color:changed",
       expect.anything(),
     );
+    expect(emitSpy).toHaveBeenCalledWith("alert:add", {
+      message: "O elemento de origem não tem preenchimento para copiar.",
+      type: "error",
+    });
   });
 
-  it("com ALT não faz nada quando a origem não tem contorno", () => {
+  it("com ALT avisa quando a origem não tem contorno", () => {
     const target = createPath({ x: 0, y: 0 }, "#111111", "#222222");
     const source = createPath({ x: 100, y: 100 }, "#abcdef", "#123456");
     source.hasStroke = false;
@@ -385,6 +389,10 @@ describe("EyedropperTool", () => {
       "element:color:changed",
       expect.anything(),
     );
+    expect(emitSpy).toHaveBeenCalledWith("alert:add", {
+      message: "O elemento de origem não tem contorno para copiar.",
+      type: "error",
+    });
   });
 
   it("com SHIFT e ALT juntos copia as duas cores (modo padrão)", () => {

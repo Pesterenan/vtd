@@ -216,11 +216,17 @@ export class EyedropperTool extends Tool {
     mode: EyedropperMode,
   ): void {
     if (mode === "fill") {
-      if (!source.hasFill) return;
+      if (!source.hasFill) {
+        this.warnMissingChannel("preenchimento");
+        return;
+      }
       this.copyFill(source, targets);
       this.emitColorChanged("fill", source.fillColor, targets);
     } else if (mode === "stroke") {
-      if (!source.hasStroke) return;
+      if (!source.hasStroke) {
+        this.warnMissingChannel("contorno");
+        return;
+      }
       this.copyStroke(source, targets);
       this.emitColorChanged("stroke", source.strokeColor, targets);
     } else if (mode === "appearance") {
@@ -283,6 +289,14 @@ export class EyedropperTool extends Tool {
       elementIds: targets.map((target) => target.elementId),
       slot,
       value,
+    });
+  }
+
+  /** Sem o canal na origem não há o que copiar: avisa em vez de falhar calado. */
+  private warnMissingChannel(channel: "preenchimento" | "contorno"): void {
+    this.eventBus.emit("alert:add", {
+      message: `O elemento de origem não tem ${channel} para copiar.`,
+      type: "error",
     });
   }
 
