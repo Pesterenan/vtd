@@ -23,12 +23,21 @@
   inset: 0;
   border-radius: 50%;
   cursor: pointer;
+  /*
+   * Stops explícitos a cada 60°: a interpolação em sRGB entre hues vizinhos é
+   * exata nesse passo, e evita depender de `in hsl longer hue` (CSS Color 4),
+   * que o WebKitGTK do build Linux pode não suportar.
+   */
   background: conic-gradient(
-    in hsl longer hue,
-    hsl(0   100% 50%),
-    hsl(360 100% 50%)
-    );
-    mask-image: radial-gradient(closest-side, #0000 74.6%, #000 75.4%);
+    hsl(0,   100%, 50%),
+    hsl(60,  100%, 50%),
+    hsl(120, 100%, 50%),
+    hsl(180, 100%, 50%),
+    hsl(240, 100%, 50%),
+    hsl(300, 100%, 50%),
+    hsl(360, 100%, 50%)
+  );
+  mask-image: radial-gradient(closest-side, #0000 74.6%, #000 75.4%);
 }
 
 .triangle {
