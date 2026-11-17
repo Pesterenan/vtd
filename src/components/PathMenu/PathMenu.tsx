@@ -1,4 +1,6 @@
-import useElementMenu from "src/hooks/useElementMenu";
+import useElementMenu, {
+  ELEMENT_VISUAL_SUBSCRIPTIONS,
+} from "src/hooks/useElementMenu";
 import { useEventBus } from "src/hooks/useEventBus";
 import { PathElement } from "../elements/pathElement";
 import styles from "./PathMenu.module.css";
@@ -7,7 +9,6 @@ import ColorPicker from "../ColorPicker/ColorPicker";
 import SliderControl from "../SliderControl/SliderControl";
 import SelectInput from "../SelectInput/SelectInput";
 import type { ISelectOption, Point } from "../types";
-import type { EventBusMap } from "src/utils/eventBus";
 
 interface PathMenuState {
   fillColor: string;
@@ -55,11 +56,6 @@ const LINE_DASH_OPTIONS: ISelectOption[] = [
   { label: "Pontilhado", value: "dotted" },
 ];
 
-const EXTRA_SUBSCRIPTIONS: Array<keyof EventBusMap> = [
-  "element:color:changed",
-  "element:properties:changed",
-];
-
 const PathMenu = () => {
   const { emit } = useEventBus();
   const {
@@ -69,7 +65,7 @@ const PathMenu = () => {
     bindProp,
   } = useElementMenu<PathElement, PathMenuState>({
     defaultState: DEFAULT_PROPS,
-    extraSubscriptions: EXTRA_SUBSCRIPTIONS,
+    extraSubscriptions: ELEMENT_VISUAL_SUBSCRIPTIONS,
     findSelected: (els) => els.find((el) => el instanceof PathElement),
     syncFromElement: (el) => ({
       fillColor: el.fillColor,

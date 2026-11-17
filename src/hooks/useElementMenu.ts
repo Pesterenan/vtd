@@ -7,8 +7,23 @@ type UseElementMenuOptions<TElement, TState> = {
   defaultState: TState;
   findSelected: (els: Element[]) => TElement | undefined;
   syncFromElement: (el: TElement) => TState;
+  /**
+   * Eventos que re-sincronizam o estado a partir do elemento ativo sem trocar
+   * a seleção. A referência precisa ser estável (const de módulo, como
+   * `ELEMENT_VISUAL_SUBSCRIPTIONS`): ela faz parte das dependências do efeito
+   * de inscrição, então um array inline re-inscreve a cada render.
+   */
   extraSubscriptions?: Array<keyof EventBusMap>;
 };
+
+/**
+ * Eventos padrão de menus de elemento (cor e propriedades alteradas fora do
+ * menu, ex.: conta-gotas).
+ */
+export const ELEMENT_VISUAL_SUBSCRIPTIONS: Array<keyof EventBusMap> = [
+  "element:color:changed",
+  "element:properties:changed",
+];
 
 const useElementMenu = <TElement, TState>({
   defaultState,

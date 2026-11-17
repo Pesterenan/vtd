@@ -17,8 +17,9 @@ import IconFontStyleUnderline from "src/assets/icons/fontStyleUnderline.svg";
 import IconFontWeightBold from "src/assets/icons/fontWeightBold.svg";
 import IconFontWeightBoldItalic from "src/assets/icons/fontWeightBoldItalic.svg";
 import IconFontWeightItalic from "src/assets/icons/fontWeightItalic.svg";
-import useElementMenu from "src/hooks/useElementMenu";
-import type { EventBusMap } from "src/utils/eventBus";
+import useElementMenu, {
+  ELEMENT_VISUAL_SUBSCRIPTIONS,
+} from "src/hooks/useElementMenu";
 
 interface TextMenuState {
   content: string;
@@ -47,11 +48,6 @@ const DEFAULT_PROPS: TextMenuState = {
   fontStyle: "normal",
   fontWeight: "normal",
 };
-
-const EXTRA_SUBSCRIPTIONS: Array<keyof EventBusMap> = [
-  "element:color:changed",
-  "element:properties:changed",
-];
 
 interface RadioOption {
   value: string;
@@ -116,7 +112,7 @@ const TextMenu = () => {
   const { activeRef, deselect, disabled, selected, state: textProps, setState: setTextProps } = useElementMenu<TextElement, TextMenuState>(
     {
       defaultState: DEFAULT_PROPS,
-      extraSubscriptions: EXTRA_SUBSCRIPTIONS,
+      extraSubscriptions: ELEMENT_VISUAL_SUBSCRIPTIONS,
       findSelected: (els) => els.find((el) => el instanceof TextElement),
       syncFromElement: (el) => ({
         content: el.content.join('\n'),
