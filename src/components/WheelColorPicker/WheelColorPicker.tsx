@@ -16,6 +16,7 @@ import {
   triangleForHue,
   weightsFromHex,
 } from "src/utils/colorTriangle";
+import type { ColorWeights } from "src/utils/colorTriangle";
 import { placeNearAnchor } from "src/utils/placement";
 import {
   RING_HIT_TOLERANCE,
@@ -176,6 +177,22 @@ const ColorPickerPanel = ({
     onChange(hex);
   };
 
+  /**
+   * Cor vinda do triângulo: o matiz do anel manda.
+   *
+   * Perto dos cantos branco e preto os canais do hex ficam praticamente iguais,
+   * o que torna o matiz derivado dele instável (branco vira 0°, cinzas saltam
+   * dezenas de graus). Recalcular o matiz a cada movimento girava a roda no
+   * meio do arrasto — o tremor relatado. Os pesos já trazem S e L; o H vem do
+   * anel e não muda enquanto o triângulo é arrastado.
+   */
+  const commitWeights = (hue: number, weights: ColorWeights) => {
+    const hex = hexFromWeights(hue, weights);
+    const { s, l } = hexToHsl(hex);
+    setState({ activeColor: hex, hue, saturation: s, lightness: l });
+    onChange(hex);
+  };
+
   const sampleAt = (clientX: number, clientY: number): string | null =>
     request("workarea:sampleColorAtClient", { clientX, clientY })[0] ?? null;
 
@@ -238,7 +255,7 @@ const ColorPickerPanel = ({
           UPWARD_TRIANGLE,
         );
         if (!weights) return;
-        commitHex(hexFromWeights(hue, weights));
+        commitWeights(hue, weights);
         return;
       }
 

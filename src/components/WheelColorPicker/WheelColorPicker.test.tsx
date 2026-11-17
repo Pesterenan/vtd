@@ -318,6 +318,35 @@ describe("WheelColorPicker", () => {
     expect(onChange).toHaveBeenLastCalledWith("#ffffff");
   });
 
+  it("não gira a roda ao arrastar perto do canto branco", () => {
+    const { onChange } = setup("#0066cc");
+
+    // Canto branco do triângulo em hue 210 e um pixel logo ao lado: o hex
+    // resultante tem canais quase iguais, então recalcular o matiz a partir
+    // dele (180°) girava o triângulo no meio do arrasto.
+    fireEvent.mouseDown(getWheel(), { clientX: 216, clientY: 128 });
+    fireEvent.mouseMove(document, { clientX: 210, clientY: 125 });
+
+    expect(onChange).toHaveBeenLastCalledWith("#f3f4f4");
+    expect(screen.getByLabelText("H")).toHaveValue(210);
+
+    const hueIndicator = screen.getByTestId("wheel-color-picker-hue-indicator");
+    expect(Number(hueIndicator.getAttribute("cx"))).toBeCloseTo(72, 1);
+    expect(Number(hueIndicator.getAttribute("cy"))).toBeCloseTo(225, 1);
+  });
+
+  it("não gira a roda ao arrastar perto do canto preto", () => {
+    const { onChange } = setup("#0066cc");
+
+    // Canto preto em hue 210 e um pixel acima: o hex é quase preto e o matiz
+    // derivado dele oscilava entre 0° e ~206°.
+    fireEvent.mouseDown(getWheel(), { clientX: 84, clientY: 52 });
+    fireEvent.mouseMove(document, { clientX: 84, clientY: 56 });
+
+    expect(onChange).toHaveBeenLastCalledWith("#000407");
+    expect(screen.getByLabelText("H")).toHaveValue(210);
+  });
+
   it("ignora cliques fora do anel de matiz", () => {
     const { onChange } = setup("#ff0000");
 
