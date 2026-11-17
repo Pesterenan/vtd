@@ -307,6 +307,32 @@ describe("WheelColorPicker", () => {
     expect(screen.getByLabelText("S")).toHaveValue(0);
   });
 
+  it("para de seguir o mouse quando o painel fecha durante o arrasto", () => {
+    const { onChange } = setup("#ff0000");
+
+    fireEvent.mouseDown(getWheel(), { clientX: 240, clientY: 128 });
+    const callsAfterDown = onChange.mock.calls.length;
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    fireEvent.mouseMove(document, { clientX: 60, clientY: 60 });
+
+    expect(onChange).toHaveBeenCalledTimes(callsAfterDown);
+  });
+
+  it("encerra o arrasto quando a janela perde o foco", () => {
+    const { onChange } = setup("#ff0000");
+
+    fireEvent.mouseDown(getWheel(), { clientX: 240, clientY: 128 });
+    fireEvent.blur(window);
+    const callsAfterBlur = onChange.mock.calls.length;
+
+    fireEvent.mouseMove(document, { clientX: 60, clientY: 60 });
+
+    expect(onChange).toHaveBeenCalledTimes(callsAfterBlur);
+  });
+
   it("reaproveita a cor da nova âncora ao abrir de novo", () => {
     const { eventBus } = setup("#ff0000");
     const onChange = vi.fn();

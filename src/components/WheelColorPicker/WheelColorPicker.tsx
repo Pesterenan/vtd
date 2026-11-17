@@ -76,6 +76,11 @@ const ColorPickerPanel = ({
   } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const dragCleanupRef = useRef<(() => void) | null>(null);
+
+  // Um arrasto interrompido (Escape, desmontagem) não pode continuar
+  // seguindo o mouse com o painel fechado.
+  useEffect(() => () => dragCleanupRef.current?.(), []);
 
   useLayoutEffect(() => {
     const panel = panelRef.current;
@@ -215,11 +220,18 @@ const ColorPickerPanel = ({
       update(moveEvent.clientX, moveEvent.clientY);
     };
     const handleUp = () => {
+      dragCleanupRef.current?.();
+    };
+    dragCleanupRef.current?.();
+    dragCleanupRef.current = () => {
       document.removeEventListener("mousemove", handleMove);
       document.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("blur", handleUp);
+      dragCleanupRef.current = null;
     };
     document.addEventListener("mousemove", handleMove);
     document.addEventListener("mouseup", handleUp);
+    window.addEventListener("blur", handleUp);
   };
 
   return (
