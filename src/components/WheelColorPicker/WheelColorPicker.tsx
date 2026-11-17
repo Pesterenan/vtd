@@ -177,7 +177,7 @@ const ColorPickerPanel = ({
   };
 
   const sampleAt = (clientX: number, clientY: number): string | null =>
-    request("workarea:sampleColor", { clientX, clientY })[0] ?? null;
+    request("workarea:sampleColorAtClient", { clientX, clientY })[0] ?? null;
 
   const startSampling = () => {
     setPreview(null);

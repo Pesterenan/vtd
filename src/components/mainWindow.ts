@@ -236,16 +236,19 @@ export class MainWindow {
     this.eventBus.on("workarea:adjustForScreen", ({ position }) =>
       this.adjustForScreen(position),
     );
-    this.eventBus.on("workarea:sampleColor", ({ clientX, clientY }) => {
-      if (!this.workArea || !this.canvas) return null;
-      const rect = this.canvas.getBoundingClientRect();
-      return this.workArea.sampleColorAt(
-        this.adjustForCanvas({
-          x: clientX - rect.left,
-          y: clientY - rect.top,
-        }),
-      );
-    });
+    this.eventBus.on(
+      "workarea:sampleColorAtClient",
+      ({ clientX, clientY }) => {
+        if (!this.workArea || !this.canvas) return null;
+        const rect = this.canvas.getBoundingClientRect();
+        return this.workArea.sampleColorAt(
+          this.adjustForCanvas({
+            x: clientX - rect.left,
+            y: clientY - rect.top,
+          }),
+        );
+      },
+    );
     this.eventBus.on("workarea:sampleColorAt", ({ position }) =>
       this.workArea ? this.workArea.sampleColorAt(position) : null,
     );

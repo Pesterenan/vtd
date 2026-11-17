@@ -202,7 +202,7 @@ describe("WheelColorPicker", () => {
         ({ clientX, clientY }: { clientX: number; clientY: number }) =>
           sample(clientX, clientY),
       );
-      harness.eventBus.on("workarea:sampleColor", sampleSpy);
+      harness.eventBus.on("workarea:sampleColorAtClient", sampleSpy);
 
       fireEvent.click(screen.getByLabelText("Capturar cor do canvas"));
 

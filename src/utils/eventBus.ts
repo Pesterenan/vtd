@@ -481,15 +481,15 @@ export interface EventBusMap {
     payload: unknown;
     result: Element[];
   };
-  /** Amostra a cor renderizada no canvas a partir de coordenadas de cliente. */
-  "workarea:sampleColor": {
+  /** Amostra a cor do canvas em coordenadas de cliente (tela). */
+  "workarea:sampleColorAtClient": {
     payload: {
       clientX: number;
       clientY: number;
     };
     result: string | null;
   };
-  /** Amostra a cor renderizada no canvas a partir de uma posição do workArea. */
+  /** Amostra a cor na resolução do documento, a partir de uma posição do workArea. */
   "workarea:sampleColorAt": {
     payload: {
       position: Position;
