@@ -294,6 +294,19 @@ describe("WheelColorPicker", () => {
     });
   });
 
+  it("cai no preenchimento padrão quando a cor não é #RRGGBB", () => {
+    setup("red");
+
+    expect(
+      screen.getByRole("dialog", { name: "Seletor de cores" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("color-picker-swatch")).toHaveStyle({
+      backgroundColor: "#E0E0E0",
+    });
+    expect(screen.getByLabelText("H")).toHaveValue(0);
+    expect(screen.getByLabelText("S")).toHaveValue(0);
+  });
+
   it("reaproveita a cor da nova âncora ao abrir de novo", () => {
     const { eventBus } = setup("#ff0000");
     const onChange = vi.fn();

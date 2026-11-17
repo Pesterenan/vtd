@@ -1,7 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useEventBus } from "src/hooks/useEventBus";
-import { hexToHsl, hslToHex } from "src/utils/color";
+import {
+  DEFAULT_ACTIVE_COLORS,
+  hexToHsl,
+  hslToHex,
+  isHexColor,
+} from "src/utils/color";
 import {
   UPWARD_TRIANGLE,
   barycentricWeights,
@@ -29,7 +34,15 @@ type ColorPickerPanelProps = ColorPickerRequest & {
   onClose: () => void;
 };
 
-const hueOf = (hex: string): number => hexToHsl(hex).h;
+/**
+ * Cores persistidas em projetos antigos podem vir fora do formato `#RRGGBB`
+ * (`red`, `#fff`, `""`). O painel cai no preenchimento padrão em vez de
+ * lançar exceção no render.
+ */
+const normalizeHex = (value: string): string =>
+  isHexColor(value) ? value : DEFAULT_ACTIVE_COLORS.fill;
+
+const hueOf = (hex: string): number => hexToHsl(normalizeHex(hex)).h;
 
 type PickerState = {
   activeColor: string;
@@ -39,8 +52,9 @@ type PickerState = {
 };
 
 const stateFromHex = (hex: string, hue = hueOf(hex)): PickerState => {
-  const { s, l } = hexToHsl(hex);
-  return { activeColor: hex, hue, saturation: s, lightness: l };
+  const safeHex = normalizeHex(hex);
+  const { s, l } = hexToHsl(safeHex);
+  return { activeColor: safeHex, hue, saturation: s, lightness: l };
 };
 
 const ColorPickerPanel = ({
