@@ -96,6 +96,19 @@ const ColorPickerPanel = ({
   }, [anchor]);
 
   useEffect(() => {
+    if (!position) return;
+    panelRef.current?.focus({ preventScroll: true });
+  }, [position]);
+
+  // Fechar o painel devolve o foco ao controle que o abriu.
+  useEffect(
+    () => () => {
+      if (anchor.isConnected) anchor.focus({ preventScroll: true });
+    },
+    [anchor],
+  );
+
+  useEffect(() => {
     const handleMouseDown = (event: MouseEvent) => {
       if (isSampling) return;
       const target = event.target as Node;
@@ -236,13 +249,29 @@ const ColorPickerPanel = ({
     window.addEventListener("blur", handleUp);
   };
 
+  const handleWheelKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = event.shiftKey ? 10 : 1;
+    const delta =
+      event.key === "ArrowRight" || event.key === "ArrowUp"
+        ? step
+        : event.key === "ArrowLeft" || event.key === "ArrowDown"
+          ? -step
+          : 0;
+    if (delta === 0) return;
+    event.preventDefault();
+    const nextHue = (hue + delta + 360) % 360;
+    commitHsl({ h: nextHue, s: saturation, l: lightness });
+  };
+
   return (
     <>
       <div
         ref={panelRef}
         className={styles.picker}
         role="dialog"
+        aria-modal="true"
         aria-label="Seletor de cores"
+        tabIndex={-1}
         style={{
           left: position?.left ?? 0,
           top: position?.top ?? 0,
@@ -253,7 +282,14 @@ const ColorPickerPanel = ({
           <div
             className={styles.wheel}
             data-testid="wheel-color-picker"
+            role="slider"
+            aria-label="Matiz"
+            aria-valuemin={0}
+            aria-valuemax={360}
+            aria-valuenow={Math.round(hue)}
+            tabIndex={0}
             onMouseDown={handleWheelMouseDown}
+            onKeyDown={handleWheelKeyDown}
           />
           <canvas
             ref={canvasRef}

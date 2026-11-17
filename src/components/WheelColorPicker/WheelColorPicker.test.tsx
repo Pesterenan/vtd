@@ -2,7 +2,7 @@ import { act } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { EventBusProvider } from "src/contexts/EventBusContext";
 import { EventBus } from "src/utils/eventBus";
-import { activeColors } from "src/utils/color";
+import { activeColors, hslToHex } from "src/utils/color";
 import WheelColorPicker from "./WheelColorPicker";
 
 const RECT = {
@@ -17,10 +17,10 @@ const RECT = {
   toJSON: () => ({}),
 } as DOMRect;
 
-const setup = (color: string) => {
+const setup = (color: string, anchorEl?: HTMLElement) => {
   const eventBus = new EventBus();
   const onChange = vi.fn();
-  const anchor = document.createElement("div");
+  const anchor = anchorEl ?? document.createElement("div");
 
   render(
     <EventBusProvider eventBus={eventBus}>
@@ -331,6 +331,40 @@ describe("WheelColorPicker", () => {
     fireEvent.mouseMove(document, { clientX: 60, clientY: 60 });
 
     expect(onChange).toHaveBeenCalledTimes(callsAfterBlur);
+  });
+
+  it("foca o painel ao abrir e devolve o foco à âncora ao fechar", () => {
+    const anchor = document.createElement("button");
+    document.body.appendChild(anchor);
+    setup("#ff0000", anchor);
+
+    expect(
+      screen.getByRole("dialog", { name: "Seletor de cores" }),
+    ).toHaveFocus();
+
+    fireEvent.mouseDown(document.body);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(anchor).toHaveFocus();
+    anchor.remove();
+  });
+
+  it("setas ajustam o matiz com a roda focada", () => {
+    const { onChange } = setup("#ff0000");
+    const wheel = getWheel();
+
+    expect(wheel).toHaveAttribute("aria-valuenow", "0");
+
+    fireEvent.keyDown(wheel, { key: "ArrowRight" });
+
+    expect(wheel).toHaveAttribute("aria-valuenow", "1");
+    expect(onChange).toHaveBeenLastCalledWith(
+      hslToHex({ h: 1, s: 100, l: 50 }),
+    );
+
+    fireEvent.keyDown(wheel, { key: "ArrowLeft", shiftKey: true });
+
+    expect(wheel).toHaveAttribute("aria-valuenow", "351");
   });
 
   it("reaproveita a cor da nova âncora ao abrir de novo", () => {
