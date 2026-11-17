@@ -209,6 +209,14 @@ describe("WorkArea - Path Integration", () => {
       expect(pathElement.strokeColor).toBe("#445566");
     });
 
+    it("should keep freehand paths unfilled", () => {
+      activeColors.reset({ fill: "#112233", stroke: "#445566" });
+
+      eventBus.emit("edit:path", { position: { x: 400, y: 300 } });
+
+      expect((workArea.elements[0] as PathElement).hasFill).toBe(false);
+    });
+
     it("should handle closed path correctly - new paths start open", () => {
       const position = { x: 200, y: 150 };
 
@@ -241,6 +249,24 @@ describe("WorkArea - Path Integration", () => {
         x: 200,
         y: 200,
       });
+    });
+  });
+
+  describe("handleEditShape", () => {
+    it("should create closed shapes filled with the active fill color", () => {
+      activeColors.reset({ fill: "#112233", stroke: "#445566" });
+
+      eventBus.emit("edit:shape", {
+        mode: "rectangle",
+        box: { x: 100, y: 100, w: 80, h: 60 },
+        sides: 4,
+      });
+
+      const shape = workArea.elements[0] as PathElement;
+      expect(shape.isClosed).toBe(true);
+      expect(shape.hasFill).toBe(true);
+      expect(shape.fillColor).toBe("#112233");
+      expect(shape.strokeColor).toBe("#445566");
     });
   });
 

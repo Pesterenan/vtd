@@ -226,7 +226,7 @@ export class WorkArea {
     const newElement = new PathElement(position, size, this.elements.length);
     newElement.points = points;
     newElement.isClosed = true;
-    this.applyActiveColors(newElement);
+    this.applyActiveColors(newElement, { fillEnabled: true });
     newElement.getBoundingBox();
     this.registerElement(newElement, "path");
   };
@@ -244,10 +244,20 @@ export class WorkArea {
     this.registerElement(newElement, "path");
   };
 
-  private applyActiveColors(element: PathElement | TextElement): void {
+  /**
+   * Aplica as cores ativas ao elemento novo.
+   *
+   * `fillEnabled` liga o preenchimento para formas fechadas (retângulo,
+   * elipse, polígono); traços à mão livre continuam só com contorno.
+   */
+  private applyActiveColors(
+    element: PathElement | TextElement,
+    { fillEnabled = false }: { fillEnabled?: boolean } = {},
+  ): void {
     const { fill, stroke } = activeColors.get();
     element.fillColor = fill;
     element.strokeColor = stroke;
+    if (fillEnabled) element.hasFill = true;
   }
 
   private createTransformBox = (): void => {
