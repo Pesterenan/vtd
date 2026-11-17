@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import useDragToAdjust from "src/hooks/useDragToAdjust";
 import styles from "./SliderControl.module.css";
 
@@ -23,17 +23,42 @@ const SliderControl = ({
   suffix, compact,
 }: SliderControlProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = useState<string | null>(null);
   const { onMouseDown: dragHandlers } = useDragToAdjust({ min, max, step, value, onChange });
+
+  const clamp = (candidate: number) => Math.min(max, Math.max(min, candidate));
+
+  const parseNumber = (raw: string): number => Number(raw.replace(",", "."));
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(Number(e.target.value));
   };
 
+  /**
+   * O texto fica em estado local enquanto o campo está em edição: assim o
+   * usuário pode apagar o conteúdo e digitar por substituição (um input
+   * controlado restauraria o valor antigo). Valores válidos são aplicados
+   * imediatamente; texto inválido ou vazio espera o blur.
+   */
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Campo vazio enquanto o usuário digita não deve virar zero.
-    if (e.target.value === "") return;
-    const v = Number(e.target.value);
-    onChange(Math.min(max, Math.max(min, v)));
+    const raw = e.target.value;
+    setDraft(raw);
+    if (raw.trim() === "") return;
+    const parsed = parseNumber(raw);
+    if (Number.isNaN(parsed)) return;
+    onChange(clamp(parsed));
+  };
+
+  const commitDraft = () => {
+    if (draft === null) return;
+    const parsed = parseNumber(draft);
+    if (draft.trim() !== "" && !Number.isNaN(parsed)) onChange(clamp(parsed));
+    setDraft(null);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") commitDraft();
+    if (e.key === "Escape") setDraft(null);
   };
 
   /**
@@ -51,7 +76,7 @@ const SliderControl = ({
     if (raw === "" || Number.isNaN(numeric)) return;
 
     e.preventDefault();
-    onChange(Math.min(max, Math.max(min, numeric)));
+    onChange(clamp(numeric));
   };
 
   return (
@@ -87,8 +112,10 @@ const SliderControl = ({
           min={min}
           max={max}
           step={step}
-          value={value}
+          value={draft ?? value}
           onChange={handleInputChange}
+          onBlur={commitDraft}
+          onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           disabled={disabled}
           className={`${styles.numberInput}${compact ? ` ${styles.numberInputCompact}` : ""}${suffix ? ` ${styles.numberInputWithSuffix}` : ""}`}

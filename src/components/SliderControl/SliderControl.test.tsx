@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import type { ComponentProps } from "react";
 import SliderControl from "./SliderControl";
 
@@ -17,6 +18,33 @@ const setup = (props: Partial<ComponentProps<typeof SliderControl>> = {}) => {
       {...props}
     />,
   );
+
+  return { onChange };
+};
+
+/** Variante controlada, para observar o campo refletindo o valor aplicado. */
+const setupControlled = () => {
+  const onChange = vi.fn();
+
+  const Harness = () => {
+    const [value, setValue] = useState(50);
+    return (
+      <SliderControl
+        id="control"
+        label="Opacidade"
+        min={0}
+        max={100}
+        step={1}
+        value={value}
+        onChange={(next) => {
+          onChange(next);
+          setValue(next);
+        }}
+      />
+    );
+  };
+
+  render(<Harness />);
 
   return { onChange };
 };
@@ -83,13 +111,50 @@ describe("SliderControl", () => {
     expect(onChange).toHaveBeenLastCalledWith(100);
   });
 
-  it("campo vazio enquanto digita não vira zero", () => {
+  it("aceita apagar o campo e digitar por substituição", () => {
     const { onChange } = setup();
+    const input = screen.getByLabelText("Opacidade:");
 
-    fireEvent.change(screen.getByLabelText("Opacidade:"), {
-      target: { value: "" },
-    });
+    fireEvent.change(input, { target: { value: "" } });
 
+    expect(input).toHaveValue(null);
+    expect(onChange).not.toHaveBeenCalled();
+
+    fireEvent.change(input, { target: { value: "7" } });
+
+    expect(onChange).toHaveBeenLastCalledWith(7);
+    expect(input).toHaveValue(7);
+  });
+
+  it("restaura o valor atual quando o campo vazio perde o foco", () => {
+    setup();
+    const input = screen.getByLabelText("Opacidade:");
+
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.blur(input);
+
+    expect(input).toHaveValue(50);
+  });
+
+  it("aplica o limite ao sair do campo com valor fora da faixa", () => {
+    const { onChange } = setupControlled();
+    const input = screen.getByLabelText("Opacidade:");
+
+    fireEvent.change(input, { target: { value: "180" } });
+    fireEvent.blur(input);
+
+    expect(onChange).toHaveBeenLastCalledWith(100);
+    expect(input).toHaveValue(100);
+  });
+
+  it("Escape descarta o texto em edição", () => {
+    const { onChange } = setup();
+    const input = screen.getByLabelText("Opacidade:");
+
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(input).toHaveValue(50);
     expect(onChange).not.toHaveBeenCalled();
   });
 
