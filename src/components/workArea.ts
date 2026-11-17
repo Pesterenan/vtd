@@ -446,6 +446,15 @@ export class WorkArea {
   /**
    * Cor renderizada no pixel informado (espaço do workArea, já com zoom/offset
    * resolvidos). Retorna `null` fora dos limites ou em área transparente.
+   *
+   * A leitura é feita no canvas do documento, na resolução 1:1: com zoom
+   * diferente de 100% a cor pode diferir do pixel exibido na tela, que é
+   * interpolado pelo navegador. É a cor da arte, não do preview — o que o
+   * conta-gotas deve copiar.
+   *
+   * Cada chamada lê 1×1 via `getImageData`, então o custo acompanha apenas a
+   * frequência de amostragem (um pixel por `mousemove` no modo captura), não o
+   * tamanho do documento.
    */
   public sampleColorAt(position: Position): string | null {
     if (!this.context || !this.canvas) return null;
