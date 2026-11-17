@@ -57,7 +57,7 @@ describe("hexToHsl", () => {
     expect(gray.l).toBeCloseTo(72.94, 2);
   });
 
-  it("Hipótese: should reject malformed hex input", () => {
+  it("should reject malformed hex input", () => {
     expect(() => hexToHsl("#fff")).toThrow();
   });
 });
@@ -92,7 +92,8 @@ describe("hslToHex", () => {
   });
 });
 
-describe("toHex", () => {  it("should convert channel boundaries to lowercase hex", () => {
+describe("toHex", () => {
+  it("should convert channel boundaries to lowercase hex", () => {
     expect(toHex(0, 0, 0)).toBe("#000000");
     expect(toHex(255, 255, 255)).toBe("#ffffff");
   });
