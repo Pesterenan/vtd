@@ -307,6 +307,17 @@ describe("WheelColorPicker", () => {
     expect(screen.getByLabelText("S")).toHaveValue(0);
   });
 
+  it("ignora cliques fora do anel de matiz", () => {
+    const { onChange } = setup("#ff0000");
+
+    // Canto do quadrado: fora do círculo e sem triângulo sob o cursor.
+    fireEvent.mouseDown(getWheel(), { clientX: 4, clientY: 4 });
+    fireEvent.mouseMove(document, { clientX: 200, clientY: 200 });
+    fireEvent.mouseUp(document);
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("para de seguir o mouse quando o painel fecha durante o arrasto", () => {
     const { onChange } = setup("#ff0000");
 

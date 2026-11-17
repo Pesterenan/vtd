@@ -17,7 +17,15 @@ import {
   weightsFromHex,
 } from "src/utils/colorTriangle";
 import { placeNearAnchor } from "src/utils/placement";
-import { WHEEL_SIZE, hueToPoint, pointToHue, rotatePoint } from "src/utils/wheel";
+import {
+  RING_HIT_TOLERANCE,
+  RING_RADIUS,
+  WHEEL_CENTER,
+  WHEEL_SIZE,
+  hueToPoint,
+  pointToHue,
+  rotatePoint,
+} from "src/utils/wheel";
 import type { Position } from "../types";
 import EyedropperIcon from "src/assets/icons/eyedropper-tool.svg";
 import SliderControl from "../SliderControl/SliderControl";
@@ -211,6 +219,15 @@ const ColorPickerPanel = ({
     const dragsTriangle =
       barycentricWeights(rotatePoint(startPoint, -hue), UPWARD_TRIANGLE) !==
       null;
+    // A máscara do CSS só afeta a pintura: sem esta checagem, cliques nos
+    // cantos do quadrado (fora do anel) também mudariam o matiz.
+    const startDistance = Math.hypot(
+      startPoint.x - WHEEL_CENTER,
+      startPoint.y - WHEEL_CENTER,
+    );
+    const dragsRing =
+      Math.abs(startDistance - RING_RADIUS) <= RING_HIT_TOLERANCE;
+    if (!dragsTriangle && !dragsRing) return;
 
     const update = (clientX: number, clientY: number) => {
       const point = toPoint(clientX, clientY);

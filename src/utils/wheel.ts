@@ -7,6 +7,8 @@ export const WHEEL_SIZE = 256;
 export const WHEEL_CENTER = WHEEL_SIZE / 2;
 /** Raio em que os indicadores do anel de matiz são desenhados. */
 export const RING_RADIUS = 112;
+/** Tolerância de clique em torno de `RING_RADIUS`, igual à faixa pintada. */
+export const RING_HIT_TOLERANCE = 16;
 /** Circunraio do triângulo de saturação/luminosidade. */
 export const TRIANGLE_RADIUS = 88;
 
