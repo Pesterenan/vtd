@@ -59,7 +59,9 @@ describe("EyedropperTool", () => {
       slot: "stroke",
       value: "#123456",
     });
-    expect(emitSpy).toHaveBeenCalledWith("workarea:update");
+    expect(
+      emitSpy.mock.calls.filter(([event]) => event === "workarea:update"),
+    ).toHaveLength(1);
   });
 
   it("copia as cores para um texto selecionado", () => {

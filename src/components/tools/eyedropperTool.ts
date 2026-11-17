@@ -198,8 +198,6 @@ export class EyedropperTool extends Tool {
       this.hoveredElement = null;
       this.copyFromPixel(pixel, targets, mode);
     }
-
-    this.eventBus.emit("workarea:update");
   }
 
   /** Cor renderizada sob o cursor, no espaço do workArea. */
