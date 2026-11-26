@@ -19,7 +19,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          # Pinned to 24.04 so the .deb links against FFmpeg 6.1
+          # (libavutil.so.58), the version shipped by Ubuntu 24.04.
+          - os: ubuntu-24.04
             bundle: deb
           - os: windows-latest
             bundle: nsis
@@ -65,12 +67,17 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $ffmpegVersion = "8.1.2"
+          # Pin FFmpeg 6.1.1 (libavutil 58) so the Windows bundle matches the
+          # FFmpeg 6.1 that the Linux .deb links against (Ubuntu 24.04).
+          # ffmpeg-next detects the installed FFmpeg version at build time.
+          # gyan.dev only keeps the latest packages, so pinned versions are
+          # downloaded from the GyanD/codexffmpeg GitHub releases.
+          $ffmpegVersion = "6.1.1"
           $temp = "$env:RUNNER_TEMP"
           $ffmpegDir = "$temp\ffmpeg"
 
           # Download shared build (includes DLLs, headers, and .lib)
-          $sharedUrl = "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-${ffmpegVersion}-full_build-shared.7z"
+          $sharedUrl = "https://github.com/GyanD/codexffmpeg/releases/download/${ffmpegVersion}/ffmpeg-${ffmpegVersion}-full_build-shared.7z"
           Write-Host "Downloading FFMPEG shared build..."
           Invoke-WebRequest -Uri $sharedUrl -OutFile "$temp\ffmpeg-shared.7z"
           7z x "$temp\ffmpeg-shared.7z" -o"$ffmpegDir" -y | Out-Null

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Video Thumbnail Designer",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "identifier": "br.com.pesterenan",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -44,6 +44,19 @@
       "nsis": {
         "installMode": "currentUser",
         "languages": ["Portuguese"]
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "libavcodec60",
+          "libavdevice60",
+          "libavfilter9",
+          "libavformat60",
+          "libavutil58",
+          "libswresample4",
+          "libswscale7"
+        ]
       }
     }
   }

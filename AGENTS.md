@@ -29,7 +29,7 @@ Tauri 2 desktop app: React 18 + TS frontend (`src/`), Rust backend (`src-tauri/`
 - Keep menu ids stable (`lib.rs` `on_menu_event`): frontend depends on `request-new-project`, `load-project-response`, `request-save-project(-as)`, `request-project-properties`, `request-close-project`, `menu:import-image`, `menu:extract-video`, `menu:export-image`, `workarea:flip-*`, `workarea:rotate-*`, `copy/paste-to-clipboard`, `vfe:*`.
 - Update `AppStatus`/window title via `update_window_title()` when project state changes; toggle `MenuHandles` enabled flags on open/close.
 - Create the VFE window only via `misc::create_frame_extractor_window` (second Vite entry `modals/videoFrameExtractor/video-frame-extractor.html`). Prefix its menu events with `vfe:`.
-- Require Rust 1.77.2+ (`Cargo.toml` `rust-version`) and system FFmpeg (`ffmpeg-next 8.1`) for video commands. Linux CI also needs webkitgtk/appindicator/librsvg/gtk/soup/ffmpeg dev libs.
+- Require Rust 1.77.2+ (`Cargo.toml` `rust-version`) and system FFmpeg 6.1 (`libavutil.so.58`, matching Ubuntu 24.04) for video commands. `ffmpeg-next 8.1` detects the installed FFmpeg version at build time, so never build releases against FFmpeg 7/8: CI and release Linux runners are pinned to `ubuntu-24.04` (`ubuntu-latest` is 26.04/FFmpeg 8). Linux CI also needs webkitgtk/appindicator/librsvg/gtk/soup/ffmpeg dev libs.
 
 ## Tests
 

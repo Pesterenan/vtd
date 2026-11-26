@@ -5,6 +5,22 @@ Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o
 projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.4.1] - 2026-11-26
+
+### Corrigido
+
+- **Compatibilidade com o FFmpeg do Ubuntu 24.04**: os builds passam a ser
+  feitos contra o FFmpeg 6.1 (`libavutil.so.58`) em vez do FFmpeg 8
+  (`libavutil.so.60`). O `.deb` volta a abrir no Ubuntu 24.04 sem exigir a
+  instalação manual de uma versão mais recente do FFmpeg.
+- Os runners Linux de CI e de release foram fixados em `ubuntu-24.04`, já que
+  o `ubuntu-latest` passou a apontar para o Ubuntu 26.04 (FFmpeg 8) em novembro
+  de 2026.
+- O `.deb` agora declara as bibliotecas de runtime do FFmpeg 6.1 como
+  dependências, para que o `apt` as instale junto com o aplicativo.
+- O pacote Windows passou a empacotar as DLLs do FFmpeg 6.1.1, alinhadas à
+  versão usada na compilação.
+
 ## [0.4.0] - 2026-11-17
 
 ### Adicionado
@@ -270,6 +286,7 @@ Primeira versão pública, baseada em **Electron + TypeScript**.
 - Salvamento e carregamento de projetos em JSON.
 - Ícones e organização inicial das ferramentas.
 
+[0.4.1]: https://github.com/Pesterenan/vtd/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Pesterenan/vtd/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Pesterenan/vtd/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Pesterenan/vtd/compare/v0.2.0...v0.3.0
