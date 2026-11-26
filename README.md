@@ -29,12 +29,23 @@ miniatura tenha o destaque desejado.
 ## Pré-requisitos
 
 Para a funcionalidade de extração de quadros de vídeo, será necessário ter o
-**FFmpeg** instalado no sistema.
+**FFmpeg 6.1** instalado no sistema (versão padrão do Ubuntu 24.04, com
+`libavutil.so.58`). No Ubuntu/Debian:
+
+```bash
+sudo apt install ffmpeg
+```
+
+O pacote `.deb` declara as bibliotecas de runtime do FFmpeg 6.1 como
+dependências, então o `apt` as instala automaticamente junto com o aplicativo.
+Em distribuições que usam outra versão maior do FFmpeg, é necessário compilar a
+aplicação a partir do código-fonte.
 
 ## Como baixar a aplicação
 
 Novas versões da aplicação ficarão disponíveis na página de 'Releases', com
-instalação para Windows (instalador NSIS) e Linux (.deb).
+instalação para Windows (instalador NSIS) e Linux (.deb, compilado contra o
+FFmpeg 6.1 do Ubuntu 24.04).
 
 O histórico de mudanças de cada versão está documentado no
 [CHANGELOG.md](./CHANGELOG.md).

@@ -1,6 +1,6 @@
 [package]
 name = "vtd"
-version = "0.4.0"
+version = "0.4.1"
 description = "Editor de miniaturas de videos."
 authors = ["Pesterenan"]
 license = ""
@@ -29,6 +29,8 @@ tauri-plugin-dialog = "2.7.1"
 open = "5.3"
 arboard = { version = "3.4", features = ["image-data"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+# ffmpeg-next detects the installed FFmpeg version at build time. Release
+# builds target FFmpeg 6.1 (libavutil.so.58) to match Ubuntu 24.04.
 ffmpeg-next = "8.1"
 clipboard-win = "5.4"
 
